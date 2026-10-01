@@ -4,6 +4,7 @@ import { getAppIconPath } from '../app-icon'
 import { browserManager } from '../browser/browser-manager'
 import { getBrowserClientHostId } from '../browser/browser-client-host-id'
 import { formatBrowserClientHostIdArgument } from '../../shared/browser-client-host-id-argument'
+import { formatWindowGlassArgument, shouldCreateGlassWindow } from '../../shared/window-glass'
 import { markSystemSessionEnding } from '../crash-reporting/expected-teardown-state'
 import { recordDurableCrashBreadcrumb } from '../crash-reporting/durable-crash-breadcrumb'
 import { clearTrustedUIRendererWebContentsId, setTrustedUIRendererWebContentsId } from '../ipc/ui'
@@ -93,9 +94,19 @@ export function createMainWindow(
     return false
   })
   const blur = settings?.windowBackgroundBlur ?? false
-  // Only Windows acrylic is visible; macOS transparency adds WindowServer compositing behind opaque content (#8482). Creation-time only.
-  const platformBlurOptions =
-    blur && process.platform === 'win32' ? { backgroundMaterial: 'acrylic' as const } : {}
+  // Why: macOS glass is vibrancy over a clear backgroundColor, never `transparent: true` — that flag forced per-frame
+  // WindowServer alpha compositing yet hid the effect (#8482). Applies at creation only, so it needs a restart.
+  const glassWindow = shouldCreateGlassWindow(process.platform, blur)
+  const platformBlurOptions = glassWindow
+    ? {
+        vibrancy: 'under-window' as const,
+        // Why: the default follows focus and flattens the blur whenever Orca is in the background.
+        visualEffectState: 'active' as const,
+        backgroundColor: '#00000000'
+      }
+    : blur && process.platform === 'win32'
+      ? { backgroundMaterial: 'acrylic' as const }
+      : {}
 
   const mainWindow = new BrowserWindow({
     width: savedBounds?.width ?? defaultBounds.width,
@@ -134,8 +145,13 @@ export function createMainWindow(
       preload: join(__dirname, '../preload/index.js'),
       sandbox: true,
       webviewTag: true,
-      // Pass host identity at birth so the renderer has it before first snapshot, without waiting for IPC registration.
-      additionalArguments: [formatBrowserClientHostIdArgument(getBrowserClientHostId())]
+      // Why an argument and not an IPC read: this is the window whose webviews host browser guests,
+      // and it has to know that before it interprets its first session snapshot — earlier than any
+      // handler registration it could wait on.
+      additionalArguments: [
+        formatBrowserClientHostIdArgument(getBrowserClientHostId()),
+        ...(glassWindow ? [formatWindowGlassArgument()] : [])
+      ]
     }
   })
   const rendererWebContentsId = mainWindow.webContents.id
