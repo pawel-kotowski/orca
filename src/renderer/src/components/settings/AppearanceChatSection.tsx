@@ -10,7 +10,12 @@ import { translate } from '@/i18n/i18n'
 import { AppearanceChatContrastControls } from './AppearanceChatContrastControls'
 import { Button } from '../ui/button'
 import { SearchableSetting } from './SearchableSetting'
-import { NumberField, SettingsRow, SettingsSegmentedControl } from './SettingsFormControls'
+import {
+  ColorField,
+  NumberField,
+  SettingsRow,
+  SettingsSegmentedControl
+} from './SettingsFormControls'
 import {
   chatTerminalControlledHint,
   chatTerminalControlledTooltip,
@@ -19,6 +24,10 @@ import {
 } from './chat-appearance-search'
 import { writeNativeChatAppearance } from '../native-chat/native-chat-appearance-write'
 import type { GlobalSettings } from '../../../../shared/global-settings-types'
+
+// Why: approximate the themes' softened chat text so the picker opens near the current color.
+const DEFAULT_CHAT_TEXT_COLOR_LIGHT = '#363636'
+const DEFAULT_CHAT_TEXT_COLOR_DARK = '#c8c8c8'
 
 export type AppearanceChatSectionProps = {
   settings: GlobalSettings
@@ -104,6 +113,32 @@ export function AppearanceChatSection({
               ariaLabel={entries.width.title}
             />
           }
+        />
+      </SearchableSetting>
+      <SearchableSetting
+        id={entries.textColorLight.targetSectionId}
+        {...entries.textColorLight}
+        forceVisible={forceVisiblePrimary}
+      >
+        <ColorField
+          label={entries.textColorLight.title}
+          description={entries.textColorLight.description}
+          value={settings.nativeChatAppearance?.textColorLight ?? ''}
+          fallback={DEFAULT_CHAT_TEXT_COLOR_LIGHT}
+          onChange={(textColorLight) => update({ textColorLight })}
+        />
+      </SearchableSetting>
+      <SearchableSetting
+        id={entries.textColorDark.targetSectionId}
+        {...entries.textColorDark}
+        forceVisible={forceVisiblePrimary}
+      >
+        <ColorField
+          label={entries.textColorDark.title}
+          description={entries.textColorDark.description}
+          value={settings.nativeChatAppearance?.textColorDark ?? ''}
+          fallback={DEFAULT_CHAT_TEXT_COLOR_DARK}
+          onChange={(textColorDark) => update({ textColorDark })}
         />
       </SearchableSetting>
       <SearchableSetting

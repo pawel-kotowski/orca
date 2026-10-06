@@ -27,6 +27,8 @@ export type NativeChatAppearanceStyle = CSSProperties &
     '--chat-estimated-line-height': number
     '--chat-estimated-chars-per-line': number
     '--chat-estimated-spacing-scale': number
+    '--chat-text-color-light'?: string
+    '--chat-text-color-dark'?: string
   }
 
 // Width buckets keep a pixel-by-pixel resize from re-deriving the entire transcript.
@@ -67,7 +69,7 @@ export function nativeChatAppearanceStyle(
   systemPrefersDark = getSystemPrefersDark()
 ): NativeChatAppearanceStyle {
   const appearance = resolveNativeChatAppearanceSettings(settings?.nativeChatAppearance)
-  const { width } = appearance
+  const { width, textColorLight, textColorDark } = appearance
   const matching = appearance.matchTerminalInterface
   const terminalFontSize = settings?.terminalFontSize ?? 14
   const fontSize = matching ? terminalFontSize : appearance.fontSize
@@ -93,7 +95,9 @@ export function nativeChatAppearanceStyle(
       Math.floor((((96 * columnWidthPx) / 736) * 14) / fontSize)
     ),
     '--chat-estimated-spacing-scale': uiFontSize / 14,
-    '--chat-code-font-family': font
+    '--chat-code-font-family': font,
+    ...(textColorLight ? { '--chat-text-color-light': textColorLight } : {}),
+    ...(textColorDark ? { '--chat-text-color-dark': textColorDark } : {})
   }
   let light = settings?.theme === 'light' || (settings?.theme === 'system' && !systemPrefersDark)
   if (matching) {
