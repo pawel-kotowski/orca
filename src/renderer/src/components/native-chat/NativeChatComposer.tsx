@@ -200,6 +200,7 @@ const NativeChatComposerPane = forwardRef<NativeChatComposerHandle, NativeChatCo
 
     const handlePasteEvent = useNativeChatComposerHandle(ref, {
       attachmentScopeKey: draftScopeKey,
+      collapseScopeKey: draftScopeKey,
       textareaRef,
       isComposing: imeEnterGesture.isComposing,
       caret,

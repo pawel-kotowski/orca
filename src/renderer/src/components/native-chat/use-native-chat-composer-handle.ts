@@ -8,6 +8,7 @@ import {
 import { useNativeChatTypedInsertion } from './use-native-chat-typed-insertion'
 import { useNativeChatPastedTextFile } from './use-native-chat-pasted-text-file'
 import type { NativeChatComposerInput } from './native-chat-composer-input'
+import { isNativeChatComposerCollapsed } from './native-chat-composer-collapse-store'
 
 type UseNativeChatComposerHandleArgs = Parameters<typeof useNativeChatTypedInsertion>[0] &
   Omit<UseNativeChatComposerPasteArgs, 'insertTypedText'> & {
@@ -15,6 +16,7 @@ type UseNativeChatComposerHandleArgs = Parameters<typeof useNativeChatTypedInser
     pastesInline: () => boolean
     /** A structured chat's editor while it shows this scope, where a long paste saved as a file lands. */
     pastedTextEditor: (() => NativeChatComposerInput | null) | null
+    collapseScopeKey: string
   }
 
 /** Typed and pasted insertion for the composer, exposed on the handle the chat
@@ -23,7 +25,14 @@ export function useNativeChatComposerHandle(
   ref: ForwardedRef<NativeChatComposerHandle>,
   args: UseNativeChatComposerHandleArgs
 ): (event: ClipboardEventLike) => void {
-  const { textareaRef, isComposing, setDraft, setActiveSuggestion, ...pasteArgs } = args
+  const {
+    textareaRef,
+    isComposing,
+    setDraft,
+    setActiveSuggestion,
+    collapseScopeKey,
+    ...pasteArgs
+  } = args
   const { insertTypedText, appendText, acceptsText, insertPastedText, focus, contains } =
     useNativeChatTypedInsertion({
       textareaRef,
@@ -56,7 +65,8 @@ export function useNativeChatComposerHandle(
       appendText,
       handlePasteEvent,
       pasteFromClipboard,
-      contains
+      contains,
+      isCollapsed: () => isNativeChatComposerCollapsed(collapseScopeKey)
     }),
     [
       focus,
@@ -65,7 +75,8 @@ export function useNativeChatComposerHandle(
       appendText,
       handlePasteEvent,
       pasteFromClipboard,
-      contains
+      contains,
+      collapseScopeKey
     ]
   )
   return handlePasteEvent
