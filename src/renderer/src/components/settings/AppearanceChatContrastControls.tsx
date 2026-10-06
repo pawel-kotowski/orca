@@ -1,5 +1,8 @@
 import { useState } from 'react'
-import type { NativeChatAppearanceSettings } from '../../../../shared/native-chat-appearance-settings'
+import type {
+  NativeChatAppearanceSettings,
+  ResolvedNativeChatAppearanceSettings
+} from '../../../../shared/native-chat-appearance-settings'
 import {
   chatTerminalControlledHint,
   chatTerminalControlledTooltip,
@@ -12,7 +15,7 @@ import { SettingsDisabledControlTooltip } from './SettingsDisabledControlTooltip
 import { SettingsRow, SettingsSwitchRow } from './SettingsFormControls'
 
 type ChatContrastControlsProps = {
-  appearance: Required<NativeChatAppearanceSettings>
+  appearance: ResolvedNativeChatAppearanceSettings
   onChange: (updates: NativeChatAppearanceSettings) => void
   forceVisiblePrimary?: boolean
 }
