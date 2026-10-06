@@ -18,17 +18,27 @@ export type NativeChatAppearanceSettings = {
   textColorLight?: string
   /** Chat text color in the dark theme, as typed (hex when valid); absent = theme default. */
   textColorDark?: string
+  /** Your message bubble color in the light theme, as typed (hex when valid); absent = theme default. */
+  userBubbleColorLight?: string
+  /** Your message bubble color in the dark theme, as typed (hex when valid); absent = theme default. */
+  userBubbleColorDark?: string
 }
+
+export const NATIVE_CHAT_COLOR_KEYS = [
+  'textColorLight',
+  'textColorDark',
+  'userBubbleColorLight',
+  'userBubbleColorDark'
+] as const
+export type NativeChatColorKey = (typeof NATIVE_CHAT_COLOR_KEYS)[number]
 
 export type ResolvedNativeChatAppearanceSettings = Required<
   Pick<
     NativeChatAppearanceSettings,
     'fontFamily' | 'fontSize' | 'codeFontSize' | 'width' | 'contrast' | 'matchTerminalInterface'
   >
-> & {
-  textColorLight: string | undefined
-  textColorDark: string | undefined
-}
+> &
+  Record<NativeChatColorKey, string | undefined>
 
 export type NativeChatGlobalSettings = {
   nativeChatAppearance?: NativeChatAppearanceSettings
@@ -42,24 +52,23 @@ export const DEFAULT_NATIVE_CHAT_FONT_SIZE = 14
 export const DEFAULT_NATIVE_CHAT_CODE_FONT_SIZE = 12
 export const DEFAULT_NATIVE_CHAT_CONTRAST = 100
 
-const KNOWN_KEYS = [
+const KNOWN_KEYS: readonly string[] = [
   'fontFamily',
   'fontSize',
   'codeFontSize',
   'width',
   'contrast',
   'matchTerminalInterface',
-  'textColorLight',
-  'textColorDark'
+  ...NATIVE_CHAT_COLOR_KEYS
 ]
 
 // Why: kept as typed so a half-entered hex survives the next write; validated where it is applied.
-function normalizeTextColorDraft(value: unknown): string | undefined {
+function normalizeColorDraft(value: unknown): string | undefined {
   const trimmed = typeof value === 'string' ? value.trim().slice(0, 32) : ''
   return trimmed || undefined
 }
 
-function resolveTextColor(value: string | undefined): string | undefined {
+function resolveColor(value: string | undefined): string | undefined {
   if (!value || !HEX_COLOR_RE.test(value)) {
     return undefined
   }
@@ -92,11 +101,11 @@ export function normalizeNativeChatAppearanceSettings(
     'matchTerminalInterface' in value && value.matchTerminalInterface === true
   const width =
     'width' in value && (value.width === 'wide' || value.width === 'full') ? value.width : undefined
-  const textColorLight = normalizeTextColorDraft(
-    'textColorLight' in value ? value.textColorLight : undefined
-  )
-  const textColorDark = normalizeTextColorDraft(
-    'textColorDark' in value ? value.textColorDark : undefined
+  const colors = Object.fromEntries(
+    NATIVE_CHAT_COLOR_KEYS.flatMap((key) => {
+      const color = normalizeColorDraft(Object.getOwnPropertyDescriptor(value, key)?.value)
+      return color ? [[key, color]] : []
+    })
   )
   const normalized: NativeChatAppearanceSettings = {
     ...Object.fromEntries(Object.entries(value).filter(([key]) => !KNOWN_KEYS.includes(key))),
@@ -106,8 +115,7 @@ export function normalizeNativeChatAppearanceSettings(
     ...(width ? { width } : {}),
     ...(contrast !== DEFAULT_NATIVE_CHAT_CONTRAST ? { contrast } : {}),
     ...(matchTerminalInterface ? { matchTerminalInterface } : {}),
-    ...(textColorLight ? { textColorLight } : {}),
-    ...(textColorDark ? { textColorDark } : {})
+    ...colors
   }
   return Object.keys(normalized).length ? normalized : undefined
 }
@@ -123,8 +131,10 @@ export function resolveNativeChatAppearanceSettings(
     width: normalized?.width ?? 'comfortable',
     contrast: normalized?.contrast ?? DEFAULT_NATIVE_CHAT_CONTRAST,
     matchTerminalInterface: normalized?.matchTerminalInterface ?? false,
-    textColorLight: resolveTextColor(normalized?.textColorLight),
-    textColorDark: resolveTextColor(normalized?.textColorDark)
+    textColorLight: resolveColor(normalized?.textColorLight),
+    textColorDark: resolveColor(normalized?.textColorDark),
+    userBubbleColorLight: resolveColor(normalized?.userBubbleColorLight),
+    userBubbleColorDark: resolveColor(normalized?.userBubbleColorDark)
   }
 }
 
