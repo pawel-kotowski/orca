@@ -121,8 +121,8 @@ describe('native chat appearance normalization', () => {
         userBubbleColorLight: 'x'
       })
     ).toMatchObject({ userBubbleColorDark: '#334455', userBubbleColorLight: undefined })
-    const fromNewerVersion = { textColorLight: '#fff', userBubbleColorDark: '#000', contrast: 120 }
-    expect(resetNativeChatAppearanceSettings(fromNewerVersion)).toEqual({ contrast: 120 })
+    const fromNewerVersion = { textColorLight: '#fff', userBubbleColorDark: '#000', futureKey: 1 }
+    expect(resetNativeChatAppearanceSettings(fromNewerVersion)).toEqual({ futureKey: 1 })
   })
 })
 
