@@ -19411,8 +19411,8 @@
           "xhigh": "XHigh"
         },
         "imageUnavailable": "Preview unavailable",
-        "collapse": "Collapse message box",
-        "expand": "Expand message box"
+        "collapse": "Hide message box",
+        "expand": "Show message box"
       },
       "tool": {
         "exitCode": "exit {{value0}}",

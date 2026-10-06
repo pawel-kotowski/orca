@@ -19,6 +19,7 @@ type HarnessProps = {
   onFocus?: () => void
   /** Rerender-only churn, to prove the latch holds. */
   nonce?: number
+  collapsed?: boolean
 }
 
 let container: HTMLDivElement
@@ -59,7 +60,8 @@ function Harness(props: HarnessProps): React.JSX.Element {
     acceptsText: () => true,
     handlePasteEvent: () => {},
     pasteFromClipboard: () => {},
-    contains: (node) => fieldRef.current?.contains(node) === true
+    contains: (node) => fieldRef.current?.contains(node) === true,
+    isCollapsed: () => props.collapsed === true
   }
   useNativeChatComposerRevealFocus({
     tabId: props.tabId ?? 'chat-tab',
@@ -473,5 +475,12 @@ describe('useNativeChatComposerRevealFocus', () => {
     expect(focusCalls).toBe(1)
     expect(container.querySelector('textarea')).toBe(document.activeElement)
     helper.remove()
+  })
+
+  it('leaves a collapsed message box collapsed when the pane is revealed', () => {
+    render({ isVisible: true, isFocusedGroup: true, collapsed: true })
+    drainFrames()
+    expect(focusCalls).toBe(0)
+    expect(document.activeElement).not.toBe(container.querySelector('[data-testid="composer"]'))
   })
 })
