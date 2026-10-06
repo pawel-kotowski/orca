@@ -148,6 +148,13 @@ export function applyTerminalAppearance(
   const theme = composeActiveTerminalTheme(baseTheme, settings)
   publishTerminalViewAttributes(theme, appearance.mode, settings)
   const paneBackground = theme?.background ?? '#000000'
+  // Why: with Terminals Use Chat Glass the split root paints the chat tint; xterm's own theme background would
+  // stack a second, lighter tint over it. The composed theme (real background) still feeds OSC 11 and contrast.
+  const chatGlass =
+    settings.terminalChatGlass === true &&
+    typeof window !== 'undefined' &&
+    window.api?.platform?.get().windowGlass === true
+  const paneTheme = theme && chatGlass ? { ...theme, background: 'rgba(0, 0, 0, 0)' } : theme
 
   const terminalFontWeights = resolveTerminalFontWeights(
     settings.terminalFontWeight,
@@ -160,8 +167,8 @@ export function applyTerminalAppearance(
 
   for (const pane of manager.getPanes()) {
     // Why value-gated: writing options.theme rebuilds the palette, discarding TUI OSC 4/10/11/12 mutations; skip on no-op change.
-    if (theme && !composedTerminalThemesEqual(pane.terminal.options.theme, theme)) {
-      pane.terminal.options.theme = theme
+    if (paneTheme && !composedTerminalThemesEqual(pane.terminal.options.theme, paneTheme)) {
+      pane.terminal.options.theme = paneTheme
     }
     // Use configured background: preserving live OSC-11 mutations above means a TUI background change does not re-gate contrast.
     const minimumContrastRatio = resolveTerminalMinimumContrastRatio(
@@ -174,7 +181,8 @@ export function applyTerminalAppearance(
     }
     // Why clear explicitly: allowTransparency has rendering cost and a stale `true` could bleed in from a prior opacity.
     pane.terminal.options.allowTransparency =
-      settings.terminalBackgroundOpacity !== undefined && settings.terminalBackgroundOpacity < 1
+      chatGlass ||
+      (settings.terminalBackgroundOpacity !== undefined && settings.terminalBackgroundOpacity < 1)
     const cursorStyle = settings.terminalCursorStyle ?? 'block'
     pane.terminal.options.cursorStyle = cursorStyle
     pane.terminal.options.cursorInactiveStyle = resolveTerminalCursorInactiveStyle(cursorStyle)
