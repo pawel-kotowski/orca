@@ -11,8 +11,9 @@ import { useSystemPrefersDark } from '../terminal-pane/use-system-prefers-dark'
 export const NATIVE_CHAT_APPEARANCE_ROOT_CLASS = 'native-chat-appearance bg-chat-canvas'
 // pb clears the last reply's controls, which hang 20px (-mb-5) below the row. px-9 keeps text
 // clear of the message rail, which overlays the right 34px; macOS overlay scrollbars add no gutter.
+// @container lets wide markdown blocks size against the whole transcript.
 export function nativeChatTranscriptOuterClass(railVisible: boolean): string {
-  return railVisible ? 'px-9 pt-10 pb-10' : 'px-3 pt-10 pb-10 sm:px-4'
+  return railVisible ? '@container px-9 pt-10 pb-10' : '@container px-3 pt-10 pb-10 sm:px-4'
 }
 export const NATIVE_CHAT_TRANSCRIPT_COLUMN_CLASS =
   'mx-auto flex w-full max-w-(--chat-content-max-width) flex-col gap-5 px-[5px]'
