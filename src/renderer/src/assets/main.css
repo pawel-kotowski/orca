@@ -706,8 +706,10 @@ body:has(> [data-slot='dialog-overlay'], > [data-slot='sheet-overlay'])
 /* Why: vibrancy sits behind the page, so glass surfaces clear every layer but one tint — stacked translucent
    layers compound into a plain shade change. Surfaces with their own backgrounds stay opaque. */
 
+/* Why the sidebar surface: the chat tint reads as one material with the left sidebar (published by the sidebar). */
 html.window-glass {
-  --native-chat-glass-base: var(--chat-canvas);
+  --native-chat-glass-base: var(--left-sidebar-surface, var(--worktree-sidebar));
+  --native-chat-glass-solid-canvas: var(--chat-canvas);
   --native-chat-glass-solid-background: var(--background);
 }
 
@@ -744,7 +746,7 @@ html.window-glass .native-chat-pane-shell .native-chat-appearance > * {
 html.window-glass
   .native-chat-pane-shell
   :is(.absolute, .sticky, .fixed):is(.bg-chat-canvas, .bg-chat-canvas\/50, .bg-chat-canvas\/80) {
-  --chat-canvas: var(--native-chat-glass-base);
+  --chat-canvas: var(--native-chat-glass-solid-canvas);
 }
 
 /* Why: the split root carries the terminal tint (Background Opacity); xterm repeats it on two inner layers. */

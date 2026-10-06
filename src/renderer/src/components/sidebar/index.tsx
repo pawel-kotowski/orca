@@ -95,6 +95,18 @@ function Sidebar({
     () => resolveLeftSidebarStyleVariables(settings, systemPrefersDark),
     [settings, systemPrefersDark]
   ) as React.CSSProperties | undefined
+  const leftSidebarSurface = (leftSidebarStyle as Record<string, string> | undefined)?.[
+    '--worktree-sidebar'
+  ]
+  useEffect(() => {
+    // Why: glass chat panes tint with the sidebar's surface, which is otherwise scoped to this subtree.
+    const root = document.documentElement.style
+    if (leftSidebarSurface) {
+      root.setProperty('--left-sidebar-surface', leftSidebarSurface)
+    } else {
+      root.removeProperty('--left-sidebar-surface')
+    }
+  }, [leftSidebarSurface])
   const { dropOwnerRef, dropHandlers, affordance } = useSidebarProjectDrop()
   const {
     workspaceBoardOpen,
