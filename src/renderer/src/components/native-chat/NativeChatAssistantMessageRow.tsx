@@ -75,7 +75,7 @@ export function NativeChatAssistantMessageRow({
           rowKey={message.id}
           content={words}
           variant="document"
-          className="text-sm"
+          className="text-sm native-chat-markdown-wide-blocks"
           renderCodeBlock={isSystem ? NativeChatPlainCodeBlock : NativeChatCodeBlock}
           onLinkClick={onLinkClick}
           allowFileUriLinks={allowFileUriLinks}
