@@ -19410,7 +19410,9 @@
           "medium": "Med",
           "xhigh": "XHigh"
         },
-        "imageUnavailable": "Preview unavailable"
+        "imageUnavailable": "Preview unavailable",
+        "collapse": "Collapse message box",
+        "expand": "Expand message box"
       },
       "tool": {
         "exitCode": "exit {{value0}}",
