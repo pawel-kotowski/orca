@@ -18522,7 +18522,9 @@
           "minimal": "Min",
           "medium": "Med",
           "xhigh": "XHigh"
-        }
+        },
+        "collapse": "Collapse message box",
+        "expand": "Expand message box"
       },
       "tool": {
         "exitCode": "exit {{value0}}",

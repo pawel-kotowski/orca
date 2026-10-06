@@ -1,4 +1,4 @@
-import { ArrowUp, CircleAlert, Mic, Play, Plus, Square } from 'lucide-react'
+import { ArrowUp, ChevronsDown, CircleAlert, Mic, Play, Plus, Square } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { translate } from '@/i18n/i18n'
@@ -47,6 +47,8 @@ export type NativeChatComposerActionsProps = {
   contextUsage?: NativeChatContextUsageSummary | null
   /** The chat's agent, whose permission modes the picker describes. */
   agent?: string
+  /** Shrinks the message box to one line so the transcript keeps its height. */
+  onCollapse?: () => void
 }
 
 export function NativeChatComposerActions({
@@ -73,7 +75,8 @@ export function NativeChatComposerActions({
   onExitGoalMode,
   contextUsage,
   focusComposer,
-  agent
+  agent,
+  onCollapse
 }: NativeChatComposerActionsProps): React.JSX.Element {
   const stops = primaryAction === 'stop'
   const resumes = primaryAction === 'resume'
@@ -150,6 +153,28 @@ export function NativeChatComposerActions({
           snapshot={sessionOptionsSnapshot}
           {...(agent ? { agent } : {})}
         />
+        {onCollapse ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                aria-label={translate(
+                  'components.native-chat.composer.collapse',
+                  'Collapse message box'
+                )}
+                onClick={onCollapse}
+                className="pointer-coarse:size-11"
+              >
+                <ChevronsDown className="size-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="top" sideOffset={4}>
+              {translate('components.native-chat.composer.collapse', 'Collapse message box')}
+            </TooltipContent>
+          </Tooltip>
+        ) : null}
         {onExitGoalMode ? <NativeChatComposerGoalChip onExit={onExitGoalMode} /> : null}
       </div>
       <div className="ml-auto flex items-center gap-1.5">
