@@ -184,4 +184,6 @@ export type NativeChatComposerHandle = {
   contains: (node: Node | null) => boolean
   /** Sends the draft as Enter would, for a send control outside the composer. */
   submit?: () => void
+  /** The user collapsed the message box; automatic focus must leave it collapsed. */
+  isCollapsed?: () => boolean
 }
