@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   agentInputLineCleared,
+  agentInputLineHoldsPrompt,
   planNativeChatLaunchDraftSend,
   resolveNativeChatLaunchDraftSend
 } from './native-chat-launch-draft-send'
@@ -107,5 +108,49 @@ describe('agentInputLineCleared', () => {
 
   it('reads an empty prompt through serializer ANSI', () => {
     expect(agentInputLineCleared(`[2m❯[0m `)).toBe(true)
+  })
+})
+
+describe('agentInputLineHoldsPrompt', () => {
+  const frame = '────────────────────────────────────────'
+  const screen = (...rows: string[]) => ['● Done.', frame, ...rows, frame, '  Opus 5.5'].join('\n')
+
+  it('sees a prompt left in the composer, wrapped mid-word', () => {
+    const text = 'please check the deployment logs and sentry after it finishes'
+    expect(
+      agentInputLineHoldsPrompt(
+        screen('❯ please check the deployment logs and sen', '  try after it finishes'),
+        text
+      )
+    ).toBe(true)
+  })
+
+  it("sees Claude's collapsed paste chip", () => {
+    expect(agentInputLineHoldsPrompt(screen('❯ [Pasted text #1 +12 lines]'), 'a\nb')).toBe(true)
+  })
+
+  it('reads through serializer ANSI and cursor moves', () => {
+    expect(
+      agentInputLineHoldsPrompt(screen('\x1b[2m❯\x1b[0m\x1b[1Cship\x1b[1Cit'), 'ship it')
+    ).toBe(true)
+  })
+
+  it('is false once the composer is empty or holds other text', () => {
+    expect(agentInputLineHoldsPrompt(screen('❯ '), 'ship it')).toBe(false)
+    expect(agentInputLineHoldsPrompt(screen('❯ something else'), 'ship it')).toBe(false)
+  })
+
+  it('never reads a menu cursor after a real submit as the unsent prompt', () => {
+    const permission = [
+      '● Bash(git push)',
+      ' Do you want to proceed?',
+      ' ❯ 1. Yes',
+      '   2. No'
+    ].join('\n')
+    expect(agentInputLineHoldsPrompt(permission, 'push it')).toBe(false)
+  })
+
+  it('is false for an unreadable screen', () => {
+    expect(agentInputLineHoldsPrompt(null, 'ship it')).toBe(false)
   })
 })
