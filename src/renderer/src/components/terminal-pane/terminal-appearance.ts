@@ -50,6 +50,20 @@ export function isHexColor(value: string): boolean {
   return HEX_COLOR_RE.test(value)
 }
 
+// Why: Background Opacity makes terminals translucent for the window glass; an opaque surface (the floating
+// workspace) backs them with the theme's own solid background instead of the near-black app canvas.
+function publishTerminalSolidBackground(background: string | undefined): void {
+  if (typeof document === 'undefined') {
+    return
+  }
+  const root = document.documentElement.style
+  if (background) {
+    root.setProperty('--terminal-solid-background', background)
+  } else {
+    root.removeProperty('--terminal-solid-background')
+  }
+}
+
 // Keep pure so settings preview can compose the same theme without PaneManager.
 export function composeActiveTerminalTheme(
   baseTheme: ITheme | null,
@@ -148,6 +162,9 @@ export function applyTerminalAppearance(
   const theme = composeActiveTerminalTheme(baseTheme, settings)
   publishTerminalViewAttributes(theme, appearance.mode, settings)
   const paneBackground = theme?.background ?? '#000000'
+  publishTerminalSolidBackground(
+    settings.terminalColorOverrides?.background ?? baseTheme?.background
+  )
   // Why: with Terminals Use Chat Glass the split root paints the chat tint; xterm's own theme background would
   // stack a second, lighter tint over it. The composed theme (real background) still feeds OSC 11 and contrast.
   const chatGlass =

@@ -3478,3 +3478,13 @@ html.native-shell .app-layout {
     animation: none;
   }
 }
+
+/* Why: the floating workspace is opaque, so translucent terminals (Background Opacity, Terminals Use Chat Glass)
+   blend over the theme's solid background rather than the near-black app canvas. */
+[data-floating-terminal-panel] [data-floating-workspace-surface-frame] {
+  background: var(--terminal-solid-background, var(--background));
+}
+
+html.terminal-chat-glass [data-floating-terminal-panel] .pane-split-root {
+  background: transparent !important;
+}
