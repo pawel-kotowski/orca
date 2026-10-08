@@ -1,11 +1,41 @@
 import { sendRuntimePtyInputVerified } from '@/runtime/runtime-terminal-verified-input'
 import { enqueueNativeChatPtySend } from './native-chat-pty-send-queue'
+import { NATIVE_CHAT_SUBMIT } from './native-chat-send'
 import {
   clearConfirmDurationMs,
   clearThenWrite,
   clearUnsubmittedAgentInput,
   type NativeChatSendOptions
 } from './native-chat-input-clear'
+
+export const NATIVE_CHAT_RESUBMIT_CHECK_MS = 900
+export const NATIVE_CHAT_RESUBMIT_ATTEMPTS = 2
+
+// Why: Claude sometimes drops the delayed Enter, leaving the prompt unsent in its composer while
+// chat shows it sent. Re-send Enter only while the composer visibly still holds this prompt.
+function resubmitWhilePending(
+  submitPending: () => boolean,
+  delay: (ms: number, fn: () => void) => void,
+  settle: () => void,
+  writeEnter: () => Promise<boolean>,
+  attempt = 0
+): void {
+  delay(NATIVE_CHAT_RESUBMIT_CHECK_MS, () => {
+    let pending = false
+    try {
+      pending = attempt < NATIVE_CHAT_RESUBMIT_ATTEMPTS && submitPending()
+    } catch {
+      // An unreadable terminal is not evidence of a lost Enter.
+    }
+    if (!pending) {
+      settle()
+      return
+    }
+    void writeEnter()
+      .catch(() => false)
+      .then(() => resubmitWhilePending(submitPending, delay, settle, writeEnter, attempt + 1))
+  })
+}
 
 export function sendNativeChatObservedWrites(
   ptyId: string,
@@ -20,6 +50,7 @@ export function sendNativeChatObservedWrites(
     ptyId,
     writes.reduce((total, write) => total + write.delayBeforeMs, 0) +
       clearConfirmDurationMs(options) +
+      (options.submitPending ? NATIVE_CHAT_RESUBMIT_CHECK_MS : 0) +
       (options.settleDelayMs ?? 0),
     ({ isCancelled, delay, markSubmitted }) => {
       let reportedUnconfirmed = false
@@ -34,10 +65,19 @@ export function sendNativeChatObservedWrites(
             options.onDeliverySettled?.(acknowledged)
             markSubmitted()
           }
-          if (options.settleDelayMs) {
-            delay(options.settleDelayMs, finish)
+          const settle = (): void => {
+            if (options.settleDelayMs) {
+              delay(options.settleDelayMs, finish)
+            } else {
+              finish()
+            }
+          }
+          if (options.submitPending) {
+            resubmitWhilePending(options.submitPending, delay, settle, () =>
+              sendRuntimePtyInputVerified(settings, ptyId, NATIVE_CHAT_SUBMIT, 'driving')
+            )
           } else {
-            finish()
+            settle()
           }
           return
         }

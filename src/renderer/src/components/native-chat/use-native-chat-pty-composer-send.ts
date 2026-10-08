@@ -14,7 +14,10 @@ import {
 } from './native-chat-runtime-send'
 import type { NativeChatSendHandle } from './native-chat-runtime-send'
 import { sendNativeChatMessageWithImageAttachments } from './native-chat-runtime-image-send'
-import { resolveNativeChatLaunchDraftSend } from './native-chat-launch-draft-send'
+import {
+  agentInputLineHoldsPrompt,
+  resolveNativeChatLaunchDraftSend
+} from './native-chat-launch-draft-send'
 import { nativeChatComposerTargetIsRemote } from './native-chat-composer-target'
 import type { NativeChatResolvedTarget } from './native-chat-composer-target'
 import { isSlashCommandDraft } from '../../../../shared/native-chat-slash-commands'
@@ -86,6 +89,7 @@ export function useNativeChatPtyComposerSend(args: {
       args.agent === 'claude' && classification === 'chat'
         ? {
             ...launchSendOptions,
+            submitPending: () => agentInputLineHoldsPrompt(args.readTerminalScreen?.(), text),
             onWriteRejected: () => {
               if (pendingId) {
                 args.optimisticSendOutcome?.reject(pendingId)
