@@ -49,6 +49,56 @@ export function agentInputLineCleared(screen: string | null | undefined): boolea
   return false
 }
 
+const COLLAPSED_PASTE = /^\[Pasted text #\d+/
+const PROMPT_PROBE_CHARS = 32
+
+/**
+ * Whether the composer still visibly holds `text` (or Claude's collapsed-paste
+ * chip) after an Enter. Only a positive match counts, so a `❯` menu cursor on a
+ * permission prompt that follows a real submit never reads as an unsent prompt.
+ */
+export function agentInputLineHoldsPrompt(
+  screen: string | null | undefined,
+  text: string
+): boolean {
+  if (!screen) {
+    return false
+  }
+  const lines = stripScrollbackAnsi(screen).split('\n')
+  for (let index = lines.length - 1; index >= 0; index -= 1) {
+    const match = COMPOSER_PROMPT_LINE.exec(lines[index]!)
+    if (!match) {
+      continue
+    }
+    const first = match[2]!.trim()
+    if (COLLAPSED_PASTE.test(first)) {
+      return true
+    }
+    // Why whitespace-free: the composer wraps long prompts mid-word across lines.
+    const composer = [first, ...composerContinuation(lines, index, match[1]!)]
+      .join('')
+      .replace(/\s+/g, '')
+    const probe = text.replace(/\s+/g, '').slice(0, PROMPT_PROBE_CHARS)
+    return probe !== '' && composer.startsWith(probe)
+  }
+  return false
+}
+
+function composerContinuation(lines: string[], promptIndex: number, glyph: string): string[] {
+  const continuation: string[] = []
+  for (let index = promptIndex + 1; index < lines.length; index += 1) {
+    const line = lines[index]!
+    if (
+      (glyph === '❯' && CLAUDE_FRAME_LINE.test(line)) ||
+      (glyph === '›' && CODEX_FOOTER_LINE.test(line))
+    ) {
+      break
+    }
+    continuation.push(line)
+  }
+  return continuation
+}
+
 /**
  * A serialized screen cannot prove the whole parked draft still matches: visual
  * wrapping loses logical-line boundaries. Always replace from the composer copy.

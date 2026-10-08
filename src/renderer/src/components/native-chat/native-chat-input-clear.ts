@@ -33,6 +33,8 @@ export type NativeChatSendOptions = {
    * pasting on top of residue.
    */
   confirmCleared?: () => boolean
+  /** After Enter: true while the agent's composer still holds this send, which re-sends Enter. */
+  submitPending?: () => boolean
 }
 
 export function clearUnsubmittedAgentInput(ptyId: string, options?: NativeChatSendOptions): void {

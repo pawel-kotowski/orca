@@ -106,3 +106,25 @@ it('ignores a pasted answer acknowledgment after cancellation', async () => {
   expect(settled).not.toHaveBeenCalled()
   expect(io.verified).toHaveBeenCalledOnce()
 })
+it('re-sends a dropped Enter only while the composer still holds the prompt', async () => {
+  const pending = vi.fn().mockReturnValueOnce(true).mockReturnValueOnce(false)
+  sendNativeChatMessage(null, 'pane', 'lost enter', {
+    onWriteRejected: vi.fn(),
+    submitPending: pending
+  })
+  await vi.advanceTimersByTimeAsync(5000)
+  expect(io.verified.mock.calls.map((call) => call[2])).toEqual([
+    buildNativeChatPasteBytes('lost enter'),
+    NATIVE_CHAT_SUBMIT,
+    NATIVE_CHAT_SUBMIT
+  ])
+  expect(pending).toHaveBeenCalledTimes(2)
+})
+it('stops re-sending Enter after the retry budget', async () => {
+  sendNativeChatMessage(null, 'pane', 'stuck', {
+    onWriteRejected: vi.fn(),
+    submitPending: () => true
+  })
+  await vi.advanceTimersByTimeAsync(10000)
+  expect(io.verified.mock.calls.filter((call) => call[2] === NATIVE_CHAT_SUBMIT)).toHaveLength(3)
+})
