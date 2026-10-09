@@ -25,6 +25,8 @@ import { NativeChatImageAttachmentPreview } from './NativeChatImageAttachmentPre
 import type { NativeChatComposerGoalMode } from './use-native-chat-composer-submit'
 import { translate } from '@/i18n/i18n'
 import { useNativeChatComposerDraftUnsaved } from './use-native-chat-draft-unsaved'
+import { useNativeChatComposerCollapsed } from './native-chat-composer-collapse-store'
+import { NativeChatComposerToggleButton } from './NativeChatComposerToggleButton'
 
 export type NativeChatComposerFieldProps = {
   /** Own draft persistence and native-drop routing by this pane so drops cannot land in another composer. */
@@ -168,6 +170,7 @@ export function NativeChatComposerField({
       : autocomplete.mode === 'mention'
         ? mentionFiles.files.length
         : 0
+  const [collapsed, setCollapsed] = useNativeChatComposerCollapsed(draftScopeKey)
   // Value the IME started from, and whether a programmatic clear was dropped on top of it.
   const compositionBaseRef = useRef('')
   const imageRow = useMemo(() => imageAttachments.map(({ id }) => id), [imageAttachments])
@@ -206,7 +209,29 @@ export function NativeChatComposerField({
 
   return (
     <div className="shrink-0 bg-chat-canvas">
-      <div className="px-3 pt-2 pb-4 sm:px-4">
+      <NativeChatComposerToggleButton
+        collapsed={collapsed}
+        hasPendingDraft={draft.trim() !== '' || imageAttachments.length > 0}
+        onToggle={(event) => {
+          if (collapsed) {
+            setCollapsed(false)
+            return
+          }
+          setCollapsed(true)
+          // Why: hand focus to the chat root, whose typing redirect brings the box back.
+          event.currentTarget
+            .closest<HTMLElement>('[data-native-chat-root="true"]')
+            ?.focus({ preventScroll: true })
+        }}
+      />
+      {/* Why: collapsed hides the box visually but keeps the editor mounted and focusable, so
+          the draft and IME survive and any focus that lands in it (typing redirected from the
+          transcript, paste, dictation, a returned message) brings it back. Extra bottom padding
+          keeps the input box off the window rim. */}
+      <div
+        className={cn('px-3 pt-2 pb-4 sm:px-4', collapsed && 'sr-only')}
+        onFocusCapture={collapsed ? () => setCollapsed(false) : undefined}
+      >
         <div className="relative mx-auto w-full max-w-(--chat-content-max-width)">
           {autocomplete.mode === 'slash' ? (
             <NativeChatPickerMenu
