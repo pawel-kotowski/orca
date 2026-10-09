@@ -46,7 +46,7 @@ const StructuredAgentSessionOverlaySlot = memo(function StructuredAgentSessionOv
       onFocusOwningGroup={onFocusOwningGroup}
     >
       {/* Why the pane-shell class: the window-glass chat rules key on it, as on a terminal chat's cover. */}
-      <div className="native-chat-pane-shell flex h-full min-h-0 min-w-0 bg-chat-canvas">
+      <div className="native-chat-pane-shell h-full w-full min-h-0 min-w-0 bg-chat-canvas">
         <NativeChatView
           mode="structured"
           tabId={tab.id}
