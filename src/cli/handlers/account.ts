@@ -41,6 +41,7 @@ import {
 import { getWslAccountTarget } from './account-wsl-location'
 import { addDataAccount, listDataAccounts, mutateDataAccount } from './data-account-commands'
 import { formatAccountsBlock, formatDataAccounts } from './account-list-format'
+import { selectAgentAccount } from './provider-account-selection'
 
 // Why: add returns just that provider's state; list returns the full snapshot.
 type AccountsListSnapshot = {
@@ -310,7 +311,7 @@ export const ACCOUNT_HANDLERS: Record<string, CommandHandler> = {
   },
   'account select': async (ctx) => {
     rejectAccountRemoteSelectionFlags(ctx, 'orca account select')
-    await mutateDataAccount(ctx, 'select')
+    await selectAgentAccount(ctx)
   },
   'account rm': async (ctx) => {
     rejectAccountRemoteSelectionFlags(ctx, 'orca account rm')
