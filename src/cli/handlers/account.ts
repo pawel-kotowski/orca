@@ -41,6 +41,7 @@ import {
 } from './data-account-commands'
 import { formatAccountsBlock, formatDataAccounts } from './account-list-format'
 import { resolveOpenCodeLoginCommand } from './opencode-account-login-command'
+import { selectAgentAccount } from './provider-account-selection'
 
 type AccountsListSnapshot = {
   opencode?: ManagedDataAccountsState
@@ -280,7 +281,7 @@ export const ACCOUNT_HANDLERS: Record<string, CommandHandler> = {
   },
   'account select': async (ctx) => {
     rejectAccountRemoteSelectionFlags(ctx, 'orca account select')
-    await mutateDataAccount(ctx, 'select')
+    await selectAgentAccount(ctx)
   },
   'account rm': async (ctx) => {
     rejectAccountRemoteSelectionFlags(ctx, 'orca account rm')
