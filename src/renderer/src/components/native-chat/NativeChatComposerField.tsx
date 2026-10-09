@@ -32,6 +32,8 @@ import { useLatestHandler } from '@/lib/use-latest-handler'
 import type { NativeChatFollowUpBehavior } from '../../../../shared/native-chat/input/native-chat-follow-up-behavior'
 
 function noop(): void {}
+import { useNativeChatComposerCollapsed } from './native-chat-composer-collapse-store'
+import { NativeChatComposerToggleButton } from './NativeChatComposerToggleButton'
 
 export type NativeChatComposerFieldProps = {
   editSession?: { cancel: () => void }
@@ -187,6 +189,7 @@ export function NativeChatComposerField({
       : autocomplete.mode === 'mention'
         ? mentionFiles.files.length
         : 0
+  const [collapsed, setCollapsed] = useNativeChatComposerCollapsed(draftScopeKey)
   // Value the IME started from, and whether a programmatic clear was dropped on top of it.
   const compositionBaseRef = useRef('')
   const imageRow = useMemo(() => imageAttachments.map(({ id }) => id), [imageAttachments])
@@ -278,7 +281,31 @@ export function NativeChatComposerField({
 
   return (
     <div ref={paneRef} className={launch ? undefined : 'shrink-0 bg-chat-pane'}>
-      <div className={launch ? undefined : 'px-3 pt-2 pb-4 sm:px-4'}>
+      {launch ? null : (
+        <NativeChatComposerToggleButton
+        collapsed={collapsed}
+        hasPendingDraft={draft.trim() !== '' || imageAttachments.length > 0}
+        onToggle={(event) => {
+          if (collapsed) {
+            setCollapsed(false)
+            return
+          }
+          setCollapsed(true)
+          // Why: hand focus to the chat root, whose typing redirect brings the box back.
+          event.currentTarget
+            .closest<HTMLElement>('[data-native-chat-root="true"]')
+            ?.focus({ preventScroll: true })
+        }}
+      />
+      )}
+      {/* Why: collapsed hides the box visually but keeps the editor mounted and focusable, so
+          the draft and IME survive and any focus that lands in it (typing redirected from the
+          transcript, paste, dictation, a returned message) brings it back. Extra bottom padding
+          keeps the input box off the window rim. */}
+      <div
+        className={cn(launch ? undefined : 'px-3 pt-2 pb-4 sm:px-4', collapsed && !launch && 'sr-only')}
+        onFocusCapture={collapsed && !launch ? () => setCollapsed(false) : undefined}
+      >
         <div
           ref={columnRef}
           className={cn('relative w-full', !launch && 'mx-auto max-w-(--chat-content-max-width)')}
