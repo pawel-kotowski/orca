@@ -19,18 +19,20 @@ export function NativeChatJumpToLatest({
   onJump: () => void
 }): React.JSX.Element {
   const label = translate('components.native-chat.jumpToLatest', 'Jump to latest')
+  // Why: sits just left of the message box toggle (36px + 8px gap) and follows its shift.
   return (
     <button
       type="button"
+      aria-label={label}
+      title={label}
       data-shown={visible}
       inert={!visible}
       aria-hidden={!visible || undefined}
       onMouseDown={keepFocus}
       onClick={onJump}
-      className="absolute bottom-3 left-1/2 flex h-8 -translate-x-1/2 items-center gap-1.5 rounded-full border border-border bg-popover px-3 text-xs font-medium text-popover-foreground shadow-floating transition-[opacity,translate] duration-150 ease-out hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none data-[shown=false]:pointer-events-none data-[shown=false]:translate-y-1 data-[shown=false]:opacity-0"
+      className="absolute right-[calc(3.75rem+var(--native-chat-toggle-shift,0px))] bottom-3 z-10 flex size-9 items-center justify-center rounded-lg border border-border bg-popover text-popover-foreground shadow-floating transition-[opacity,translate] duration-150 ease-out hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none data-[shown=false]:pointer-events-none data-[shown=false]:translate-y-1 data-[shown=false]:opacity-0"
     >
-      <ArrowDown className="size-3.5" />
-      <span>{label}</span>
+      <ArrowDown className="size-4" />
     </button>
   )
 }
