@@ -3122,11 +3122,14 @@ private final class AgentRuntime: NSObject, NSApplicationDelegate {
                 NSApp.terminate(nil)
             }
             unclaimedSessionTimeout = timeout
+            // The listener invokes these from its socket thread. DispatchWorkItem.cancel()
+            // is thread-safe, but DispatchWorkItem is not Sendable, so opt out explicitly.
+            nonisolated(unsafe) let claimTimeout = timeout
             let listener = try SocketListener(
                 socketPath: socketPath,
                 token: token,
                 onSessionClaimed: {
-                    timeout.cancel()
+                    claimTimeout.cancel()
                 },
                 onSessionClosed: {
                     DispatchQueue.main.async {
@@ -4089,8 +4092,8 @@ private final class ButtonTarget: NSObject {
 private final class SocketListener: @unchecked Sendable {
     private let socketPath: String
     private let token: String?
-    private let onSessionClaimed: () -> Void
-    private let onSessionClosed: () -> Void
+    private let onSessionClaimed: @Sendable () -> Void
+    private let onSessionClosed: @Sendable () -> Void
     private let provider = Provider()
     private let providerLock = NSLock()
     private let sessionLock = NSLock()
@@ -4102,8 +4105,8 @@ private final class SocketListener: @unchecked Sendable {
     init(
         socketPath: String,
         token: String?,
-        onSessionClaimed: @escaping () -> Void,
-        onSessionClosed: @escaping () -> Void
+        onSessionClaimed: @escaping @Sendable () -> Void,
+        onSessionClosed: @escaping @Sendable () -> Void
     ) throws {
         self.socketPath = socketPath
         self.token = token
