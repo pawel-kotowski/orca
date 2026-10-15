@@ -245,6 +245,7 @@ export async function sendGroupMessage(args: {
       body: params.body,
       type: params.type as MessageType,
       priority: params.priority as MessagePriority,
+      pointerDelivery: params.deliver,
       threadId,
       payload: params.payload,
       senderPaneKey,
