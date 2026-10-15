@@ -5,7 +5,7 @@ import type { HandlerContext } from '../dispatch'
 import { RuntimeClient } from '../runtime-client'
 import { ACCOUNT_HANDLERS } from './account'
 import { formatAccountsBlock } from './account-list-format'
-import { DATA_ACCOUNT_RUNTIME_CAPABILITY } from '../../shared/protocol-version'
+import { DATA_ACCOUNT_RUNTIME_CAPABILITY } from '../../shared/account-runtime-capabilities'
 
 const claudeAccounts = {
   accounts: [
