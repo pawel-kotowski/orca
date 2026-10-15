@@ -75,7 +75,7 @@ export function sendNativeChatObservedWrites(
           }
           if (options.submitPending) {
             resubmitWhilePending(options.submitPending, delay, settle, () =>
-              sendRuntimePtyInputVerified(settings, ptyId, NATIVE_CHAT_SUBMIT, 'driving')
+              sendRuntimePtyInputVerified(ptyId, NATIVE_CHAT_SUBMIT, 'driving')
             )
           } else {
             settle()

@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 import { ChevronsDown, PenLine } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { translate } from '@/i18n/i18n'
 
 const FLOATING_TRIGGER_GAP = 8
@@ -79,34 +79,37 @@ export function NativeChatComposerToggleButton({
 
   return (
     <div className="relative h-0">
-      <Tooltip>
-        <TooltipTrigger asChild>
-          {/* Same launcher treatment as the floating workspace button. */}
-          <Button
-            ref={buttonRef}
-            type="button"
-            variant="launcher"
-            size="icon"
-            aria-label={label}
-            aria-expanded={!collapsed}
-            onClick={onToggle}
-            style={shift ? { transform: `translateX(-${shift}px)` } : undefined}
-            className="absolute right-4 bottom-3 z-10"
-          >
-            {collapsed ? <PenLine className="size-4" /> : <ChevronsDown className="size-4" />}
-            {collapsed && hasPendingDraft ? (
-              // Why: a hidden draft is easy to forget; the dot says one is waiting.
-              <span
-                aria-hidden
-                className="pointer-events-none absolute right-1 top-1 size-2 rounded-full bg-primary ring-2 ring-card dark:ring-accent"
-              />
-            ) : null}
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent side="left" sideOffset={6}>
-          {label}
-        </TooltipContent>
-      </Tooltip>
+      {/* Why: its own provider, so the composer field renders with or without the app's. */}
+      <TooltipProvider delayDuration={400}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            {/* Same launcher treatment as the floating workspace button. */}
+            <Button
+              ref={buttonRef}
+              type="button"
+              variant="launcher"
+              size="icon"
+              aria-label={label}
+              aria-expanded={!collapsed}
+              onClick={onToggle}
+              style={shift ? { transform: `translateX(-${shift}px)` } : undefined}
+              className="absolute right-4 bottom-3 z-10"
+            >
+              {collapsed ? <PenLine className="size-4" /> : <ChevronsDown className="size-4" />}
+              {collapsed && hasPendingDraft ? (
+                // Why: a hidden draft is easy to forget; the dot says one is waiting.
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute right-1 top-1 size-2 rounded-full bg-primary ring-2 ring-card dark:ring-accent"
+                />
+              ) : null}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="left" sideOffset={6}>
+            {label}
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
     </div>
   )
 }
