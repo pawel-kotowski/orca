@@ -34,6 +34,20 @@ Use a stable Dispatch address for attempt-specific coordinator guidance:
 ORCA orchestration send --to dispatch:<dispatch_id> --subject "Follow-up" --body "<guidance>" --json
 ```
 
+A chat-mode worker (Chat UI on) that is mid-turn takes a follow-up's nudge into
+its running turn, as the chat's Steer button does; while it waits on an
+approval or question the nudge is held until that is answered. `--deliver now`
+asks for this explicitly and is accepted for scripts that pass it; `--deliver
+queue` is recorded on the message but no longer holds a chat nudge back.
+
+```text
+ORCA orchestration send --to dispatch:<dispatch_id> --subject "Stop: wrong file" --body "<guidance>" --deliver now --json
+```
+
+An idle chat starts a turn either way. A terminal worker is always nudged at its
+next idle prompt, because typing into a busy agent's terminal can land in a
+permission prompt.
+
 Do not substitute a remote terminal handle. Omit `--from` for ordinary
 coordinator calls; a dispatched worker instead copies the exact `--from` and
 other arguments in its preamble. `check` is the exception: it identifies

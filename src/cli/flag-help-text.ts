@@ -75,6 +75,8 @@ export const FLAG_HELP_TEXT: Record<string, string> = {
   'files-modified': '--files-modified <csv> Comma-separated files for orchestration payload JSON',
   'report-path': '--report-path <path>  Report path to include in orchestration payload JSON',
   phase: '--phase <text>        Worker phase to include in orchestration payload JSON',
+  deliver:
+    '--deliver queue|now   Recorded on the message; a busy chat-mode recipient takes its nudge into the running turn either way',
   'timeout-ms': '--timeout-ms <ms>     Maximum wait time before timing out',
   'to-element-index': '--to-element-index <n> Destination element index from get-app-state',
   'to-x': '--to-x <x>             Destination window-local x coordinate',
