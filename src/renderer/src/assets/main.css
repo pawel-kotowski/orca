@@ -739,6 +739,14 @@ html.window-glass .native-chat-pane-shell .native-chat-appearance > * {
   --chat-canvas: transparent;
 }
 
+/* Why: glass clears --chat-canvas, so overlays that paint it over the transcript (drop scrim, attachment controls)
+   went see-through; they keep the solid canvas. */
+html.window-glass
+  .native-chat-pane-shell
+  :is(.absolute, .sticky, .fixed):is(.bg-chat-canvas, .bg-chat-canvas\/50, .bg-chat-canvas\/80) {
+  --chat-canvas: var(--native-chat-glass-base);
+}
+
 /* Why: the split root carries the terminal tint (Background Opacity); xterm repeats it on two inner layers. */
 html.window-glass .pane .xterm,
 html.window-glass .pane .xterm-scrollable-element {
@@ -821,18 +829,13 @@ html.interface-glass .workspace-page-column > :not([data-terminal-workbench-cont
   background: color-mix(in srgb, var(--background) var(--interface-glass-mix), transparent);
 }
 
-/* Why: these repeat the fill of a region that already paints the tint; a second layer would darken them. */
+/* Why: these repeat the fill of a region that already paints the tint; a second layer would darken them. Sticky
+   headers and footers keep their own fill: rows scroll beneath them, and backdrop blur does not hide those rows. */
 html.interface-glass .titlebar-left-floating,
 html.interface-glass .settings-view-shell > aside,
-html.interface-glass .worktree-sidebar-panel .bg-worktree-sidebar,
-html.interface-glass .right-sidebar-panel .bg-sidebar {
+html.interface-glass .worktree-sidebar-panel .bg-worktree-sidebar:not(.sticky),
+html.interface-glass .right-sidebar-panel .bg-sidebar:not(.sticky) {
   background: transparent;
-}
-
-/* Why: sidebar sticky headers and footers repeat the surface fill; blur keeps the list from showing through crisply. */
-html.interface-glass :is(.worktree-sidebar-panel, .right-sidebar-panel) .sticky {
-  background: transparent;
-  backdrop-filter: blur(12px);
 }
 
 /* Reserve scrollbar space only while overflowing; fitting Windows lists must omit gutters and arrow buttons. */
