@@ -1,6 +1,6 @@
 import { sendRuntimePtyInputVerified } from '@/runtime/runtime-terminal-verified-input'
 import { enqueueNativeChatPtySend } from './native-chat-pty-send-queue'
-import { NATIVE_CHAT_SUBMIT } from './native-chat-send'
+import { NATIVE_CHAT_SUBMIT } from '../../../../shared/native-chat-paste-bytes'
 import {
   clearConfirmDurationMs,
   clearThenWrite,
