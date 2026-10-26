@@ -100,8 +100,8 @@ describe('Persisted Claude lead boundaries', () => {
       lastAssistantMessage: 'Lead finished.',
       subagents: [expect.objectContaining({ id: 'arestored-child', state: 'working' })]
     })
-    const turnCompletedAt = firstServer.getStatusSnapshot()[0]?.turnCompletedAt
-    expect(turnCompletedAt).toEqual(expect.any(Number))
+    // A child-held lead end is not announced; the all-clear after the restart is.
+    expect(firstServer.getStatusSnapshot()[0]?.turnCompletedAt).toBeUndefined()
     expect(firstServer._getStateForTests().lastStatusByPaneKey.get(PANE)?.hookEventName).toBe(
       'Stop'
     )
@@ -120,9 +120,9 @@ describe('Persisted Claude lead boundaries', () => {
         state: 'done',
         agentType: 'claude',
         prompt: 'finish after child',
-        lastAssistantMessage: 'Lead finished.',
-        turnCompletedAt
+        lastAssistantMessage: 'Lead finished.'
       })
+      expect(server.getStatusSnapshot()[0]?.turnCompletedAt).toBeUndefined()
       expect(server.getStatusSnapshot()[0]?.restoredUnconfirmed).toBeUndefined()
       expect(server.getStatusSnapshot()[0]?.subagents).toBeUndefined()
     } finally {
@@ -165,8 +165,7 @@ describe('Persisted Claude lead boundaries', () => {
 
       expect(server.getStatusSnapshot()[0]).toMatchObject({
         state: 'done',
-        agentType: 'claude',
-        turnCompletedAt: expect.any(Number)
+        agentType: 'claude'
       })
       expect(server.getStatusSnapshot()[0]?.restoredUnconfirmed).toBeUndefined()
     } finally {

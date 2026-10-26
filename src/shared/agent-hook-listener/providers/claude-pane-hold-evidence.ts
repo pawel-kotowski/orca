@@ -1,5 +1,9 @@
 import { foldAgentLeadStatus, type AgentLeadStatusResolution } from '../../agent-lead-status-fold'
 import { agentChildWorkLivenessFromEvidence } from '../../agent-status-child-work-liveness'
+import {
+  claudeRunningBackgroundTaskIds,
+  type readClaudeBackgroundAgentTasks
+} from '../../claude-background-task-inventory'
 import { claudeLiveOwedTaskNotificationKinds } from '../../claude-owed-task-notifications'
 import { claudeRosterHasWorkingSubagent } from '../../claude-subagent-roster'
 import type { ClaudeLeadTurnState, HookListenerState } from '../listener-state'
@@ -49,6 +53,42 @@ export function claudeRowHasUnlistedLiveWork(state: HookListenerState, paneKey: 
 export function claudePaneHasRunningChildWork(state: HookListenerState, paneKey: string): boolean {
   const held = claudePaneHoldEvidence(state, paneKey)
   return held.runningAgent || held.runningNonAgent
+}
+
+/** Completion stamp for a main-agent turn end, recording which background work outlived it. */
+export function claudeLeadTurnCompletedAt(
+  state: HookListenerState,
+  paneKey: string,
+  turn: {
+    backgroundTasks: ReturnType<typeof readClaudeBackgroundAgentTasks>
+    sessionCrons: unknown
+    outcome: string | undefined
+    wakeupTurn: boolean
+    heldOpen: boolean
+  }
+): number | undefined {
+  const running = turn.backgroundTasks.present
+    ? claudeRunningBackgroundTaskIds(turn.backgroundTasks, turn.sessionCrons)
+    : undefined
+  const runningAtPreviousStop = state.claudeBackgroundTaskIdsAtLastStopByPaneKey.get(paneKey)
+  if (running) {
+    state.claudeBackgroundTaskIdsAtLastStopByPaneKey.set(paneKey, running)
+  }
+  // Why: a held turn is announced only when the lead is not waiting on its own work. A wake-up turn that ends
+  // with work still running is mid-task, and work this turn started (a Monitor, a shell, a subagent, a wakeup
+  // cron) will wake the lead when it reports, so ringing now calls it done early. Work already running before
+  // the prompt, such as a dev server left up, leaves this turn's end worth announcing. Cancelled turns earn
+  // no stamp; owed notifications wake the lead within ~100ms and announcing first would duplicate completion.
+  const announce =
+    turn.outcome !== 'cancellation' &&
+    turn.heldOpen &&
+    claudePaneHasRunningChildWork(state, paneKey) &&
+    !turn.wakeupTurn &&
+    running !== undefined &&
+    running.size > 0 &&
+    !turn.backgroundTasks.truncated &&
+    [...running].every((id) => runningAtPreviousStop?.has(id) === true)
+  return announce ? Date.now() : undefined
 }
 
 export type ClaudePaneStatusResolution = AgentLeadStatusResolution & {

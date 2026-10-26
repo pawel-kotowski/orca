@@ -141,7 +141,8 @@ describe('Claude owed task notifications outside the captures', () => {
       hook_event_name: 'Stop',
       background_tasks: [{ id: 'a2', type: 'subagent', status: 'running' }]
     })
-    expect(childRunning?.payload.turnCompletedAt).toEqual(expect.any(Number))
+    // A running child also wakes the lead when it reports, so its turn end waits for that.
+    expect(childRunning?.payload.turnCompletedAt).toBeUndefined()
   })
 
   it('drops what a replaced conversation was owed', () => {

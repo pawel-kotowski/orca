@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createAgentCompletionCoordinator } from './agent-completion-coordinator'
-import { useAgentCompletionCoordinatorLifecycle } from './agent-completion-coordinator-test-harness'
+import {
+  HOOK_DONE_QUIET_MS,
+  useAgentCompletionCoordinatorLifecycle
+} from './agent-completion-coordinator-test-harness'
 import { normalizeHookPayload } from '../../../../shared/agent-hook-listener'
 import { createHookListenerState } from '../../../../shared/agent-hook-listener/listener-state'
 import { makePaneKey } from '../../../../shared/stable-pane-id'
@@ -55,12 +58,12 @@ function completionMeta(dispatchCompletion: ReturnType<typeof vi.fn>) {
 describe('completion notification when a lead turn ends into monitoring', () => {
   useAgentCompletionCoordinatorLifecycle()
 
-  it('announces completion when the turn ends but the pane stays working for a background shell', () => {
+  it('does not announce a turn end while a background shell keeps the pane working', () => {
     const listener = createHookListenerState()
     const { coordinator, dispatchCompletion, dispatchHookLifecycle } = createCoordinator()
 
     coordinator.observeHookStatus(
-      hookPayload(listener, { hook_event_name: 'UserPromptSubmit', prompt: 'start the dev server' })
+      hookPayload(listener, { hook_event_name: 'UserPromptSubmit', prompt: 'run the tests' })
     )
     const monitoring = hookPayload(listener, {
       hook_event_name: 'Stop',
@@ -68,43 +71,45 @@ describe('completion notification when a lead turn ends into monitoring', () => 
     })
 
     expect(monitoring).toMatchObject({ state: 'working', workingMode: 'monitoring' })
-    expect(typeof monitoring.turnCompletedAt).toBe('number')
+    expect(monitoring.turnCompletedAt).toBeUndefined()
 
     coordinator.observeHookStatus(monitoring)
+    vi.advanceTimersByTime(HOOK_DONE_QUIET_MS * 2)
 
-    expect(dispatchCompletion).toHaveBeenCalledTimes(1)
-    const meta = completionMeta(dispatchCompletion)
-    expect(meta?.source).toBe('hook')
-    // Announce the turn boundary as done while the stored row remains working.
-    expect(meta?.agentStatus?.state).toBe('done')
-    // Why: announce only. Running pane lifecycle here would settle a pane that is still working.
+    // Why: the lead wakes when the shell reports; ringing now would call it done before it is.
+    expect(dispatchCompletion).not.toHaveBeenCalled()
     expect(dispatchHookLifecycle).not.toHaveBeenCalledWith(
       expect.objectContaining({ state: 'done' })
     )
   })
 
-  it('does not announce twice when the background shell later clears to done', () => {
+  it('announces once, when the wake-up turn ends with nothing left running', () => {
     const listener = createHookListenerState()
     const { coordinator, dispatchCompletion } = createCoordinator()
 
     coordinator.observeHookStatus(
-      hookPayload(listener, { hook_event_name: 'UserPromptSubmit', prompt: 'start the dev server' })
+      hookPayload(listener, { hook_event_name: 'UserPromptSubmit', prompt: 'run the tests' })
     )
     coordinator.observeHookStatus(
       hookPayload(listener, { hook_event_name: 'Stop', background_tasks: [RUNNING_SHELL] })
     )
-    expect(dispatchCompletion).toHaveBeenCalledTimes(1)
+    vi.advanceTimersByTime(HOOK_DONE_QUIET_MS * 2)
+    expect(dispatchCompletion).not.toHaveBeenCalled()
 
-    // The shell exits; the same turn's all-clear must not re-announce.
     coordinator.observeHookStatus(
       hookPayload(listener, {
-        hook_event_name: 'PostToolUse',
-        tool_name: 'KillShell',
-        background_tasks: []
+        hook_event_name: 'UserPromptSubmit',
+        prompt:
+          '<task-notification>\n<task-id>shell-1</task-id>\n<status>completed</status>\n</task-notification>'
       })
     )
+    coordinator.observeHookStatus(
+      hookPayload(listener, { hook_event_name: 'Stop', background_tasks: [] })
+    )
+    vi.advanceTimersByTime(HOOK_DONE_QUIET_MS * 2)
 
     expect(dispatchCompletion).toHaveBeenCalledTimes(1)
+    expect(completionMeta(dispatchCompletion)?.agentStatus?.state).toBe('done')
   })
 
   it('does not announce mid-turn while the agent is still working in the foreground', () => {

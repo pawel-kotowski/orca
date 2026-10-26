@@ -41,7 +41,7 @@ describe('shared agent-hook-listener', () => {
       expect(stop?.payload.turnCompletedAt).toBeUndefined()
     })
 
-    it('stamps turnCompletedAt on a gated lead Stop and repeats it on the all-clear', () => {
+    it('leaves a gated lead Stop unstamped so the all-clear is the announced end', () => {
       vi.useFakeTimers()
       try {
         vi.setSystemTime(1_700_000_005_000)
@@ -65,13 +65,13 @@ describe('shared agent-hook-listener', () => {
           ]
         })
         expect(stop?.payload.state).toBe('working')
-        expect(stop?.payload.turnCompletedAt).toBe(1_700_000_005_000)
+        expect(stop?.payload.turnCompletedAt).toBeUndefined()
         expect(stop?.payload.lastAssistantMessage).toBe('Which cells need hand-verification?')
 
         vi.setSystemTime(1_700_000_055_000)
         const drained = claudeEvent({ hook_event_name: 'SubagentStop', agent_id: 'a1' })
         expect(drained?.payload.state).toBe('done')
-        expect(drained?.payload.turnCompletedAt).toBe(1_700_000_005_000)
+        expect(drained?.payload.turnCompletedAt).toBeUndefined()
 
         claudeEvent({ hook_event_name: 'UserPromptSubmit', prompt: 'next turn' })
         const nextStop = claudeEvent({ hook_event_name: 'Stop', background_tasks: [] })
@@ -717,14 +717,12 @@ describe('shared agent-hook-listener', () => {
       // The lead is done; answering resumes the child and holds working only while it runs.
       expect(clearClaudeAnsweredQuestionWait(state, PANE_KEY)).toEqual({
         state: 'working',
-        turnCompletedAt: expect.any(Number),
         // The main agent's own fact rides beside the gated state: it finished, no verdict was given.
         mainAgent: { state: 'done', stateStartedAt: expect.any(Number) }
       })
       expect(state.claudeLeadStateByPaneKey.get(PANE_KEY)).toEqual({
         state: 'done',
-        stateStartedAt: expect.any(Number),
-        turnCompletedAt: expect.any(Number)
+        stateStartedAt: expect.any(Number)
       })
 
       const drained = claudeEvent({ hook_event_name: 'SubagentStop', agent_id: 'a1' })

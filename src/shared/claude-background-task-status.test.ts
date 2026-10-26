@@ -174,7 +174,7 @@ describe('Claude background task status', () => {
   })
 
   // Completion notifications need turnCompletedAt while the pane remains working for monitoring; pin both predicates (STA-4119).
-  it('stamps the turn end when a finished lead falls back to monitoring', () => {
+  it('does not announce a lead that ends while a background shell keeps the pane monitoring', () => {
     const state = createHookListenerState()
 
     claudeEvent(state, SOURCE_PANE, {
@@ -187,10 +187,91 @@ describe('Claude background task status', () => {
     })
 
     expect(monitoring).toMatchObject({ state: 'working', workingMode: 'monitoring' })
-    expect(typeof monitoring?.turnCompletedAt).toBe('number')
+    expect(monitoring?.turnCompletedAt).toBeUndefined()
   })
 
-  it('stamps a lead that ends into a working subagent, which carries no monitoring mode', () => {
+  it('keeps a wake-up turn quiet while work it waits on still runs, and announces the last turn', () => {
+    const state = createHookListenerState()
+    const otherShell = { ...RUNNING_SHELL, id: 'b2render', command: 'render.sh' }
+
+    claudeEvent(state, SOURCE_PANE, {
+      hook_event_name: 'UserPromptSubmit',
+      prompt: 'test and render'
+    })
+    for (const shell of [RUNNING_SHELL, otherShell]) {
+      claudeEvent(state, SOURCE_PANE, {
+        hook_event_name: 'PostToolUse',
+        tool_name: 'Bash',
+        tool_response: { backgroundTaskId: shell.id }
+      })
+    }
+    const started = claudeEvent(state, SOURCE_PANE, {
+      hook_event_name: 'Stop',
+      background_tasks: [RUNNING_SHELL, otherShell]
+    })
+    expect(started?.turnCompletedAt).toBeUndefined()
+
+    claudeEvent(state, SOURCE_PANE, {
+      hook_event_name: 'UserPromptSubmit',
+      prompt: `<task-notification>\n<task-id>${RUNNING_SHELL.id}</task-id>\n<status>completed</status>`
+    })
+    const wokeUp = claudeEvent(state, SOURCE_PANE, {
+      hook_event_name: 'Stop',
+      background_tasks: [otherShell]
+    })
+    expect(wokeUp).toMatchObject({ state: 'working', workingMode: 'monitoring' })
+    expect(wokeUp?.turnCompletedAt).toBeUndefined()
+
+    claudeEvent(state, SOURCE_PANE, {
+      hook_event_name: 'UserPromptSubmit',
+      prompt: `<task-notification>\n<task-id>${otherShell.id}</task-id>\n<status>completed</status>`
+    })
+    const finished = claudeEvent(state, SOURCE_PANE, {
+      hook_event_name: 'Stop',
+      background_tasks: []
+    })
+    expect(finished).toMatchObject({ state: 'done' })
+  })
+
+  it('announces a turn whose only running work predates the prompt', () => {
+    const state = createHookListenerState()
+
+    claudeEvent(state, SOURCE_PANE, {
+      hook_event_name: 'UserPromptSubmit',
+      prompt: 'start the server'
+    })
+    claudeEvent(state, SOURCE_PANE, { hook_event_name: 'Stop', background_tasks: [RUNNING_SHELL] })
+    claudeEvent(state, SOURCE_PANE, { hook_event_name: 'UserPromptSubmit', prompt: 'add a route' })
+    const ended = claudeEvent(state, SOURCE_PANE, {
+      hook_event_name: 'Stop',
+      background_tasks: [RUNNING_SHELL]
+    })
+
+    expect(ended).toMatchObject({ state: 'working', workingMode: 'monitoring' })
+    expect(typeof ended?.turnCompletedAt).toBe('number')
+  })
+
+  it('ignores an artifact live-updates watch, which lasts until the session exits', () => {
+    const state = createHookListenerState()
+
+    claudeEvent(state, SOURCE_PANE, { hook_event_name: 'UserPromptSubmit', prompt: 'publish it' })
+    const ended = claudeEvent(state, SOURCE_PANE, {
+      hook_event_name: 'Stop',
+      background_tasks: [
+        {
+          id: 'w1',
+          type: 'monitor',
+          status: 'running',
+          description: 'live updates for artifact https://claude.ai/artifact/abc (watch requested)'
+        }
+      ]
+    })
+
+    expect(ended).toMatchObject({ state: 'done' })
+    expect(ended?.workingMode).toBeUndefined()
+  })
+
+  it('does not announce a lead that ends into a working subagent, which carries no monitoring mode', () => {
     const state = createHookListenerState()
 
     claudeEvent(state, SOURCE_PANE, { hook_event_name: 'UserPromptSubmit', prompt: 'delegate' })
@@ -200,9 +281,9 @@ describe('Claude background task status', () => {
       background_tasks: [{ id: 'child-1', type: 'subagent', status: 'running' }]
     })
 
-    // Child work keeps the spinner, but the ended lead still needs a notification stamp.
+    // The lead wakes when the child reports back; that later turn's end is the announcement.
     expect(childWorking).toMatchObject({ state: 'working', workingMode: undefined })
-    expect(typeof childWorking?.turnCompletedAt).toBe('number')
+    expect(childWorking?.turnCompletedAt).toBeUndefined()
   })
 
   it('does not stamp a turn that is still running in the foreground', () => {

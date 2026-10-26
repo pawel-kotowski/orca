@@ -26,7 +26,7 @@ import {
   voidClaimsOfReplacedClaudeSession
 } from './claude-roster-state'
 import {
-  claudePaneHasRunningChildWork,
+  claudeLeadTurnCompletedAt,
   claudeRowHasUnlistedLiveWork
 } from './claude-pane-hold-evidence'
 import { buildClaudeStatusPayload } from './claude-status-build'
@@ -281,18 +281,18 @@ export function normalizeClaudeEvent(
   })
   // Reuse resolved state for compact ownership instead of folding twice (#15202).
   const effectiveState = resolvedStatus.stateName
-  // Pin held turn identity by end time for later all-clear pairing; cancelled turns earn no completion stamp.
   const turnCompletedAt =
-    eventAgentId === undefined &&
-    isTurnBoundary &&
-    outcome !== 'cancellation' &&
-    isAgentStatusHeldOpenByChildWork({
-      state: resolvedStatus.stateName,
-      mainAgent: { state: reportedStateName }
-    }) &&
-    // Owed notifications wake the lead within ~100ms; announcing first would duplicate completion.
-    claudePaneHasRunningChildWork(state, paneKey)
-      ? Date.now()
+    eventAgentId === undefined && isTurnBoundary
+      ? claudeLeadTurnCompletedAt(state, paneKey, {
+          backgroundTasks,
+          sessionCrons,
+          outcome,
+          wakeupTurn: previousLead?.taskWakeupTurn === true,
+          heldOpen: isAgentStatusHeldOpenByChildWork({
+            state: resolvedStatus.stateName,
+            mainAgent: { state: reportedStateName }
+          })
+        })
       : undefined
 
   setClaudeMainAgentTurnState(state, paneKey, {

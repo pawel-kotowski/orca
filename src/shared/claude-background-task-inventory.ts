@@ -23,6 +23,18 @@ const CLAUDE_TERMINAL_BACKGROUND_TASK_STATUSES = new Set([
   'timed_out'
 ])
 
+// Why: publishing or watching a claude.ai artifact arms a live-updates watch that Claude lists as a running
+// monitor until the session exits; it never wakes the session, and Claude's own task footer hides it (#26192).
+const CLAUDE_ARTIFACT_WATCH_DESCRIPTION = 'live updates for artifact '
+
+function isClaudeArtifactWatch(taskType: string, description: unknown): boolean {
+  return (
+    taskType === 'monitor' &&
+    typeof description === 'string' &&
+    description.startsWith(CLAUDE_ARTIFACT_WATCH_DESCRIPTION)
+  )
+}
+
 /** Agent entries from Stop/SubagentStop background_tasks; non-agent tasks do not become rows. */
 export type ClaudeBackgroundAgentTask = {
   id: string
@@ -67,6 +79,9 @@ export function readClaudeBackgroundAgentTasks(hookPayload: Record<string, unkno
     const taskStatus = typeof obj.status === 'string' ? obj.status.trim().toLowerCase() : ''
     const isTerminal =
       taskStatus.length > 0 && CLAUDE_TERMINAL_BACKGROUND_TASK_STATUSES.has(taskStatus)
+    if (isClaudeArtifactWatch(taskType, obj.description)) {
+      continue
+    }
     if (taskType.length === 0) {
       truncated = true
       hasRunningNonAgentTask ||= !isTerminal
@@ -97,4 +112,30 @@ export function readClaudeBackgroundAgentTasks(hookPayload: Record<string, unkno
     })
   }
   return { present: true, tasks, truncated, hasRunningNonAgentTask, runningNonAgentTaskIds }
+}
+
+/** Ids of every running entry in one inventory; session crons are prefixed so they cannot collide with task ids. */
+export function claudeRunningBackgroundTaskIds(
+  inventory: Pick<
+    ReturnType<typeof readClaudeBackgroundAgentTasks>,
+    'tasks' | 'runningNonAgentTaskIds'
+  >,
+  sessionCrons: unknown
+): Set<string> {
+  const ids = new Set(inventory.runningNonAgentTaskIds)
+  for (const task of inventory.tasks) {
+    if (task.running) {
+      ids.add(task.id)
+    }
+  }
+  if (Array.isArray(sessionCrons)) {
+    for (const cron of sessionCrons) {
+      const id =
+        typeof cron === 'object' && cron !== null ? (cron as { id?: unknown }).id : undefined
+      if (typeof id === 'string' && id.length > 0) {
+        ids.add(`cron:${id}`)
+      }
+    }
+  }
+  return ids
 }

@@ -139,7 +139,7 @@ describe('Claude background-turn completion notifications', () => {
     return { banners, rows }
   }
 
-  it('announces a subagent turn at Stop with that turn’s text, not when the child later drains', async () => {
+  it('announces a turn that waits on its own subagent when the child drains, with the turn’s text', async () => {
     const { banners, rows } = await play([
       {
         at: 1_700_000_000_000,
@@ -169,14 +169,14 @@ describe('Claude background-turn completion notifications', () => {
 
     const stop = rows.find((row) => row.lastAssistantMessage?.includes('hand-verification'))
     expect(stop?.state).toBe('working')
-    expect(stop?.turnCompletedAt).toBe(1_700_000_006_000)
+    // Why: the lead waits on the child it started; ringing at Stop would call the work done early.
+    expect(stop?.turnCompletedAt).toBeUndefined()
     expect(banners).toHaveLength(1)
-    expect(banners[0]?.at).toBe(1_700_000_006_000)
+    expect(banners[0]?.at).toBe(1_700_000_055_000 + HOOK_DONE_QUIET_MS)
     expect(banners[0]?.body).toBe('Which cells need hand-verification?')
-    expect(banners[0]?.stateStartedAt).toBe(1_700_000_006_000)
   })
 
-  it('notifies each background-shell turn with a distinct notification identity', async () => {
+  it('stays quiet while a turn waits on the shell it started, and announces a later turn the shell predates', async () => {
     const { banners } = await play([
       {
         at: 1_700_000_000_000,
@@ -204,17 +204,12 @@ describe('Claude background-turn completion notifications', () => {
       }
     ])
 
-    expect(banners).toHaveLength(2)
+    // Turn 1 started the shell, so it may be waiting on it; turn 2 did not, so its end is the news.
+    expect(banners).toHaveLength(1)
     expect(banners[0]).toMatchObject({
-      at: 1_700_000_001_000,
-      body: 'Dev server is up.',
-      stateStartedAt: 1_700_000_001_000
-    })
-    expect(banners[1]).toMatchObject({
       at: 1_700_000_011_000,
       body: 'Route added.',
       stateStartedAt: 1_700_000_011_000
     })
-    expect(banners[0]?.stateStartedAt).not.toBe(banners[1]?.stateStartedAt)
   })
 })
