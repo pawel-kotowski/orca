@@ -150,8 +150,21 @@ function verifyTarget(resourcesDir, templateDir, target, value, schemaVersion) {
   requireExactNames(listFiles(targetDir), inventory, `${target} file inventory`)
 }
 
+/** Local single-host builds (a box's own `orca serve`) name the targets they built; releases never set it. */
+function packagedOrcadTemplateTargets(env = process.env) {
+  const requested = (env.ORCA_ORCAD_TEMPLATE_TARGETS ?? '').split(',').filter(Boolean)
+  if (requested.length === 0) {
+    return ORCAD_TEMPLATE_TARGETS
+  }
+  const unknown = requested.filter((target) => !ORCAD_TEMPLATE_TARGETS.includes(target))
+  if (unknown.length > 0) {
+    throw new Error(`[verify-packaged-orcad-template] unknown ORCA_ORCAD_TEMPLATE_TARGETS: ${unknown}`)
+  }
+  return requested
+}
+
 /** `targets` narrows the inventory for a CI-only partial template; packaging checks them all. */
-function verifyPackagedOrcadTemplate(resourcesDir, targets = ORCAD_TEMPLATE_TARGETS) {
+function verifyPackagedOrcadTemplate(resourcesDir, targets = packagedOrcadTemplateTargets()) {
   const templateDir = join(resourcesDir, 'orcad-template')
   const manifest = requireRecord(readManifest(templateDir), 'manifest')
   if (![TEMPLATE_SCHEMA_VERSION, 4].includes(manifest.schemaVersion)) {
