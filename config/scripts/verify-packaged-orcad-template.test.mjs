@@ -173,6 +173,20 @@ describe('verifyPackagedOrcadTemplate', () => {
     expect(() => verifyPackagedOrcadTemplate(fixture.root, ['linux-x64-glibc'])).toThrow(
       'target manifest inventory mismatch'
     )
+
+    const previous = process.env.ORCA_ORCAD_TEMPLATE_TARGETS
+    try {
+      process.env.ORCA_ORCAD_TEMPLATE_TARGETS = kept.join(',')
+      expect(() => verifyPackagedOrcadTemplate(fixture.root)).not.toThrow()
+      process.env.ORCA_ORCAD_TEMPLATE_TARGETS = 'linux-x64-glibc,plan9-x64'
+      expect(() => verifyPackagedOrcadTemplate(fixture.root)).toThrow('plan9-x64')
+    } finally {
+      if (previous === undefined) {
+        delete process.env.ORCA_ORCAD_TEMPLATE_TARGETS
+      } else {
+        process.env.ORCA_ORCAD_TEMPLATE_TARGETS = previous
+      }
+    }
   })
 
   // Desktop must carry deployment template on every OS: SSH/managed deploys materialize target slot from resourcesPath (D2).
