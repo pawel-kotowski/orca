@@ -1,3 +1,5 @@
+/* eslint-disable max-lines -- Why: the workspace Claude account is saved between
+   create and first launch, which only this flow sees. */
 import { prepareWorktreeCreationHooks } from '@/lib/worktree-creation-hook-preparation'
 import { useAppStore } from '@/store'
 import { activateAndRevealWorktree, type ActivateAndRevealResult } from '@/lib/worktree-activation'
@@ -33,6 +35,7 @@ import {
 } from '@/lib/worktree-creation-surface'
 import { prepareCreatedWorktreeActivation } from '@/lib/worktree-creation-initial-tabs'
 import type { UISlice } from '@/store/slices/ui'
+import { saveWorkspaceClaudeAccount } from '@/lib/workspace-claude-account'
 
 export async function executeWorktreeCreation(
   creationId: string,
@@ -145,6 +148,10 @@ export async function executeWorktreeCreation(
     return
   }
   await attachEphemeralVmRuntimeToWorkspace(preparedRequest, worktree.id)
+  if (preparedRequest.claudeAccountId) {
+    // Saved before any terminal or chat starts, so every launch here reads it.
+    await saveWorkspaceClaudeAccount(worktree.id, preparedRequest.claudeAccountId)
+  }
 
   const backendSpawned = result.startupTerminal?.spawned === true
   const windowStartup = windowStartupAfterCreate(creationId, preparedRequest, result)

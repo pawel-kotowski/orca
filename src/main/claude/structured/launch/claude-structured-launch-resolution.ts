@@ -249,7 +249,14 @@ export function claudeStructuredLaunchPart(
       sources,
       { runtimeOnPath: false }
     )
-    const accountRecipe = await prepareClaudeLaunchAccount(router, env, accountHome.path)
+    // Only a chat on this machine can run on one of its accounts.
+    const onHost = record.location.executionHostId === 'local' && record.location.wslDistro === null
+    const accountRecipe = await prepareClaudeLaunchAccount(
+      router,
+      env,
+      accountHome.path,
+      onHost ? router?.accountForLaunch(null, record.location.workspaceId) : null
+    )
     const launchHome = accountRecipe.home
     const resumesTranscript = resumedWithoutRouter ?? (await resumes(launchHome))
     if (fork?.throughEntryId && !resumesTranscript) {

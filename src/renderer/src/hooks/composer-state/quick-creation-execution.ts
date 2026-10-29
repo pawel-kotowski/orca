@@ -160,7 +160,8 @@ export function useQuickCreationExecution(input: QuickCreationExecutionInput) {
         isRemote: selectedRepoIsRemote,
         telemetrySource,
         route: agentLaunchRoute,
-        launchInputs: options?.launchInputs
+        launchInputs: options?.launchInputs,
+        claudeAccountId: options?.claudeAccountId
       })
 
       if (isSubmissionCancelled()) {
@@ -230,7 +231,8 @@ export function useQuickCreationExecution(input: QuickCreationExecutionInput) {
         promptDelivery,
         quickTelemetry: quickStartup.telemetry,
         suppressTerminalFocusOnCompletion: createMultiple,
-        setupOnly: options?.setupOnly === true
+        setupOnly: options?.setupOnly === true,
+        claudeAccountId: options?.claudeAccountId
       })
 
       if (isSubmissionCancelled()) {

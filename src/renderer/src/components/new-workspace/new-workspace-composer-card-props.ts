@@ -25,6 +25,7 @@ import type { SshConnectionStatus } from '../../../../shared/ssh-types'
 import type { TaskSourceContext } from '../../../../shared/task-source-context'
 import type { TuiAgent } from '../../../../shared/agent-launch/catalog/tui-agent'
 import type { ExecutionHostId } from '../../../../shared/execution-host'
+import type { ComposerClaudeAccountFieldProps } from './ComposerClaudeAccountField'
 
 export type RepoOption = React.ComponentProps<typeof RepoCombobox>['repos'][number]
 export type EphemeralVmRecipeOption = NonNullable<OrcaHooks['environmentRecipes']>[number]
@@ -144,6 +145,8 @@ export type NewWorkspaceComposerCardProps = {
   sparseControlsEnabled?: boolean
   onAddProjectOverride?: () => void
   onNestedDialogOpenChange?: (open: boolean) => void
+  /** Which Claude account the new workspace runs on; absent hides the picker. */
+  claudeAccount?: ComposerClaudeAccountFieldProps
 }
 
 export type NeedsProjectHostOption = NeedsSetupProjectHostOption

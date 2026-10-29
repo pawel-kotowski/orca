@@ -13,9 +13,11 @@ export async function claudeRoutedHomeAsync(
     ClaudeProfileRouter,
     'selectedProfile' | 'savedAccount' | 'userConfigDir' | 'userHome'
   >,
-  availability: 'checked' | 'identity' = 'checked'
+  availability: 'checked' | 'identity' = 'checked',
+  /** A workspace's own account; absent follows the global selection. */
+  workspaceAccountId?: string | null
 ): Promise<string | null> {
-  const profile = router.selectedProfile()
+  const profile = router.selectedProfile(workspaceAccountId)
   if (!profile) {
     return null
   }
