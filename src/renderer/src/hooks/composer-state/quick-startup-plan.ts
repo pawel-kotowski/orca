@@ -11,6 +11,7 @@ import type { AgentStartupPlan } from '@/lib/tui-agent-startup'
 import { buildAgentDraftLaunchPlan, buildAgentStartupPlan } from '@/lib/tui-agent-startup'
 import { resolveAgentStartupPlanInputs } from '../../../../shared/agent-startup-plan-inputs'
 import { tuiAgentToAgentKind } from '@/lib/telemetry'
+import { CLAUDE_WORKSPACE_ACCOUNT_ENV } from '../../../../shared/claude-workspace-account'
 import {
   requireExecutionHostPlatform,
   type ExecutionHostPlatformFact
@@ -26,6 +27,8 @@ export type QuickComposerStartupInput = {
   shell: AgentStartupShell | null | undefined
   isRemote: boolean
   telemetrySource: WorktreeCreationRequest['telemetrySource']
+  /** The Claude account picked in the composer; the startup spawn runs on it. */
+  claudeAccountId?: string | null
 }
 
 export type QuickComposerStartup = {
@@ -75,6 +78,13 @@ export function buildQuickComposerStartup(input: QuickComposerStartupInput): Qui
     })
     if (startupPlan && draftPrompt) {
       startupPlan.draftPrompt = draftPrompt
+    }
+  }
+  // Why: the backend may spawn the agent before the workspace's own account is saved.
+  if (startupPlan && agent === 'claude' && input.claudeAccountId) {
+    startupPlan.env = {
+      ...startupPlan.env,
+      [CLAUDE_WORKSPACE_ACCOUNT_ENV]: input.claudeAccountId
     }
   }
   const telemetry: AgentStartedTelemetry | null =

@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils'
 import { translate } from '@/i18n/i18n'
 import type { NewWorkspaceComposerCardProps } from './new-workspace-composer-card-props'
 import type { TuiAgent } from '../../../../shared/tui-agent'
+import { ComposerClaudeAccountField } from './ComposerClaudeAccountField'
 
 type NewWorkspaceComposerAgentSectionProps = Pick<
   NewWorkspaceComposerCardProps,
@@ -21,6 +22,7 @@ type NewWorkspaceComposerAgentSectionProps = Pick<
   | 'onCreate'
   | 'advancedOpen'
   | 'onToggleAdvanced'
+  | 'claudeAccount'
 > & {
   advancedLocked?: boolean
   visibleQuickAgents: React.ComponentProps<typeof AgentCombobox>['agents']
@@ -44,7 +46,8 @@ export function NewWorkspaceComposerAgentSection({
   onToggleAdvanced,
   visibleQuickAgents,
   defaultTuiAgent,
-  handleSetDefaultAgent
+  handleSetDefaultAgent,
+  claudeAccount
 }: NewWorkspaceComposerAgentSectionProps): React.JSX.Element {
   const comboboxProps = {
     agents: visibleQuickAgents,
@@ -93,6 +96,7 @@ export function NewWorkspaceComposerAgentSection({
         </div>
         <AgentCombobox {...comboboxProps} surfaceRows={agentSurfaceRows} />
       </div>
+      {claudeAccount ? <ComposerClaudeAccountField {...claudeAccount} /> : null}
 
       <div className="!mb-2">
         <Button

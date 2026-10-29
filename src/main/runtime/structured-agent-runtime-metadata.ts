@@ -143,6 +143,11 @@ export const STRUCTURED_AGENT_RUNTIME_CATALOG: readonly StructuredAgentRuntimeCa
             launchEnv,
             wslDistro: location?.wslDistro ?? null,
             ...(purpose === 'identity' ? { purpose } : {}),
+            // Only a chat on this machine can run on one of its accounts.
+            workspaceAccountId:
+              location?.executionHostId === 'local' && location.wslDistro === null
+                ? (getClaudeProfileRouter()?.accountForLaunch(null, location.workspaceId) ?? null)
+                : null,
             getClaudeConfigDirectory: services.getClaudeConfigDirectory
           })
         )
