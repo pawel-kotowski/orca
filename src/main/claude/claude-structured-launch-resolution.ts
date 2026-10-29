@@ -235,7 +235,14 @@ export function claudeStructuredLaunchPart(
       sources,
       { runtimeOnPath: false }
     )
-    const launchHome = await resolveClaudeStructuredLaunchHome(router, env, accountHome.path)
+    // Only a chat on this machine can run on one of its accounts.
+    const onHost = record.location.executionHostId === 'local' && record.location.wslDistro === null
+    const launchHome = await resolveClaudeStructuredLaunchHome(
+      router,
+      env,
+      accountHome.path,
+      onHost ? router?.accountForLaunch(null, record.location.workspaceId) : null
+    )
     const resumesTranscript = resumedWithoutRouter ?? (await resumes(launchHome))
     if (fork?.throughEntryId && !resumesTranscript) {
       // Fork sources must pass the same account-history check as resumes.

@@ -20289,6 +20289,11 @@
     },
     "newWorkspace": {
       "agentOptional": "Agent [Optional]",
+      "claudeAccount": "Claude account",
+      "claudeAccountFollowGlobal": "Orca's account ({{value0}})",
+      "claudeAccountSystemDefault": "System default",
+      "claudeAccountIsDefault": "Default for {{value0}}",
+      "claudeAccountSetDefault": "Make default for {{value0}}",
       "createDescription": "Choose the project and workspace name. Select an agent if you want to start one."
     },
     "JiraIssueWorkspace": {

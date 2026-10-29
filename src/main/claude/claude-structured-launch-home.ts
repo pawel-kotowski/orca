@@ -5,16 +5,17 @@ import { AgentSessionPreSpawnError } from '../native-chat/agent-session-wire/str
 import { resolveSessionFilePath } from '../native-chat/session-file-resolver'
 import { resolveStructuredClaudeAccountHomePath } from '../runtime/structured-agent-account-home'
 
-/** Follow the current account selection and pin its environment for this launch. */
+/** Follow the workspace's own account, else the current selection, and pin its environment for this launch. */
 export async function resolveClaudeStructuredLaunchHome(
   router: ClaudeProfileRouter | undefined,
   env: Record<string, string>,
-  recordHome: string
+  recordHome: string,
+  workspaceAccountId?: string | null
 ): Promise<string> {
   if (!router) {
     return recordHome
   }
-  const preparation = await router.prepareLaunch()
+  const preparation = await router.prepareLaunch(workspaceAccountId)
   // Read before patching: System default preserves the launch environment's CLAUDE_CONFIG_DIR.
   const launchHome =
     preparation.provenance === 'system'

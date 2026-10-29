@@ -137,7 +137,8 @@ export function useQuickCreationExecution(input: QuickCreationExecutionInput) {
         launchHost: selectedRepoAgentLaunchFact,
         shell: selectedRepoStartupShell,
         isRemote: selectedRepoIsRemote,
-        telemetrySource
+        telemetrySource,
+        claudeAccountId: options?.claudeAccountId
       })
 
       const startupPolicySettlement = await settleComposerSubmit(
@@ -242,7 +243,8 @@ export function useQuickCreationExecution(input: QuickCreationExecutionInput) {
         promptDelivery,
         quickTelemetry,
         suppressTerminalFocusOnCompletion: createMultiple,
-        setupOnly: options?.setupOnly === true
+        setupOnly: options?.setupOnly === true,
+        claudeAccountId: options?.claudeAccountId
       })
 
       if (isSubmissionCancelled()) {

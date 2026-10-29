@@ -53,11 +53,14 @@ export type QuickCreationRequestInput = {
   quickTelemetry: AgentStartedTelemetry | null
   suppressTerminalFocusOnCompletion: boolean
   setupOnly: boolean
+  claudeAccountId?: string | null
 }
 
 export type QuickSubmitOptions = {
   setupOnly?: boolean
   launchChoice?: AgentLaunchChoice
+  /** The Claude account the new workspace's agents run on; absent follows the global selection. */
+  claudeAccountId?: string | null
 }
 
 export function buildQuickCreationRequest(
@@ -121,6 +124,7 @@ export function buildQuickCreationRequest(
     promptDelivery: input.promptDelivery,
     quickTelemetry: input.quickTelemetry,
     ...(input.suppressTerminalFocusOnCompletion ? { suppressTerminalFocusOnCompletion: true } : {}),
-    ...(input.agent === null ? { setupOnly: input.setupOnly } : {})
+    ...(input.agent === null ? { setupOnly: input.setupOnly } : {}),
+    ...(input.claudeAccountId ? { claudeAccountId: input.claudeAccountId } : {})
   }
 }

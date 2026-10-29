@@ -304,6 +304,10 @@ export type GlobalSettings = GlobalSettingsBase & {
   claudeManagedAccounts: ClaudeManagedAccount[]
   activeClaudeManagedAccountId: string | null
   activeClaudeManagedAccountIdsByRuntime?: ClaudeManagedAccountRuntimeSelection
+  /** Claude account each workspace's agents run on, by worktree id, ahead of the global selection. */
+  claudeAccountByWorktreeId?: Record<string, string>
+  /** Claude account the New Workspace composer preselects for each project, by repo id. */
+  claudeAccountDefaultByRepoId?: Record<string, string>
   /** Dismissed the "System default may hold a copied login" notice in Settings > Accounts. */
   claudeCopiedSystemDefaultNoticeDismissed?: boolean
   /** Scope bash/zsh HISTFILE and fish_history by worktree so ArrowUp does not expose other worktrees’ commands; default true. */

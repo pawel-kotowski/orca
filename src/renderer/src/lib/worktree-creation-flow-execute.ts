@@ -1,3 +1,5 @@
+/* eslint-disable max-lines -- Why: the workspace Claude account is saved between
+   create and first launch, which only this flow sees. */
 import { prepareWorktreeCreationHooks } from '@/lib/worktree-creation-hook-preparation'
 import { toast } from 'sonner'
 import { useAppStore } from '@/store'
@@ -28,6 +30,7 @@ import { completeWorktreeCreation } from '@/lib/worktree-creation-completion'
 import { showWorktreeCreationReadyToast } from '@/lib/worktree-creation-ready-toast'
 import { mountCreatedWorktreeStartupTabsInBackground } from '@/lib/worktree-creation-background-mount'
 import { ensureWebRuntimeWorktreeTerminalAfterWake } from '@/lib/web-runtime-worktree-terminal-after-wake'
+import { saveWorkspaceClaudeAccount } from '@/lib/workspace-claude-account'
 
 // The pending pointer can survive app-view changes; only terminal view actually displays creation UI.
 function isPendingCreationSurfaceVisible(creationId: string): boolean {
@@ -158,6 +161,10 @@ export async function executeWorktreeCreation(
     return
   }
   await attachEphemeralVmRuntimeToWorkspace(preparedRequest, worktree.id)
+  if (preparedRequest.claudeAccountId) {
+    // Saved before any terminal or chat starts, so every launch here reads it.
+    await saveWorkspaceClaudeAccount(worktree.id, preparedRequest.claudeAccountId)
+  }
 
   const backendSpawned = result.startupTerminal?.spawned === true
   const windowStartup = windowStartupAfterCreate(creationId, preparedRequest, result)
