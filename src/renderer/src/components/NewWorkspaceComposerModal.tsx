@@ -43,6 +43,7 @@ import { getFolderWorkspacePrimaryActionLabel } from '@/components/sidebar/folde
 import type { WorkspaceCreationTargetHint } from '@/lib/project-host-workspace-target'
 import { useAgentMenuObservation } from '@/components/tab-bar/use-new-tab-agent-menu-rows'
 import { addAppKeyListener, removeAppKeyListener } from '@/lib/app-keyboard-router'
+import { useComposerClaudeAccount } from '@/components/new-workspace/use-composer-claude-account'
 
 // Keep Add Project’s clone/SSH machinery outside the composer entry render, matching App loading.
 const HostedAddRepoDialog = lazyWithRetry(() => import('@/components/sidebar/AddRepoDialog'), {
@@ -229,6 +230,11 @@ function QuickTabBody({
   const quickAgentSurface = quickAgentPick.agent === quickAgent ? quickAgentPick.surface : undefined
   const launchSelection = observation.selectionFor(quickAgent, quickAgentSurface)
   const createDisabled = formDisabled || !launchSelection.ready
+  const claudeAccount = useComposerClaudeAccount({
+    workspace: cardProps.agentRows?.target.workspace,
+    projectName: cardProps.selectedRepo?.displayName ?? '',
+    agent: quickAgent
+  })
 
   const handleQuickAgentChange = useCallback(
     (
@@ -266,6 +272,7 @@ function QuickTabBody({
       // Blank Terminal is the setup-only create: no agent, and no extra shell beside setup.
       setupOnly: quickAgent === null,
       launchChoice: launchSelection.choice,
+      claudeAccountId: claudeAccount.accountId,
       ...(launchInputs ? { launchInputs } : {})
     })
   }, [
@@ -274,7 +281,8 @@ function QuickTabBody({
     launchSelection.choice,
     submitQuick,
     pickerDraft,
-    quickAgentPick.entry
+    quickAgentPick.entry,
+    claudeAccount.accountId
   ])
   // Layer Add Project without replacing the composer. Retain it for close animation and clone/scan cancellation; folder/non-Git navigation still tears down the modal.
   const [addProjectOpen, setAddProjectOpen] = useState(false)
@@ -396,6 +404,7 @@ function QuickTabBody({
             : undefined
         }
         primaryActionLabel={primaryActionLabel}
+        claudeAccount={claudeAccount.field}
         onOpenAgentSettings={(invoker) => {
           agentSettingsInvoker.current = invoker
           setAgentSettingsOpen(true)

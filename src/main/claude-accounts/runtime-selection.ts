@@ -7,6 +7,8 @@ import type {
 export type ClaudeAccountSelectionTarget = {
   runtime?: 'host' | 'wsl'
   wslDistro?: string | null
+  /** A workspace's own Claude account, ahead of the global selection; host launches only. */
+  workspaceAccountId?: string | null
 }
 
 export type NormalizedClaudeAccountSelectionTarget = {

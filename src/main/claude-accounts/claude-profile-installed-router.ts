@@ -1,4 +1,5 @@
 import { join } from 'node:path'
+import { CLAUDE_WORKSPACE_ACCOUNT_ENV } from '../../shared/claude-workspace-account'
 import { isDirectory } from './claude-profile-homes'
 // Keep the router setup graph out of scan workers.
 import type { ClaudeProfileRouter } from './claude-profile-router'
@@ -37,12 +38,31 @@ export function getClaudeWslProfileRouter(): ClaudeWslProfileRouter | undefined 
   return installedWsl
 }
 
+/** Route a host spawn to its launch's or workspace's own Claude account when it has one. */
+export function claudeSpawnSelectionTarget(
+  target: ClaudeAccountSelectionTarget,
+  spawn: { env?: Record<string, string>; worktreeId?: string }
+): ClaudeAccountSelectionTarget {
+  if (target.runtime === 'wsl' || !installed) {
+    return target
+  }
+  const accountId = installed.accountForLaunch(
+    spawn.env?.[CLAUDE_WORKSPACE_ACCOUNT_ENV],
+    spawn.worktreeId
+  )
+  return accountId ? { ...target, workspaceAccountId: accountId } : target
+}
+
 export function withClaudeProfileTerminalEnv<Env extends Record<string, string> | undefined>(
   env: Env,
   target: ClaudeAccountSelectionTarget
 ): Env | Record<string, string> {
+  // The request is routed here; the agent itself never needs it.
+  const { [CLAUDE_WORKSPACE_ACCOUNT_ENV]: _requested, ...rest } = env ?? {}
+  void _requested
+  const routedEnv = env && CLAUDE_WORKSPACE_ACCOUNT_ENV in env ? rest : env
   const profileEnv = installed?.terminalEnv(target)
-  return profileEnv ? { ...env, ...profileEnv } : env
+  return profileEnv ? { ...routedEnv, ...profileEnv } : routedEnv
 }
 
 /** The user's CLAUDE_CONFIG_DIR from the login shell, folders Orca saw Claude use, and account homes. */
