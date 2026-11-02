@@ -10,6 +10,7 @@ import { useAppStore } from '../../store'
 import { formatPrimaryShortcutLabel } from '@/hooks/useShortcutLabel'
 import { translate } from '@/i18n/i18n'
 import { AppearanceChatContrastControls } from './AppearanceChatContrastControls'
+import { AppearanceChatImageOverlaySetting } from './AppearanceChatImageOverlaySetting'
 import { ChatFontFamilySetting } from './ChatFontFamilySetting'
 import { Button } from '../ui/button'
 import { SearchableSetting } from './SearchableSetting'
@@ -69,6 +70,11 @@ export function AppearanceChatSection({
         appearance={appearance}
         onChange={update}
         forceVisiblePrimary={forceVisiblePrimary}
+      />
+      <AppearanceChatImageOverlaySetting
+        value={appearance.imageOverlayOpacity}
+        onChange={update}
+        forceVisible={forceVisiblePrimary}
       />
       <ChatFontFamilySetting
         settings={settings}

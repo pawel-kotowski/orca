@@ -147,6 +147,14 @@ describe('chat root appearance style', () => {
     }
   )
 
+  it('publishes the chat opacity over a background image as a fraction', () => {
+    expect(nativeChatAppearanceStyle(undefined)['--chat-image-overlay-opacity']).toBe(0.75)
+    expect(
+      nativeChatAppearanceStyle({ nativeChatAppearance: { imageOverlayOpacity: 50 } })[
+        '--chat-image-overlay-opacity'
+      ]
+    ).toBe(0.5)
+  })
   it('publishes a custom text color only for the themes that set a valid one', () => {
     const style = nativeChatAppearanceStyle({
       nativeChatAppearance: { textColorDark: '#e0d0c0', textColorLight: '#zz' }
