@@ -1,3 +1,5 @@
+/* eslint-disable max-lines -- Why: the hide/show toggle and its collapsed wrapper sit on upstream's
+   composer layout; splitting the field would fork it from upstream on every rebase. */
 import { NativeChatPromptEditor } from './NativeChatPromptEditor'
 import { notifyNativeChatComposerState } from './native-chat-composer-mount'
 import type { NativeChatComposerInput } from './native-chat-composer-input'
@@ -283,27 +285,30 @@ export function NativeChatComposerField({
     <div ref={paneRef} className={launch ? undefined : 'shrink-0 bg-chat-pane'}>
       {launch ? null : (
         <NativeChatComposerToggleButton
-        collapsed={collapsed}
-        hasPendingDraft={draft.trim() !== '' || imageAttachments.length > 0}
-        onToggle={(event) => {
-          if (collapsed) {
-            setCollapsed(false)
-            return
-          }
-          setCollapsed(true)
-          // Why: hand focus to the chat root, whose typing redirect brings the box back.
-          event.currentTarget
-            .closest<HTMLElement>('[data-native-chat-root="true"]')
-            ?.focus({ preventScroll: true })
-        }}
-      />
+          collapsed={collapsed}
+          hasPendingDraft={draft.trim() !== '' || imageAttachments.length > 0}
+          onToggle={(event) => {
+            if (collapsed) {
+              setCollapsed(false)
+              return
+            }
+            setCollapsed(true)
+            // Why: hand focus to the chat root, whose typing redirect brings the box back.
+            event.currentTarget
+              .closest<HTMLElement>('[data-native-chat-root="true"]')
+              ?.focus({ preventScroll: true })
+          }}
+        />
       )}
       {/* Why: collapsed hides the box visually but keeps the editor mounted and focusable, so
           the draft and IME survive and any focus that lands in it (typing redirected from the
           transcript, paste, dictation, a returned message) brings it back. Extra bottom padding
           keeps the input box off the window rim. */}
       <div
-        className={cn(launch ? undefined : 'px-3 pt-2 pb-4 sm:px-4', collapsed && !launch && 'sr-only')}
+        className={cn(
+          launch ? undefined : 'px-3 pt-2 pb-4 sm:px-4',
+          collapsed && !launch && 'sr-only'
+        )}
         onFocusCapture={collapsed && !launch ? () => setCollapsed(false) : undefined}
       >
         <div
