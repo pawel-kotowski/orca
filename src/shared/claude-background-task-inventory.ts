@@ -24,6 +24,18 @@ const CLAUDE_TERMINAL_BACKGROUND_TASK_STATUSES = new Set([
   'timed_out'
 ])
 
+// Why: publishing or watching a claude.ai artifact arms a live-updates watch that Claude lists as a running
+// monitor until the session exits; it never wakes the session, and Claude's own task footer hides it (#26192).
+const CLAUDE_ARTIFACT_WATCH_DESCRIPTION = 'live updates for artifact '
+
+function isClaudeArtifactWatch(taskType: string, description: unknown): boolean {
+  return (
+    taskType === 'monitor' &&
+    typeof description === 'string' &&
+    description.startsWith(CLAUDE_ARTIFACT_WATCH_DESCRIPTION)
+  )
+}
+
 /** Agent entries from Stop/SubagentStop background_tasks; non-agent tasks do not become rows. */
 export type ClaudeBackgroundAgentTask = {
   id: string
@@ -72,6 +84,9 @@ export function readClaudeBackgroundAgentTasks(hookPayload: Record<string, unkno
     const taskStatus = typeof obj.status === 'string' ? obj.status.trim().toLowerCase() : ''
     const isTerminal =
       taskStatus.length > 0 && CLAUDE_TERMINAL_BACKGROUND_TASK_STATUSES.has(taskStatus)
+    if (isClaudeArtifactWatch(taskType, obj.description)) {
+      continue
+    }
     if (taskType.length === 0) {
       truncated = true
       hasRunningNonAgentTask ||= !isTerminal

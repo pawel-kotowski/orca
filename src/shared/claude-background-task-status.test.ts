@@ -29,6 +29,26 @@ function claudeEvent(state: HookListenerState, paneKey: string, payload: Record<
 }
 
 describe('Claude background task status', () => {
+  it('ignores an artifact live-updates watch, which lasts until the session exits', () => {
+    const state = createHookListenerState()
+
+    claudeEvent(state, SOURCE_PANE, { hook_event_name: 'UserPromptSubmit', prompt: 'publish it' })
+    const ended = claudeEvent(state, SOURCE_PANE, {
+      hook_event_name: 'Stop',
+      background_tasks: [
+        {
+          id: 'w1',
+          type: 'monitor',
+          status: 'running',
+          description: 'live updates for artifact https://claude.ai/artifact/abc (watch requested)'
+        }
+      ]
+    })
+
+    expect(ended).toMatchObject({ state: 'done' })
+    expect(ended?.workingMode).toBeUndefined()
+  })
+
   it('lists every agent row and still finds pending monitor work after them', () => {
     const agentTasks = Array.from({ length: 40 }, (_, index) => ({
       id: `agent-${index}`,
