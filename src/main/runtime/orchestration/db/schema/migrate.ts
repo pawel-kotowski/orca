@@ -17,11 +17,15 @@ import { migrateV43 } from './migrate-v43'
 import { migrateV44 } from './migrate-v44'
 import { migrateV45 } from './migrate-v45'
 import { migrateV46 } from './migrate-v46'
+import { repairForkStampedSchemaVersion } from './fork-schema-version-repair'
 import { DROP_REMOVED_WORK_TRIGGERS_SQL } from '../reset/removed-orchestration-work-store'
 
 // CREATE TABLE IF NOT EXISTS won't alter existing tables; migrate atomically before bumping user_version.
 export function migrate(this: OrchestrationDb): void {
-  const storedVersion = this.db.pragma('user_version', { simple: true }) as number
+  const storedVersion = repairForkStampedSchemaVersion(
+    this.db,
+    this.db.pragma('user_version', { simple: true }) as number
+  )
   const current = resolveOrchestrationMigrationStartVersion(this.db, storedVersion, SCHEMA_VERSION)
   if (current >= SCHEMA_VERSION) {
     return
