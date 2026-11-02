@@ -80,9 +80,12 @@
     var(--chat-source-foreground) var(--chat-composer-mix),
     var(--chat-canvas)
   );
+  /* Local build: a darker, thinner canvas so the theme image reads behind chat text. Near-black
+     at 65% keeps light text above 4.5:1 even over a bright patch of the image. */
   background-color: color-mix(
     in srgb,
-    var(--chat-canvas) calc(max(var(--orca-theme-background-surface-opacity), 0.9) * 100%),
+    color-mix(in srgb, var(--chat-canvas) 55%, black)
+      calc(max(var(--orca-theme-background-surface-opacity), 0.65) * 100%),
     transparent
   );
 }
