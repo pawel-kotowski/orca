@@ -172,6 +172,8 @@ export function nativeChatAppearanceStyle(
     ),
     '--chat-estimated-spacing-scale': uiFontSize / 14,
     '--chat-code-font-family': codeFont,
+    // Read only over a theme background image (native-chat-appearance.css).
+    '--chat-image-overlay-opacity': appearance.imageOverlayOpacity / 100,
     ...(appearance.fontFamily
       ? { '--chat-font-family': buildAppFontFamily(appearance.fontFamily) }
       : {}),

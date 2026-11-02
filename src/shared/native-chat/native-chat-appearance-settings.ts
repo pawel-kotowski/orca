@@ -14,6 +14,8 @@ export type NativeChatAppearanceSettings = {
   contrast?: number
   /** Follow the terminal interface font and theme; absent = false. */
   matchTerminalInterface?: boolean
+  /** How solid the chat sits over a theme background image, 30–100 percent; absent = 75. */
+  imageOverlayOpacity?: number
   /** Chat text color in the light theme, as typed (hex when valid); absent = theme default. */
   textColorLight?: string
   /** Chat text color in the dark theme, as typed (hex when valid); absent = theme default. */
@@ -35,7 +37,13 @@ export type NativeChatColorKey = (typeof NATIVE_CHAT_COLOR_KEYS)[number]
 export type ResolvedNativeChatAppearanceSettings = Required<
   Pick<
     NativeChatAppearanceSettings,
-    'fontFamily' | 'fontSize' | 'codeFontSize' | 'width' | 'contrast' | 'matchTerminalInterface'
+    | 'fontFamily'
+    | 'fontSize'
+    | 'codeFontSize'
+    | 'width'
+    | 'contrast'
+    | 'matchTerminalInterface'
+    | 'imageOverlayOpacity'
   >
 > &
   Record<NativeChatColorKey, string | undefined>
@@ -64,6 +72,7 @@ export function nativeChatScrollsToLatestOnSend(
 export const DEFAULT_NATIVE_CHAT_FONT_SIZE = 14
 export const DEFAULT_NATIVE_CHAT_CODE_FONT_SIZE = 12
 export const DEFAULT_NATIVE_CHAT_CONTRAST = 100
+export const DEFAULT_NATIVE_CHAT_IMAGE_OVERLAY_OPACITY = 75
 
 const KNOWN_KEYS: readonly string[] = [
   'fontFamily',
@@ -72,6 +81,7 @@ const KNOWN_KEYS: readonly string[] = [
   'width',
   'contrast',
   'matchTerminalInterface',
+  'imageOverlayOpacity',
   ...NATIVE_CHAT_COLOR_KEYS
 ]
 
@@ -112,6 +122,12 @@ export function normalizeNativeChatAppearanceSettings(
   const contrast = normalizeSize('contrast' in value ? value.contrast : undefined, 50, 150, 100)
   const matchTerminalInterface =
     'matchTerminalInterface' in value && value.matchTerminalInterface === true
+  const imageOverlayOpacity = normalizeSize(
+    'imageOverlayOpacity' in value ? value.imageOverlayOpacity : undefined,
+    30,
+    100,
+    DEFAULT_NATIVE_CHAT_IMAGE_OVERLAY_OPACITY
+  )
   const width =
     'width' in value && (value.width === 'wide' || value.width === 'full') ? value.width : undefined
   const colors = Object.fromEntries(
@@ -128,6 +144,9 @@ export function normalizeNativeChatAppearanceSettings(
     ...(width ? { width } : {}),
     ...(contrast !== DEFAULT_NATIVE_CHAT_CONTRAST ? { contrast } : {}),
     ...(matchTerminalInterface ? { matchTerminalInterface } : {}),
+    ...(imageOverlayOpacity !== DEFAULT_NATIVE_CHAT_IMAGE_OVERLAY_OPACITY
+      ? { imageOverlayOpacity }
+      : {}),
     ...colors
   }
   return Object.keys(normalized).length ? normalized : undefined
@@ -144,6 +163,8 @@ export function resolveNativeChatAppearanceSettings(
     width: normalized?.width ?? 'comfortable',
     contrast: normalized?.contrast ?? DEFAULT_NATIVE_CHAT_CONTRAST,
     matchTerminalInterface: normalized?.matchTerminalInterface ?? false,
+    imageOverlayOpacity:
+      normalized?.imageOverlayOpacity ?? DEFAULT_NATIVE_CHAT_IMAGE_OVERLAY_OPACITY,
     textColorLight: resolveColor(normalized?.textColorLight),
     textColorDark: resolveColor(normalized?.textColorDark),
     userBubbleColorLight: resolveColor(normalized?.userBubbleColorLight),

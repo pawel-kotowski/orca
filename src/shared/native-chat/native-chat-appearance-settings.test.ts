@@ -61,7 +61,8 @@ describe('native chat appearance normalization', () => {
       codeFontSize: 10,
       width: 'full',
       contrast: 100,
-      matchTerminalInterface: false
+      matchTerminalInterface: false,
+      imageOverlayOpacity: 75
     })
     expect(
       normalizeNativeChatAppearanceSettings({ fontSize: 15.6, codeFontSize: 13.2, width: 'wide' })
@@ -105,6 +106,25 @@ describe('native chat appearance normalization', () => {
     ).toMatchObject({ userBubbleColorDark: '#334455', userBubbleColorLight: undefined })
     const fromNewerVersion = { textColorLight: '#fff', userBubbleColorDark: '#000', futureKey: 1 }
     expect(resetNativeChatAppearanceSettings(fromNewerVersion)).toEqual({ futureKey: 1 })
+  })
+})
+
+describe('chat opacity over a background image', () => {
+  it('clamps it to 30–100, defaults to 75 and stores only a change', () => {
+    expect(resolveNativeChatAppearanceSettings({}).imageOverlayOpacity).toBe(75)
+    expect(
+      resolveNativeChatAppearanceSettings({ imageOverlayOpacity: 5 }).imageOverlayOpacity
+    ).toBe(30)
+    expect(
+      resolveNativeChatAppearanceSettings({ imageOverlayOpacity: 140 }).imageOverlayOpacity
+    ).toBe(100)
+    expect(
+      resolveNativeChatAppearanceSettings({ imageOverlayOpacity: 'x' }).imageOverlayOpacity
+    ).toBe(75)
+    expect(normalizeNativeChatAppearanceSettings({ imageOverlayOpacity: 75 })).toBeUndefined()
+    expect(normalizeNativeChatAppearanceSettings({ imageOverlayOpacity: 60.4 })).toEqual({
+      imageOverlayOpacity: 60
+    })
   })
 })
 

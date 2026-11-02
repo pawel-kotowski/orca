@@ -36,6 +36,31 @@ export const getChatContrastEntriesByKey = createLocalizedCatalog(
           'How bright chat text is against the background. The right end matches the older, brighter look.'
         ),
         targetSectionId: 'chat-contrast'
+      },
+      imageOverlayOpacity: {
+        title: translate(
+          'settings.appearance.chat.imageOverlayOpacity',
+          'Chat over a background image'
+        ),
+        description: translate(
+          'settings.appearance.chat.imageOverlayOpacityDescription',
+          "How solid the chat is over your theme's background image. Lower shows more of the image behind messages."
+        ),
+        keywords: [
+          ...translateSearchKeyword(
+            'settings.appearance.chat.imageOverlayKeywordTransparency',
+            'transparency'
+          ),
+          ...translateSearchKeyword(
+            'settings.appearance.chat.imageOverlayKeywordOpacity',
+            'opacity'
+          ),
+          ...translateSearchKeyword(
+            'settings.appearance.chat.imageOverlayKeywordWallpaper',
+            'wallpaper'
+          )
+        ],
+        targetSectionId: 'chat-image-overlay-opacity'
       }
     }) satisfies Record<string, SettingsSearchEntry>
 )
