@@ -16,7 +16,8 @@ type UseNativeChatComposerHandleArgs = Parameters<typeof useNativeChatTypedInser
     resend?: NativeChatComposerHandle['resend']
     /** A structured chat's editor while it shows this scope, where a long paste saved as a file lands. */
     pastedTextEditor: (() => NativeChatComposerInput | null) | null
-    collapseScopeKey: string
+    /** The scope whose hide/show state the handle reports; absent uses the attachment scope (the draft's). */
+    collapseScopeKey?: string
   }
 
 /** Expose typed/pasted insertion to pane routing and return the paste handler. */
@@ -29,7 +30,7 @@ export function useNativeChatComposerHandle(
     isComposing,
     setDraft,
     setActiveSuggestion,
-    collapseScopeKey,
+    collapseScopeKey = args.attachmentScopeKey,
     ...pasteArgs
   } = args
   const { insertTypedText, appendText, acceptsText, insertPastedText, focus, contains } =
@@ -76,7 +77,8 @@ export function useNativeChatComposerHandle(
       handlePasteEvent,
       pasteFromClipboard,
       contains,
-      isCollapsed: () => isNativeChatComposerCollapsed(collapseScopeKey)
+      isCollapsed: () =>
+        collapseScopeKey !== undefined && isNativeChatComposerCollapsed(collapseScopeKey)
     }),
     [
       textareaRef,
