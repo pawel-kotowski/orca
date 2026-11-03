@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import type { NativeChatAppearanceSettings } from '../../../../shared/native-chat/native-chat-appearance-settings'
+import type { NativeChatAppearanceSettings } from '../../../../../../shared/native-chat/native-chat-appearance-settings'
 import { getChatContrastEntriesByKey } from './chat-appearance-search'
 import { translate } from '@/i18n/i18n'
-import { Slider } from '../ui/slider'
-import { SearchableSetting } from './SearchableSetting'
-import { SettingsRow } from './SettingsFormControls'
+import { Slider } from '../../../ui/slider'
+import { SearchableSetting } from '../../section-layout/SearchableSetting'
+import { SettingsRow } from '../../form-controls/SettingsFormControls'
 
 /** Local build: how solid the chat sits over a theme background image (native-chat-appearance.css). */
 export function AppearanceChatImageOverlaySetting({
