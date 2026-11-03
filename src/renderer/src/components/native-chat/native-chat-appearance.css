@@ -109,21 +109,49 @@
   --chat-theme-foreground-strong: var(--chat-foreground-strong);
   --chat-theme-code-foreground: var(--chat-code-foreground);
   --chat-theme-user-surface: var(--chat-user-surface);
+  /* Why: the Contrast slider sets --chat-foreground-mix; a custom text color follows it the way the
+     theme color does, instead of replacing it at full strength. Invalid (so unset) without one. */
+  --chat-custom-foreground-light: color-mix(
+    in srgb,
+    var(--chat-text-color-light) var(--chat-foreground-mix),
+    var(--chat-canvas)
+  );
+  --chat-custom-foreground-strong-light: color-mix(
+    in srgb,
+    var(--chat-text-color-light) var(--chat-strong-mix),
+    var(--chat-canvas)
+  );
+  --chat-custom-foreground-dark: color-mix(
+    in srgb,
+    var(--chat-text-color-dark) var(--chat-foreground-mix),
+    var(--chat-canvas)
+  );
+  --chat-custom-foreground-strong-dark: color-mix(
+    in srgb,
+    var(--chat-text-color-dark) var(--chat-strong-mix),
+    var(--chat-canvas)
+  );
 }
 
 :root:not(.dark) .native-chat-appearance > * {
-  --chat-foreground: var(--chat-text-color-light, var(--chat-theme-foreground));
-  --chat-foreground-strong: var(--chat-text-color-light, var(--chat-theme-foreground-strong));
-  --chat-code-foreground: var(--chat-text-color-light, var(--chat-theme-code-foreground));
+  --chat-foreground: var(--chat-custom-foreground-light, var(--chat-theme-foreground));
+  --chat-foreground-strong: var(
+    --chat-custom-foreground-strong-light,
+    var(--chat-theme-foreground-strong)
+  );
+  --chat-code-foreground: var(--chat-custom-foreground-light, var(--chat-theme-code-foreground));
   /* Invalid (so unset) without a custom color, which keeps the markdown quote's own color. */
   --chat-quote-foreground: color-mix(in srgb, var(--chat-text-color-light) 70%, transparent);
   --chat-user-surface: var(--chat-user-bubble-light, var(--chat-theme-user-surface));
 }
 
 .dark .native-chat-appearance > * {
-  --chat-foreground: var(--chat-text-color-dark, var(--chat-theme-foreground));
-  --chat-foreground-strong: var(--chat-text-color-dark, var(--chat-theme-foreground-strong));
-  --chat-code-foreground: var(--chat-text-color-dark, var(--chat-theme-code-foreground));
+  --chat-foreground: var(--chat-custom-foreground-dark, var(--chat-theme-foreground));
+  --chat-foreground-strong: var(
+    --chat-custom-foreground-strong-dark,
+    var(--chat-theme-foreground-strong)
+  );
+  --chat-code-foreground: var(--chat-custom-foreground-dark, var(--chat-theme-code-foreground));
   --chat-quote-foreground: color-mix(in srgb, var(--chat-text-color-dark) 70%, transparent);
   --chat-user-surface: var(--chat-user-bubble-dark, var(--chat-theme-user-surface));
 }
