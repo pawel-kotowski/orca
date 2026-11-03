@@ -38,8 +38,7 @@ const TerminalPaneOverlayLayer = memo(function TerminalPaneOverlayLayer({
   hiddenTerminalPrewarm = null,
   activityTerminalPortals = EMPTY_ACTIVITY_PORTALS,
   backgroundMountTabIds = null,
-  activationDeferredMountTabIds = null,
-  ownsNativeChatToggleShortcut = true
+  activationDeferredMountTabIds = null
 }: {
   worktreeId: string
   worktreePath: string
@@ -55,8 +54,6 @@ const TerminalPaneOverlayLayer = memo(function TerminalPaneOverlayLayer({
   backgroundMountTabIds?: ReadonlySet<string> | null
   /** Cold-activation deferred tabs receive immediate parked watcher coverage. */
   activationDeferredMountTabIds?: ReadonlySet<string> | null
-  /** Grant global keyboard chords to one workspace even when another overlay workspace remains visible. */
-  ownsNativeChatToggleShortcut?: boolean
 }): React.JSX.Element | null {
   const { terminalTabs, unifiedTabs, groups, activeGroupId } = useAppStore(
     useShallow((state) => ({
@@ -69,7 +66,8 @@ const TerminalPaneOverlayLayer = memo(function TerminalPaneOverlayLayer({
   const focusGroup = useAppStore((state) => state.focusGroup)
   const consumeSuppressedPtyExit = useAppStore((state) => state.consumeSuppressedPtyExit)
 
-  useNativeChatToggleShortcut(worktreeId, isWorktreeActive && ownsNativeChatToggleShortcut)
+  // Main and floating surfaces each listen; the hook acts only for the surface the key came from.
+  useNativeChatToggleShortcut(worktreeId, isWorktreeActive)
 
   const captureEmptiedReaction = useCallback(
     () => captureWorkspaceEmptiedReaction(worktreeId),
