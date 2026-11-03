@@ -80,14 +80,26 @@
     var(--chat-source-foreground) var(--chat-composer-mix),
     var(--chat-canvas)
   );
-  /* Local build: a darker canvas whose opacity is the user's Settings slider (Chat over a
-     background image), so the theme image reads behind chat text as strongly as they choose. */
+  /* Local build: the canvas opacity is the user's Settings slider (Chat over a background image),
+     so the theme image reads behind chat text as strongly as they choose. In dark mode the canvas
+     is also darkened so light text keeps its contrast over bright patches of the image. */
+  --chat-image-canvas: var(--chat-canvas);
   background-color: color-mix(
     in srgb,
-    color-mix(in srgb, var(--chat-canvas) 55%, black)
-      calc(var(--chat-image-overlay-opacity, 0.75) * 100%),
+    var(--chat-image-canvas) calc(var(--chat-image-overlay-opacity, 0.75) * 100%),
     transparent
   );
+}
+
+/* Why dark only: a light theme's text is dark, so darkening its canvas toward black turned a cream
+   chat into a muddy grey with dark text on it. */
+:root.dark[data-theme-background]
+  :is(
+    [data-terminal-chat-view]:not(.has-multiple-panes),
+    [data-structured-agent-session-overlay-tab-id]
+  )
+  [data-native-chat-root] {
+  --chat-image-canvas: color-mix(in srgb, var(--chat-canvas) 55%, black);
 }
 
 /* Why: children, not the root, pick the custom color so the root can keep the theme value as the fallback
