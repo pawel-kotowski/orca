@@ -230,8 +230,6 @@ export function renderFloatingTerminalPanelSurface({
                     activationDeferredMountTabIds={null}
                     mountRetainedBrowserOverlay={true}
                     mountEmulatorOverlay={true}
-                    // Why: the active workspace's listener owns the chord while the panel overlays it.
-                    ownsNativeChatToggleShortcut={false}
                   />
                 </div>
               ) : (

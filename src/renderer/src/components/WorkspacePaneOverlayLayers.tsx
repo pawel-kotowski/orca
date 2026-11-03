@@ -19,8 +19,7 @@ export function WorkspacePaneOverlayLayers({
   backgroundMountTabIds,
   activationDeferredMountTabIds,
   mountRetainedBrowserOverlay,
-  mountEmulatorOverlay,
-  ownsNativeChatToggleShortcut = true
+  mountEmulatorOverlay
 }: {
   worktreeId: string
   worktreePath: string
@@ -34,8 +33,6 @@ export function WorkspacePaneOverlayLayers({
   activationDeferredMountTabIds: ReadonlySet<string> | null
   mountRetainedBrowserOverlay: boolean
   mountEmulatorOverlay: boolean
-  /** Floating overlays leave the toggle chord to the active workspace; duplicate listeners would both toggle. */
-  ownsNativeChatToggleShortcut?: boolean
 }): React.JSX.Element {
   return (
     <>
@@ -50,7 +47,6 @@ export function WorkspacePaneOverlayLayers({
         activityTerminalPortals={activityTerminalPortals}
         backgroundMountTabIds={backgroundMountTabIds}
         activationDeferredMountTabIds={activationDeferredMountTabIds}
-        ownsNativeChatToggleShortcut={ownsNativeChatToggleShortcut}
       />
       <RetainedBrowserPaneOverlayLayer
         worktreeId={worktreeId}
