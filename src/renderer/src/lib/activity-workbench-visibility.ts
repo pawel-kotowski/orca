@@ -52,13 +52,25 @@ export function activityHidesWorkbench(): boolean {
   return hidden && useAppStore.getState().sidebarBody === 'agents'
 }
 
-// Escape belongs to whatever has focus there: a terminal (the agent's own interrupt), a chat, a field.
-const KEEPS_ESCAPE =
-  '.xterm, [data-native-chat-root], input, textarea, select, [contenteditable="true"]'
+// Escape belongs to what has focus when it means something there: a terminal (the agent's own
+// interrupt), a chat whose agent works (Escape stops it), a field. An idle chat gives it up.
+function focusKeepsEscape(target: Element | null): boolean {
+  if (!target) {
+    return false
+  }
+  if (target.closest('.xterm')) {
+    return true
+  }
+  const chat = target.closest('[data-native-chat-root]')
+  if (chat) {
+    return chat.getAttribute('data-native-chat-working') === 'true'
+  }
+  return target.closest('input, textarea, select, [contenteditable="true"]') !== null
+}
 
 /**
  * Escape in the activity view hides the tabs a card brought back, when nothing else used it (an
- * open hover chat closes first) and focus is not in a terminal, a chat or a field.
+ * open hover chat closes first) and focus is not where Escape means something (focusKeepsEscape).
  */
 export function useActivityEscapeHidesWorkbench(): void {
   useEffect(() => {
@@ -66,8 +78,7 @@ export function useActivityEscapeHidesWorkbench(): void {
       if (event.key !== 'Escape' || event.defaultPrevented || event.isComposing) {
         return
       }
-      const target = event.target instanceof Element ? event.target : null
-      if (target?.closest(KEEPS_ESCAPE)) {
+      if (focusKeepsEscape(event.target instanceof Element ? event.target : null)) {
         return
       }
       if (useAppStore.getState().sidebarBody === 'agents' && !hidden) {
