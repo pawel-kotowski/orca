@@ -211,7 +211,11 @@ export const ActivityThreadRow = React.memo(function ActivityThreadRow({
         role="listitem"
         aria-label={taskTitle}
         aria-current={selected ? 'true' : undefined}
-        className="group relative flex w-full cursor-pointer flex-col gap-1 rounded-lg border border-transparent px-1.5 py-1.5 text-left transition-[background-color,border-color,opacity,box-shadow] duration-200 outline-none select-none worktree-sidebar-card-hover focus-visible:ring-1 focus-visible:ring-ring"
+        className={cn(
+          'group relative flex w-full cursor-pointer flex-col gap-1 rounded-lg border border-transparent px-1.5 py-1.5 text-left transition-[background-color,border-color,opacity,box-shadow] duration-200 outline-none select-none focus-visible:ring-1 focus-visible:ring-ring',
+          // Why: a conversation card marks hover with a hairline frame, not a filled highlight.
+          conversation ? 'hover:border-border/60' : 'worktree-sidebar-card-hover'
+        )}
       >
         <div className="flex min-w-0 items-start gap-1.5">
           <span className="mt-0.5 inline-flex shrink-0">
