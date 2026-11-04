@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react'
+import React, { useCallback, useEffect } from 'react'
 import { Pencil, StickyNote } from 'lucide-react'
 import { HoverCardContent } from '@/components/ui/hover-card'
 import { SelectedTextCopyMenu } from '@/components/SelectedTextCopyMenu'
@@ -48,9 +48,16 @@ export type ActivityThreadHoverCardProps = {
   conversation?: ActivityThreadConversation | null
 }
 
+// Why: only a chat the person clicked or typed into holds itself open; one that merely took focus
+// when it opened must not, or moving down the list stacks card on card.
 function chatHasFocus(): boolean {
-  return document.activeElement?.closest('[data-activity-thread-chat-preview]') != null
+  return (
+    document.activeElement?.closest('[data-activity-thread-chat-preview][data-engaged]') != null
+  )
 }
+
+// One live chat card at a time: opening one closes the one before it.
+let closeOpenChatCard: (() => void) | null = null
 
 export function ActivityThreadHoverCard({
   thread,
@@ -64,6 +71,22 @@ export function ActivityThreadHoverCard({
 }: ActivityThreadHoverCardProps): React.JSX.Element {
   const detailsHoverControl = useWorktreeCardDetailsHoverControl()
   const open = detailsHoverControl.hoverOpen && !suppressed
+  const showsChat = open && conversation !== null
+  const { closeHover } = detailsHoverControl
+  useEffect(() => {
+    if (!showsChat) {
+      return
+    }
+    if (closeOpenChatCard && closeOpenChatCard !== closeHover) {
+      closeOpenChatCard()
+    }
+    closeOpenChatCard = closeHover
+    return () => {
+      if (closeOpenChatCard === closeHover) {
+        closeOpenChatCard = null
+      }
+    }
+  }, [closeHover, showsChat])
   const { linkActionPopoverProps, onOpenLink, onAuxClickCapture } =
     useWorkspaceReferenceLinkActions(thread.worktree.id, detailsHoverControl)
 

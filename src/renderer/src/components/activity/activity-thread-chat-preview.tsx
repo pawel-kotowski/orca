@@ -106,6 +106,9 @@ export function ActivityThreadChatPreview({
       className="resize overflow-hidden p-0"
       {...{ [WORKTREE_NATIVE_CONTEXT_MENU_ATTR]: '' }}
       data-activity-thread-chat-preview=""
+      // Why: a click or a key inside marks the card in use, so it stays open while it has focus.
+      onPointerDownCapture={(event) => event.currentTarget.setAttribute('data-engaged', '')}
+      onKeyDownCapture={(event) => event.currentTarget.setAttribute('data-engaged', '')}
       onClick={(event) => event.stopPropagation()}
       onDoubleClick={(event) => event.stopPropagation()}
       onKeyDown={(event) => {
