@@ -6,6 +6,7 @@ import {
   type NativeChatToolCategoryCall
 } from './native-chat-tool-icon'
 import { toolInputCommand } from './native-chat-tool-summary'
+import { nativeChatToolInputText } from './native-chat-tool-input-text'
 import { isToolCallBlock, type NativeChatBlock } from '../native-chat-types'
 
 /** Shared singular/plural category copy; desktop translates and mobile formats directly. */
@@ -119,7 +120,8 @@ export function nativeChatToolRunSentence(
   if (calls.length === 1 && !live) {
     const command = toolInputCommand(calls[0].input)
     if (command !== null && command.length > 0) {
-      return command
+      // The agent's own words for the step, as the terminal shows it, else the command.
+      return nativeChatToolInputText(calls[0].input, 'description')?.trim() || command
     }
   }
   return joinNativeChatToolRunClauses(

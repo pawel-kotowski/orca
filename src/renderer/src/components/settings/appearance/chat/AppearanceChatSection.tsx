@@ -1,3 +1,5 @@
+import { SettingsSwitchRow } from '../../form-controls/SettingsFormControls'
+import { nativeChatToolStepsOpen } from '../../../../../../shared/native-chat/native-chat-appearance-settings'
 import {
   NATIVE_CHAT_COLOR_KEYS,
   normalizeNativeChatAppearanceSettings,
@@ -75,6 +77,15 @@ export function AppearanceChatSection({
         value={appearance.imageOverlayOpacity}
         onChange={update}
         forceVisible={forceVisiblePrimary}
+      />
+      <SettingsSwitchRow
+        label={translate('settings.chat.appearance.toolStepsOpen', 'Show every tool step')}
+        description={translate(
+          'settings.chat.appearance.toolStepsOpenDescription',
+          'Runs of commands and tools list each step, headed by what the agent said it does. Off folds them into one line.'
+        )}
+        checked={nativeChatToolStepsOpen(settings)}
+        onChange={() => update({ toolStepsOpen: !nativeChatToolStepsOpen(settings) })}
       />
       <ChatFontFamilySetting
         settings={settings}

@@ -522,6 +522,10 @@
         "turnOff": "Turn off",
         "toggle": "Use Chat UI by default"
       },
+      "appearance": {
+        "toolStepsOpen": "Show every tool step",
+        "toolStepsOpenDescription": "Runs of commands and tools list each step, headed by what the agent said it does. Off folds them into one line."
+      },
       "permissionsAgentsLink": "Settings → Agents",
       "permissionsTitle": "Permissions for new chats",
       "permissionsDescription": "New chats only. Agent-specific defaults are in Settings → Agents.",

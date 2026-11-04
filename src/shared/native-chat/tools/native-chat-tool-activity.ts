@@ -1,6 +1,7 @@
 // Shared tool activity/copy for direct English mobile rows and desktop i18n fallbacks.
 
 import { createToolInputDisplay } from './native-chat-tool-summary'
+import { nativeChatToolInputText } from './native-chat-tool-input-text'
 import { isToolCallBlock, type NativeChatBlock } from '../native-chat-types'
 
 type NativeChatToolCallBlock = Extract<NativeChatBlock, { type: 'tool-call' }>
@@ -77,7 +78,8 @@ export function formatActiveToolLabel(descriptor: NativeChatActiveToolDescriptor
 export function describeLatestToolCall(call: NativeChatToolCallBlock): string {
   const { toolName, preview, isCommand } = describeActiveToolCall(call)
   if (isCommand) {
-    return preview || toolName
+    // A described command previews as what it does, as the terminal heads it.
+    return nativeChatToolInputText(call.input, 'description')?.trim() || preview || toolName
   }
   return preview ? `${toolName} ${preview}` : toolName
 }

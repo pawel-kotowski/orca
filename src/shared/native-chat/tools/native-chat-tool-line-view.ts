@@ -1,4 +1,6 @@
 import { agentJournalToolCallLifecycle } from '../../agent-journal-tool-call-lifecycle'
+import { nativeChatToolArguments, type NativeChatToolArgument } from './native-chat-tool-code-parts'
+import { nativeChatToolCategory } from './native-chat-tool-icon'
 import {
   isToolCallBlock,
   type NativeChatToolCallBlock,
@@ -22,9 +24,12 @@ export type NativeChatToolLineView = {
   /** Link-safe hits only, so unsafe-only results do not open an empty panel. */
   results: NativeChatWebSearchResult[]
   hasDetail: boolean
+  /** A tool's arguments when one of them is code (an MCP `python_exec`'s `code`); else empty. */
+  toolArguments: NativeChatToolArgument[]
 }
 
 const NO_SEARCH_RESULTS: NativeChatWebSearchResult[] = []
+const NO_TOOL_ARGUMENTS: NativeChatToolArgument[] = []
 
 export function nativeChatToolLineView(
   block: NativeChatToolCallBlock | NativeChatToolResultBlock,
@@ -38,11 +43,22 @@ export function nativeChatToolLineView(
   const failed = lifecycle === 'failed' || (lifecycle !== 'interrupted' && result?.isError === true)
   const results = call ? toolWebSearchResults(call.webSearchResults) : NO_SEARCH_RESULTS
   // An edit that has not landed has no output yet, but the change it proposes is worth opening.
+  // Why: a shell command already shows its own text; other tools that take code show it colored.
+  const parsedArguments =
+    call &&
+    label?.fullCommand === null &&
+    (label.command || nativeChatToolCategory(call.name, call.mcpIdentity) === 'mcpToolCall')
+      ? nativeChatToolArguments(call.name, call.input)
+      : NO_TOOL_ARGUMENTS
+  const toolArguments = parsedArguments.some((argument) => argument.parts !== null)
+    ? parsedArguments
+    : NO_TOOL_ARGUMENTS
   const hasDetail =
     body !== undefined ||
+    toolArguments.length > 0 ||
     label?.commandDetail != null ||
     results.length > 0 ||
     (call !== undefined && diffFromToolCall(call.name, call.input) !== null)
   const resultPreview = call ? '' : (body?.output.split('\n')[0]?.slice(0, 80) ?? '')
-  return { call, label, body, resultPreview, failed, results, hasDetail }
+  return { call, label, body, resultPreview, failed, results, hasDetail, toolArguments }
 }

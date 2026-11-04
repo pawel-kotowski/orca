@@ -51,6 +51,11 @@ export type NativeChatToolLineLabel = {
   commandDetail: string | null
   /** Grammar of `commandDetail`; null when the row holds no command text. */
   commandLanguage: string | null
+  /**
+   * What the agent said the command does (Claude's Bash `description`). When set it is the row's
+   * `target`, and the command moves to `commandDetail`.
+   */
+  description: string | null
 }
 
 function phaseVerb<T extends NativeChatToolRowVerb>(
@@ -84,6 +89,7 @@ export function nativeChatToolLineLabel(
   let fullCommand: string | null = null
   let commandDetail: string | null = null
   let commandLanguage: string | null = null
+  let description: string | null = null
   let verb: NativeChatToolRowVerb | null = null
   let target = display.label
   let title = display.filePath ?? target
@@ -105,6 +111,15 @@ export function nativeChatToolLineLabel(
       if (plainCommand?.trim() === fullCommand) {
         commandDetail = plainCommand === target ? null : plainCommand
       }
+    }
+    // Why: the step reads as the agent's own words, as the terminal shows it; the command stays
+    // one click away, whole.
+    description = nativeChatToolInputText(call.input, 'description')?.trim() || null
+    if (description !== null && fullCommand !== null) {
+      target = description
+      commandDetail = fullCommand
+    } else {
+      description = null
     }
     if (running) {
       verb = 'running'
@@ -143,5 +158,15 @@ export function nativeChatToolLineLabel(
       })
     }
   }
-  return { verb, target, title, command, filePath, fullCommand, commandDetail, commandLanguage }
+  return {
+    verb,
+    target,
+    title,
+    command,
+    filePath,
+    fullCommand,
+    commandDetail,
+    commandLanguage,
+    description
+  }
 }

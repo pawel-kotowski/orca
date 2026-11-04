@@ -260,22 +260,62 @@ describe('tool sentence rows', () => {
     expect(container.querySelector('pre')).toHaveTextContent('all passed')
   })
 
-  it.each([
-    [{ command: 'pnpm test', description: 'Run the suite' }],
-    [{ command: ['printf', '%s', 'a b'] }],
-    [{ command: '/bin/zsh -lc "pnpm test"' }]
-  ])('opens a command to its output alone, never its raw arguments', (input) => {
+  it('heads a described command with its description and opens to the command and output', () => {
     const { container } = render(
       <NativeChatToolLine
-        block={{ type: 'tool-call', name: 'Bash', input, state: 'completed' }}
+        block={{
+          type: 'tool-call',
+          name: 'Bash',
+          input: { command: 'pnpm test', description: 'Run the suite' },
+          state: 'completed'
+        }}
         result={{ type: 'tool-result', output: 'all passed' }}
       />
     )
+    expect(screen.getByRole('button')).toHaveTextContent('Run the suite')
     fireEvent.click(screen.getByRole('button'))
     expect([...container.querySelectorAll('pre')].map((pre) => pre.textContent)).toEqual([
+      'pnpm test',
       'all passed'
     ])
   })
+
+  it('opens a python_exec call to its code, colored as Python', async () => {
+    const { container } = render(
+      <NativeChatToolLine
+        block={{
+          type: 'tool-call',
+          name: 'mcp__pykeep__python_exec',
+          input: { code: 'import json\nprint(json.dumps({}))', agent: 'rhythm' },
+          state: 'completed'
+        }}
+        result={{ type: 'tool-result', output: '{}' }}
+      />
+    )
+    fireEvent.click(screen.getByRole('button'))
+    const code = container.querySelector('pre')
+    expect(code?.textContent).toBe('import json\nprint(json.dumps({}))')
+    await waitFor(
+      () => expect(code?.querySelector('span[style*="--syntax-dark"]')).not.toBeNull(),
+      { timeout: 10_000 }
+    )
+  })
+
+  it.each([[{ command: ['printf', '%s', 'a b'] }], [{ command: '/bin/zsh -lc "pnpm test"' }]])(
+    'opens a command to its output alone, never its raw arguments',
+    (input) => {
+      const { container } = render(
+        <NativeChatToolLine
+          block={{ type: 'tool-call', name: 'Bash', input, state: 'completed' }}
+          result={{ type: 'tool-result', output: 'all passed' }}
+        />
+      )
+      fireEvent.click(screen.getByRole('button'))
+      expect([...container.querySelectorAll('pre')].map((pre) => pre.textContent)).toEqual([
+        'all passed'
+      ])
+    }
+  )
 
   it('does not offer empty detail for a short command without output', () => {
     const { container } = render(

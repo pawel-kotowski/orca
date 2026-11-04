@@ -1,4 +1,6 @@
 import { useMemo } from 'react'
+import { useAppStore } from '@/store'
+import { nativeChatToolStepsOpen } from '../../../../shared/native-chat/native-chat-appearance-settings'
 import { structuredAgentLabel } from '@/lib/agent-session/launch/structured-agent-session-launch-label'
 import type { NativeChatLiveSession } from './use-native-chat-live-session'
 import type { NativeChatTranscriptRowContext } from './NativeChatTranscriptRow'
@@ -29,11 +31,13 @@ export function useNativeChatTranscriptRowContext({
   onScrollMessageToTop,
   onRevealDiff
 }: NativeChatTranscriptRowContextInput): NativeChatTranscriptRowContext {
+  // Why: "Show every tool step" opens each run the same way an expand request does.
+  const toolStepsOpen = useAppStore((state) => nativeChatToolStepsOpen(state.settings))
   return useMemo<NativeChatTranscriptRowContext>(
     () => ({
       agentName: structuredAgentLabel(agent),
       actionablePromptIds: hostWork?.actionablePromptIds,
-      expandSignal,
+      expandSignal: expandSignal || toolStepsOpen,
       revealedDiff,
       taskListPredecessors,
       expandedTurnIds,
@@ -52,6 +56,7 @@ export function useNativeChatTranscriptRowContext({
       hostWork,
       allowFileUriLinks,
       expandSignal,
+      toolStepsOpen,
       expandedTurnIds,
       deliveryNotices,
       onLinkClick,

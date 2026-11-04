@@ -17,7 +17,8 @@ import {
 import { NativeChatToolIcon } from './NativeChatToolIcon'
 import { NativeChatToolFileTarget } from './NativeChatToolFileTarget'
 import { NativeChatDiffView } from './NativeChatDiffView'
-import { NativeChatHighlightedCode } from './NativeChatHighlightedCode'
+import { NativeChatToolArguments, NativeChatToolCommandCode } from './NativeChatToolCode'
+import type { NativeChatToolArgument } from '../../../../shared/native-chat/tools/native-chat-tool-code-parts'
 import { nativeChatToolRowVerb } from './native-chat-tool-line-label'
 import { NATIVE_CHAT_TOOL_ACTIVITY_COPY } from '../../../../shared/native-chat/tools/native-chat-tool-activity'
 import { nativeChatToolLineView } from '../../../../shared/native-chat/tools/native-chat-tool-line-view'
@@ -39,6 +40,7 @@ function ToolLineDetail({
   body,
   fullCommand,
   commandLanguage,
+  toolArguments,
   results,
   onLinkClick
 }: {
@@ -46,6 +48,7 @@ function ToolLineDetail({
   body: NativeChatToolResultBlock | undefined
   fullCommand: string | null
   commandLanguage: string | null
+  toolArguments: readonly NativeChatToolArgument[]
   results: NativeChatWebSearchResult[]
   onLinkClick?: CommentMarkdownLinkClickHandler
 }): React.JSX.Element {
@@ -61,16 +64,10 @@ function ToolLineDetail({
       ) : null}
       {diff ? <NativeChatDiffView lines={diff} /> : null}
       {!diff && fullCommand ? (
-        <pre
-          data-native-chat-code-content
-          className="max-h-64 overflow-auto whitespace-pre-wrap break-words rounded-lg border border-chat-code-border bg-chat-code-surface p-2 font-mono text-chat-code text-chat-foreground scrollbar-sleek"
-        >
-          {commandLanguage ? (
-            <NativeChatHighlightedCode code={fullCommand} language={commandLanguage} />
-          ) : (
-            fullCommand
-          )}
-        </pre>
+        <NativeChatToolCommandCode command={fullCommand} language={commandLanguage} />
+      ) : null}
+      {!diff && toolArguments.length > 0 ? (
+        <NativeChatToolArguments toolArguments={toolArguments} />
       ) : null}
       {body ? <NativeChatToolOutput body={body} /> : null}
     </div>
@@ -107,7 +104,15 @@ export function NativeChatToolLine({
   const name = isCall
     ? block.name
     : translate('components.native-chat.tool.result', NATIVE_CHAT_TOOL_ACTIVITY_COPY.result)
-  const { label: sharedLabel, body, resultPreview, failed, results, hasDetail } = view
+  const {
+    label: sharedLabel,
+    body,
+    resultPreview,
+    failed,
+    results,
+    hasDetail,
+    toolArguments
+  } = view
   const label = sharedLabel && {
     ...sharedLabel,
     verb: sharedLabel.verb === null ? null : nativeChatToolRowVerb(sharedLabel.verb)
@@ -165,6 +170,15 @@ export function NativeChatToolLine({
             {label?.target ?? resultPreview}
           </span>
         ) : null}
+        {label?.description && label.fullCommand ? (
+          // Why: the step reads as its description; the command it ran trails it, faint.
+          <span
+            className="min-w-0 flex-1 truncate font-mono text-chat-code text-chat-foreground-faint"
+            title={label.fullCommand}
+          >
+            {label.fullCommand.split('\n', 1)[0]}
+          </span>
+        ) : null}
         <span className="ml-auto flex shrink-0 items-center gap-1.5 pl-2">
           {isCall ? <NativeChatCommandMetadata block={block} /> : null}
           {hasDetail ? (
@@ -184,6 +198,7 @@ export function NativeChatToolLine({
             body={body}
             fullCommand={fullCommand}
             commandLanguage={label?.commandLanguage ?? null}
+            toolArguments={toolArguments}
             results={results}
             onLinkClick={onLinkClick}
           />

@@ -29,6 +29,16 @@ export type NativeChatAppearanceSettings = {
    * on. Not an appearance value, so resetting appearance keeps it.
    */
   cliAgentsOpenInChat?: boolean
+  /** Whether a run of tool calls shows each step without a click; absent = on. */
+  toolStepsOpen?: boolean
+}
+
+/** Tool runs open to their steps unless the user turned that off. */
+export function nativeChatToolStepsOpen(
+  settings: { nativeChatAppearance?: NativeChatAppearanceSettings } | null | undefined
+): boolean {
+  // Why: until settings load (and in a bare store) runs stay folded, as upstream draws them.
+  return settings != null && settings.nativeChatAppearance?.toolStepsOpen !== false
 }
 
 /** A CLI agent's new tab opens in its terminal-backed Chat UI unless the user turned that off. */
