@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect } from 'react'
+import React, { useCallback, useEffect, useRef } from 'react'
 import { Pencil, StickyNote } from 'lucide-react'
 import { HoverCardContent } from '@/components/ui/hover-card'
 import { SelectedTextCopyMenu } from '@/components/SelectedTextCopyMenu'
@@ -65,6 +65,25 @@ export function ActivityThreadHoverCard({
   const detailsHoverControl = useWorktreeCardDetailsHoverControl()
   const open = detailsHoverControl.hoverOpen && !suppressed
   const showsChat = open && conversation !== null
+  // Why: Escape closes the chat for good while the pointer still rests on the card; it opens
+  // again only once the pointer has left the card and come back.
+  const dismissedUntilLeaveRef = useRef(false)
+  const dismissUntilLeave = useCallback(() => {
+    const row = document.querySelector(
+      `[data-activity-thread-pane-key="${CSS.escape(thread.paneKey)}"]`
+    )
+    if (row?.matches(':hover')) {
+      dismissedUntilLeaveRef.current = true
+      row.addEventListener(
+        'pointerleave',
+        () => {
+          dismissedUntilLeaveRef.current = false
+        },
+        { once: true }
+      )
+    }
+    detailsHoverControl.closeHover()
+  }, [detailsHoverControl, thread.paneKey])
   const { closeHover } = detailsHoverControl
   useEffect(() => {
     if (!showsChat) {
@@ -76,10 +95,12 @@ export function ActivityThreadHoverCard({
     closeOpenChatCard = closeHover
     const closeOnOutsidePointer = (event: PointerEvent): void => {
       const target = event.target instanceof Element ? event.target : null
-      if (
-        target?.closest('[data-activity-thread-chat-preview]') ||
-        target?.closest(`[data-activity-thread-pane-key="${CSS.escape(thread.paneKey)}"]`)
-      ) {
+      if (target?.closest('[data-activity-thread-chat-preview]')) {
+        return
+      }
+      // Why: clicking the card opens its workspace; the chat steps aside until the pointer leaves.
+      if (target?.closest(`[data-activity-thread-pane-key="${CSS.escape(thread.paneKey)}"]`)) {
+        dismissUntilLeave()
         return
       }
       closeHover()
@@ -91,7 +112,7 @@ export function ActivityThreadHoverCard({
         closeOpenChatCard = null
       }
     }
-  }, [closeHover, showsChat, thread.paneKey])
+  }, [closeHover, dismissUntilLeave, showsChat, thread.paneKey])
   const { linkActionPopoverProps, onOpenLink, onAuxClickCapture } =
     useWorkspaceReferenceLinkActions(thread.worktree.id, detailsHoverControl)
 
@@ -102,6 +123,9 @@ export function ActivityThreadHoverCard({
       // on hovering another card (one chat card at a time) or on Escape.
       onOpenChange={(next) => {
         if (!next && conversation) {
+          return
+        }
+        if (next && dismissedUntilLeaveRef.current) {
           return
         }
         detailsHoverControl.handleHoverOpenChange(next)
@@ -119,7 +143,7 @@ export function ActivityThreadHoverCard({
         <ActivityThreadChatPreview
           thread={thread}
           conversation={conversation}
-          onClose={detailsHoverControl.closeHover}
+          onClose={dismissUntilLeave}
           onShowTerminal={() => {
             // Why: the card's terminal switch opens the agent's own terminal, where it lives.
             const state = useAppStore.getState()

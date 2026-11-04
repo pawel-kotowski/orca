@@ -4,6 +4,7 @@ import {
   nativeChatShowsBareWorkingLine,
   nativeChatSoleCallAsLine,
   nativeChatActivityFollowsConversation,
+  nativeChatCompactComposer,
   nativeChatToolStepsOpen
 } from '../../../../../../shared/native-chat/native-chat-appearance-settings'
 import {
@@ -128,6 +129,15 @@ export function AppearanceChatSection({
         )}
         checked={nativeChatSoleCallAsLine(settings)}
         onChange={() => update({ soleCallAsLine: !nativeChatSoleCallAsLine(settings) })}
+      />
+      <SettingsSwitchRow
+        label={translate('settings.chat.appearance.compactComposer', 'Compact message box')}
+        description={translate(
+          'settings.chat.appearance.compactComposerDescription',
+          'One line with only Attach, the model and option pickers, and Stop while the agent works. Enter sends.'
+        )}
+        checked={nativeChatCompactComposer(settings)}
+        onChange={() => update({ compactComposer: !nativeChatCompactComposer(settings) })}
       />
       <SettingsSwitchRow
         label={translate(

@@ -1,6 +1,8 @@
 /* eslint-disable max-lines -- Why: the hide/show toggle and its collapsed wrapper sit on upstream's
    composer layout; splitting the field would fork it from upstream on every rebase. */
 import { NativeChatPromptEditor } from './NativeChatPromptEditor'
+import { nativeChatCompactComposer } from '../../../../shared/native-chat/native-chat-appearance-settings'
+import { useAppStore } from '@/store'
 import { notifyNativeChatComposerState } from './native-chat-composer-mount'
 import type { NativeChatComposerInput } from './native-chat-composer-input'
 import type { ClipboardEventHandler, KeyboardEventHandler, RefObject } from 'react'
@@ -278,6 +280,8 @@ export function NativeChatComposerField({
   const focusComposer = useCallback(() => textareaRef.current?.focus(), [textareaRef])
   // A launch prompt sits in a popover, so it takes the app's surface instead of the chat's.
   const launch = launchPrompt !== undefined
+  // Why: the main message box is one line with only Attach, the option pickers and Stop.
+  const compact = useCompactComposerSetting() && !launch && !editSession
 
   return (
     <div className={launch ? undefined : 'relative shrink-0 bg-chat-pane'}>
@@ -338,6 +342,7 @@ export function NativeChatComposerField({
             className={cn(
               // Use a constant container border so focus changes cannot flash it.
               'group/composer rounded-xl border p-1.5 shadow-xs',
+              compact && 'flex flex-wrap items-end gap-x-1',
               launch
                 ? 'border-foreground/10 bg-background dark:bg-foreground/[0.04]'
                 : 'border-chat-composer-border bg-chat-composer-surface',
@@ -346,7 +351,7 @@ export function NativeChatComposerField({
             )}
           >
             {imageAttachments.length > 0 ? (
-              <div className="mb-2 flex flex-wrap gap-2 px-1 pt-1.5">
+              <div className={cn('mb-2 flex flex-wrap gap-2 px-1 pt-1.5', compact && 'basis-full')}>
                 {imageAttachments.map((attachment, index) => (
                   <NativeChatImageAttachmentPreview
                     key={attachment.id}
@@ -401,6 +406,7 @@ export function NativeChatComposerField({
                 'w-full bg-transparent px-2 py-1 text-sm outline-none',
                 // Why: the main message box shrinks while the reader scrolls back (native-chat-appearance.css).
                 !launch && !editSession && 'native-chat-composer-editor',
+                compact && 'min-h-7 min-w-0 flex-1 basis-0 self-center pointer-coarse:min-h-9',
                 launch
                   ? 'min-h-7 max-h-[calc(6lh+0.5rem)] text-foreground placeholder:text-muted-foreground [&_p.is-editor-empty:first-child]:before:!h-auto [&_p.is-editor-empty:first-child]:before:w-full [&_p.is-editor-empty:first-child]:before:mr-[-100%]'
                   : 'min-h-12 max-h-[calc(8lh+0.5rem)] text-chat-foreground-strong placeholder:text-chat-foreground-faint pointer-coarse:min-h-14',
@@ -413,6 +419,7 @@ export function NativeChatComposerField({
               className={cn(
                 'flex flex-wrap items-center gap-2 pt-0.5',
                 !launch && !editSession && 'native-chat-composer-actions',
+                compact && 'shrink-0 pt-0',
                 // An empty launch prompt is one line; its controls appear once it has focus, content or live dictation.
                 launch &&
                   !isDictating &&
@@ -422,6 +429,7 @@ export function NativeChatComposerField({
               )}
             >
               <NativeChatComposerActions
+                compact={compact}
                 editSession={editSession}
                 attachDisabled={attachDisabled}
                 dictationDisabled={dictationDisabled}
@@ -456,3 +464,9 @@ export function NativeChatComposerField({
     </div>
   )
 }
+
+// Why: some tests stand a plain object in for the store; the full layout is their default.
+const useCompactComposerSetting: () => boolean =
+  typeof useAppStore === 'function'
+    ? () => useAppStore((state) => nativeChatCompactComposer(state.settings))
+    : () => false

@@ -45,6 +45,16 @@ export type NativeChatAppearanceSettings = {
    * and hover to a live chat; absent = on.
    */
   activityFollowsConversation?: boolean
+  /** Whether the message box is one line with only Attach, the option pickers and Stop; absent = on. */
+  compactComposer?: boolean
+}
+
+/** The one-line message box, unless the user turned it off. */
+export function nativeChatCompactComposer(
+  settings: { nativeChatAppearance?: NativeChatAppearanceSettings } | null | undefined
+): boolean {
+  // Why: until settings load (and in a bare store) the box keeps upstream's full layout.
+  return settings != null && settings.nativeChatAppearance?.compactComposer !== false
 }
 
 /** Activity cards read from the conversation and hover to a live chat, unless turned off. */

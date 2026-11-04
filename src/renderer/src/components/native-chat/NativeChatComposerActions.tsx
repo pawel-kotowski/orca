@@ -2,6 +2,7 @@ import { memo } from 'react'
 import { ArrowUp, CircleAlert, Mic, Plus, Square } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { cn } from '@/lib/utils'
 import { translate } from '@/i18n/i18n'
 import { getScreenSubmitShortcutLabel } from '@/lib/screen-submit-shortcut'
 import { useUiLanguageRevision } from '@/i18n/use-ui-language-revision'
@@ -53,10 +54,13 @@ export type NativeChatComposerActionsProps = {
   agent?: string
   /** A launch prompt: Attach and dictation are its only controls; launching is the panel's. */
   launchPrompt?: boolean
+  /** Local: the one-line message box keeps only Attach, the option pickers and Stop. */
+  compact?: boolean
 }
 
 // Memoized: typing re-renders the composer per keystroke, and these controls rarely change with it.
 export const NativeChatComposerActions = memo(function NativeChatComposerActions({
+  compact = false,
   editSession,
   attachDisabled,
   dictationDisabled,
@@ -218,14 +222,21 @@ export const NativeChatComposerActions = memo(function NativeChatComposerActions
   }
 
   return (
-    <div className="flex w-full items-center justify-between gap-2 text-chat-foreground-faint">
+    <div
+      className={cn(
+        'flex items-center gap-2 text-chat-foreground-faint',
+        compact ? 'shrink-0' : 'w-full justify-between'
+      )}
+    >
       <div className="flex min-w-0 items-center gap-0.5">
         {attach}
-        <NativeChatComposerPermissionPicker
-          surface={sessionOptionsSurface}
-          snapshot={sessionOptionsSnapshot}
-          {...(agent ? { agent } : {})}
-        />
+        {compact ? null : (
+          <NativeChatComposerPermissionPicker
+            surface={sessionOptionsSurface}
+            snapshot={sessionOptionsSnapshot}
+            {...(agent ? { agent } : {})}
+          />
+        )}
         {onExitGoalMode ? <NativeChatComposerGoalChip onExit={onExitGoalMode} /> : null}
       </div>
       <div className="ml-auto flex items-center gap-1.5">
@@ -237,15 +248,15 @@ export const NativeChatComposerActions = memo(function NativeChatComposerActions
           pickerRequest={sessionOptionsPickerRequest}
           focusComposer={focusComposer}
         />
-        {contextUsage ? <NativeChatContextUsageRing usage={contextUsage} /> : null}
-        {dictation}
+        {contextUsage && !compact ? <NativeChatContextUsageRing usage={contextUsage} /> : null}
+        {compact ? null : dictation}
         <DraftNotSavedIcon shown={draftNotSaved === true} />
         {editSession ? (
           <Button type="button" variant="ghost" size="sm" onClick={editSession.cancel}>
             {translate('common.cancel', 'Cancel')}
           </Button>
         ) : null}
-        {sendHint ? (
+        {compact && !stops ? null : sendHint ? (
           <Tooltip>
             <TooltipTrigger asChild>
               {/* A disabled button gets no pointer events, so the wrapper carries the hover. */}

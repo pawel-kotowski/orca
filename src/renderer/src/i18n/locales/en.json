@@ -531,6 +531,8 @@
         "bareWorkingLineDescription": "The turn bar already counts the time; this adds a line saying the agent is working when nothing more specific is known.",
         "soleCallAsLine": "Show a single command as its own step",
         "soleCallAsLineDescription": "A run of one command opens straight to its code and output, without a run header above it.",
+        "compactComposer": "Compact message box",
+        "compactComposerDescription": "One line with only Attach, the model and option pickers, and Stop while the agent works. Enter sends.",
         "activityFollowsConversation": "Activity view follows the conversation",
         "activityFollowsConversationDescription": "Each card shows the first and latest prompt, the latest steps and the answer, and hovering it shows the live chat."
       },
