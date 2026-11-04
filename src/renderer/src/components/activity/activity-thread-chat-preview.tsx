@@ -9,6 +9,17 @@ import type { ActivityThreadConversation } from './use-activity-thread-conversat
 
 const SIZE_KEY = 'orca.activityChatPreviewSize'
 const DEFAULT_SIZE = { width: 'min(46rem, 62vw)', height: 'min(48rem, 88vh)' }
+// Why: every card's chat opens at the same place, this far below the window's top.
+const PREVIEW_TOP_PX = 48
+const PREVIEW_BOTTOM_MARGIN_PX = 16
+
+/** Shift the card from its row so its top lands on PREVIEW_TOP_PX, whichever row it came from. */
+function alignOffsetForPane(paneKey: string): number {
+  const row = document.querySelector<HTMLElement>(
+    `[data-activity-thread-pane-key="${CSS.escape(paneKey)}"]`
+  )
+  return row ? PREVIEW_TOP_PX - row.getBoundingClientRect().top : 0
+}
 
 // The reader's own resize, kept per window; storage can be unavailable, so it is only a convenience.
 function readSavedSize(): { width: string; height: string } {
@@ -49,6 +60,7 @@ export function ActivityThreadChatPreview({
       null
   )
   const [size] = useState(readSavedSize)
+  const [alignOffset] = useState(() => alignOffsetForPane(thread.paneKey))
   const contentRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     const content = contentRef.current
@@ -82,11 +94,14 @@ export function ActivityThreadChatPreview({
         minWidth: '22rem',
         minHeight: '16rem',
         maxWidth: '92vw',
-        maxHeight: '94vh'
+        maxHeight: `calc(100vh - ${PREVIEW_TOP_PX + PREVIEW_BOTTOM_MARGIN_PX}px)`
       }}
       side="right"
       align="start"
       sideOffset={8}
+      alignOffset={alignOffset}
+      // Why: a fixed spot; its height is capped to fit, so nothing has to nudge it.
+      avoidCollisions={false}
       // Why: the reader can drag the corner; the size is remembered (SIZE_KEY).
       className="resize overflow-hidden p-0"
       {...{ [WORKTREE_NATIVE_CONTEXT_MENU_ATTR]: '' }}

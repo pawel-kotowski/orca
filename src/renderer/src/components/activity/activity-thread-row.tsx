@@ -204,6 +204,7 @@ export const ActivityThreadRow = React.memo(function ActivityThreadRow({
     >
       <div
         data-current={selected ? 'true' : undefined}
+        data-activity-thread-pane-key={thread.paneKey}
         data-worktree-card-surface="true"
         data-worktree-card-active={selected ? 'primary' : undefined}
         data-worktree-card-selected={multiSelected || undefined}
