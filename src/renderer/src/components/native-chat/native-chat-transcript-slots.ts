@@ -200,14 +200,12 @@ export function buildNativeChatTranscriptSlots(
         folded,
         drawsMessage: drawsRow,
         turnFolds: turnKey !== undefined && foldableTurnKeys.has(turnKey),
-        // Why: with finished turns open, the answer needs its own frame; a turn that is only its
-        // answer needs none.
+        // Why: with finished turns open, every finished turn's answer gets the same frame.
         turnAnswer:
           turnKey !== undefined &&
           message.role === 'assistant' &&
           answerRows.has(index) &&
-          settledTurnKeys.has(turnKey) &&
-          foldableTurnKeys.has(turnKey),
+          settledTurnKeys.has(turnKey),
         turnDiff,
         subagentRoster: roster,
         depth: 0,

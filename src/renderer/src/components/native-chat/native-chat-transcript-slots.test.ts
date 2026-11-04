@@ -669,10 +669,14 @@ describe('a finished turn answer', () => {
     expect(slots.filter((slot) => slot.turnAnswer).map((slot) => slot.message.id)).toEqual(['a2'])
   })
 
-  it('leaves a turn that is only its answer unframed', () => {
-    const slots = build([text('u', 'hi', 'user'), text('a1', 'Hello.')], {
+  it('frames a turn that is only its answer too, but not a turn still running', () => {
+    const answered = build([text('u', 'hi', 'user'), text('a1', 'Hello.')], {
       turnStatuses: settled
     })
-    expect(slots.some((slot) => slot.turnAnswer)).toBe(false)
+    expect(answered.filter((slot) => slot.turnAnswer).map((slot) => slot.message.id)).toEqual([
+      'a1'
+    ])
+    const running = build([text('u', 'hi', 'user'), text('a1', 'Hello.')])
+    expect(running.some((slot) => slot.turnAnswer)).toBe(false)
   })
 })
