@@ -364,58 +364,66 @@ export function NativeChatComposerField({
                 ))}
               </div>
             ) : null}
-            <NativeChatPromptEditor
-              key={draftScopeKey}
-              scopeKey={draftScopeKey}
-              positionTarget={positionTarget}
-              imageRow={imageRow}
-              inputRef={textareaRef}
-              isComposing={imeEnterGesture.isComposing}
-              initialValue={draft}
-              disabled={disabled}
-              onChange={editorChange}
-              onKeyDownCapture={editorKeyDownCapture}
-              onKeyUp={editorKeyUp}
-              onBlur={editorBlur}
-              onCompositionStart={editorCompositionStart}
-              onCompositionEnd={editorCompositionEnd}
-              onPasteCapture={editorPaste}
-              onSelect={editorSelect}
-              aria-expanded={autocomplete.mode !== 'none'}
-              aria-controls={autocomplete.mode !== 'none' ? pickerListboxId : undefined}
-              aria-activedescendant={
-                optionCount > 0
-                  ? `${pickerListboxId}-option-${Math.min(activeSuggestion, optionCount - 1)}`
-                  : undefined
-              }
-              placeholder={
-                launchPrompt
-                  ? launchPrompt.placeholder
-                  : editSession
-                    ? translate('components.native-chat.queuedMessages.editMessage', 'Edit message')
-                    : goalMode?.active
+            {/* Why: in the compact box the editor's own wrapper takes the row's free width, so the
+                controls stay put at the right however long the text is. */}
+            <div className={compact ? 'min-w-0 flex-1 basis-0' : 'contents'}>
+              <NativeChatPromptEditor
+                key={draftScopeKey}
+                scopeKey={draftScopeKey}
+                positionTarget={positionTarget}
+                imageRow={imageRow}
+                inputRef={textareaRef}
+                isComposing={imeEnterGesture.isComposing}
+                initialValue={draft}
+                disabled={disabled}
+                onChange={editorChange}
+                onKeyDownCapture={editorKeyDownCapture}
+                onKeyUp={editorKeyUp}
+                onBlur={editorBlur}
+                onCompositionStart={editorCompositionStart}
+                onCompositionEnd={editorCompositionEnd}
+                onPasteCapture={editorPaste}
+                onSelect={editorSelect}
+                aria-expanded={autocomplete.mode !== 'none'}
+                aria-controls={autocomplete.mode !== 'none' ? pickerListboxId : undefined}
+                aria-activedescendant={
+                  optionCount > 0
+                    ? `${pickerListboxId}-option-${Math.min(activeSuggestion, optionCount - 1)}`
+                    : undefined
+                }
+                placeholder={
+                  launchPrompt
+                    ? launchPrompt.placeholder
+                    : editSession
                       ? translate(
-                          'components.native-chat.goal.placeholder',
-                          'Describe your goal, define measurable outcomes for best results'
+                          'components.native-chat.queuedMessages.editMessage',
+                          'Edit message'
                         )
-                      : (unavailableHint ??
-                        nativeChatComposerPlaceholder(hasPty, canSend, afterStop))
-              }
-              // Let layout handle wrapping and touch targets; scroll after eight lines (a launch prompt: one line growing to six) without JavaScript measurement.
-              // An empty launch prompt also grows to fit a wrapping placeholder: a paragraph-wide float that keeps its height, with a zero-width margin box so the caret line stays put.
-              className={cn(
-                'w-full bg-transparent px-2 py-1 text-sm outline-none',
-                // Why: the main message box shrinks while the reader scrolls back (native-chat-appearance.css).
-                !launch && !editSession && 'native-chat-composer-editor',
-                compact && 'min-h-7 min-w-0 flex-1 basis-0 pointer-coarse:min-h-9',
-                launch
-                  ? 'min-h-7 max-h-[calc(6lh+0.5rem)] text-foreground placeholder:text-muted-foreground [&_p.is-editor-empty:first-child]:before:!h-auto [&_p.is-editor-empty:first-child]:before:w-full [&_p.is-editor-empty:first-child]:before:mr-[-100%]'
-                  : 'min-h-12 max-h-[calc(8lh+0.5rem)] text-chat-foreground-strong placeholder:text-chat-foreground-faint pointer-coarse:min-h-14',
-                'overflow-y-auto scrollbar-sleek',
-                // Why: the editor is a contenteditable, which `:disabled` never matches.
-                '[&[contenteditable=false]]:cursor-not-allowed [&[contenteditable=false]]:opacity-50'
-              )}
-            />
+                      : goalMode?.active
+                        ? translate(
+                            'components.native-chat.goal.placeholder',
+                            'Describe your goal, define measurable outcomes for best results'
+                          )
+                        : (unavailableHint ??
+                          nativeChatComposerPlaceholder(hasPty, canSend, afterStop))
+                }
+                // Let layout handle wrapping and touch targets; scroll after eight lines (a launch prompt: one line growing to six) without JavaScript measurement.
+                // An empty launch prompt also grows to fit a wrapping placeholder: a paragraph-wide float that keeps its height, with a zero-width margin box so the caret line stays put.
+                className={cn(
+                  'w-full bg-transparent px-2 py-1 text-sm outline-none',
+                  // Why: the main message box shrinks while the reader scrolls back (native-chat-appearance.css).
+                  !launch && !editSession && 'native-chat-composer-editor',
+                  launch
+                    ? 'min-h-7 max-h-[calc(6lh+0.5rem)] text-foreground placeholder:text-muted-foreground [&_p.is-editor-empty:first-child]:before:!h-auto [&_p.is-editor-empty:first-child]:before:w-full [&_p.is-editor-empty:first-child]:before:mr-[-100%]'
+                    : 'min-h-12 max-h-[calc(8lh+0.5rem)] text-chat-foreground-strong placeholder:text-chat-foreground-faint pointer-coarse:min-h-14',
+                  'overflow-y-auto scrollbar-sleek',
+                  // Why: after the base sizes, so the compact box's one line wins.
+                  compact && 'min-h-7 pointer-coarse:min-h-9',
+                  // Why: the editor is a contenteditable, which `:disabled` never matches.
+                  '[&[contenteditable=false]]:cursor-not-allowed [&[contenteditable=false]]:opacity-50'
+                )}
+              />
+            </div>
             <div
               className={cn(
                 'flex flex-wrap items-center gap-2 pt-0.5',

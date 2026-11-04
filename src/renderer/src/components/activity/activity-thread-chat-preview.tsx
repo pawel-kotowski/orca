@@ -92,14 +92,11 @@ function useThemeImageCrop(contentRef: React.RefObject<HTMLDivElement | null>): 
     const observer = new ResizeObserver(apply)
     observer.observe(content)
     window.addEventListener('resize', apply)
-    // Why: the opening animation scales and shifts the card; measure again once it has settled.
-    content.addEventListener('animationend', apply)
     return () => {
       current = false
       cancelAnimationFrame(frame)
       observer.disconnect()
       window.removeEventListener('resize', apply)
-      content.removeEventListener('animationend', apply)
     }
   }, [contentRef])
 }
@@ -207,7 +204,7 @@ export function ActivityThreadChatPreview({
         maxHeight: `calc(100vh - ${2 * PREVIEW_EDGE_PX}px)`
       }}
       // Why: the reader can drag the corner to set the width; it is remembered (SIZE_KEY).
-      className="fixed z-50 resize-x overflow-hidden animate-in fade-in-0 zoom-in-[0.98] slide-in-from-left-2 duration-150 ease-out rounded-lg border border-black/14 shadow-[0_16px_36px_rgba(0,0,0,0.24)] dark:border-white/14 dark:shadow-[0_20px_44px_rgba(0,0,0,0.42)]"
+      className="fixed z-50 resize-x overflow-hidden rounded-lg border border-black/14 shadow-[0_16px_36px_rgba(0,0,0,0.24)] dark:border-white/14 dark:shadow-[0_20px_44px_rgba(0,0,0,0.42)]"
       {...{ [WORKTREE_NATIVE_CONTEXT_MENU_ATTR]: '' }}
       data-activity-thread-chat-preview=""
       onClick={(event) => event.stopPropagation()}
