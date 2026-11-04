@@ -186,7 +186,33 @@ function claudeQueuedPromptAsUserRecord(
   if (typeof prompt !== 'string' && !Array.isArray(prompt)) {
     return null
   }
-  return { ...record, type: 'user', message: { role: 'user', content: prompt } }
+  return {
+    ...record,
+    type: 'user',
+    message: {
+      role: 'user',
+      content: Array.isArray(prompt) ? prompt.map(queuedImageAsDataUrl) : prompt
+    }
+  }
+}
+
+/**
+ * A queued (mid-turn) prompt carries its pasted image only as base64, with no path record after
+ * it as an idle prompt has. Keep it as a data URL so the bubble shows the image where it was sent
+ * and the window can retire its local echo of that send.
+ */
+function queuedImageAsDataUrl(part: unknown): unknown {
+  const record = asRecord(part)
+  const source = asRecord(record?.source)
+  if (record?.type !== 'image' || source?.type !== 'base64') {
+    return part
+  }
+  const mediaType = extractString(source.media_type)
+  const data = extractString(source.data)
+  if (!mediaType?.startsWith('image/') || !data) {
+    return part
+  }
+  return { type: 'image', url: `data:${mediaType};base64,${data}`, alt: 'Pasted image' }
 }
 
 function claudeStopHookFeedbackMessage(

@@ -53,10 +53,15 @@ function nativeChatUserMessageContentKey(
   if (text) {
     return `text:${text}`
   }
-  const imagePaths = message.blocks
-    .filter(isImageRefBlock)
+  const images = message.blocks.filter(isImageRefBlock)
+  const imagePaths = images
     .map((block) => block.path)
     .filter((path): path is string => Boolean(path))
+  // A mid-turn image send lands with its images inline (data URLs), never its pasted paths: the
+  // same number of images, and nothing else, is the echo of those paths.
+  if (imagePaths.length === 0 && images.length > 0 && images.length === paths.length) {
+    return nativeChatPendingContentKey({ text: '', imagePaths: paths })
+  }
   const key = nativeChatPendingContentKey({ text: '', imagePaths })
   return key === 'empty' ? null : key
 }

@@ -37,4 +37,21 @@ describe('Claude queued_command attachment', () => {
       parentId: 'tool-result-row'
     })
   })
+
+  it('keeps a mid-turn pasted image as a data URL, since no path record follows it', () => {
+    const line = queuedCommand({
+      prompt: [
+        { type: 'text', text: '[Image #1]' },
+        { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: 'AAAA' } }
+      ],
+      imagePasteIds: [1],
+      commandMode: 'prompt',
+      origin: { kind: 'human' },
+      humanTurn: true
+    })
+    expect(decodeClaudeTranscriptLine(line, 'fallback')?.blocks).toEqual([
+      { type: 'text', text: '[Image #1]' },
+      { type: 'image-ref', url: 'data:image/jpeg;base64,AAAA', alt: 'Pasted image' }
+    ])
+  })
 })

@@ -63,6 +63,34 @@ describe('pending send occurrence reconciliation', () => {
   })
 })
 
+describe('an image sent while the agent works', () => {
+  it('retires its echo once the queued row lands with the image inline', () => {
+    const pending = assignNativeChatPendingOccurrence<NativeChatPendingSend>([], {
+      id: 'p1',
+      text: '',
+      imagePaths: ['/tmp/orca-paste-1.png'],
+      sentAt: 100,
+      afterMessageId: 'a0'
+    })
+    const turn: NativeChatMessage[] = [
+      message('a0', 'assistant', 'working', 90),
+      {
+        id: 'q1',
+        role: 'user',
+        blocks: [
+          { type: 'text', text: '[Image #1]' },
+          { type: 'image-ref', url: 'data:image/jpeg;base64,AAAA', alt: 'Pasted image' }
+        ],
+        timestamp: 110,
+        source: 'transcript'
+      },
+      message('a1', 'assistant', 'done', 120)
+    ]
+    expect(prunePendingSends([pending], turn)).toEqual([])
+    expect(pendingSendsAsMessages([pending], turn)).toEqual([])
+  })
+})
+
 describe('pending sends typed through an agent TUI', () => {
   const COMPOSER_TEXT = 'summarize the failing test and propose a fix'
 
