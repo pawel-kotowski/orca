@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { AgentTypeIcon } from '@/lib/agent-type-icon'
 import { cn } from '@/lib/utils'
+import { translate } from '@/i18n/i18n'
 import CommentMarkdown from '../sidebar/CommentMarkdown'
 import { EventTime } from './activity-thread-controls'
 import type { AgentPaneThread } from './activity-thread-types'
@@ -45,7 +46,7 @@ export function ActivityThreadConversationBody({
     agentType: thread.agentType
   } as unknown as DashboardAgentRow)
   const clamp = compactMode ? 'line-clamp-1' : 'line-clamp-2'
-  const showsLastPrompt = lastPrompt !== null && lastPrompt !== firstPrompt
+  const showsBothPrompts = firstPrompt !== null && lastPrompt !== null && lastPrompt !== firstPrompt
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-0.5">
       {/* Why: the same order as the workspace view's card, so the two views match at a glance:
@@ -95,24 +96,33 @@ export function ActivityThreadConversationBody({
           {conversationName ?? agentLabel}
         </span>
       </div>
-      <button
-        type="button"
-        aria-keyshortcuts="Enter Space"
-        onClick={onActivate}
-        className={cn(
-          PROMPT_CLASS,
-          clamp,
-          'cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-ring',
-          thread.unread ? 'font-medium' : 'font-normal'
-        )}
-      >
-        {firstPrompt ?? lastPrompt ?? workspaceLabel}
-      </button>
-      {showsLastPrompt && firstPrompt !== null ? (
-        <div className={cn(PROMPT_CLASS, clamp, thread.unread ? 'font-medium' : 'font-normal')}>
-          {lastPrompt}
-        </div>
-      ) : null}
+      {/* Why: the first and latest prompt each sit on their own labeled row, so both read at a glance. */}
+      <div className="mt-0.5 flex min-w-0 flex-col gap-1">
+        <PromptRow
+          label={showsBothPrompts ? translate('components.activity.prompt.first', 'first') : null}
+        >
+          <button
+            type="button"
+            aria-keyshortcuts="Enter Space"
+            onClick={onActivate}
+            className={cn(
+              PROMPT_CLASS,
+              clamp,
+              'cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-ring',
+              thread.unread ? 'font-medium' : 'font-normal'
+            )}
+          >
+            {firstPrompt ?? lastPrompt ?? workspaceLabel}
+          </button>
+        </PromptRow>
+        {showsBothPrompts ? (
+          <PromptRow label={translate('components.activity.prompt.latest', 'latest')}>
+            <div className={cn(PROMPT_CLASS, clamp, thread.unread ? 'font-medium' : 'font-normal')}>
+              {lastPrompt}
+            </div>
+          </PromptRow>
+        ) : null}
+      </div>
       {attentionLine ? (
         <div
           className={cn(
@@ -146,6 +156,26 @@ export function ActivityThreadConversationBody({
           )}
         />
       ) : null}
+    </div>
+  )
+}
+
+/** A prompt with a faint label column ("first", "latest") so the two never run together. */
+function PromptRow({
+  label,
+  children
+}: {
+  label: string | null
+  children: ReactNode
+}): React.JSX.Element {
+  return (
+    <div className="flex min-w-0 items-baseline gap-1.5">
+      {label ? (
+        <span className="w-9 shrink-0 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+          {label}
+        </span>
+      ) : null}
+      <div className="flex min-w-0 flex-1">{children}</div>
     </div>
   )
 }
