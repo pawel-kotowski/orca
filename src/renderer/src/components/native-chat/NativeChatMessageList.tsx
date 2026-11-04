@@ -29,6 +29,7 @@ import {
   NativeChatWaitingTranscriptItems
 } from './NativeChatTranscriptItems'
 import { useNativeChatTranscriptRowContext } from './use-native-chat-transcript-row-context'
+import { useNativeChatRowArrivals } from './use-native-chat-row-arrivals'
 import type { StructuredAgentSessionHostWork } from './use-structured-agent-session-transport-state'
 import type { NativeChatDeliveryNotice } from './NativeChatMessageRow'
 import {
@@ -358,7 +359,8 @@ export function NativeChatMessageList({
     onToggleExpandedTurn: toggleExpandedTurn,
     subagentDisclosure,
     onScrollMessageToTop: scrollMessageToTop,
-    onRevealDiff: revealDiff
+    onRevealDiff: revealDiff,
+    rowArrivals: useNativeChatRowArrivals(slots, waitingSlots, loadedMessageIds, session)
   })
 
   return (

@@ -196,3 +196,16 @@
   background-repeat: no-repeat, no-repeat;
   background-position: center, var(--activity-preview-bg-position, center);
 }
+
+/* A row that arrives while the chat is open (native-chat-row-arrivals.ts) shows up dim and
+   brightens once, opacity only so nothing moves. Not gated on reduced motion: Paweł wants the
+   same soft reveal there. NATIVE_CHAT_ROW_ARRIVAL_FADE_MS matches this duration. */
+[data-native-chat-arrival] {
+  animation: native-chat-row-arrival 450ms ease-out backwards;
+}
+
+@keyframes native-chat-row-arrival {
+  from {
+    opacity: 0;
+  }
+}
