@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from 'react'
+import { useEffect, useSyncExternalStore } from 'react'
 import { useAppStore } from '@/store'
 
 // Why: in the activity view the main area can step aside, like the floating workspace hides:
@@ -45,4 +45,37 @@ export function toggleActivityView(): void {
   }
   setActivityHidesWorkbench(false)
   state.setSidebarBody('workspaces')
+}
+
+/** Whether the activity view has the tabs hidden (outside React). */
+export function activityHidesWorkbench(): boolean {
+  return hidden && useAppStore.getState().sidebarBody === 'agents'
+}
+
+// Escape belongs to whatever has focus there: a terminal (the agent's own interrupt), a chat, a field.
+const KEEPS_ESCAPE =
+  '.xterm, [data-native-chat-root], input, textarea, select, [contenteditable="true"]'
+
+/**
+ * Escape in the activity view hides the tabs a card brought back, when nothing else used it (an
+ * open hover chat closes first) and focus is not in a terminal, a chat or a field.
+ */
+export function useActivityEscapeHidesWorkbench(): void {
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.key !== 'Escape' || event.defaultPrevented || event.isComposing) {
+        return
+      }
+      const target = event.target instanceof Element ? event.target : null
+      if (target?.closest(KEEPS_ESCAPE)) {
+        return
+      }
+      if (useAppStore.getState().sidebarBody === 'agents' && !hidden) {
+        event.preventDefault()
+        setActivityHidesWorkbench(true)
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [])
 }

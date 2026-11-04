@@ -1,5 +1,8 @@
 import { activateTabAndFocusPane } from '@/lib/activate-tab-and-focus-pane'
-import { setActivityHidesWorkbench } from '@/lib/activity-workbench-visibility'
+import {
+  activityHidesWorkbench,
+  setActivityHidesWorkbench
+} from '@/lib/activity-workbench-visibility'
 import {
   hideFloatingWorkspacePanel,
   revealFloatingWorkspacePanel
@@ -104,8 +107,19 @@ export function createActivityThreadActions({
 
   const activateThreadTarget = (thread: AgentPaneThread): void => {
     const isFloatingTerminal = thread.worktree.id === FLOATING_TERMINAL_WORKTREE_ID
-    // Why: opening a card that does not float brings the main area's tabs back.
+    // Why: a card that does not float brings the main area's tabs back; a second click on the
+    // card whose workspace they show hides them again (as the floating workspace's card does).
     if (!isFloatingTerminal) {
+      const current = useAppStore.getState()
+      if (
+        current.sidebarBody === 'agents' &&
+        !activityHidesWorkbench() &&
+        current.activeWorktreeId === thread.worktree.id &&
+        current.activeTabId === thread.tab.id
+      ) {
+        setActivityHidesWorkbench(true)
+        return
+      }
       setActivityHidesWorkbench(false)
     }
     // Why: the floating panel toggles from its cards: a second click on the card it shows closes

@@ -1,5 +1,8 @@
 import { memo, Suspense, useCallback, useRef } from 'react'
-import { useActivityHidesWorkbench } from '@/lib/activity-workbench-visibility'
+import {
+  useActivityEscapeHidesWorkbench,
+  useActivityHidesWorkbench
+} from '@/lib/activity-workbench-visibility'
 import { lazyWithRetry as lazy } from '@/lib/lazy-with-retry'
 import { translate } from '@/i18n/i18n'
 import { useAppStore } from '@/store'
@@ -126,6 +129,7 @@ export function AppWorkspaceShell(props: {
   // `orca plugin shot` captures the right sidebar, which the parked launcher floats over.
   const capturingPluginShot = usePluginViewCaptureStore((s) => s.capturing)
   const activityHidesWorkbench = useActivityHidesWorkbench()
+  useActivityEscapeHidesWorkbench()
   const toggleFloatingWorkspace = useCallback(
     () => setOpenWithFocus((open) => !open),
     [setOpenWithFocus]
