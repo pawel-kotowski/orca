@@ -48,14 +48,6 @@ export type ActivityThreadHoverCardProps = {
   conversation?: ActivityThreadConversation | null
 }
 
-// Why: only a chat the person clicked or typed into holds itself open; one that merely took focus
-// when it opened must not, or moving down the list stacks card on card.
-function chatHasFocus(): boolean {
-  return (
-    document.activeElement?.closest('[data-activity-thread-chat-preview][data-engaged]') != null
-  )
-}
-
 // One live chat card at a time: opening one closes the one before it.
 let closeOpenChatCard: (() => void) | null = null
 
@@ -81,21 +73,34 @@ export function ActivityThreadHoverCard({
       closeOpenChatCard()
     }
     closeOpenChatCard = closeHover
+    const closeOnOutsidePointer = (event: PointerEvent): void => {
+      const target = event.target instanceof Element ? event.target : null
+      if (
+        target?.closest('[data-activity-thread-chat-preview]') ||
+        target?.closest(`[data-activity-thread-pane-key="${CSS.escape(thread.paneKey)}"]`)
+      ) {
+        return
+      }
+      closeHover()
+    }
+    document.addEventListener('pointerdown', closeOnOutsidePointer, true)
     return () => {
+      document.removeEventListener('pointerdown', closeOnOutsidePointer, true)
       if (closeOpenChatCard === closeHover) {
         closeOpenChatCard = null
       }
     }
-  }, [closeHover, showsChat])
+  }, [closeHover, showsChat, thread.paneKey])
   const { linkActionPopoverProps, onOpenLink, onAuxClickCapture } =
     useWorkspaceReferenceLinkActions(thread.worktree.id, detailsHoverControl)
 
   return (
     <ActivityThreadHoverCardRoot
       open={open}
-      // Why: a live chat card stays open while the person types in it; Escape still closes it.
+      // Why: a live chat card stays open when the pointer leaves it; it closes on a click outside,
+      // on hovering another card (one chat card at a time) or on Escape.
       onOpenChange={(next) => {
-        if (!next && conversation && chatHasFocus()) {
+        if (!next && conversation) {
           return
         }
         detailsHoverControl.handleHoverOpenChange(next)
