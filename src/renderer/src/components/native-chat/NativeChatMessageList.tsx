@@ -38,7 +38,9 @@ import {
 import { useNativeChatTranscriptSlots } from './use-native-chat-transcript-slots'
 import { useNativeChatTranscriptWindow } from './use-native-chat-transcript-window'
 import { useNativeChatSubagentSections } from './use-native-chat-subagent-sections'
-import { toggleNativeChatExpandedKey } from './native-chat-expanded-keys'
+import { nativeChatOpenTurnKeys, toggleNativeChatExpandedKey } from './native-chat-expanded-keys'
+import { useAppStore } from '@/store'
+import { nativeChatFinishedTurnsOpen } from '../../../../shared/native-chat/native-chat-appearance-settings'
 import { useNativeChatTurnMembership } from './use-native-chat-turn-membership'
 import { useNativeChatTranscriptScroll } from './use-native-chat-transcript-scroll'
 import { useNativeChatOlderHistoryAutoload } from './use-native-chat-older-history-autoload'
@@ -135,11 +137,15 @@ export function NativeChatMessageList({
   )
   const scrollRef = useRef<HTMLDivElement | null>(null)
   const contentRef = useRef<HTMLDivElement | null>(null)
-  const [expandedTurnIds, setExpandedTurnIds] = useState<ReadonlySet<string>>(new Set())
+  // Turns the reader toggled away from the default: opened ones, or closed ones while turns open.
+  const [toggledTurnIds, setToggledTurnIds] = useState<ReadonlySet<string>>(new Set())
   const disclosures = useNativeChatDisclosures()
   const toggleExpandedTurn = useCallback((turnKey: string) => {
-    setExpandedTurnIds((current) => toggleNativeChatExpandedKey(current, turnKey))
+    setToggledTurnIds((current) => toggleNativeChatExpandedKey(current, turnKey))
   }, [])
+  // Why: a finished turn keeps all the agent said in it, as the terminal does; its tool runs
+  // still fold to one line unless "Show every tool step" is on.
+  const turnsOpen = useAppStore((state) => nativeChatFinishedTurnsOpen(state.settings))
 
   const { hasMore, loadingEarlier, loadEarlier } = session
   // Pending/failed reads cannot page; recovery remounts the sentinel to recheck its range.
@@ -171,6 +177,10 @@ export function NativeChatMessageList({
     latestTurn
   )
   const { messages: rows, turnKeys, liveTurnKey } = turnRows
+  const expandedTurnIds = useMemo(
+    () => nativeChatOpenTurnKeys(turnKeys, toggledTurnIds, turnsOpen),
+    [toggledTurnIds, turnKeys, turnsOpen]
+  )
   const turnDiffs = useNativeChatTurnDiffs(
     journalItems ? turnRows : null,
     subagentRowsInOrder,

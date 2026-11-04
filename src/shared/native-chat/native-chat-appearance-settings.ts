@@ -29,16 +29,28 @@ export type NativeChatAppearanceSettings = {
    * on. Not an appearance value, so resetting appearance keeps it.
    */
   cliAgentsOpenInChat?: boolean
-  /** Whether a run of tool calls shows each step without a click; absent = on. */
+  /** Whether a run of tool calls shows each step without a click; absent = off. */
   toolStepsOpen?: boolean
+  /**
+   * Whether a finished turn stays open with every message the agent wrote while working, instead
+   * of folding behind its answer; absent = on.
+   */
+  finishedTurnsOpen?: boolean
 }
 
-/** Tool runs open to their steps unless the user turned that off. */
+/** Tool runs open to their steps only when the user asked for it. */
 export function nativeChatToolStepsOpen(
   settings: { nativeChatAppearance?: NativeChatAppearanceSettings } | null | undefined
 ): boolean {
-  // Why: until settings load (and in a bare store) runs stay folded, as upstream draws them.
-  return settings != null && settings.nativeChatAppearance?.toolStepsOpen !== false
+  return settings?.nativeChatAppearance?.toolStepsOpen === true
+}
+
+/** A finished turn keeps all the agent said in it unless the user turned that off. */
+export function nativeChatFinishedTurnsOpen(
+  settings: { nativeChatAppearance?: NativeChatAppearanceSettings } | null | undefined
+): boolean {
+  // Why: until settings load (and in a bare store) turns fold, as upstream draws them.
+  return settings != null && settings.nativeChatAppearance?.finishedTurnsOpen !== false
 }
 
 /** A CLI agent's new tab opens in its terminal-backed Chat UI unless the user turned that off. */

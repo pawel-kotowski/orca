@@ -41,3 +41,24 @@ export function chooseNativeChatExpanded(
   }
   return next
 }
+
+/**
+ * The turns drawn open. Folded by default, they are the ones the reader opened; open by default
+ * (Show every tool step), the reader's toggles name the turns they closed instead.
+ */
+export function nativeChatOpenTurnKeys(
+  turnKeys: readonly (string | undefined)[],
+  toggled: ReadonlySet<string>,
+  openByDefault: boolean
+): ReadonlySet<string> {
+  if (!openByDefault) {
+    return toggled
+  }
+  const open = new Set<string>()
+  for (const key of turnKeys) {
+    if (key !== undefined && !toggled.has(key)) {
+      open.add(key)
+    }
+  }
+  return open
+}

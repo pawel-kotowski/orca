@@ -76,6 +76,10 @@ export function decodeClaudeTranscriptLine(
   if (!parsed) {
     return null
   }
+  const recap = claudeRecapMessage(parsed, fallbackId)
+  if (recap) {
+    return recap
+  }
   const record = claudeQueuedPromptAsUserRecord(parsed) ?? parsed
   const role = record.type
   if (role !== 'user' && role !== 'assistant') {
@@ -133,6 +137,31 @@ export function decodeClaudeTranscriptLine(
     timestamp,
     source: 'transcript',
     ...parent
+  }
+}
+
+/** Claude Code's away recap (`※ recap` in its terminal) is a system row; show it as quiet status, not drop it. */
+function claudeRecapMessage(
+  record: Record<string, unknown>,
+  fallbackId: string
+): NativeChatMessage | null {
+  if (record.type !== 'system' || record.subtype !== 'away_summary') {
+    return null
+  }
+  const text = extractString(record.content)
+    ?.replace(/\s*\(disable recaps in \/config\)\s*$/, '')
+    .trim()
+  if (!text) {
+    return null
+  }
+  const parentUuid = extractString(record.parentUuid)
+  return {
+    id: extractString(record.uuid) ?? fallbackId,
+    role: 'system',
+    blocks: [{ type: 'text', text: `Recap: ${text}` }],
+    timestamp: parseTimestamp(record.timestamp),
+    source: 'transcript',
+    ...(parentUuid ? { parentId: parentUuid } : {})
   }
 }
 

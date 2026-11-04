@@ -1,5 +1,8 @@
 import { SettingsSwitchRow } from '../../form-controls/SettingsFormControls'
-import { nativeChatToolStepsOpen } from '../../../../../../shared/native-chat/native-chat-appearance-settings'
+import {
+  nativeChatFinishedTurnsOpen,
+  nativeChatToolStepsOpen
+} from '../../../../../../shared/native-chat/native-chat-appearance-settings'
 import {
   NATIVE_CHAT_COLOR_KEYS,
   normalizeNativeChatAppearanceSettings,
@@ -82,10 +85,22 @@ export function AppearanceChatSection({
         label={translate('settings.chat.appearance.toolStepsOpen', 'Show every tool step')}
         description={translate(
           'settings.chat.appearance.toolStepsOpenDescription',
-          'Runs of commands and tools list each step, headed by what the agent said it does. Off folds them into one line.'
+          'Runs of commands and tools list each step, headed by what the agent said it does. Off folds each run into one line.'
         )}
         checked={nativeChatToolStepsOpen(settings)}
         onChange={() => update({ toolStepsOpen: !nativeChatToolStepsOpen(settings) })}
+      />
+      <SettingsSwitchRow
+        label={translate(
+          'settings.chat.appearance.finishedTurnsOpen',
+          'Keep everything the agent said'
+        )}
+        description={translate(
+          'settings.chat.appearance.finishedTurnsOpenDescription',
+          'A finished turn stays open with every message the agent wrote while working, as the terminal shows it. Off folds the turn behind its answer.'
+        )}
+        checked={nativeChatFinishedTurnsOpen(settings)}
+        onChange={() => update({ finishedTurnsOpen: !nativeChatFinishedTurnsOpen(settings) })}
       />
       <ChatFontFamilySetting
         settings={settings}
