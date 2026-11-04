@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { nativeChatBreakShellLine } from './native-chat-shell-line-break'
 import {
   nativeChatHeredocLanguage,
   nativeChatShellCodeParts,
@@ -70,5 +71,49 @@ describe('nativeChatToolArguments', () => {
     expect(nativeChatToolArguments('x', { options: { a: 1 } })[0]?.parts?.[0]?.language).toBe(
       'json'
     )
+  })
+})
+
+describe('nativeChatBreakShellLine', () => {
+  const long = (command: string) => `${command} # ${'x'.repeat(80)}`
+
+  it('leaves short lines as written', () => {
+    expect(nativeChatBreakShellLine('cd repo && make; echo ok')).toBe('cd repo && make; echo ok')
+  })
+
+  it('breaks a long line after each top-level separator, keeping it runnable', () => {
+    const command =
+      'K=8f875d6b; az containerapp delete -n app --yes 2>&1 | tail -1; az account set -s $K && az ad app show --id 1 || echo failed'
+    expect(nativeChatBreakShellLine(command)).toBe(
+      [
+        'K=8f875d6b;',
+        'az containerapp delete -n app --yes 2>&1 | tail -1;',
+        'az account set -s $K &&',
+        'az ad app show --id 1 ||',
+        'echo failed'
+      ].join('\n')
+    )
+  })
+
+  it('never breaks inside quotes, substitutions, groups, tests or escapes', () => {
+    const command = long(
+      `az resource list --query "[?a || b]; x" && echo $(date; whoami) && { a; b; } && [[ -n $x && -z $y ]] && find . -exec rm {} \\;`
+    )
+    const broken = nativeChatBreakShellLine(command)
+    expect(broken.split('\n')).toEqual([
+      'az resource list --query "[?a || b]; x" &&',
+      'echo $(date; whoami) &&',
+      '{ a; b; } &&',
+      '[[ -n $x && -z $y ]] &&',
+      `find . -exec rm {} \\; # ${'x'.repeat(80)}`
+    ])
+  })
+
+  it('keeps shell keywords on their line and leaves case terminators alone', () => {
+    const command = long('for f in a b; do echo $f; done; case $x in a) echo a;; esac')
+    expect(nativeChatBreakShellLine(command).split('\n')).toEqual([
+      'for f in a b; do echo $f; done;',
+      `case $x in a) echo a;; esac # ${'x'.repeat(80)}`
+    ])
   })
 })

@@ -1,3 +1,5 @@
+import { nativeChatBreakShellLine } from './native-chat-shell-line-break'
+
 /** A run of source text and the grammar to color it with; null keeps it plain. */
 export type NativeChatCodePart = { code: string; language: string | null }
 
@@ -284,4 +286,13 @@ export function nativeChatToolArguments(
     const parts = language === SHELL ? nativeChatShellCodeParts(text) : [{ code: text, language }]
     return [{ key, parts, text }]
   })
+}
+
+/** A shell command's parts for reading: long shell lines broken at their separators. */
+export function nativeChatReadableShellParts(command: string): NativeChatCodePart[] {
+  return nativeChatShellCodeParts(command).map((part) =>
+    part.language === SHELL
+      ? { ...part, code: part.code.split('\n').map(nativeChatBreakShellLine).join('\n') }
+      : part
+  )
 }

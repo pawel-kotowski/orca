@@ -3,7 +3,7 @@ import type {
   NativeChatCodePart,
   NativeChatToolArgument
 } from '../../../../shared/native-chat/tools/native-chat-tool-code-parts'
-import { nativeChatShellCodeParts } from '../../../../shared/native-chat/tools/native-chat-tool-code-parts'
+import { nativeChatReadableShellParts } from '../../../../shared/native-chat/tools/native-chat-tool-code-parts'
 import { NativeChatHighlightedCode } from './NativeChatHighlightedCode'
 
 const CODE_BLOCK_CLASS =
@@ -32,7 +32,9 @@ export function NativeChatToolCommandCode({
   language: string | null
 }): React.JSX.Element {
   const parts =
-    language === 'shellscript' ? nativeChatShellCodeParts(command) : [{ code: command, language }]
+    language === 'shellscript'
+      ? nativeChatReadableShellParts(command)
+      : [{ code: command, language }]
   return <CodeParts parts={parts} />
 }
 
