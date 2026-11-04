@@ -1,6 +1,7 @@
 /** Publish under host-reserved IDs before the agent exists so PTY routing names this pane and retries reuse its tab; the pane’s spawn waits in main and attaches to the host’s process. */
 
 import type { AgentLaunchPlacementReceipt } from '../../../shared/agent-launch/contracts/agent-launch-intent'
+import { resolveAgentTabViewMode } from '@/lib/agent-tab-default-view-mode'
 import type {
   AgentLaunchTabPublished,
   AgentLaunchTabPublishRequest
@@ -90,7 +91,11 @@ export function publishAgentLaunchTab(
     initialLeafId: leafId,
     agentLaunchPane: launchPaneFor(request),
     launchAgent: request.launchAgent,
-    viewMode: request.viewMode,
+    // Why: main marks every terminal-surface launch 'terminal'; the window applies the user's
+    // "Open CLI agents in Chat UI" choice, which only it reads.
+    viewMode:
+      resolveAgentTabViewMode(store, worktreeId, request.launchAgent, request.viewMode) ??
+      request.viewMode,
     ...(focuses ? {} : { activate: false, recordInteraction: false })
   })
   if (request.prompt) {

@@ -33,6 +33,7 @@ import {
 } from './terminal-tab-create-through-layout-owner'
 import type { AppState } from '../types'
 import { normalizeTabStartupCommand } from './terminal-startup-queues'
+import { defaultAgentTabViewMode } from '@/lib/agent-tab-default-view-mode'
 
 export function createTerminalTabCreationActions(
   set: TerminalStoreSet,
@@ -181,6 +182,13 @@ export function createTerminalTabCreationActions(
         const cleanedGroupOrder = dedupeTabOrder(cleanedTargetGroup.tabOrder).filter(
           (tabId) => !orphanTerminalIds.has(tabId)
         )
+        // Why: a new agent launch with no chosen view follows "Open CLI agents in Chat UI"; a tab
+        // adopting a live or mirrored PTY keeps the view it already had.
+        const viewMode =
+          options?.viewMode ??
+          (options?.initialPtyId || options?.mirroredHostTab
+            ? undefined
+            : defaultAgentTabViewMode(s, worktreeId, options?.launchAgent))
         const unifiedTab = existingTerminalTab ?? {
           id,
           entityId: id,
@@ -197,7 +205,7 @@ export function createTerminalTabCreationActions(
           sortOrder: cleanedGroupOrder.length,
           createdAt: tab.createdAt,
           // Why: omit for non-agent tabs so they keep the implicit 'terminal' view mode.
-          ...(options?.viewMode ? { viewMode: options.viewMode } : {})
+          ...(viewMode ? { viewMode } : {})
         }
         const nextGroupOrder = dedupeTabOrder([...cleanedGroupOrder, unifiedTab.id])
         const nextRecent = shouldActivate

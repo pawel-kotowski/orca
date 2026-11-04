@@ -925,6 +925,8 @@
       "defaultSurfaceTerminal": "Terminal",
       "defaultSurfaceTerminalDescription": "Each agent’s own CLI.",
       "defaultSurfacePerAgent": "Choose per agent",
+      "cliAgentsOpenInChat": "Open CLI agents in Chat UI",
+      "cliAgentsOpenInChatDescription": "A new agent that runs in its terminal opens in that terminal’s Chat UI. The corner button or Cmd+Shift+J shows the terminal.",
       "defaultSurfaceNowChat": "Agents now open as chats",
       "defaultSurfaceNowTerminal": "Agents now open in the terminal",
       "defaultSurfaceKeptTerminal_one": "{{agents}} stays in the terminal, as you set.",

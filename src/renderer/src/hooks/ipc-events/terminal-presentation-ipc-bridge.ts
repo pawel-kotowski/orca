@@ -1,4 +1,5 @@
 import { presentAgentLaunchTab } from '@/lib/agent-launch-tab-presentation'
+import { resolveAgentTabViewMode } from '@/lib/agent-tab-default-view-mode'
 import { requestBackgroundTerminalWorktreeMount } from '@/components/terminal/background-terminal-worktree-mount'
 import { hasRegisteredRuntimeTerminalTab } from '@/runtime/mounted-terminal-tab-registry'
 import { planMobileTerminalTabMount } from '@/lib/mobile-terminal-tab-mount'
@@ -54,6 +55,7 @@ export function registerTerminalPresentationIpcBridge(unsubs: (() => void)[]): v
       }) => {
         try {
           const store = useAppStore.getState()
+          const resolvedViewMode = resolveAgentTabViewMode(store, worktreeId, launchAgent, viewMode)
           const terminalPresentation = resolveTerminalPresentation({
             presentation,
             activate,
@@ -120,7 +122,7 @@ export function registerTerminalPresentationIpcBridge(unsubs: (() => void)[]): v
                     ? {
                         launchAgent,
                         // Why: a paired client resolved explicit mode before PTY materialization; only omitted mode uses host defaults.
-                        ...(viewMode ? { viewMode } : {})
+                        ...(resolvedViewMode ? { viewMode: resolvedViewMode } : {})
                       }
                     : {}),
                   ...(cwd ? { startupCwd: cwd } : {}),

@@ -22,7 +22,8 @@ import {
 } from '../../../agent/launch-settings/AgentDefaultSurfacePreviews'
 import { AGENT_DEFAULT_SURFACE_SECTION_ID, AGENTS_INSTALLED_SECTION_ID } from '../agents-search'
 import { Card, CardContent } from '../../../ui/card'
-import { SettingsRow } from '../../form-controls/SettingsFormControls'
+import { SettingsRow, SettingsSwitchRow } from '../../form-controls/SettingsFormControls'
+import { cliAgentsOpenInChat } from '../../../../../../shared/native-chat/native-chat-appearance-settings'
 import { Button } from '../../../ui/button'
 import {
   agentsKeepingOwnSurface,
@@ -296,6 +297,25 @@ export function AgentDefaultSurfaceSection({
           <ChevronRight className="size-3.5" />
         </button>
       </div>
+      <SettingsSwitchRow
+        className="mt-3"
+        label={translate('settings.agents.cliAgentsOpenInChat', 'Open CLI agents in Chat UI')}
+        description={translate(
+          'settings.agents.cliAgentsOpenInChatDescription',
+          'A new agent that runs in its terminal opens in that terminal’s Chat UI. The corner button or Cmd+Shift+J shows the terminal.'
+        )}
+        checked={cliAgentsOpenInChat(settings)}
+        onChange={() =>
+          void Promise.resolve(
+            updateSettings({
+              nativeChatAppearance: {
+                ...settings.nativeChatAppearance,
+                cliAgentsOpenInChat: !cliAgentsOpenInChat(settings)
+              }
+            })
+          ).catch(saveFailed)
+        }
+      />
     </section>
   )
 }

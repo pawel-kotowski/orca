@@ -1,4 +1,5 @@
 import { requestBackgroundTerminalWorktreeMount } from '@/components/terminal/background-terminal-worktree-mount'
+import { resolveAgentTabViewMode } from '@/lib/agent-tab-default-view-mode'
 import { resolveTerminalWorktreeRoute } from '@/lib/terminal-worktree-route'
 import { insertUnifiedTabAfterAnchor } from '@/lib/unified-tab-anchor-insertion'
 import { translate } from '@/i18n/i18n'
@@ -46,11 +47,12 @@ export function registerTerminalRequestIpcBridge(unsubs: (() => void)[]): void {
         const shouldSurfaceOwner =
           terminalPresentation !== 'background' && data.surfaceOwner !== false
         // Why: the paired launch client already resolved the mode, so its choice wins over the host renderer's local default.
+        const viewMode = resolveAgentTabViewMode(store, worktreeId, data.launchAgent, data.viewMode)
         const tabOptions = data.launchAgent
           ? {
               ...(shouldActivate ? {} : { activate: false, recordInteraction: false }),
               launchAgent: data.launchAgent,
-              ...(data.viewMode ? { viewMode: data.viewMode } : {}),
+              ...(viewMode ? { viewMode } : {}),
               ...(data.cwd ? { startupCwd: data.cwd } : {})
             }
           : shouldActivate

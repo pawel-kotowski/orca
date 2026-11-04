@@ -24,6 +24,18 @@ export type NativeChatAppearanceSettings = {
   userBubbleColorLight?: string
   /** Your message bubble color in the dark theme, as typed (hex when valid); absent = theme default. */
   userBubbleColorDark?: string
+  /**
+   * Whether an agent launched in its terminal (CLI) opens in that terminal's Chat UI view; absent =
+   * on. Not an appearance value, so resetting appearance keeps it.
+   */
+  cliAgentsOpenInChat?: boolean
+}
+
+/** A CLI agent's new tab opens in its terminal-backed Chat UI unless the user turned that off. */
+export function cliAgentsOpenInChat(
+  settings: { nativeChatAppearance?: NativeChatAppearanceSettings } | null | undefined
+): boolean {
+  return settings?.nativeChatAppearance?.cliAgentsOpenInChat !== false
 }
 
 export const NATIVE_CHAT_COLOR_KEYS = [
