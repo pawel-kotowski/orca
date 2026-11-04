@@ -153,6 +153,20 @@ export function ActivityThreadChatPreview({
   // row up never moves the card.
   const [placement] = useState(() => openingPlacement(thread.paneKey, openingHeightPx(size)))
   const contentRef = useRef<HTMLDivElement>(null)
+  // Why: Escape hides the card wherever focus is, and the chat inside never sees it (there it
+  // would stop the agent).
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.key !== 'Escape' || event.isComposing) {
+        return
+      }
+      event.preventDefault()
+      event.stopImmediatePropagation()
+      onClose()
+    }
+    window.addEventListener('keydown', onKeyDown, true)
+    return () => window.removeEventListener('keydown', onKeyDown, true)
+  }, [onClose])
   useThemeImageCrop(contentRef)
   // Why: the browser's corner resizer sends no pointer release to the page, and a closed card is
   // already detached (it measures 0 x 0); but the resizer writes the new size into the inline
@@ -200,11 +214,6 @@ export function ActivityThreadChatPreview({
       data-activity-thread-chat-preview=""
       onClick={(event) => event.stopPropagation()}
       onDoubleClick={(event) => event.stopPropagation()}
-      onKeyDown={(event) => {
-        if (event.key === 'Escape' && !event.defaultPrevented) {
-          onClose()
-        }
-      }}
     >
       <div className="relative flex h-full min-h-0 w-full">
         <NativeChatView

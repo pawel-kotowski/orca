@@ -1,4 +1,5 @@
 import { activateTabAndFocusPane } from '@/lib/activate-tab-and-focus-pane'
+import { setActivityHidesWorkbench } from '@/lib/activity-workbench-visibility'
 import {
   hideFloatingWorkspacePanel,
   revealFloatingWorkspacePanel
@@ -103,6 +104,10 @@ export function createActivityThreadActions({
 
   const activateThreadTarget = (thread: AgentPaneThread): void => {
     const isFloatingTerminal = thread.worktree.id === FLOATING_TERMINAL_WORKTREE_ID
+    // Why: opening a card that does not float brings the main area's tabs back.
+    if (!isFloatingTerminal) {
+      setActivityHidesWorkbench(false)
+    }
     // Why: the floating panel toggles from its cards: a second click on the card it shows closes
     // it, and opening a card that does not float closes it too.
     const before = useAppStore.getState()

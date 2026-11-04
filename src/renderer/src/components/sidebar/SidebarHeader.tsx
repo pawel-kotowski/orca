@@ -1,4 +1,5 @@
 import React, { useId } from 'react'
+import { toggleActivityView } from '@/lib/activity-workbench-visibility'
 import { useTranslation } from 'react-i18next'
 import { useAppStore } from '@/store'
 import { translate } from '@/i18n/i18n'
@@ -24,7 +25,6 @@ const SidebarHeader = React.memo(function SidebarHeader({
   useTranslation()
   const sidebarBody = useAppStore((s) => s.sidebarBody ?? 'workspaces')
   const groupBy = useAppStore((s) => s.groupBy)
-  const setSidebarBody = useAppStore((s) => s.setSidebarBody)
   const updateSettings = useAppStore((s) => s.updateSettings)
   const agentsViewActive = sidebarBody === 'agents'
   const counts = useAgentBucketCounts()
@@ -91,7 +91,7 @@ const SidebarHeader = React.memo(function SidebarHeader({
                     aria-label={activityLabel}
                     aria-pressed={agentsViewActive}
                     aria-describedby={activityBadgeId}
-                    onClick={() => setSidebarBody?.(agentsViewActive ? 'workspaces' : 'agents')}
+                    onClick={() => toggleActivityView()}
                   >
                     <span className="relative h-5 w-6 shrink-0">
                       <Bell className="absolute left-0 top-1 size-3" />
