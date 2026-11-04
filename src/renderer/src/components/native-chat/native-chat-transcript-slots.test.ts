@@ -649,3 +649,30 @@ describe('turn-owned grouping', () => {
     expect(ids({})).toEqual(['A', 'r-1', 'r-2'])
   })
 })
+
+describe('a finished turn answer', () => {
+  const settled = {
+    active: null,
+    completedByTurn: { u: { workedSeconds: 12 } as NativeChatTurnStatus }
+  }
+
+  it('frames the last thing the agent said after its work and commentary', () => {
+    const slots = build(
+      [
+        text('u', 'do it', 'user'),
+        text('a1', 'Checking the logs first.'),
+        toolRun('t1'),
+        text('a2', 'Done: the build passes.')
+      ],
+      { turnStatuses: settled, expandedTurnKeys: new Set(['u']) }
+    )
+    expect(slots.filter((slot) => slot.turnAnswer).map((slot) => slot.message.id)).toEqual(['a2'])
+  })
+
+  it('leaves a turn that is only its answer unframed', () => {
+    const slots = build([text('u', 'hi', 'user'), text('a1', 'Hello.')], {
+      turnStatuses: settled
+    })
+    expect(slots.some((slot) => slot.turnAnswer)).toBe(false)
+  })
+})

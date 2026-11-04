@@ -10,6 +10,7 @@ import { isNativeChatRowInLiveWorkingTurn } from '../../../../shared/native-chat
 import { nativeChatMessagesWaitingBehindLiveTurn } from '../../../../shared/native-chat/transcript/native-chat-messages-waiting-behind-live-turn'
 import { nativeChatTurnBarRows } from '../../../../shared/native-chat/transcript/native-chat-turn-grouping'
 import {
+  nativeChatTurnAnswerRows,
   nativeChatTurnFold,
   nativeChatTurnFoldRow
 } from '../../../../shared/native-chat/transcript/native-chat-turn-fold'
@@ -62,6 +63,8 @@ export type NativeChatMessageSlot = {
   drawsMessage: boolean
   /** Whether this row's turn hides anything, so its status row offers a caret. */
   turnFolds: boolean
+  /** The finished turn's answer, set apart from the work and commentary before it. */
+  turnAnswer?: boolean
   /** The agent's next row in the same turn follows directly, so the two sit close. */
   continuesTurn?: boolean
   turnDiff: NativeChatTurnDiff | undefined
@@ -135,6 +138,7 @@ export function buildNativeChatTranscriptSlots(
     settledTurnKeys,
     expandedTurnKeys
   })
+  const answerRows = nativeChatTurnAnswerRows(foldRows)
   const bars = nativeChatTurnBarRows(messages, turnKeys)
   // Turn rows can interleave with other prompts; emit one rollup after their last row.
   const lastRowByTurn = new Map<string, number>()
@@ -196,6 +200,14 @@ export function buildNativeChatTranscriptSlots(
         folded,
         drawsMessage: drawsRow,
         turnFolds: turnKey !== undefined && foldableTurnKeys.has(turnKey),
+        // Why: with finished turns open, the answer needs its own frame; a turn that is only its
+        // answer needs none.
+        turnAnswer:
+          turnKey !== undefined &&
+          message.role === 'assistant' &&
+          answerRows.has(index) &&
+          settledTurnKeys.has(turnKey) &&
+          foldableTurnKeys.has(turnKey),
         turnDiff,
         subagentRoster: roster,
         depth: 0,
