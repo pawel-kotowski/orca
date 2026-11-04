@@ -30,6 +30,10 @@ import { NativeChatToolRunIcon } from './NativeChatToolIcon'
 import { NativeChatToolRunCallCounts } from './NativeChatToolRunCallCounts'
 import { NativeChatToolRunMembers, revealNativeChatToolRunMember } from './NativeChatToolRunMembers'
 import { NativeChatToolRunMemberList } from './NativeChatToolRunMemberList'
+import { NativeChatToolLine } from './NativeChatToolLine'
+import { nativeChatSoleToolCall } from './native-chat-sole-tool-call'
+import { useAppStore } from '@/store'
+import { nativeChatSoleCallAsLine } from '../../../../shared/native-chat/native-chat-appearance-settings'
 import { NativeChatBrowserRunPageButton } from './NativeChatBrowserPageButton'
 import { NativeChatImageAttachments } from './NativeChatTranscriptChrome'
 import { nativeChatToolRunViewedImages } from '../../../../shared/native-chat/tools/native-chat-tool-viewed-images'
@@ -148,6 +152,11 @@ export function NativeChatToolRun({
     [activeTurnIsWorking, blocks, trailing]
   )
   const viewedImages = useMemo(() => nativeChatToolRunViewedImages(headerBlocks), [headerBlocks])
+  const soleCallAsLine = useAppStore((state) => nativeChatSoleCallAsLine(state.settings))
+  const soleCall = useMemo(
+    () => (soleCallAsLine ? nativeChatSoleToolCall(headerBlocks) : null),
+    [headerBlocks, soleCallAsLine]
+  )
   const hasAskCall = asks.length > 0
   const askSubject = hasAskCall ? nativeChatAskRunSubject(asks) : null
   const showsHeader = !hasAskCall || callCount > 0
@@ -172,6 +181,25 @@ export function NativeChatToolRun({
   // Standalone rosters/tasks have no tool calls for a header to summarize.
   if (blocks.length === 0) {
     return standaloneRows.length > 0 ? <div className={spacing}>{standaloneRows}</div> : null
+  }
+  // A settled run of one call is that call's line, one click from its command and output.
+  if (soleCall && !live && asks.length === 0 && asideCount === 0) {
+    return (
+      <div className={spacing}>
+        {standaloneRows}
+        <NativeChatToolLine
+          block={soleCall.call}
+          result={soleCall.result}
+          onLinkClick={onLinkClick}
+          disclosureKey={disclosureId === undefined ? undefined : `sole:${disclosureId}`}
+        />
+        <NativeChatImageAttachments
+          blocks={viewedImages}
+          runtimeContext={runtimeContext}
+          className="mb-0 mt-1"
+        />
+      </div>
+    )
   }
 
   return (

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   nativeChatFinishedTurnsOpen,
   nativeChatShowsBareWorkingLine,
+  nativeChatSoleCallAsLine,
   nativeChatToolStepsOpen,
   normalizeNativeChatAppearanceSettings,
   resetNativeChatAppearanceSettings,
@@ -151,6 +152,14 @@ describe('local chat view defaults', () => {
     expect(
       nativeChatShowsBareWorkingLine({ nativeChatAppearance: { bareWorkingLine: true } })
     ).toBe(true)
+  })
+
+  it('draws a one-call run as its line once settings load', () => {
+    expect(nativeChatSoleCallAsLine(null)).toBe(false)
+    expect(nativeChatSoleCallAsLine({})).toBe(true)
+    expect(nativeChatSoleCallAsLine({ nativeChatAppearance: { soleCallAsLine: false } })).toBe(
+      false
+    )
   })
 
   it('opens finished turns and folds tool steps by default once settings load', () => {

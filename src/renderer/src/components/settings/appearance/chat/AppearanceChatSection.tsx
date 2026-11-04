@@ -2,6 +2,7 @@ import { SettingsSwitchRow } from '../../form-controls/SettingsFormControls'
 import {
   nativeChatFinishedTurnsOpen,
   nativeChatShowsBareWorkingLine,
+  nativeChatSoleCallAsLine,
   nativeChatToolStepsOpen
 } from '../../../../../../shared/native-chat/native-chat-appearance-settings'
 import {
@@ -114,6 +115,18 @@ export function AppearanceChatSection({
         )}
         checked={nativeChatShowsBareWorkingLine(settings)}
         onChange={() => update({ bareWorkingLine: !nativeChatShowsBareWorkingLine(settings) })}
+      />
+      <SettingsSwitchRow
+        label={translate(
+          'settings.chat.appearance.soleCallAsLine',
+          'Show a single command as its own step'
+        )}
+        description={translate(
+          'settings.chat.appearance.soleCallAsLineDescription',
+          'A run of one command opens straight to its code and output, without a run header above it.'
+        )}
+        checked={nativeChatSoleCallAsLine(settings)}
+        onChange={() => update({ soleCallAsLine: !nativeChatSoleCallAsLine(settings) })}
       />
       <ChatFontFamilySetting
         settings={settings}

@@ -38,6 +38,16 @@ export type NativeChatAppearanceSettings = {
   finishedTurnsOpen?: boolean
   /** Whether a bare "Working…" line trails the live turn under its ticking bar; absent = off. */
   bareWorkingLine?: boolean
+  /** Whether a settled run of one call draws as that call's own line; absent = on. */
+  soleCallAsLine?: boolean
+}
+
+/** A run of one call is that call's line, one click from its detail, unless the user turned it off. */
+export function nativeChatSoleCallAsLine(
+  settings: { nativeChatAppearance?: NativeChatAppearanceSettings } | null | undefined
+): boolean {
+  // Why: until settings load (and in a bare store) the run keeps its header, as upstream draws it.
+  return settings != null && settings.nativeChatAppearance?.soleCallAsLine !== false
 }
 
 /** The live turn's bare "Working…" tail line, which repeats its bar, only when asked for. */
