@@ -146,34 +146,47 @@ export function ActivityThreadChatPreview({
       null
   )
   const [size] = useState(readSavedSize)
-  const [alignOffset] = useState(() => alignOffsetForPane(thread.paneKey, openingHeightPx(size)))
+  const [alignOffset, setAlignOffset] = useState(() =>
+    alignOffsetForPane(thread.paneKey, openingHeightPx(size))
+  )
+  // Why: a prompt sent from the card moves its row up the list; keep the card where it opened.
+  useEffect(() => {
+    let frame = 0
+    const follow = (): void => {
+      const height = contentRef.current?.offsetHeight || openingHeightPx(size)
+      const next = alignOffsetForPane(thread.paneKey, height)
+      setAlignOffset((current) => (Math.abs(current - next) < 1 ? current : next))
+      frame = requestAnimationFrame(follow)
+    }
+    frame = requestAnimationFrame(follow)
+    return () => cancelAnimationFrame(frame)
+  }, [size, thread.paneKey])
   const contentRef = useRef<HTMLDivElement>(null)
   useThemeImageCrop(contentRef)
-  // Why: save the size whenever the reader leaves it changed: after any pointer release (the
-  // corner drag) and when the card closes; every hovered chat then opens at that size.
+  // Why: the browser's corner resizer sends no pointer release to the page, and a closed card is
+  // already detached (it measures 0 x 0); but the resizer writes the new size into the inline
+  // style, which still reads after close. Save that size if it differs from the opening one.
   useEffect(() => {
     const content = contentRef.current
     if (!content) {
       return
     }
-    let saved = { width: content.offsetWidth, height: content.offsetHeight }
-    const save = (): void => {
-      const width = content.offsetWidth
-      const height = content.offsetHeight
-      if (width === 0 || height === 0 || (width === saved.width && height === saved.height)) {
+    const opening = { width: content.style.width, height: content.style.height }
+    return () => {
+      const { width, height } = content.style
+      const widthPx = /^(\d+(?:\.\d+)?)px$/.exec(width)
+      const heightPx = /^(\d+(?:\.\d+)?)px$/.exec(height)
+      if (!widthPx || !heightPx || (width === opening.width && height === opening.height)) {
         return
       }
-      saved = { width, height }
       try {
-        window.localStorage.setItem(SIZE_KEY, JSON.stringify(saved))
+        window.localStorage.setItem(
+          SIZE_KEY,
+          JSON.stringify({ width: Number(widthPx[1]), height: Number(heightPx[1]) })
+        )
       } catch {
         // A blocked store only means the next card opens at the default size.
       }
-    }
-    window.addEventListener('pointerup', save, true)
-    return () => {
-      window.removeEventListener('pointerup', save, true)
-      save()
     }
   }, [])
   return (
