@@ -11,6 +11,7 @@ import {
   type CornerRect
 } from './native-chat-corner-buttons-layout'
 import { NativeChatViewSwitchButton } from './NativeChatViewSwitchButton'
+import { registerNativeChatCornerSlot } from './native-chat-corner-slot'
 
 function readFloatingLauncherRect(): CornerRect | null {
   return (
@@ -82,6 +83,8 @@ export function NativeChatComposerToggleButton({
     // column and the chat root resize independently.
     const resizeObserver = new ResizeObserver(measure)
     resizeObserver.observe(pane)
+    // Why: Jump to latest joining or leaving the row changes its width.
+    resizeObserver.observe(group)
     if (column) {
       resizeObserver.observe(column)
     }
@@ -99,6 +102,12 @@ export function NativeChatComposerToggleButton({
     }
   }, [collapsed, hasSwitch])
 
+  const slotRef = useRef<HTMLDivElement>(null)
+  useLayoutEffect(() => {
+    const slot = slotRef.current
+    return slot ? registerNativeChatCornerSlot(slot) : undefined
+  }, [])
+
   return (
     // Why: its own provider, so the composer field renders with or without the app's.
     <TooltipProvider delayDuration={400}>
@@ -111,6 +120,8 @@ export function NativeChatComposerToggleButton({
         )}
         style={layout.shift ? { transform: `translateX(-${layout.shift}px)` } : undefined}
       >
+        {/* Jump to latest draws here, so the row shares one baseline and one gap. */}
+        <div ref={slotRef} data-native-chat-corner-slot className="contents" />
         {onSwitchToTerminal ? (
           <NativeChatViewSwitchButton to="terminal" onSwitch={onSwitchToTerminal} />
         ) : null}
