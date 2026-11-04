@@ -170,3 +170,19 @@
   .native-chat-composer-actions {
   display: none;
 }
+
+/* Why: the activity hover chat looks like the chat it shows, not a grey popover: the app's
+   background, and with a theme image the same veiled image, pinned to the window so the card
+   shows the part behind it; the chat canvas then sits on it as it does in a pane. */
+[data-activity-thread-chat-preview] {
+  background-color: var(--background);
+}
+
+:root[data-theme-background] [data-activity-thread-chat-preview] {
+  background-image:
+    linear-gradient(var(--orca-theme-background-veil) 0 0), var(--orca-theme-background-image);
+  background-size: auto, var(--orca-theme-background-size);
+  background-repeat: no-repeat, var(--orca-theme-background-repeat);
+  background-position: center, var(--orca-theme-background-position);
+  background-attachment: fixed;
+}
