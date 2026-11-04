@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { HoverCardContent } from '@/components/ui/hover-card'
+import { createPortal } from 'react-dom'
 import { useAppStore } from '@/store'
 import NativeChatView from '../native-chat/NativeChatView'
 import { parsePaneKey } from '../../../../shared/workspace-layout/stable-pane-id'
@@ -23,13 +23,13 @@ function openingHeightPx(size: { height: string }): number {
   return Math.min(height, window.innerHeight - 2 * PREVIEW_EDGE_PX)
 }
 
-/** Shift the card from its row so it sits centred in the window's height, whichever row it is. */
-function alignOffsetForPane(paneKey: string, height: number): number {
+/** Where the card opens: just right of its row's column, centred in the window's height. */
+function openingPlacement(paneKey: string, height: number): { left: number; top: number } {
   const row = document.querySelector<HTMLElement>(
     `[data-activity-thread-pane-key="${CSS.escape(paneKey)}"]`
   )
-  const top = Math.max(PREVIEW_EDGE_PX, (window.innerHeight - height) / 2)
-  return row ? top - row.getBoundingClientRect().top : 0
+  const left = row ? row.getBoundingClientRect().right + 8 : PREVIEW_EDGE_PX
+  return { left, top: Math.max(PREVIEW_EDGE_PX, (window.innerHeight - height) / 2) }
 }
 
 // Natural sizes of theme images, so the card can crop one the way the window does.
@@ -129,11 +129,14 @@ function readSavedSize(): { width: string; height: string } {
  */
 export function ActivityThreadChatPreview({
   thread,
-  onClose
+  onClose,
+  onShowTerminal
 }: {
   thread: AgentPaneThread
   conversation: ActivityThreadConversation
   onClose: () => void
+  /** The chat's terminal switch: open the agent's own terminal. */
+  onShowTerminal: () => void
 }): React.JSX.Element {
   const leafId = parsePaneKey(thread.paneKey)?.leafId ?? null
   // Why: the composer sends to the pane's live PTY, which the card finds in the tab's layout.
@@ -146,21 +149,9 @@ export function ActivityThreadChatPreview({
       null
   )
   const [size] = useState(readSavedSize)
-  const [alignOffset, setAlignOffset] = useState(() =>
-    alignOffsetForPane(thread.paneKey, openingHeightPx(size))
-  )
-  // Why: a prompt sent from the card moves its row up the list; keep the card where it opened.
-  useEffect(() => {
-    let frame = 0
-    const follow = (): void => {
-      const height = contentRef.current?.offsetHeight || openingHeightPx(size)
-      const next = alignOffsetForPane(thread.paneKey, height)
-      setAlignOffset((current) => (Math.abs(current - next) < 1 ? current : next))
-      frame = requestAnimationFrame(follow)
-    }
-    frame = requestAnimationFrame(follow)
-    return () => cancelAnimationFrame(frame)
-  }, [size, thread.paneKey])
+  // Why: placed once and fixed to the window, so scrolling the list or a send that moves the
+  // row up never moves the card.
+  const [placement] = useState(() => openingPlacement(thread.paneKey, openingHeightPx(size)))
   const contentRef = useRef<HTMLDivElement>(null)
   useThemeImageCrop(contentRef)
   // Why: the browser's corner resizer sends no pointer release to the page, and a closed card is
@@ -189,24 +180,22 @@ export function ActivityThreadChatPreview({
       }
     }
   }, [])
-  return (
-    <HoverCardContent
+  return createPortal(
+    <div
       ref={contentRef}
+      role="dialog"
+      aria-label={thread.paneTitle || 'Chat'}
       style={{
         ...size,
+        left: placement.left,
+        top: placement.top,
         minWidth: '22rem',
         minHeight: '16rem',
-        maxWidth: '92vw',
+        maxWidth: `calc(100vw - ${placement.left + PREVIEW_EDGE_PX}px)`,
         maxHeight: `calc(100vh - ${2 * PREVIEW_EDGE_PX}px)`
       }}
-      side="right"
-      align="start"
-      sideOffset={8}
-      alignOffset={alignOffset}
-      // Why: a fixed spot; its height is capped to fit, so nothing has to nudge it.
-      avoidCollisions={false}
       // Why: the reader can drag the corner; the size is remembered (SIZE_KEY).
-      className="resize overflow-hidden p-0"
+      className="fixed z-50 resize overflow-hidden rounded-lg border border-black/14 shadow-[0_16px_36px_rgba(0,0,0,0.24)] dark:border-white/14 dark:shadow-[0_20px_44px_rgba(0,0,0,0.42)]"
       {...{ [WORKTREE_NATIVE_CONTEXT_MENU_ATTR]: '' }}
       data-activity-thread-chat-preview=""
       onClick={(event) => event.stopPropagation()}
@@ -227,8 +216,10 @@ export function ActivityThreadChatPreview({
           launchAgent={thread.tab.launchAgent ?? null}
           resolvedAgent={null}
           ownsTabWideLaunchDraft={false}
+          onSwitchToTerminal={onShowTerminal}
         />
       </div>
-    </HoverCardContent>
+    </div>,
+    document.body
   )
 }

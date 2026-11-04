@@ -32,6 +32,7 @@ import { ActivityThreadHoverCardSummary } from './activity-thread-hover-card-sum
 import { ActivityThreadHoverCardRoot } from './activity-thread-hover-card-root'
 import type { AgentPaneThread } from './activity-thread-types'
 import type { ActivityThreadConversation } from './use-activity-thread-conversation'
+import { useAppStore } from '@/store'
 import { ActivityThreadChatPreview } from './activity-thread-chat-preview'
 
 export type ActivityThreadHoverCardProps = {
@@ -119,6 +120,18 @@ export function ActivityThreadHoverCard({
           thread={thread}
           conversation={conversation}
           onClose={detailsHoverControl.closeHover}
+          onShowTerminal={() => {
+            // Why: the card's terminal switch opens the agent's own terminal, where it lives.
+            const state = useAppStore.getState()
+            const unifiedTab = (state.unifiedTabsByWorktree[thread.tab.worktreeId] ?? []).find(
+              (tab) => tab.contentType === 'terminal' && tab.entityId === thread.tab.id
+            )
+            if (unifiedTab) {
+              state.setTabViewMode(unifiedTab.id, 'terminal')
+            }
+            detailsHoverControl.closeHover()
+            onJumpToWorkspace?.(thread)
+          }}
         />
       ) : open ? (
         <ActivityThreadHoverCardContent
