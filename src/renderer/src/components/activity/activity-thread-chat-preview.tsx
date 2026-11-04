@@ -8,18 +8,13 @@ import type { AgentPaneThread } from './activity-thread-types'
 import type { ActivityThreadConversation } from './use-activity-thread-conversation'
 
 const SIZE_KEY = 'orca.activityChatPreviewSize'
-const DEFAULT_SIZE = { width: 'min(46rem, 62vw)', height: 'min(48rem, 88vh)' }
 // The card keeps this much room from the window's top and bottom edges.
 const PREVIEW_EDGE_PX = 16
 
-function remPx(rem: number): number {
-  return rem * Number.parseFloat(getComputedStyle(document.documentElement).fontSize || '16')
-}
-
-/** The card's opening height in px: the remembered one, else the default, within the window. */
-function openingHeightPx(size: { height: string }): number {
-  const remembered = /^(\d+(?:\.\d+)?)px$/.exec(size.height)
-  const height = remembered ? Number(remembered[1]) : Math.min(remPx(48), window.innerHeight * 0.88)
+/** The card's opening height in px: the remembered one, else the window's full height. */
+function openingHeightPx(size: { height: string } | null): number {
+  const remembered = size ? /^(\d+(?:\.\d+)?)px$/.exec(size.height) : null
+  const height = remembered ? Number(remembered[1]) : window.innerHeight
   return Math.min(height, window.innerHeight - 2 * PREVIEW_EDGE_PX)
 }
 
@@ -108,7 +103,8 @@ function useThemeImageCrop(contentRef: React.RefObject<HTMLDivElement | null>): 
 }
 
 // The reader's own resize, kept per window; storage can be unavailable, so it is only a convenience.
-function readSavedSize(): { width: string; height: string } {
+// Null until the reader resizes a card: the card then fills the room right of the list.
+function readSavedSize(): { width: string; height: string } | null {
   try {
     const saved = JSON.parse(window.localStorage.getItem(SIZE_KEY) ?? 'null') as {
       width?: unknown
@@ -120,7 +116,7 @@ function readSavedSize(): { width: string; height: string } {
   } catch {
     // Fall through to the default size.
   }
-  return DEFAULT_SIZE
+  return null
 }
 
 /**
@@ -152,6 +148,9 @@ export function ActivityThreadChatPreview({
   // Why: placed once and fixed to the window, so scrolling the list or a send that moves the
   // row up never moves the card.
   const [placement] = useState(() => openingPlacement(thread.paneKey, openingHeightPx(size)))
+  // Why: by default the chat fills the room right of the list, the window's full height.
+  const width = size?.width ?? `calc(100vw - ${placement.left + PREVIEW_EDGE_PX}px)`
+  const height = size?.height ?? `calc(100vh - ${2 * PREVIEW_EDGE_PX}px)`
   const contentRef = useRef<HTMLDivElement>(null)
   // Why: Escape hides the card wherever focus is, and the chat inside never sees it (there it
   // would stop the agent).
@@ -200,7 +199,8 @@ export function ActivityThreadChatPreview({
       role="dialog"
       aria-label={thread.paneTitle || 'Chat'}
       style={{
-        ...size,
+        width,
+        height,
         left: placement.left,
         top: placement.top,
         minWidth: '22rem',

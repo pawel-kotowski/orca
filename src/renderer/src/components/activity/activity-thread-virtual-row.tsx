@@ -4,6 +4,7 @@ import { clearActivityThread, isClearableActivityThread } from './activity-clear
 import { ActivityStatusGroupHeader } from './activity-thread-controls'
 import { ActivityThreadContextMenu } from './activity-thread-context-menu'
 import { ActivityThreadRow } from './activity-thread-row'
+import { useActivityHidesWorkbench } from '@/lib/activity-workbench-visibility'
 import type { AgentPaneThread } from './activity-thread-types'
 import type { ActivityVirtualItemDescriptor } from './activity-thread-virtual-items'
 
@@ -46,6 +47,7 @@ export function ActivityThreadVirtualRow({
   compactMode: boolean
   showJumpAction: boolean
 }): React.JSX.Element {
+  const hidesTabs = useActivityHidesWorkbench()
   if (item.type === 'header') {
     return (
       <div
@@ -67,7 +69,8 @@ export function ActivityThreadVirtualRow({
     )
   }
   const canJump = canJumpToWorkspace(item.thread)
-  const isOpen = item.thread.paneKey === selectedPaneKey
+  // Why: with the tabs hidden nothing is open, so no card may look selected.
+  const isOpen = !hidesTabs && item.thread.paneKey === selectedPaneKey
   return (
     <ActivityThreadContextMenu
       thread={item.thread}

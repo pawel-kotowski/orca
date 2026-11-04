@@ -35,8 +35,9 @@ describe('tool sentence rows', () => {
     )
     // A command is its own row: the run's header already says it ran.
     expect(screen.queryByText(verb, { selector: 'span:not(.sr-only)' }) !== null).toBe(verbShown)
+    // Local build: steps read quieter than the agent's own words.
     expect(screen.getByText(target, { selector: 'span:not(.sr-only)' })).toHaveClass(
-      'text-chat-foreground'
+      'text-chat-foreground-faint'
     )
     expect(screen.getByRole('button')).toHaveAccessibleName(new RegExp(name))
     expect(screen.getByRole('button')).toHaveAccessibleName(new RegExp(verb))

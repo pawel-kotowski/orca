@@ -31,8 +31,9 @@ import { NativeChatExpandable } from './NativeChatExpandable'
 import { useNativeChatDisclosure } from './native-chat-disclosure-store'
 import { NativeChatToolOutput } from './NativeChatToolOutput'
 
+// Why: steps read quieter than the agent's own words (smaller, faint) so the two never blur.
 const TARGET_CLASS =
-  'min-w-0 truncate text-chat-foreground transition-colors group-hover/tool-line:text-chat-foreground-strong'
+  'min-w-0 truncate text-chat-foreground-faint transition-colors group-hover/tool-line:text-chat-foreground'
 
 /** Mount detail separately so collapsed rows do no diff work. */
 function ToolLineDetail({
@@ -119,7 +120,11 @@ export function NativeChatToolLine({
   }
   // A call opens to its output; its arguments are the row's own words, bar a shortened command.
   const fullCommand = label?.commandDetail ?? null
-  const commandAlone = label?.command === true && label.verb !== null && label.target.length > 0
+  // A described command reads as its description alone, even before it has a verb (still starting).
+  const commandAlone =
+    label?.command === true &&
+    label.target.length > 0 &&
+    (label.verb !== null || label.description !== null)
 
   return (
     <div>
@@ -127,7 +132,7 @@ export function NativeChatToolLine({
         type="button"
         onClick={() => hasDetail && setExpanded(!expanded)}
         className={cn(
-          'group/tool-line flex min-h-6.5 w-full items-center gap-2 rounded-md text-left font-sans text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
+          'group/tool-line flex min-h-6.5 w-full items-center gap-2 rounded-md text-left font-sans text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
           hasDetail ? 'cursor-pointer' : 'cursor-default'
         )}
         aria-expanded={hasDetail ? expanded : undefined}

@@ -1,4 +1,5 @@
 import { memo, Suspense, useCallback, useRef } from 'react'
+import { ActivityInterruptPrompt } from '@/components/activity/ActivityInterruptPrompt'
 import {
   useActivityEscapeHidesWorkbench,
   useActivityHidesWorkbench
@@ -251,6 +252,7 @@ export function AppWorkspaceShell(props: {
                     </RecoverableRenderErrorBoundary>
                   </Suspense>
                 </div>
+                <ActivityInterruptPrompt />
                 {floatingWorkspace.showToggleButton && !capturingPluginShot ? (
                   <MemoFloatingTerminalToggleButton
                     open={floatingWorkspace.open}

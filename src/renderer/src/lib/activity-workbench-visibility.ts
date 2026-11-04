@@ -53,40 +53,141 @@ export function activityHidesWorkbench(): boolean {
 }
 
 // Escape belongs to what has focus when it means something there: a terminal (the agent's own
-// interrupt), a chat whose agent works (Escape stops it), a field. An idle chat gives it up.
+// interrupt) or a field. A chat is handled before it sees the key (see the capture listener).
 function focusKeepsEscape(target: Element | null): boolean {
   if (!target) {
     return false
   }
-  if (target.closest('.xterm')) {
+  if (target.closest('.xterm, [data-native-chat-root]')) {
     return true
-  }
-  const chat = target.closest('[data-native-chat-root]')
-  if (chat) {
-    return chat.getAttribute('data-native-chat-working') === 'true'
   }
   return target.closest('input, textarea, select, [contenteditable="true"]') !== null
 }
 
+// A chat whose agent works would stop on Escape; in the activity view the person is asked first.
+let pendingInterrupt: Element | null = null
+let passingEscape = false
+const promptListeners = new Set<() => void>()
+
+// Why: the Escape that closes the prompt must not also hide the tabs behind it.
+let promptClosedAt = Number.NEGATIVE_INFINITY
+
+function setPendingInterrupt(next: Element | null): void {
+  if (pendingInterrupt !== null && next === null) {
+    promptClosedAt = window.performance.now()
+  }
+  pendingInterrupt = next
+  for (const listener of promptListeners) {
+    listener()
+  }
+}
+
+/** The open "agent is working" prompt, and its three answers. */
+export function useActivityInterruptPrompt(): {
+  open: boolean
+  hide: () => void
+  stop: () => void
+  cancel: () => void
+} {
+  const open = useSyncExternalStore(
+    (listener) => {
+      promptListeners.add(listener)
+      return () => promptListeners.delete(listener)
+    },
+    () => pendingInterrupt !== null
+  )
+  return {
+    open,
+    hide: () => {
+      setPendingInterrupt(null)
+      setActivityHidesWorkbench(true)
+    },
+    stop: () => {
+      const target = pendingInterrupt
+      setPendingInterrupt(null)
+      if (target instanceof HTMLElement) {
+        target.focus()
+        // Why: hand the chat its Escape back, so it stops the agent its own way.
+        passingEscape = true
+        try {
+          target.dispatchEvent(
+            new KeyboardEvent('keydown', {
+              key: 'Escape',
+              code: 'Escape',
+              bubbles: true,
+              cancelable: true
+            })
+          )
+        } finally {
+          passingEscape = false
+        }
+      }
+    },
+    cancel: () => {
+      const target = pendingInterrupt
+      setPendingInterrupt(null)
+      if (target instanceof HTMLElement) {
+        target.focus()
+      }
+    }
+  }
+}
+
+// Escape in a chat is the chat's unless the activity view shows tabs; an open picker or hover chat
+// spends it first.
+function chatEscapeIsSpokenFor(target: Element): boolean {
+  return (
+    target.closest('[aria-expanded="true"]') !== null ||
+    document.querySelector('[data-activity-thread-chat-preview]') !== null
+  )
+}
+
 /**
- * Escape in the activity view hides the tabs a card brought back, when nothing else used it (an
- * open hover chat closes first) and focus is not where Escape means something (focusKeepsEscape).
+ * Escape in the activity view hides the tabs a card brought back. From a chat it is taken before
+ * the chat sees it (the chat's box would send an interrupt even when idle): an idle chat's tabs
+ * hide, a working one asks first (useActivityInterruptPrompt). Elsewhere it hides the tabs when
+ * nothing else used it and focus is not in a terminal or a field.
  */
 export function useActivityEscapeHidesWorkbench(): void {
   useEffect(() => {
+    const showsTabs = (): boolean => useAppStore.getState().sidebarBody === 'agents' && !hidden
+    const onChatKeyDown = (event: KeyboardEvent): void => {
+      if (event.key !== 'Escape' || event.isComposing || passingEscape || !showsTabs()) {
+        return
+      }
+      const target = event.target instanceof Element ? event.target : null
+      const chat = target?.closest('[data-native-chat-root]')
+      if (!target || !chat || chatEscapeIsSpokenFor(target)) {
+        return
+      }
+      event.preventDefault()
+      event.stopImmediatePropagation()
+      if (chat.getAttribute('data-native-chat-working') === 'true') {
+        setPendingInterrupt(target)
+        return
+      }
+      setActivityHidesWorkbench(true)
+    }
     const onKeyDown = (event: KeyboardEvent): void => {
-      if (event.key !== 'Escape' || event.defaultPrevented || event.isComposing) {
+      if (event.key !== 'Escape' || event.defaultPrevented || event.isComposing || passingEscape) {
+        return
+      }
+      if (pendingInterrupt !== null || window.performance.now() - promptClosedAt < 250) {
         return
       }
       if (focusKeepsEscape(event.target instanceof Element ? event.target : null)) {
         return
       }
-      if (useAppStore.getState().sidebarBody === 'agents' && !hidden) {
+      if (showsTabs()) {
         event.preventDefault()
         setActivityHidesWorkbench(true)
       }
     }
+    window.addEventListener('keydown', onChatKeyDown, true)
     window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
+    return () => {
+      window.removeEventListener('keydown', onChatKeyDown, true)
+      window.removeEventListener('keydown', onKeyDown)
+    }
   }, [])
 }
