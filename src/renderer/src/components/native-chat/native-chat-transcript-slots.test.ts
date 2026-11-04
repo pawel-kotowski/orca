@@ -679,4 +679,30 @@ describe('a finished turn answer', () => {
     const running = build([text('u', 'hi', 'user'), text('a1', 'Hello.')])
     expect(running.some((slot) => slot.turnAnswer)).toBe(false)
   })
+
+  it('frames only the last answer, never words before a send-back or words with calls under them', () => {
+    const slots = build(
+      [
+        text('u', 'do it', 'user'),
+        {
+          ...text('a1', 'Adjusting the weight, then testing:'),
+          blocks: [
+            { type: 'text' as const, text: 'Adjusting the weight, then testing:' },
+            {
+              type: 'tool-call' as const,
+              name: 'Bash',
+              input: { command: 'ls' },
+              state: 'completed' as const
+            }
+          ]
+        },
+        text('m', 'one more thing', 'user'),
+        text('a2', 'Done.')
+      ],
+      { turnStatuses: settled }
+    )
+    expect(slots.filter((slot) => slot.turnAnswer).map((slot) => slot.message.id)).not.toContain(
+      'a1'
+    )
+  })
 })

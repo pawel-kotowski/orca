@@ -138,7 +138,15 @@ export function buildNativeChatTranscriptSlots(
     settledTurnKeys,
     expandedTurnKeys
   })
-  const answerRows = nativeChatTurnAnswerRows(foldRows)
+  // Why: frame only a turn's last answer, never words the agent wrote before a send-back, and only
+  // when they stand alone (a row with calls under its words is commentary, not the answer).
+  const finalAnswerByTurn = new Map<string, number>()
+  for (const index of nativeChatTurnAnswerRows(foldRows)) {
+    const turnKey = turnKeys[index]
+    if (turnKey !== undefined && index > (finalAnswerByTurn.get(turnKey) ?? -1)) {
+      finalAnswerByTurn.set(turnKey, index)
+    }
+  }
   const bars = nativeChatTurnBarRows(messages, turnKeys)
   // Turn rows can interleave with other prompts; emit one rollup after their last row.
   const lastRowByTurn = new Map<string, number>()
@@ -204,7 +212,8 @@ export function buildNativeChatTranscriptSlots(
         turnAnswer:
           turnKey !== undefined &&
           message.role === 'assistant' &&
-          answerRows.has(index) &&
+          finalAnswerByTurn.get(turnKey) === index &&
+          !message.blocks.some((block) => block.type === 'tool-call') &&
           settledTurnKeys.has(turnKey),
         turnDiff,
         subagentRoster: roster,
