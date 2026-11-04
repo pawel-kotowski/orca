@@ -36,6 +36,16 @@ export type NativeChatAppearanceSettings = {
    * of folding behind its answer; absent = on.
    */
   finishedTurnsOpen?: boolean
+  /** Whether a bare "Working…" line trails the live turn under its ticking bar; absent = off. */
+  bareWorkingLine?: boolean
+}
+
+/** The live turn's bare "Working…" tail line, which repeats its bar, only when asked for. */
+export function nativeChatShowsBareWorkingLine(
+  settings: { nativeChatAppearance?: NativeChatAppearanceSettings } | null | undefined
+): boolean {
+  // Why: until settings load (and in a bare store) the line shows, as upstream draws it.
+  return settings == null || settings.nativeChatAppearance?.bareWorkingLine === true
 }
 
 /** Tool runs open to their steps only when the user asked for it. */

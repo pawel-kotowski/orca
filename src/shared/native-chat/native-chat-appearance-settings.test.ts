@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
+  nativeChatFinishedTurnsOpen,
+  nativeChatShowsBareWorkingLine,
+  nativeChatToolStepsOpen,
   normalizeNativeChatAppearanceSettings,
   resetNativeChatAppearanceSettings,
   resolveNativeChatAppearanceSettings
@@ -138,5 +141,22 @@ describe('chat contrast and terminal interface normalization', () => {
     for (const contrast of [Number.NaN, Number.POSITIVE_INFINITY, '150', null]) {
       expect(normalizeNativeChatAppearanceSettings({ contrast })).toBeUndefined()
     }
+  })
+})
+
+describe('local chat view defaults', () => {
+  it('keeps the bare Working… line only until settings load, or when asked for', () => {
+    expect(nativeChatShowsBareWorkingLine(null)).toBe(true)
+    expect(nativeChatShowsBareWorkingLine({})).toBe(false)
+    expect(
+      nativeChatShowsBareWorkingLine({ nativeChatAppearance: { bareWorkingLine: true } })
+    ).toBe(true)
+  })
+
+  it('opens finished turns and folds tool steps by default once settings load', () => {
+    expect(nativeChatFinishedTurnsOpen({})).toBe(true)
+    expect(nativeChatFinishedTurnsOpen(null)).toBe(false)
+    expect(nativeChatToolStepsOpen({})).toBe(false)
+    expect(nativeChatToolStepsOpen({ nativeChatAppearance: { toolStepsOpen: true } })).toBe(true)
   })
 })

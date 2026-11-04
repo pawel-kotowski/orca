@@ -526,7 +526,9 @@
         "toolStepsOpen": "Show every tool step",
         "toolStepsOpenDescription": "Runs of commands and tools list each step, headed by what the agent said it does. Off folds each run into one line.",
         "finishedTurnsOpen": "Keep everything the agent said",
-        "finishedTurnsOpenDescription": "A finished turn stays open with every message the agent wrote while working, as the terminal shows it. Off folds the turn behind its answer."
+        "finishedTurnsOpenDescription": "A finished turn stays open with every message the agent wrote while working, as the terminal shows it. Off folds the turn behind its answer.",
+        "bareWorkingLine": "Show Working… under the last step",
+        "bareWorkingLineDescription": "The turn bar already counts the time; this adds a line saying the agent is working when nothing more specific is known."
       },
       "permissionsAgentsLink": "Settings → Agents",
       "permissionsTitle": "Permissions for new chats",

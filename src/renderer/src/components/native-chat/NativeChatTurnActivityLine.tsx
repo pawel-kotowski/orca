@@ -14,6 +14,8 @@ import {
 } from './NativeChatReasoningDisclosure'
 import { useNativeChatDisclosure } from './native-chat-disclosure-store'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
+import { useAppStore } from '@/store'
+import { nativeChatShowsBareWorkingLine } from '../../../../shared/native-chat/native-chat-appearance-settings'
 
 // Literal keys with literal fallbacks: a dynamic key registers no catalog reference.
 function statusLabel(key: Extract<NativeChatActiveTurnLabel, { source: 'status' }>['key']): string {
@@ -36,7 +38,7 @@ export function NativeChatTurnActivityLine({
   line: NativeChatLiveLine
   onLinkClick?: CommentMarkdownLinkClickHandler
   allowFileUriLinks?: boolean
-}): React.JSX.Element {
+}): React.JSX.Element | null {
   const resolved = describeNativeChatActiveTurnLabel(line)
   const label = resolved.source === 'activity' ? resolved.text : statusLabel(resolved.key)
   const { reasoning } = line
@@ -47,6 +49,19 @@ export function NativeChatTurnActivityLine({
   const disclosure = useNativeChatDisclosure(disclosureKey, false)
   const open = reasoning !== null && disclosure.open
   const labelId = useId()
+  const showsBareWorkingLine = useAppStore((state) =>
+    nativeChatShowsBareWorkingLine(state.settings)
+  )
+  // Why: the turn bar above already says "Working for …" and ticks; a bare "Working…" under the
+  // last row repeats it. Activity text, thinking and stopping still say something new.
+  if (
+    resolved.source === 'status' &&
+    resolved.key === 'working' &&
+    !reasoning &&
+    !showsBareWorkingLine
+  ) {
+    return null
+  }
 
   return (
     <Collapsible open={open} onOpenChange={disclosure.setOpen}>

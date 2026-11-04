@@ -1,6 +1,7 @@
 import { SettingsSwitchRow } from '../../form-controls/SettingsFormControls'
 import {
   nativeChatFinishedTurnsOpen,
+  nativeChatShowsBareWorkingLine,
   nativeChatToolStepsOpen
 } from '../../../../../../shared/native-chat/native-chat-appearance-settings'
 import {
@@ -101,6 +102,18 @@ export function AppearanceChatSection({
         )}
         checked={nativeChatFinishedTurnsOpen(settings)}
         onChange={() => update({ finishedTurnsOpen: !nativeChatFinishedTurnsOpen(settings) })}
+      />
+      <SettingsSwitchRow
+        label={translate(
+          'settings.chat.appearance.bareWorkingLine',
+          'Show Working… under the last step'
+        )}
+        description={translate(
+          'settings.chat.appearance.bareWorkingLineDescription',
+          'The turn bar already counts the time; this adds a line saying the agent is working when nothing more specific is known.'
+        )}
+        checked={nativeChatShowsBareWorkingLine(settings)}
+        onChange={() => update({ bareWorkingLine: !nativeChatShowsBareWorkingLine(settings) })}
       />
       <ChatFontFamilySetting
         settings={settings}
