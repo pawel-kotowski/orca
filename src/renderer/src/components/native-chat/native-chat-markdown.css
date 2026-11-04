@@ -94,3 +94,38 @@
 .native-chat-markdown-wide-blocks table {
   overflow-wrap: break-word;
 }
+
+/* Why: a framed answer holding a wide block widens with it (to the transcript width, centered on
+   the column) so the block stays inside the frame. Everything but the wide blocks is contained so
+   it cannot widen the frame, and stays at the column's width (--native-chat-answer-column, set by
+   NativeChatAnswerFrame), so the words sit where they would without the wide block. */
+.native-chat-answer-frame:has(
+  .native-chat-markdown-wide-blocks
+    > :is(div:has(> table), [data-native-chat-code-block], div:has(> .mermaid-block))
+) {
+  position: relative;
+  left: 50%;
+  width: max-content;
+  min-width: 100%;
+  max-width: calc(100cqw - 2rem);
+  translate: -50% 0;
+}
+
+.native-chat-answer-frame > :not(.native-chat-markdown-wide-blocks),
+.native-chat-answer-frame
+  .native-chat-markdown-wide-blocks
+  > :not(:is(div:has(> table), [data-native-chat-code-block], div:has(> .mermaid-block))) {
+  contain: inline-size;
+  max-width: calc(var(--native-chat-answer-column, 100%) - 2rem - 2px);
+  margin-inline: auto;
+}
+
+.native-chat-answer-frame
+  .native-chat-markdown-wide-blocks
+  > :is(div:has(> table), [data-native-chat-code-block], div:has(> .mermaid-block)) {
+  left: auto;
+  width: auto;
+  min-width: 0;
+  max-width: 100%;
+  translate: none;
+}

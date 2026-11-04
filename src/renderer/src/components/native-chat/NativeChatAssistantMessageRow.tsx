@@ -5,6 +5,7 @@ import type { MessageRowProps } from './NativeChatMessageRow'
 import { NativeChatPacedMarkdown } from './NativeChatPacedMarkdown'
 import { NATIVE_CHAT_QUOTE_SOURCE_PROPS } from './native-chat-quote-selection'
 import { NativeChatToolRun } from './NativeChatToolRun'
+import { NativeChatAnswerFrame } from './NativeChatAnswerFrame'
 import { NativeChatCodeBlock, NativeChatPlainCodeBlock } from './NativeChatCodeBlock'
 import { NativeChatAgentControls, NativeChatImageAttachments } from './NativeChatTranscriptChrome'
 import type { useNativeChatWorkRun } from './use-native-chat-work-run'
@@ -66,14 +67,7 @@ export function NativeChatAssistantMessageRow({
         isSystem && 'text-xs text-chat-foreground-faint'
       )}
     >
-      <div
-        data-native-chat-turn-answer={framedAnswer || undefined}
-        className={
-          framedAnswer
-            ? 'rounded-xl border border-chat-code-border bg-chat-code-surface/40 px-4 py-3'
-            : 'contents'
-        }
-      >
+      <NativeChatAnswerFrame framed={framedAnswer}>
         <NativeChatImageAttachments
           blocks={prose}
           runtimeContext={runtimeContext}
@@ -96,7 +90,7 @@ export function NativeChatAssistantMessageRow({
           />
         ) : null}
         {toolRun ? <NativeChatToolRun {...toolRun} /> : null}
-      </div>
+      </NativeChatAnswerFrame>
       {showControls ? (
         <NativeChatAgentControls
           markdown={words}
