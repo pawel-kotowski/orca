@@ -183,7 +183,6 @@ export function ActivityThreadConversationBody({
           {narration.map((step, index) => (
             <div
               key={`${index}:${step.text}`}
-              title={step.text}
               className={cn(
                 'min-w-0 truncate text-[12px] leading-[18px]',
                 index === narration.length - 1 ? 'text-foreground/80' : 'text-foreground/50'
@@ -234,7 +233,6 @@ function PromptRow({
           'min-w-0 flex-1 break-words text-[12.5px] leading-[18px] text-foreground/90',
           className
         )}
-        title={text}
       >
         {text}
       </span>

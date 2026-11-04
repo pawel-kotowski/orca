@@ -55,7 +55,8 @@ export function ActivityThreadVirtualRow({
           '{{value0}} activity',
           { value0: item.group.label }
         )}
-        className="pb-1"
+        // Why: room above each section (Working, Done…) so the breaks read at a glance.
+        className="pb-1 pt-4"
       >
         <ActivityStatusGroupHeader
           group={item.group}

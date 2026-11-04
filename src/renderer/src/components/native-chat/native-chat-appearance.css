@@ -60,7 +60,8 @@
 :root[data-theme-background]
   :is(
     [data-terminal-chat-view]:not(.has-multiple-panes),
-    [data-structured-agent-session-overlay-tab-id]
+    [data-structured-agent-session-overlay-tab-id],
+    [data-activity-thread-chat-preview]
   )
   [data-native-chat-root] {
   --chat-pane: transparent;
@@ -96,7 +97,8 @@
 :root.dark[data-theme-background]
   :is(
     [data-terminal-chat-view]:not(.has-multiple-panes),
-    [data-structured-agent-session-overlay-tab-id]
+    [data-structured-agent-session-overlay-tab-id],
+    [data-activity-thread-chat-preview]
   )
   [data-native-chat-root] {
   --chat-image-canvas: color-mix(in srgb, var(--chat-canvas) 55%, black);
@@ -172,17 +174,25 @@
 }
 
 /* Why: the activity hover chat looks like the chat it shows, not a grey popover: the app's
-   background, and with a theme image the same veiled image, pinned to the window so the card
-   shows the part behind it; the chat canvas then sits on it as it does in a pane. */
+   background, and with a theme image the same veiled image, cropped as the window shows it behind
+   the card; the chat inside gets the pane's own see-through canvas (the :is lists above). */
 [data-activity-thread-chat-preview] {
   background-color: var(--background);
 }
 
+/* Without an image the chat paints its own opaque canvas, as a pane's cover does. */
+:root:not([data-theme-background]) [data-activity-thread-chat-preview] [data-native-chat-root] {
+  background-color: var(--chat-canvas);
+}
+
 :root[data-theme-background] [data-activity-thread-chat-preview] {
+  /* Over an image the base is the window's, and the chat inside paints its see-through canvas. */
+  background-color: var(--background);
   background-image:
     linear-gradient(var(--orca-theme-background-veil) 0 0), var(--orca-theme-background-image);
-  background-size: auto, var(--orca-theme-background-size);
-  background-repeat: no-repeat, var(--orca-theme-background-repeat);
-  background-position: center, var(--orca-theme-background-position);
-  background-attachment: fixed;
+  /* Why not background-attachment: fixed: the popover's transform makes "fixed" relative to the
+     card. ActivityThreadChatPreview sets the window's crop of the image for the card's place. */
+  background-size: auto, var(--activity-preview-bg-size, var(--orca-theme-background-size));
+  background-repeat: no-repeat, no-repeat;
+  background-position: center, var(--activity-preview-bg-position, center);
 }
