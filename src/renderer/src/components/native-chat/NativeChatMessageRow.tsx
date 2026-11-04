@@ -65,6 +65,8 @@ export type MessageRowProps = {
   subagentDisclosure?: NativeChatSubagentDisclosure
   /** Inside a subagent's section, whose border has to reach past the row's controls. */
   inSubagentSection?: boolean
+  /** A finished turn's answer: its words sit in a quiet frame, its controls stay outside it. */
+  framedAnswer?: boolean
   structuredAttachments?: boolean
   runtimeContext?: RuntimeFileOperationArgs | null
   /** On a user row: discards it and everything after it. */

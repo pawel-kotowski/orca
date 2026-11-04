@@ -43,6 +43,7 @@ export function NativeChatAssistantMessageRow({
     onLinkClick,
     allowFileUriLinks = false,
     inSubagentSection = false,
+    framedAnswer = false,
     runtimeContext
   } = props
   const { markdown, prose } = content
@@ -65,28 +66,37 @@ export function NativeChatAssistantMessageRow({
         isSystem && 'text-xs text-chat-foreground-faint'
       )}
     >
-      <NativeChatImageAttachments
-        blocks={prose}
-        runtimeContext={runtimeContext}
-        enablePreview={runtimeContext !== undefined}
-      />
-      {words ? (
-        <NativeChatPacedMarkdown
-          rowKey={message.id}
-          content={words}
-          variant="document"
-          className="text-sm native-chat-markdown-wide-blocks"
-          renderCodeBlock={isSystem ? NativeChatPlainCodeBlock : NativeChatCodeBlock}
-          onLinkClick={onLinkClick}
-          allowFileUriLinks={allowFileUriLinks}
-          linkifyFilePaths={onLinkClick !== undefined}
-          {...(isSystem ? {} : NATIVE_CHAT_QUOTE_SOURCE_PROPS)}
-          visualMessageId={message.role === 'assistant' ? message.id : undefined}
-          // Only the live turn’s prose frontier can be mid-sentence; structured rows have no per-row streaming flag.
-          streaming={messageIsStreaming(message, activeTurnIsWorking, trailingRun)}
+      <div
+        data-native-chat-turn-answer={framedAnswer || undefined}
+        className={
+          framedAnswer
+            ? 'rounded-xl border border-chat-code-border bg-chat-code-surface/40 px-4 py-3'
+            : 'contents'
+        }
+      >
+        <NativeChatImageAttachments
+          blocks={prose}
+          runtimeContext={runtimeContext}
+          enablePreview={runtimeContext !== undefined}
         />
-      ) : null}
-      {toolRun ? <NativeChatToolRun {...toolRun} /> : null}
+        {words ? (
+          <NativeChatPacedMarkdown
+            rowKey={message.id}
+            content={words}
+            variant="document"
+            className="text-sm native-chat-markdown-wide-blocks"
+            renderCodeBlock={isSystem ? NativeChatPlainCodeBlock : NativeChatCodeBlock}
+            onLinkClick={onLinkClick}
+            allowFileUriLinks={allowFileUriLinks}
+            linkifyFilePaths={onLinkClick !== undefined}
+            {...(isSystem ? {} : NATIVE_CHAT_QUOTE_SOURCE_PROPS)}
+            visualMessageId={message.role === 'assistant' ? message.id : undefined}
+            // Only the live turn’s prose frontier can be mid-sentence; structured rows have no per-row streaming flag.
+            streaming={messageIsStreaming(message, activeTurnIsWorking, trailingRun)}
+          />
+        ) : null}
+        {toolRun ? <NativeChatToolRun {...toolRun} /> : null}
+      </div>
       {showControls ? (
         <NativeChatAgentControls
           markdown={words}

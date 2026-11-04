@@ -105,39 +105,38 @@ export const NativeChatTranscriptRow = memo(function NativeChatTranscriptRow({
           )}
         />
       ) : (
-        <AnswerFrame framed={slot.turnAnswer === true}>
-          <MessageRow
-            message={message}
-            agentName={context.agentName}
-            previousTodoWrite={predecessors?.todowrite}
-            previousUpdatePlan={predecessors?.update_plan}
-            revealedDiff={
-              (workRun ?? [message]).some((member) => member.id === context.revealedDiff?.messageId)
-                ? (context.revealedDiff ?? undefined)
-                : undefined
-            }
-            expandSignal={context.expandSignal}
-            activeTurnIsWorking={slot.activeTurnIsWorking}
-            trailingRun={slot.trailingRun}
-            continuesTurn={slot.continuesTurn}
-            onScrollMessageToTop={context.onScrollMessageToTop}
-            onLinkClick={context.onLinkClick}
-            allowFileUriLinks={context.allowFileUriLinks}
-            deliveryNotice={deliveryNotice}
-            subagentRoster={slot.subagentRoster}
-            subagentDisclosure={context.subagentDisclosure}
-            inSubagentSection={slot.depth > 0 || slot.turnAnswer === true}
-            runtimeContext={context.runtimeContext}
-            structuredAttachments={context.structuredAttachments}
-            rewind={
-              nativeChatRowOffersRewind(message, slot, deliveryNotice !== undefined) &&
-              (!rewind?.eligibleItemIds || rewind.eligibleItemIds.has(message.id))
-                ? rewind
-                : undefined
-            }
-            workRun={workRun}
-          />
-        </AnswerFrame>
+        <MessageRow
+          message={message}
+          agentName={context.agentName}
+          previousTodoWrite={predecessors?.todowrite}
+          previousUpdatePlan={predecessors?.update_plan}
+          revealedDiff={
+            (workRun ?? [message]).some((member) => member.id === context.revealedDiff?.messageId)
+              ? (context.revealedDiff ?? undefined)
+              : undefined
+          }
+          expandSignal={context.expandSignal}
+          activeTurnIsWorking={slot.activeTurnIsWorking}
+          trailingRun={slot.trailingRun}
+          continuesTurn={slot.continuesTurn}
+          onScrollMessageToTop={context.onScrollMessageToTop}
+          onLinkClick={context.onLinkClick}
+          allowFileUriLinks={context.allowFileUriLinks}
+          deliveryNotice={deliveryNotice}
+          subagentRoster={slot.subagentRoster}
+          subagentDisclosure={context.subagentDisclosure}
+          inSubagentSection={slot.depth > 0}
+          framedAnswer={slot.turnAnswer === true}
+          runtimeContext={context.runtimeContext}
+          structuredAttachments={context.structuredAttachments}
+          rewind={
+            nativeChatRowOffersRewind(message, slot, deliveryNotice !== undefined) &&
+            (!rewind?.eligibleItemIds || rewind.eligibleItemIds.has(message.id))
+              ? rewind
+              : undefined
+          }
+          workRun={workRun}
+        />
       )}
       {slot.statusAbove ? null : statusRow}
       {turnDiff ? (
@@ -146,23 +145,3 @@ export const NativeChatTranscriptRow = memo(function NativeChatTranscriptRow({
     </div>
   )
 })
-
-/** A finished turn's answer sits in a quiet frame, apart from the commentary and work before it. */
-function AnswerFrame({
-  framed,
-  children
-}: {
-  framed: boolean
-  children: React.ReactNode
-}): React.JSX.Element {
-  return framed ? (
-    <div
-      data-native-chat-turn-answer
-      className="rounded-xl border border-chat-code-border bg-chat-code-surface/40 px-4 py-3"
-    >
-      {children}
-    </div>
-  ) : (
-    <>{children}</>
-  )
-}
