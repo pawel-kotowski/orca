@@ -99,15 +99,18 @@
    the column) so the block stays inside the frame. Everything but the wide blocks is contained so
    it cannot widen the frame, and stays at the column's width (--native-chat-answer-column, set by
    NativeChatAnswerFrame), so the words sit where they would without the wide block. */
+/* :has() cannot nest inside :has() (the rule would be dropped), so the wide blocks are spelled out. */
 .native-chat-answer-frame:has(
-  .native-chat-markdown-wide-blocks
-    > :is(div:has(> table), [data-native-chat-code-block], div:has(> .mermaid-block))
+  > .native-chat-markdown-wide-blocks > div > table,
+  > .native-chat-markdown-wide-blocks > [data-native-chat-code-block],
+  > .native-chat-markdown-wide-blocks > div > .mermaid-block
 ) {
   position: relative;
   left: 50%;
   width: max-content;
   min-width: 100%;
-  max-width: calc(100cqw - 2rem);
+  /* Nearly the transcript width, so the table inside keeps about the width it has unframed. */
+  max-width: calc(100cqw - 0.5rem);
   translate: -50% 0;
 }
 
