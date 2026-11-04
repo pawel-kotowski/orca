@@ -19,6 +19,7 @@ import { SessionRestoredBannerPortals } from './SessionRestoredBannerPortals'
 import { handleInternalTerminalFileDrop } from './terminal-drop-handler'
 import { TerminalQuickCommandEditorDialog } from './TerminalQuickCommandEditorDialog'
 import { TerminalPaneNativeChatPortal } from './TerminalPaneNativeChatPortal'
+import { TerminalPaneChatSwitchPortal } from './TerminalPaneChatSwitchPortal'
 import { TerminalPaneSleepingPortals } from './TerminalPaneSleepingPortals'
 import {
   TerminalPaneCodexRestartPortals,
@@ -262,6 +263,7 @@ export function TerminalPaneSurface({
         paneIds={sessionRestoredBannerPaneIds}
       />
       <TerminalPaneNativeChatPortal controller={controller} />
+      <TerminalPaneChatSwitchPortal controller={controller} />
       <TerminalContextMenu
         open={contextMenu.open}
         onOpenChange={contextMenu.setOpen}

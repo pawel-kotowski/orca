@@ -20080,6 +20080,7 @@
       },
       "transcriptLabel": "Conversation",
       "toggle": {
+        "showChat": "Show Chat UI",
         "showTerminal": "Show terminal"
       },
       "resumeInNewChat": {

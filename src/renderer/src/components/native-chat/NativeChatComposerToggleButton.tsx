@@ -3,70 +3,91 @@ import { ChevronsDown, PenLine } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { translate } from '@/i18n/i18n'
+import { cn } from '@/lib/utils'
+import {
+  CORNER_BUTTON_GAP,
+  resolveCornerButtonsLayout,
+  type CornerButtonsPlacement,
+  type CornerRect
+} from './native-chat-corner-buttons-layout'
+import { NativeChatViewSwitchButton } from './NativeChatViewSwitchButton'
 
-const FLOATING_TRIGGER_GAP = 8
-
-/** How far left the button must move to clear the floating workspace launcher, if at all. */
-function floatingTriggerShift(button: HTMLElement, currentShift: number): number {
-  const trigger = document.querySelector<HTMLElement>('[data-floating-terminal-toggle]')
-  if (!trigger) {
-    return 0
-  }
-  const own = button.getBoundingClientRect()
-  const other = trigger.getBoundingClientRect()
-  if (other.width === 0 || other.height === 0) {
-    return 0
-  }
-  // Undo the current shift so we compare against the button's resting spot.
-  const right = own.right + currentShift
-  const left = own.left + currentShift
-  const overlaps =
-    left < other.right + FLOATING_TRIGGER_GAP &&
-    right > other.left - FLOATING_TRIGGER_GAP &&
-    own.top < other.bottom + FLOATING_TRIGGER_GAP &&
-    own.bottom > other.top - FLOATING_TRIGGER_GAP
-  return overlaps ? right - other.left + FLOATING_TRIGGER_GAP : 0
+function readFloatingLauncherRect(): CornerRect | null {
+  return (
+    document
+      .querySelector<HTMLElement>('[data-floating-terminal-toggle]')
+      ?.getBoundingClientRect() ?? null
+  )
 }
 
-/** One hide/show control that sits at the same corner whether the message box is open or not. */
+/**
+ * The message box's corner controls: hide/show, and for a terminal-backed chat the switch to its
+ * terminal. They sit on the pane's bottom edge right of the message box when it fits, else above.
+ */
 export function NativeChatComposerToggleButton({
   collapsed,
   hasPendingDraft,
-  onToggle
+  onToggle,
+  onSwitchToTerminal
 }: {
   collapsed: boolean
   hasPendingDraft: boolean
   onToggle: (event: React.MouseEvent<HTMLButtonElement>) => void
+  onSwitchToTerminal?: () => void
 }): React.JSX.Element {
   const label = collapsed
     ? translate('components.native-chat.composer.expand', 'Show message box')
     : translate('components.native-chat.composer.collapse', 'Hide message box')
-  const buttonRef = useRef<HTMLButtonElement>(null)
-  const shiftRef = useRef(0)
-  const [shift, setShift] = useState(0)
+  const groupRef = useRef<HTMLDivElement>(null)
+  const [layout, setLayout] = useState<{ placement: CornerButtonsPlacement; shift: number }>({
+    placement: 'above',
+    shift: 0
+  })
+  const hasSwitch = onSwitchToTerminal !== undefined
 
   useLayoutEffect(() => {
-    const button = buttonRef.current
-    if (!button) {
+    const group = groupRef.current
+    const pane = group?.parentElement
+    if (!group || !pane) {
       return
+    }
+    const root = group.closest<HTMLElement>('[data-native-chat-root="true"]')
+    const column = pane.querySelector<HTMLElement>('[data-native-chat-composer-column]')
+    const apply = (): void => {
+      const next = resolveCornerButtonsLayout({
+        pane: pane.getBoundingClientRect(),
+        column: collapsed || !column ? null : column.getBoundingClientRect(),
+        width: group.offsetWidth,
+        height: group.offsetHeight,
+        launcher: readFloatingLauncherRect()
+      })
+      setLayout((current) =>
+        current.placement === next.placement && current.shift === next.shift ? current : next
+      )
+      // Why: Jump to latest sits in the transcript's corner and clears these buttons only when
+      // they share its row (above the box, or with the box hidden).
+      const sharesTranscriptRow = collapsed || next.placement === 'above'
+      root?.style.setProperty(
+        '--native-chat-toggle-clearance',
+        sharesTranscriptRow ? `${group.offsetWidth + CORNER_BUTTON_GAP + next.shift}px` : '0px'
+      )
     }
     let frame = 0
     const measure = (): void => {
       cancelAnimationFrame(frame)
-      frame = requestAnimationFrame(() => {
-        const next = floatingTriggerShift(button, shiftRef.current)
-        shiftRef.current = next
-        setShift(next)
-        // Why: the transcript's Jump to latest button sits beside this one and follows it.
-        root?.style.setProperty('--native-chat-toggle-shift', `${next}px`)
-      })
+      frame = requestAnimationFrame(apply)
     }
-    const root = button.closest<HTMLElement>('[data-native-chat-root="true"]')
-    measure()
-    // Why: the launcher moves on window resize and on drag (pointerup), and this
-    // corner moves whenever the pane or message box resizes.
+    apply()
+    // Why: the launcher moves on window resize and on drag (pointerup); the pane, the message box
+    // column and the chat root resize independently.
     const resizeObserver = new ResizeObserver(measure)
-    resizeObserver.observe(root ?? document.body)
+    resizeObserver.observe(pane)
+    if (column) {
+      resizeObserver.observe(column)
+    }
+    if (root) {
+      resizeObserver.observe(root)
+    }
     window.addEventListener('resize', measure)
     window.addEventListener('pointerup', measure)
     return () => {
@@ -74,26 +95,36 @@ export function NativeChatComposerToggleButton({
       resizeObserver.disconnect()
       window.removeEventListener('resize', measure)
       window.removeEventListener('pointerup', measure)
+      root?.style.removeProperty('--native-chat-toggle-clearance')
     }
-  }, [collapsed])
+  }, [collapsed, hasSwitch])
 
   return (
-    <div className="relative h-0">
-      {/* Why: its own provider, so the composer field renders with or without the app's. */}
-      <TooltipProvider delayDuration={400}>
+    // Why: its own provider, so the composer field renders with or without the app's.
+    <TooltipProvider delayDuration={400}>
+      <div
+        ref={groupRef}
+        className={cn(
+          'absolute right-4 z-10 flex gap-2',
+          // Why: with the box hidden the pane has no height; Jump to latest's row is 0.75rem up.
+          layout.placement === 'beside' && !collapsed ? 'bottom-4' : 'bottom-[calc(100%+0.75rem)]'
+        )}
+        style={layout.shift ? { transform: `translateX(-${layout.shift}px)` } : undefined}
+      >
+        {onSwitchToTerminal ? (
+          <NativeChatViewSwitchButton to="terminal" onSwitch={onSwitchToTerminal} />
+        ) : null}
         <Tooltip>
           <TooltipTrigger asChild>
             {/* Same launcher treatment as the floating workspace button. */}
             <Button
-              ref={buttonRef}
               type="button"
               variant="launcher"
               size="icon"
               aria-label={label}
               aria-expanded={!collapsed}
               onClick={onToggle}
-              style={shift ? { transform: `translateX(-${shift}px)` } : undefined}
-              className="absolute right-4 bottom-3 z-10"
+              className="relative"
             >
               {collapsed ? <PenLine className="size-4" /> : <ChevronsDown className="size-4" />}
               {collapsed && hasPendingDraft ? (
@@ -105,11 +136,11 @@ export function NativeChatComposerToggleButton({
               ) : null}
             </Button>
           </TooltipTrigger>
-          <TooltipContent side="left" sideOffset={6}>
+          <TooltipContent side="top" sideOffset={6}>
             {label}
           </TooltipContent>
         </Tooltip>
-      </TooltipProvider>
-    </div>
+      </div>
+    </TooltipProvider>
   )
 }

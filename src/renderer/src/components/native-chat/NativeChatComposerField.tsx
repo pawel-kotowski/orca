@@ -38,6 +38,8 @@ import { NativeChatComposerToggleButton } from './NativeChatComposerToggleButton
 
 export type NativeChatComposerFieldProps = {
   editSession?: { cancel: () => void }
+  /** A terminal-backed chat's switch back to its terminal, shown beside the hide toggle. */
+  onSwitchToTerminal?: () => void
   /** Own draft persistence and native-drop routing by this pane so drops cannot land in another composer. */
   draftScopeKey: string
   positionTarget?: string
@@ -132,6 +134,7 @@ function imeComposedSegment(base: string, settled: string): string {
 
 export function NativeChatComposerField({
   editSession,
+  onSwitchToTerminal,
   draftScopeKey,
   positionTarget,
   textareaRef,
@@ -277,11 +280,12 @@ export function NativeChatComposerField({
   const launch = launchPrompt !== undefined
 
   return (
-    <div className={launch ? undefined : 'shrink-0 bg-chat-pane'}>
+    <div className={launch ? undefined : 'relative shrink-0 bg-chat-pane'}>
       {launch ? null : (
         <NativeChatComposerToggleButton
           collapsed={collapsed}
           hasPendingDraft={draft.trim() !== '' || imageAttachments.length > 0}
+          onSwitchToTerminal={editSession ? undefined : onSwitchToTerminal}
           onToggle={(event) => {
             if (collapsed) {
               setCollapsed(false)
@@ -307,6 +311,7 @@ export function NativeChatComposerField({
         onFocusCapture={collapsed && !launch ? () => setCollapsed(false) : undefined}
       >
         <div
+          data-native-chat-composer-column
           className={cn('relative w-full', !launch && 'mx-auto max-w-(--chat-content-max-width)')}
         >
           {autocomplete.mode === 'slash' ? (

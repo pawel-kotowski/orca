@@ -359,6 +359,7 @@ export const NativeChatComposerPane = forwardRef<ComposerHandle, C.NativeChatCom
     return (
       <div ref={root} data-native-chat-composer-scope={draftScopeKey}>
         <NativeChatComposerField
+          onSwitchToTerminal={onSwitchToTerminal}
           draftScopeKey={draftScopeKey}
           positionTarget={editSession ? undefined : terminalTabId}
           textareaRef={textareaRef}
