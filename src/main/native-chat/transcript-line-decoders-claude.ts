@@ -1,3 +1,4 @@
+import { isClaudeNarrationThinking } from './claude-narration-thinking'
 import {
   NATIVE_CHAT_INTERRUPTED_STATUS_TEXT,
   type NativeChatBlock,
@@ -223,8 +224,12 @@ function isThinkingOnlyContent(content: unknown): boolean {
     Array.isArray(content) &&
     content.length > 0 &&
     content.every((part) => {
-      const type = asRecord(part)?.type
-      return type === 'thinking' || type === 'redacted_thinking'
+      const record = asRecord(part)
+      const type = record?.type
+      // Narration is the agent's words to the reader, not reasoning to fold away.
+      return (
+        (type === 'thinking' && !isClaudeNarrationThinking(record)) || type === 'redacted_thinking'
+      )
     })
   )
 }
