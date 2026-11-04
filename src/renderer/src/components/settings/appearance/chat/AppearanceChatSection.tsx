@@ -3,6 +3,7 @@ import {
   nativeChatFinishedTurnsOpen,
   nativeChatShowsBareWorkingLine,
   nativeChatSoleCallAsLine,
+  nativeChatActivityFollowsConversation,
   nativeChatToolStepsOpen
 } from '../../../../../../shared/native-chat/native-chat-appearance-settings'
 import {
@@ -127,6 +128,20 @@ export function AppearanceChatSection({
         )}
         checked={nativeChatSoleCallAsLine(settings)}
         onChange={() => update({ soleCallAsLine: !nativeChatSoleCallAsLine(settings) })}
+      />
+      <SettingsSwitchRow
+        label={translate(
+          'settings.chat.appearance.activityFollowsConversation',
+          'Activity view follows the conversation'
+        )}
+        description={translate(
+          'settings.chat.appearance.activityFollowsConversationDescription',
+          'Each card shows the first and latest prompt, the latest steps and the answer, and hovering it shows the live chat.'
+        )}
+        checked={nativeChatActivityFollowsConversation(settings)}
+        onChange={() =>
+          update({ activityFollowsConversation: !nativeChatActivityFollowsConversation(settings) })
+        }
       />
       <ChatFontFamilySetting
         settings={settings}

@@ -530,7 +530,9 @@
         "bareWorkingLine": "Show Working… under the last step",
         "bareWorkingLineDescription": "The turn bar already counts the time; this adds a line saying the agent is working when nothing more specific is known.",
         "soleCallAsLine": "Show a single command as its own step",
-        "soleCallAsLineDescription": "A run of one command opens straight to its code and output, without a run header above it."
+        "soleCallAsLineDescription": "A run of one command opens straight to its code and output, without a run header above it.",
+        "activityFollowsConversation": "Activity view follows the conversation",
+        "activityFollowsConversationDescription": "Each card shows the first and latest prompt, the latest steps and the answer, and hovering it shows the live chat."
       },
       "permissionsAgentsLink": "Settings → Agents",
       "permissionsTitle": "Permissions for new chats",

@@ -31,6 +31,8 @@ import { LinkActionPopover } from '@/components/link-actions/LinkActionPopover'
 import { ActivityThreadHoverCardSummary } from './activity-thread-hover-card-summary'
 import { ActivityThreadHoverCardRoot } from './activity-thread-hover-card-root'
 import type { AgentPaneThread } from './activity-thread-types'
+import type { ActivityThreadConversation } from './use-activity-thread-conversation'
+import { ActivityThreadChatPreview } from './activity-thread-chat-preview'
 
 export type ActivityThreadHoverCardProps = {
   thread: AgentPaneThread
@@ -42,6 +44,8 @@ export type ActivityThreadHoverCardProps = {
   canJumpToWorkspace?: boolean
   /** Keeps the preview closed, e.g. while the row's right-click menu covers it. */
   suppressed?: boolean
+  /** The card's conversation: when set, hovering shows it as a live chat instead of details. */
+  conversation?: ActivityThreadConversation | null
 }
 
 export function ActivityThreadHoverCard({
@@ -51,7 +55,8 @@ export function ActivityThreadHoverCard({
   closeDelay = 120,
   onJumpToWorkspace,
   canJumpToWorkspace,
-  suppressed = false
+  suppressed = false,
+  conversation = null
 }: ActivityThreadHoverCardProps): React.JSX.Element {
   const detailsHoverControl = useWorktreeCardDetailsHoverControl()
   const open = detailsHoverControl.hoverOpen && !suppressed
@@ -70,7 +75,9 @@ export function ActivityThreadHoverCard({
       <span className="contents" onClick={(event) => event.stopPropagation()}>
         <LinkActionPopover {...linkActionPopoverProps} />
       </span>
-      {open ? (
+      {open && conversation ? (
+        <ActivityThreadChatPreview thread={thread} conversation={conversation} />
+      ) : open ? (
         <ActivityThreadHoverCardContent
           thread={thread}
           onOpenLink={onOpenLink}

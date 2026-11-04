@@ -116,8 +116,9 @@ export function ActivityStatusGroupHeader({
           : undefined
       }
       className={cn(
-        'group flex h-7 select-none items-center gap-1.5 rounded-md px-1.5 py-1 text-muted-foreground transition-colors',
-        isInteractive && 'cursor-pointer hover:bg-accent/60 hover:text-foreground',
+        // Why: lifted onto its own surface so the section breaks (Working, Done…) stand out from cards.
+        'group flex h-7 select-none items-center gap-1.5 rounded-md border border-border/60 bg-muted/70 px-1.5 py-1 text-muted-foreground shadow-xs transition-colors',
+        isInteractive && 'cursor-pointer hover:bg-accent/70 hover:text-foreground',
         className
       )}
     >
@@ -132,7 +133,7 @@ export function ActivityStatusGroupHeader({
           <AgentStateDot state={group.state} size="sm" />
         </span>
       ) : null}
-      <span className="min-w-0 flex-1 truncate text-[11px] font-semibold uppercase tracking-[0.05em] text-foreground/80 transition-colors group-hover:text-foreground">
+      <span className="min-w-0 flex-1 truncate text-[11px] font-semibold uppercase tracking-[0.05em] text-foreground/90 transition-colors group-hover:text-foreground">
         {group.label}
       </span>
       <span className="rounded-full border border-border/80 bg-muted/80 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums leading-none text-foreground/80 shadow-xs">

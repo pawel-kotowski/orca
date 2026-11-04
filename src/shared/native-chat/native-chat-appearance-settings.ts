@@ -40,6 +40,19 @@ export type NativeChatAppearanceSettings = {
   bareWorkingLine?: boolean
   /** Whether a settled run of one call draws as that call's own line; absent = on. */
   soleCallAsLine?: boolean
+  /**
+   * Whether activity-view cards read from the conversation (first and last prompt, steps, answer)
+   * and hover to a live chat; absent = on.
+   */
+  activityFollowsConversation?: boolean
+}
+
+/** Activity cards read from the conversation and hover to a live chat, unless turned off. */
+export function nativeChatActivityFollowsConversation(
+  settings: { nativeChatAppearance?: NativeChatAppearanceSettings } | null | undefined
+): boolean {
+  // Why: until settings load (and in a bare store) cards keep upstream's copy and hover details.
+  return settings != null && settings.nativeChatAppearance?.activityFollowsConversation !== false
 }
 
 /** A run of one call is that call's line, one click from its detail, unless the user turned it off. */
