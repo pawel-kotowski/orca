@@ -155,3 +155,18 @@
   --chat-quote-foreground: color-mix(in srgb, var(--chat-text-color-dark) 70%, transparent);
   --chat-user-surface: var(--chat-user-bubble-dark, var(--chat-theme-user-surface));
 }
+
+/* Why: while the reader scrolls back through the transcript, the message box takes half its room
+   (one line, no action row); it returns to full size at the end or once it has focus. */
+[data-native-chat-root='true'][data-native-chat-reading-back='true']
+  [data-native-chat-composer-column]:not(:focus-within)
+  .native-chat-composer-editor {
+  min-height: 0;
+  max-height: calc(2lh + 0.5rem);
+}
+
+[data-native-chat-root='true'][data-native-chat-reading-back='true']
+  [data-native-chat-composer-column]:not(:focus-within)
+  .native-chat-composer-actions {
+  display: none;
+}

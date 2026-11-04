@@ -284,19 +284,7 @@ export function NativeChatComposerField({
       {launch ? null : (
         <NativeChatComposerToggleButton
           collapsed={collapsed}
-          hasPendingDraft={draft.trim() !== '' || imageAttachments.length > 0}
           onSwitchToTerminal={editSession ? undefined : onSwitchToTerminal}
-          onToggle={(event) => {
-            if (collapsed) {
-              setCollapsed(false)
-              return
-            }
-            setCollapsed(true)
-            // Why: hand focus to the chat root, whose typing redirect brings the box back.
-            event.currentTarget
-              .closest<HTMLElement>('[data-native-chat-root="true"]')
-              ?.focus({ preventScroll: true })
-          }}
         />
       )}
       {/* Why: collapsed hides the box visually but keeps the editor mounted and focusable, so
@@ -411,6 +399,8 @@ export function NativeChatComposerField({
               // An empty launch prompt also grows to fit a wrapping placeholder: a paragraph-wide float that keeps its height, with a zero-width margin box so the caret line stays put.
               className={cn(
                 'w-full bg-transparent px-2 py-1 text-sm outline-none',
+                // Why: the main message box shrinks while the reader scrolls back (native-chat-appearance.css).
+                !launch && !editSession && 'native-chat-composer-editor',
                 launch
                   ? 'min-h-7 max-h-[calc(6lh+0.5rem)] text-foreground placeholder:text-muted-foreground [&_p.is-editor-empty:first-child]:before:!h-auto [&_p.is-editor-empty:first-child]:before:w-full [&_p.is-editor-empty:first-child]:before:mr-[-100%]'
                   : 'min-h-12 max-h-[calc(8lh+0.5rem)] text-chat-foreground-strong placeholder:text-chat-foreground-faint pointer-coarse:min-h-14',
@@ -422,6 +412,7 @@ export function NativeChatComposerField({
             <div
               className={cn(
                 'flex flex-wrap items-center gap-2 pt-0.5',
+                !launch && !editSession && 'native-chat-composer-actions',
                 // An empty launch prompt is one line; its controls appear once it has focus, content or live dictation.
                 launch &&
                   !isDictating &&

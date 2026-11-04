@@ -1,8 +1,5 @@
 import { useLayoutEffect, useRef, useState } from 'react'
-import { ChevronsDown, PenLine } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { translate } from '@/i18n/i18n'
+import { TooltipProvider } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import {
   CORNER_BUTTON_GAP,
@@ -27,18 +24,11 @@ function readFloatingLauncherRect(): CornerRect | null {
  */
 export function NativeChatComposerToggleButton({
   collapsed,
-  hasPendingDraft,
-  onToggle,
   onSwitchToTerminal
 }: {
   collapsed: boolean
-  hasPendingDraft: boolean
-  onToggle: (event: React.MouseEvent<HTMLButtonElement>) => void
   onSwitchToTerminal?: () => void
 }): React.JSX.Element {
-  const label = collapsed
-    ? translate('components.native-chat.composer.expand', 'Show message box')
-    : translate('components.native-chat.composer.collapse', 'Hide message box')
   const groupRef = useRef<HTMLDivElement>(null)
   const [layout, setLayout] = useState<{ placement: CornerButtonsPlacement; shift: number }>({
     placement: 'above',
@@ -125,32 +115,6 @@ export function NativeChatComposerToggleButton({
         {onSwitchToTerminal ? (
           <NativeChatViewSwitchButton to="terminal" onSwitch={onSwitchToTerminal} />
         ) : null}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            {/* Same launcher treatment as the floating workspace button. */}
-            <Button
-              type="button"
-              variant="launcher"
-              size="icon"
-              aria-label={label}
-              aria-expanded={!collapsed}
-              onClick={onToggle}
-              className="relative"
-            >
-              {collapsed ? <PenLine className="size-4" /> : <ChevronsDown className="size-4" />}
-              {collapsed && hasPendingDraft ? (
-                // Why: a hidden draft is easy to forget; the dot says one is waiting.
-                <span
-                  aria-hidden
-                  className="pointer-events-none absolute right-1 top-1 size-2 rounded-full bg-primary ring-2 ring-card dark:ring-accent"
-                />
-              ) : null}
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="top" sideOffset={6}>
-            {label}
-          </TooltipContent>
-        </Tooltip>
       </div>
     </TooltipProvider>
   )

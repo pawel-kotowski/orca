@@ -1,6 +1,6 @@
 // Keep mounted for fading; hidden state is inert and excluded from assistive technology.
 
-import { useRef } from 'react'
+import { useLayoutEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { ArrowDown } from 'lucide-react'
 import { useNativeChatCornerSlot } from './native-chat-corner-slot'
@@ -23,6 +23,18 @@ export function NativeChatJumpToLatest({
   const label = translate('components.native-chat.jumpToLatest', 'Jump to latest')
   const anchorRef = useRef<HTMLSpanElement>(null)
   const slot = useNativeChatCornerSlot(anchorRef)
+  // Why: shown means the reader scrolled back; the message box halves while they read
+  // (native-chat-appearance.css) and returns when they reach the end or start typing.
+  useLayoutEffect(() => {
+    const root = anchorRef.current?.closest<HTMLElement>('[data-native-chat-root="true"]')
+    if (!root) {
+      return
+    }
+    root.dataset.nativeChatReadingBack = visible ? 'true' : 'false'
+    return () => {
+      delete root.dataset.nativeChatReadingBack
+    }
+  }, [visible])
   if (slot) {
     // Why: in the message box's corner row it takes no room while hidden, so the row stays put.
     return (
