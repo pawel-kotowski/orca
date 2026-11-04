@@ -15,11 +15,6 @@ import type { NativeChatDiffReveal, NativeChatDiffTarget } from './native-chat-t
 import { NativeChatRewindContext } from './native-chat-rewind-context'
 import { nativeChatRowOffersRewind } from './native-chat-rewind-eligibility'
 import { isActionableStructuredAgentSessionPrompt } from '../../../../shared/agent-session/view/structured-agent-session-live-turn'
-import { nativeChatSlotKey } from './native-chat-transcript-slots'
-import {
-  useNativeChatRowArrivalProps,
-  type NativeChatRowArrivals
-} from './use-native-chat-row-arrivals'
 
 /** Memoize shared context so unchanged rows keep their props during transcript updates. */
 export type NativeChatTranscriptRowContext = {
@@ -40,8 +35,6 @@ export type NativeChatTranscriptRowContext = {
   subagentDisclosure: NativeChatSubagentDisclosure
   onScrollMessageToTop: (element: HTMLElement) => void
   onRevealDiff: (target: NativeChatDiffTarget) => void
-  /** Rows that arrived while the chat was open; each fades in once when it first draws. */
-  rowArrivals?: NativeChatRowArrivals
 }
 
 /** Wrap message, status and rollup for one virtualized measurement; internal spacing is the row’s, inter-row gaps the window’s. */
@@ -54,14 +47,13 @@ export const NativeChatTranscriptRow = memo(function NativeChatTranscriptRow({
 }): React.JSX.Element {
   // Offered only on the conversation's own turn-opening prompts (`nativeChatRowOffersRewind`).
   const rewind = useContext(NativeChatRewindContext)
-  const arrival = useNativeChatRowArrivalProps(context.rowArrivals, nativeChatSlotKey(slot))
   const sectionClassName = cn(
     slot.depth > 0 && 'border-l-2 border-border/60 pl-3',
     slot.depth > 1 && 'ml-4'
   )
   if (slot.kind === 'subagent') {
     return (
-      <div {...arrival} className={sectionClassName}>
+      <div className={sectionClassName}>
         <NativeChatSubagentSectionHead
           agentId={slot.agentId}
           entry={slot.entry}
@@ -73,15 +65,13 @@ export const NativeChatTranscriptRow = memo(function NativeChatTranscriptRow({
   }
   if (slot.kind === 'subagent-entries') {
     return (
-      <div {...arrival}>
-        <NativeChatSubagentEntries
-          agents={slot.agents}
-          sections={slot.sections}
-          onSetSectionOpen={context.subagentDisclosure.setSectionOpen}
-          // The type its roster row's list inherits, so both halves of the list match.
-          className="text-xs leading-relaxed text-chat-foreground-faint"
-        />
-      </div>
+      <NativeChatSubagentEntries
+        agents={slot.agents}
+        sections={slot.sections}
+        onSetSectionOpen={context.subagentDisclosure.setSectionOpen}
+        // The type its roster row's list inherits, so both halves of the list match.
+        className="text-xs leading-relaxed text-chat-foreground-faint"
+      />
     )
   }
   const { message, turnKey, status, receipt, turnDiff, workRun } = slot
@@ -101,10 +91,7 @@ export const NativeChatTranscriptRow = memo(function NativeChatTranscriptRow({
   ) : null
   return (
     // The negative margin shortens the measured row, which is what moves the next one up.
-    <div
-      {...arrival}
-      className={cn('flex flex-col gap-5', slot.continuesTurn && '-mb-3', sectionClassName)}
-    >
+    <div className={cn('flex flex-col gap-5', slot.continuesTurn && '-mb-3', sectionClassName)}>
       {/* A turn with no user bubble carries its bar above its first row. */}
       {slot.statusAbove ? statusRow : null}
       {!slot.drawsMessage ? null : receipt ? (
