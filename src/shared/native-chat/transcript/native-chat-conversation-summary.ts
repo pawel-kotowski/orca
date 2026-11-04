@@ -1,14 +1,10 @@
-import { isToolCallBlock, type NativeChatMessage } from '../native-chat-types'
-import {
-  nativeChatToolLineLabel,
-  NATIVE_CHAT_TOOL_ROW_VERB_COPY
-} from '../tools/native-chat-tool-line-label'
+import type { NativeChatMessage } from '../native-chat-types'
 import { normalizedNativeChatUserMessageText } from './native-chat-image-transcript-markers'
 
 /** One thing the agent did in the latest turn, as the chat shows it. */
 export type NativeChatConversationStep = {
-  /** `said`: the agent's own words (a status line); `tool`: a call, by its description. */
-  kind: 'said' | 'tool'
+  /** The agent's own words: its narration of what it is doing. */
+  kind: 'said'
   text: string
 }
 
@@ -17,7 +13,7 @@ export type NativeChatConversationSummary = {
   /** Null when the loaded window starts after the first prompt. */
   firstPrompt: string | null
   lastPrompt: string | null
-  /** The latest turn's steps, newest last, at most `stepLimit`. */
+  /** The latest turn's narration lines, newest last, at most `stepLimit`. */
   steps: NativeChatConversationStep[]
   /** The agent's last words once the turn is done. */
   finalAnswer: string | null
@@ -30,28 +26,17 @@ function oneLine(text: string): string {
   return flat.length > MAX_STEP_CHARS ? `${flat.slice(0, MAX_STEP_CHARS - 1)}…` : flat
 }
 
+// Messages the harness writes as the user (a background task's notification, a reminder, a slash
+// command's wrapper) are not prompts a person typed.
+const HARNESS_USER_MESSAGE =
+  /^<(?:task-notification|system-reminder|local-command-[a-z-]+|command-[a-z-]+|bash-[a-z-]+|user-prompt-submit-hook)\b/
+
 function userPrompt(message: NativeChatMessage): string | null {
   if (message.role !== 'user') {
     return null
   }
-  const text = normalizedNativeChatUserMessageText(message)
-  return text ? text.trim() : null
-}
-
-function toolStepText(block: Parameters<typeof nativeChatToolLineLabel>[0]): string {
-  const label = nativeChatToolLineLabel(block)
-  if (label.description) {
-    return label.description
-  }
-  if (label.command) {
-    return label.target || block.name
-  }
-  const verb = label.verb ? NATIVE_CHAT_TOOL_ROW_VERB_COPY[label.verb] : null
-  if (verb && label.target) {
-    return `${verb} ${label.target}`
-  }
-  // An MCP tool without a readable target reads by its own name.
-  return block.name.replace(/^mcp__/, '').replaceAll('__', ' ')
+  const text = normalizedNativeChatUserMessageText(message)?.trim()
+  return text && !HARNESS_USER_MESSAGE.test(text) ? text : null
 }
 
 /**
@@ -84,10 +69,9 @@ export function summarizeNativeChatConversation(
       continue
     }
     for (const block of message.blocks) {
+      // Why: a glance reads the agent's own narration; its commands stay in the chat.
       if (block.type === 'text' && block.text.trim()) {
         steps.push({ kind: 'said', text: oneLine(block.text) })
-      } else if (isToolCallBlock(block)) {
-        steps.push({ kind: 'tool', text: oneLine(toolStepText(block)) })
       }
     }
   }

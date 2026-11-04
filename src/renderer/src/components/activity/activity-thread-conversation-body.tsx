@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react'
-import { MessageSquare, SquareTerminal } from 'lucide-react'
 import { AgentTypeIcon } from '@/lib/agent-type-icon'
 import { cn } from '@/lib/utils'
 import CommentMarkdown from '../sidebar/CommentMarkdown'
@@ -129,11 +128,6 @@ export function ActivityThreadConversationBody({
             key={`${index}:${step.text}`}
             className="flex min-w-0 items-center gap-1.5 text-xs leading-5 text-foreground/70"
           >
-            {step.kind === 'tool' ? (
-              <SquareTerminal aria-hidden className="size-3 shrink-0 text-muted-foreground" />
-            ) : (
-              <MessageSquare aria-hidden className="size-3 shrink-0 text-muted-foreground" />
-            )}
             <span className="min-w-0 truncate" title={step.text}>
               {step.text}
             </span>

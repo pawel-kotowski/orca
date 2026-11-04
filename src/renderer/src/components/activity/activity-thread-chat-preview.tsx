@@ -47,7 +47,11 @@ export function ActivityThreadChatPreview({
             data-native-chat-root="true"
             data-native-chat-preview="true"
             data-native-chat-working={conversation.working ? 'true' : 'false'}
-            className={cn(NATIVE_CHAT_APPEARANCE_ROOT_CLASS, 'flex h-full min-h-0 w-full flex-col')}
+            // Why: the chat's own canvas, so the preview looks like the chat it shows.
+            className={cn(
+              NATIVE_CHAT_APPEARANCE_ROOT_CLASS,
+              'flex h-full min-h-0 w-full flex-col bg-chat-canvas'
+            )}
             style={appearanceStyle}
             data-native-chat-scheme={appearanceStyle.colorScheme}
           >

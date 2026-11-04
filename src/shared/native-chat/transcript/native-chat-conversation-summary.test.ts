@@ -34,11 +34,7 @@ describe('summarizeNativeChatConversation', () => {
     ).toEqual({
       firstPrompt: 'plan the coaching reach',
       lastPrompt: 'do it all',
-      steps: [
-        { kind: 'said', text: 'Checking the open PRs first.' },
-        { kind: 'tool', text: 'List open PRs' },
-        { kind: 'tool', text: 'Ship PR 4361' }
-      ],
+      steps: [{ kind: 'said', text: 'Checking the open PRs first.' }],
       finalAnswer: 'All shipped: PR 4361 merged.'
     })
   })
@@ -57,5 +53,13 @@ describe('summarizeNativeChatConversation', () => {
       summarizeNativeChatConversation(conversation, { working: false, startsAtFirstMessage: false })
         .firstPrompt
     ).toBeNull()
+  })
+
+  it('skips harness messages written as the user', () => {
+    const summary = summarizeNativeChatConversation(
+      [...conversation, user('n1', '<task-notification> <task-id>b1</task-id> done')],
+      { working: true, startsAtFirstMessage: true }
+    )
+    expect(summary.lastPrompt).toBe('do it all')
   })
 })
