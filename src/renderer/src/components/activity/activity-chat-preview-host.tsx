@@ -48,9 +48,8 @@ function useActivityChatPreviewTarget(): ActivityChatPreviewTarget | null {
   )
 }
 
-// The outgoing chat fades out quicker and the incoming one starts a beat later, so over a
-// see-through themed window the two texts never sit at full strength on top of each other.
-const LEAVE_MS = 130
+// The incoming conversation starts its fade this late (native-chat-appearance.css holds the
+// timings); the outgoing one is dropped once both fades are done.
 const ENTER_DELAY_MS = 60
 // A chat that has not drawn its first rows by then fades in anyway.
 const READY_TIMEOUT_MS = 450
@@ -239,14 +238,9 @@ function ActivityChatPreviewLayer({
   return (
     <div
       ref={layerRef}
-      className="absolute inset-0 flex min-h-0"
-      style={{
-        opacity: shown ? 1 : 0,
-        transition: shown
-          ? `opacity ${CROSSFADE_MS}ms ease-out ${ENTER_DELAY_MS}ms`
-          : `opacity ${LEAVE_MS}ms ease-in`,
-        pointerEvents: shown ? undefined : 'none'
-      }}
+      // Why: only the conversation fades (native-chat-appearance.css); the chat's own box, its
+      // message box and edges, swaps at once, so the window never seems to go away.
+      data-activity-chat-layer={state}
       aria-hidden={shown ? undefined : true}
     >
       <NativeChatView

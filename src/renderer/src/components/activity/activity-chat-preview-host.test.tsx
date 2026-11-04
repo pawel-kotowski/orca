@@ -41,10 +41,10 @@ describe('ActivityChatPreviewHost', () => {
   const frames = (): Element[] => [
     ...document.querySelectorAll('[data-activity-thread-chat-preview]')
   ]
-  // Each layer wraps one chat; its opacity says whether it shows.
-  const layerOpacity = (paneKey: string): string | null => {
+  // Each layer wraps one chat; its state says whether it shows.
+  const layerState = (paneKey: string): string | null => {
     const chat = document.querySelector(`[data-pane="${paneKey}"]`)
-    return chat ? (chat.parentElement as HTMLElement).style.opacity : null
+    return chat ? ((chat.parentElement as HTMLElement).dataset.activityChatLayer ?? null) : null
   }
   const advance = (ms: number): void => {
     act(() => {
@@ -77,24 +77,24 @@ describe('ActivityChatPreviewHost', () => {
     drawn.add('a')
     show('a')
     expect(frames()).toHaveLength(1)
-    expect(layerOpacity('a')).toBe('1')
+    expect(layerState('a')).toBe('shown')
 
     show('b')
     advance(100)
     // b has not drawn yet: a stays fully shown in the same window.
     expect(frames()).toHaveLength(1)
-    expect(layerOpacity('a')).toBe('1')
+    expect(layerState('a')).toBe('shown')
 
     drawn.add('b')
     show('b')
     advance(20)
     expect(frames()).toHaveLength(1)
-    expect(layerOpacity('b')).toBe('1')
-    expect(layerOpacity('a')).toBe('0')
+    expect(layerState('b')).toBe('shown')
+    expect(layerState('a')).toBe('leaving')
 
     advance(400)
-    expect(layerOpacity('a')).toBeNull()
-    expect(layerOpacity('b')).toBe('1')
+    expect(layerState('a')).toBeNull()
+    expect(layerState('b')).toBe('shown')
   })
 
   it('fades the window out on close, then removes it', () => {

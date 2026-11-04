@@ -180,6 +180,45 @@
   background-color: var(--background);
 }
 
+/* The hover chat's layers (ActivityChatPreviewHost): switching cards fades only the conversation.
+   The chat's box (message box, bars, edges) of the next chat shows at once in the same place, so
+   the window never seems to close. The outgoing conversation sits on top, alone, and fades out
+   quicker; the incoming one starts a beat later, so the two texts never overlap at full strength
+   over a see-through themed window. */
+[data-activity-chat-layer] {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  min-height: 0;
+}
+
+[data-activity-chat-layer='pending'] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+[data-activity-chat-layer] [data-native-chat-scroll] {
+  opacity: 1;
+  transition: opacity 200ms ease-out 60ms;
+}
+
+[data-activity-chat-layer='pending'] [data-native-chat-scroll] {
+  opacity: 0;
+}
+
+/* Hidden ancestors paint nothing (not even their backgrounds); only the conversation shows. */
+[data-activity-chat-layer='leaving'] {
+  z-index: 1;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+[data-activity-chat-layer='leaving'] [data-native-chat-scroll] {
+  visibility: visible;
+  opacity: 0;
+  transition: opacity 130ms ease-in;
+}
+
 /* Without an image the chat paints its own opaque canvas, as a pane's cover does. */
 :root:not([data-theme-background]) [data-activity-thread-chat-preview] [data-native-chat-root] {
   background-color: var(--chat-canvas);
