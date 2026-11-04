@@ -135,6 +135,39 @@ describe('activity thread host routing', () => {
     }
   )
 
+  it('closes the floating panel on a second click on the card it shows', () => {
+    const floatingThread = makeFloatingThread()
+    state.settings = { floatingTerminalEnabled: true }
+    state.tabsByWorktree = { [FLOATING_TERMINAL_WORKTREE_ID]: [floatingThread.tab] }
+    state.floatingWorkspacePanelOpen = true
+    state.activeGroupIdByWorktree = { [FLOATING_TERMINAL_WORKTREE_ID]: 'g1' }
+    state.groupsByWorktree = {
+      [FLOATING_TERMINAL_WORKTREE_ID]: [{ id: 'g1', activeTabId: 'u1' }]
+    }
+    state.unifiedTabsByWorktree = {
+      [FLOATING_TERMINAL_WORKTREE_ID]: [{ id: 'u1', entityId: floatingThread.tab.id }]
+    }
+
+    makeActions().selectThread(floatingThread)
+
+    expect(mocks.dispatchEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ type: TOGGLE_FLOATING_TERMINAL_EVENT })
+    )
+    expect(mocks.activateTabAndFocusPane).not.toHaveBeenCalled()
+  })
+
+  it('closes the floating panel when a card that does not float opens', () => {
+    state.settings = { floatingTerminalEnabled: true }
+    state.floatingWorkspacePanelOpen = true
+    mocks.activateAndRevealWorkspace.mockReturnValue(false)
+
+    makeActions().selectThread(thread)
+
+    expect(mocks.dispatchEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ type: TOGGLE_FLOATING_TERMINAL_EVENT })
+    )
+  })
+
   it('enables a disabled floating workspace before revealing its agent pane', async () => {
     const floatingThread = makeFloatingThread()
     const updateSettings = vi.fn().mockResolvedValue(undefined)

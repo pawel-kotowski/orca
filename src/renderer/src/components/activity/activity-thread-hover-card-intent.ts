@@ -42,21 +42,24 @@ export function useActivityThreadHoverCardIntent({
   open,
   onOpenChange,
   openDelay = 200,
-  enabled = true
+  enabled = true,
+  restMs = ACTIVITY_HOVER_CARD_REST_MS
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   openDelay?: number
   enabled?: boolean
+  /** How long the pointer rests before the card opens; a live chat card opens at once. */
+  restMs?: number
 }) {
   const [resting, setResting] = useState(false)
   const triggerRef = useRef<HTMLElement | null>(null)
   const openTimersRef = useRef<OpenTimers | null>(null)
   const detachScrollWatchRef = useRef<(() => void) | null>(null)
   const closedByScrollRef = useRef(false)
-  const latestRef = useRef({ open, onOpenChange, openDelay, enabled })
+  const latestRef = useRef({ open, onOpenChange, openDelay, enabled, restMs })
   useEffect(() => {
-    latestRef.current = { open, onOpenChange, openDelay, enabled }
+    latestRef.current = { open, onOpenChange, openDelay, enabled, restMs }
   })
 
   const clearOpenTimers = useCallback(() => {
@@ -207,18 +210,22 @@ export function useActivityThreadHoverCardIntent({
       clearOpenTimers()
       setResting(false)
       const warm = openCardCount > 0 || window.performance.now() - lastCardClosedAt < WARM_WINDOW_MS
-      openTimersRef.current = warm
-        ? {
-            progress: undefined,
-            open: window.setTimeout(openFromIntent, ACTIVITY_HOVER_CARD_WARM_REST_MS)
-          }
-        : {
-            progress: window.setTimeout(
-              () => setResting(true),
-              ACTIVITY_HOVER_CARD_PROGRESS_DELAY_MS
-            ),
-            open: window.setTimeout(openFromIntent, ACTIVITY_HOVER_CARD_REST_MS)
-          }
+      const rest = latestRef.current.restMs
+      openTimersRef.current =
+        rest < ACTIVITY_HOVER_CARD_WARM_REST_MS
+          ? { progress: undefined, open: window.setTimeout(openFromIntent, rest) }
+          : warm
+            ? {
+                progress: undefined,
+                open: window.setTimeout(openFromIntent, ACTIVITY_HOVER_CARD_WARM_REST_MS)
+              }
+            : {
+                progress: window.setTimeout(
+                  () => setResting(true),
+                  ACTIVITY_HOVER_CARD_PROGRESS_DELAY_MS
+                ),
+                open: window.setTimeout(openFromIntent, ACTIVITY_HOVER_CARD_REST_MS)
+              }
       syncScrollWatch()
     },
     [clearOpenTimers, dismissForControl, openFromIntent, syncScrollWatch]

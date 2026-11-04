@@ -31,3 +31,12 @@ export function revealFloatingWorkspacePanel(
     }
   })
 }
+
+/** Close the floating workspace panel when it shows; a hidden one stays as it is. */
+export function hideFloatingWorkspacePanel(
+  state: Pick<AppState, 'settings' | 'floatingWorkspacePanelOpen'>
+): void {
+  if (state.settings && selectFloatingWorkspacePanelVisible(state)) {
+    toggleFloatingWorkspacePanel()
+  }
+}

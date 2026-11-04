@@ -48,6 +48,10 @@ export type ActivityThreadHoverCardProps = {
   conversation?: ActivityThreadConversation | null
 }
 
+function chatHasFocus(): boolean {
+  return document.activeElement?.closest('[data-activity-thread-chat-preview]') != null
+}
+
 export function ActivityThreadHoverCard({
   thread,
   children,
@@ -66,7 +70,14 @@ export function ActivityThreadHoverCard({
   return (
     <ActivityThreadHoverCardRoot
       open={open}
-      onOpenChange={detailsHoverControl.handleHoverOpenChange}
+      // Why: a live chat card stays open while the person types in it; Escape still closes it.
+      onOpenChange={(next) => {
+        if (!next && conversation && chatHasFocus()) {
+          return
+        }
+        detailsHoverControl.handleHoverOpenChange(next)
+      }}
+      restMs={conversation ? 0 : undefined}
       openDelay={openDelay}
       closeDelay={closeDelay}
       enabled={!suppressed}
@@ -76,7 +87,11 @@ export function ActivityThreadHoverCard({
         <LinkActionPopover {...linkActionPopoverProps} />
       </span>
       {open && conversation ? (
-        <ActivityThreadChatPreview thread={thread} conversation={conversation} />
+        <ActivityThreadChatPreview
+          thread={thread}
+          conversation={conversation}
+          onClose={detailsHoverControl.closeHover}
+        />
       ) : open ? (
         <ActivityThreadHoverCardContent
           thread={thread}

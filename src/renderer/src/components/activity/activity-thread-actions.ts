@@ -1,5 +1,9 @@
 import { activateTabAndFocusPane } from '@/lib/activate-tab-and-focus-pane'
-import { revealFloatingWorkspacePanel } from '@/lib/floating-workspace-panel-reveal'
+import {
+  hideFloatingWorkspacePanel,
+  revealFloatingWorkspacePanel
+} from '@/lib/floating-workspace-panel-reveal'
+import { selectFloatingWorkspacePanelVisible } from '@/store/floating-workspace-panel-selector'
 import { activateStructuredAgentSessionTab } from '@/lib/agent-session/structured-agent-session-tab-activation'
 import { activateAndRevealWorkspace } from '@/lib/worktree-activation'
 import { jumpToWorktreeFromSidebar } from '@/lib/worktree-jump-navigation'
@@ -31,6 +35,21 @@ type ActivityThreadWorkspaceCatalog = Pick<
 function readActivityThreadWorkspaceCatalog(): ActivityThreadWorkspaceCatalog {
   const state = useAppStore.getState()
   return { ...state, defaultHostId: getSettingsFocusedExecutionHostId(state.settings) }
+}
+
+/** Whether the floating panel's active tab is this one. */
+function floatingPanelShowsTab(
+  state: ReturnType<typeof useAppStore.getState>,
+  tabId: string
+): boolean {
+  const groupId = state.activeGroupIdByWorktree?.[FLOATING_TERMINAL_WORKTREE_ID]
+  const group = (state.groupsByWorktree?.[FLOATING_TERMINAL_WORKTREE_ID] ?? []).find(
+    (candidate) => candidate.id === groupId
+  )
+  const active = (state.unifiedTabsByWorktree?.[FLOATING_TERMINAL_WORKTREE_ID] ?? []).find(
+    (candidate) => candidate.id === group?.activeTabId
+  )
+  return active?.entityId === tabId || active?.id === tabId
 }
 
 export function hasActivityThreadWorkspace(
@@ -84,6 +103,17 @@ export function createActivityThreadActions({
 
   const activateThreadTarget = (thread: AgentPaneThread): void => {
     const isFloatingTerminal = thread.worktree.id === FLOATING_TERMINAL_WORKTREE_ID
+    // Why: the floating panel toggles from its cards: a second click on the card it shows closes
+    // it, and opening a card that does not float closes it too.
+    const before = useAppStore.getState()
+    if (selectFloatingWorkspacePanelVisible(before)) {
+      if (!isFloatingTerminal) {
+        hideFloatingWorkspacePanel(before)
+      } else if (floatingPanelShowsTab(before, thread.tab.id)) {
+        hideFloatingWorkspacePanel(before)
+        return
+      }
+    }
     const executionHostId = getActivityThreadExecutionHostId(
       thread,
       getSettingsFocusedExecutionHostId(useAppStore.getState().settings)
