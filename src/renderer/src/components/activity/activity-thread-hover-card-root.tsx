@@ -9,10 +9,12 @@ export function ActivityThreadHoverCardRoot({
   closeDelay,
   enabled = true,
   restMs,
+  opensFromLeftHalf,
   trigger,
   children
 }: {
   restMs?: number
+  opensFromLeftHalf?: boolean
   open: boolean
   onOpenChange: (open: boolean) => void
   openDelay?: number
@@ -26,7 +28,8 @@ export function ActivityThreadHoverCardRoot({
     onOpenChange,
     openDelay,
     enabled,
-    restMs
+    restMs,
+    opensFromLeftHalf
   })
 
   return (

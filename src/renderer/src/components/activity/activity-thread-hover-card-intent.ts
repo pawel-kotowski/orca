@@ -43,7 +43,8 @@ export function useActivityThreadHoverCardIntent({
   onOpenChange,
   openDelay = 200,
   enabled = true,
-  restMs = ACTIVITY_HOVER_CARD_REST_MS
+  restMs = ACTIVITY_HOVER_CARD_REST_MS,
+  opensFromLeftHalf = false
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -51,15 +52,20 @@ export function useActivityThreadHoverCardIntent({
   enabled?: boolean
   /** How long the pointer rests before the card opens; a live chat card opens at once. */
   restMs?: number
+  /**
+   * Only the row's left half opens the card; its right half is a lane to move or scroll down the
+   * list along without switching what is shown.
+   */
+  opensFromLeftHalf?: boolean
 }) {
   const [resting, setResting] = useState(false)
   const triggerRef = useRef<HTMLElement | null>(null)
   const openTimersRef = useRef<OpenTimers | null>(null)
   const detachScrollWatchRef = useRef<(() => void) | null>(null)
   const closedByScrollRef = useRef(false)
-  const latestRef = useRef({ open, onOpenChange, openDelay, enabled, restMs })
+  const latestRef = useRef({ open, onOpenChange, openDelay, enabled, restMs, opensFromLeftHalf })
   useEffect(() => {
-    latestRef.current = { open, onOpenChange, openDelay, enabled, restMs }
+    latestRef.current = { open, onOpenChange, openDelay, enabled, restMs, opensFromLeftHalf }
   })
 
   const clearOpenTimers = useCallback(() => {
@@ -209,6 +215,13 @@ export function useActivityThreadHoverCardIntent({
       }
       clearOpenTimers()
       setResting(false)
+      if (latestRef.current.opensFromLeftHalf) {
+        const rect = event.currentTarget.getBoundingClientRect()
+        if (event.clientX > rect.left + rect.width / 2) {
+          syncScrollWatch()
+          return
+        }
+      }
       const warm = openCardCount > 0 || window.performance.now() - lastCardClosedAt < WARM_WINDOW_MS
       const rest = latestRef.current.restMs
       openTimersRef.current =

@@ -19,11 +19,13 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true
 function Row({
   id,
   openDelay = 200,
-  enabled = true
+  enabled = true,
+  opensFromLeftHalf = false
 }: {
   id: string
   openDelay?: number
   enabled?: boolean
+  opensFromLeftHalf?: boolean
 }): ReactElement {
   const [open, setOpen] = useState(false)
   return (
@@ -33,6 +35,7 @@ function Row({
       openDelay={openDelay}
       closeDelay={120}
       enabled={enabled}
+      opensFromLeftHalf={opensFromLeftHalf}
       trigger={
         <div data-testid={id} data-open={open ? 'true' : 'false'} tabIndex={0}>
           {id}
@@ -52,6 +55,7 @@ function List(): ReactElement {
     <div data-testid="list">
       <Row id="a" />
       <Row id="b" />
+      <Row id="half" opensFromLeftHalf />
     </div>
   )
 }
@@ -392,5 +396,28 @@ describe('useActivityThreadHoverCardIntent', () => {
     pointer('pointermove', row('b'), 21, 10)
     advance(ACTIVITY_HOVER_CARD_REST_MS)
     expect(isOpen('b')).toBe(true)
+  })
+
+  it('opens a left-half row only from its left half', () => {
+    const half = row('half')
+    half.getBoundingClientRect = () => new DOMRect(0, 0, 200, 40)
+    enter('half', 150, 10)
+    advance(ACTIVITY_HOVER_CARD_REST_MS * 2)
+    expect(isOpen('half')).toBe(false)
+    expect(isResting('half')).toBe(false)
+
+    pointer('pointermove', half, 60, 10)
+    advance(ACTIVITY_HOVER_CARD_REST_MS)
+    expect(isOpen('half')).toBe(true)
+  })
+
+  it('drops a pending open when the pointer crosses into the right half', () => {
+    const half = row('half')
+    half.getBoundingClientRect = () => new DOMRect(0, 0, 200, 40)
+    enter('half', 60, 10)
+    advance(300)
+    pointer('pointermove', half, 160, 10)
+    advance(ACTIVITY_HOVER_CARD_REST_MS * 2)
+    expect(isOpen('half')).toBe(false)
   })
 })

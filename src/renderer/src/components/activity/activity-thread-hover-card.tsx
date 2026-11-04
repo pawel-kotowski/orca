@@ -33,7 +33,7 @@ import { ActivityThreadHoverCardRoot } from './activity-thread-hover-card-root'
 import type { AgentPaneThread } from './activity-thread-types'
 import type { ActivityThreadConversation } from './use-activity-thread-conversation'
 import { useAppStore } from '@/store'
-import { ActivityThreadChatPreview } from './activity-thread-chat-preview'
+import { hideActivityChatPreview, showActivityChatPreview } from './activity-chat-preview-host'
 
 export type ActivityThreadHoverCardProps = {
   thread: AgentPaneThread
@@ -113,6 +113,53 @@ export function ActivityThreadHoverCard({
       }
     }
   }, [closeHover, dismissUntilLeave, showsChat, thread.paneKey])
+  // Why: every card's chat shows in one shared window (ActivityChatPreviewHost), so moving
+  // between cards crossfades the conversation instead of rebuilding the window.
+  const latestRef = useRef({ thread, dismissUntilLeave, closeHover, onJumpToWorkspace })
+  latestRef.current = { thread, dismissUntilLeave, closeHover, onJumpToWorkspace }
+  // Why: the list keeps only the rows on screen; a chat shown from a row scrolled away stays
+  // open (the shared window closes it on Escape or a click outside).
+  const unmountedRef = useRef(false)
+  useEffect(() => {
+    unmountedRef.current = false
+    return () => {
+      unmountedRef.current = true
+    }
+  }, [])
+  useEffect(() => {
+    if (!showsChat) {
+      return
+    }
+    const paneKey = latestRef.current.thread.paneKey
+    showActivityChatPreview({
+      get thread() {
+        return latestRef.current.thread
+      },
+      onClose: () => {
+        latestRef.current.dismissUntilLeave()
+        hideActivityChatPreview(paneKey)
+      },
+      onShowTerminal: () => {
+        const current = latestRef.current
+        // Why: the card's terminal switch opens the agent's own terminal, where it lives.
+        const state = useAppStore.getState()
+        const unifiedTab = (state.unifiedTabsByWorktree[current.thread.tab.worktreeId] ?? []).find(
+          (tab) => tab.contentType === 'terminal' && tab.entityId === current.thread.tab.id
+        )
+        if (unifiedTab) {
+          state.setTabViewMode(unifiedTab.id, 'terminal')
+        }
+        current.closeHover()
+        hideActivityChatPreview(paneKey)
+        current.onJumpToWorkspace?.(current.thread)
+      }
+    })
+    return () => {
+      if (!unmountedRef.current) {
+        hideActivityChatPreview(paneKey)
+      }
+    }
+  }, [showsChat, thread.paneKey])
   const { linkActionPopoverProps, onOpenLink, onAuxClickCapture } =
     useWorkspaceReferenceLinkActions(thread.worktree.id, detailsHoverControl)
 
@@ -131,6 +178,8 @@ export function ActivityThreadHoverCard({
         detailsHoverControl.handleHoverOpenChange(next)
       }}
       restMs={conversation ? 0 : undefined}
+      // Why: the card's right half lets the pointer travel down the list and keep the chat shown.
+      opensFromLeftHalf={conversation !== null}
       openDelay={openDelay}
       closeDelay={closeDelay}
       enabled={!suppressed}
@@ -139,25 +188,7 @@ export function ActivityThreadHoverCard({
       <span className="contents" onClick={(event) => event.stopPropagation()}>
         <LinkActionPopover {...linkActionPopoverProps} />
       </span>
-      {open && conversation ? (
-        <ActivityThreadChatPreview
-          thread={thread}
-          conversation={conversation}
-          onClose={dismissUntilLeave}
-          onShowTerminal={() => {
-            // Why: the card's terminal switch opens the agent's own terminal, where it lives.
-            const state = useAppStore.getState()
-            const unifiedTab = (state.unifiedTabsByWorktree[thread.tab.worktreeId] ?? []).find(
-              (tab) => tab.contentType === 'terminal' && tab.entityId === thread.tab.id
-            )
-            if (unifiedTab) {
-              state.setTabViewMode(unifiedTab.id, 'terminal')
-            }
-            detailsHoverControl.closeHover()
-            onJumpToWorkspace?.(thread)
-          }}
-        />
-      ) : open ? (
+      {open && !conversation ? (
         <ActivityThreadHoverCardContent
           thread={thread}
           onOpenLink={onOpenLink}

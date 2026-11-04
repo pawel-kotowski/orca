@@ -1,11 +1,9 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { useAppStore } from '@/store'
-import NativeChatView from '../native-chat/NativeChatView'
-import { parsePaneKey } from '../../../../shared/workspace-layout/stable-pane-id'
 import { WORKTREE_NATIVE_CONTEXT_MENU_ATTR } from '../sidebar/workspace-actions/context-menu/worktree-context-menu-policy'
-import type { AgentPaneThread } from './activity-thread-types'
-import type { ActivityThreadConversation } from './use-activity-thread-conversation'
+
+// The window's fade, when it opens a chat and when it closes.
+export const CROSSFADE_MS = 200
 
 // v2: only the width is the reader's; older saves held a height too and are dropped.
 const SIZE_KEY = 'orca.activityChatPreviewSize.v2'
@@ -117,54 +115,47 @@ function readSavedSize(): { width: string } | null {
   return null
 }
 
-/**
- * The card's conversation as the chat itself: live, on the chat's canvas, with its message box,
- * so hovering a card shows what the agent is doing and a prompt can go to it from here.
- */
-export function ActivityThreadChatPreview({
-  thread,
+/** The window itself: placed once, fixed to the window, full height, the reader's width. */
+export function ActivityChatPreviewFrame({
+  anchorPaneKey,
+  closing,
   onClose,
-  onShowTerminal
+  label,
+  children
 }: {
-  thread: AgentPaneThread
-  conversation: ActivityThreadConversation
+  anchorPaneKey: string
+  closing: boolean
   onClose: () => void
-  /** The chat's terminal switch: open the agent's own terminal. */
-  onShowTerminal: () => void
+  label: string
+  children: React.ReactNode
 }): React.JSX.Element {
-  const leafId = parsePaneKey(thread.paneKey)?.leafId ?? null
-  // Why: the composer sends to the pane's live PTY, which the card finds in the tab's layout.
-  const ptyId = useAppStore(
-    (state) =>
-      (leafId
-        ? state.terminalLayoutsByTabId[thread.tab.id]?.ptyIdsByLeafId?.[leafId]
-        : undefined) ??
-      state.ptyIdsByTabId[thread.tab.id]?.[0] ??
-      null
-  )
   const [size] = useState(readSavedSize)
   // Why: placed once and fixed to the window, so scrolling the list or a send that moves the
   // row up never moves the card.
-  const [placement] = useState(() => openingPlacement(thread.paneKey, openingHeightPx()))
+  const [placement] = useState(() => openingPlacement(anchorPaneKey, openingHeightPx()))
   // Why: by default the chat fills the room right of the list, the window's full height.
   const width = size?.width ?? `calc(100vw - ${placement.left + PREVIEW_EDGE_PX}px)`
   // Why: the chat always takes the window's full height; only its width is the reader's to set.
   const height = `calc(100vh - ${2 * PREVIEW_EDGE_PX}px)`
   const contentRef = useRef<HTMLDivElement>(null)
+  const onCloseRef = useRef(onClose)
+  onCloseRef.current = onClose
+  const closingRef = useRef(closing)
+  closingRef.current = closing
   // Why: Escape hides the card wherever focus is, and the chat inside never sees it (there it
   // would stop the agent).
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
-      if (event.key !== 'Escape' || event.isComposing) {
+      if (event.key !== 'Escape' || event.isComposing || closingRef.current) {
         return
       }
       event.preventDefault()
       event.stopImmediatePropagation()
-      onClose()
+      onCloseRef.current()
     }
     window.addEventListener('keydown', onKeyDown, true)
     return () => window.removeEventListener('keydown', onKeyDown, true)
-  }, [onClose])
+  }, [])
   useThemeImageCrop(contentRef)
   // Why: the browser's corner resizer sends no pointer release to the page, and a closed card is
   // already detached (it measures 0 x 0); but the resizer writes the new size into the inline
@@ -192,7 +183,7 @@ export function ActivityThreadChatPreview({
     <div
       ref={contentRef}
       role="dialog"
-      aria-label={thread.paneTitle || 'Chat'}
+      aria-label={label}
       style={{
         width,
         height,
@@ -201,28 +192,20 @@ export function ActivityThreadChatPreview({
         minWidth: '22rem',
         minHeight: '16rem',
         maxWidth: `calc(100vw - ${placement.left + PREVIEW_EDGE_PX}px)`,
-        maxHeight: `calc(100vh - ${2 * PREVIEW_EDGE_PX}px)`
+        maxHeight: `calc(100vh - ${2 * PREVIEW_EDGE_PX}px)`,
+        opacity: closing ? 0 : 1,
+        pointerEvents: closing ? 'none' : undefined,
+        transition: `opacity ${CROSSFADE_MS}ms ease-out`
       }}
       // Why: the reader can drag the corner to set the width; it is remembered (SIZE_KEY).
       className="fixed z-50 resize-x overflow-hidden rounded-lg border border-black/14 shadow-[0_16px_36px_rgba(0,0,0,0.24)] dark:border-white/14 dark:shadow-[0_20px_44px_rgba(0,0,0,0.42)]"
       {...{ [WORKTREE_NATIVE_CONTEXT_MENU_ATTR]: '' }}
       data-activity-thread-chat-preview=""
+      data-closing={closing ? '' : undefined}
       onClick={(event) => event.stopPropagation()}
       onDoubleClick={(event) => event.stopPropagation()}
     >
-      <div className="relative flex h-full min-h-0 w-full">
-        <NativeChatView
-          terminalTabId={thread.tab.id}
-          paneKey={thread.paneKey}
-          isVisible
-          isFocusedGroup
-          targetPtyId={ptyId}
-          launchAgent={thread.tab.launchAgent ?? null}
-          resolvedAgent={null}
-          ownsTabWideLaunchDraft={false}
-          onSwitchToTerminal={onShowTerminal}
-        />
-      </div>
+      <div className="relative flex h-full min-h-0 w-full">{children}</div>
     </div>,
     document.body
   )

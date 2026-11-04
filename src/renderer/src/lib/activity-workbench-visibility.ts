@@ -16,6 +16,16 @@ export function setActivityHidesWorkbench(next: boolean): void {
     return
   }
   hidden = next
+  // Why: a card keeps focus after the click that opened its workspace, and the Escape that hides
+  // it would show that focus as a frame; with nothing open no card may look chosen.
+  const focused = document.activeElement
+  if (
+    next &&
+    focused instanceof HTMLElement &&
+    focused.closest('[data-activity-thread-pane-key]')
+  ) {
+    focused.blur()
+  }
   for (const listener of listeners) {
     listener()
   }
@@ -138,7 +148,7 @@ export function useActivityInterruptPrompt(): {
 function chatEscapeIsSpokenFor(target: Element): boolean {
   return (
     target.closest('[aria-expanded="true"]') !== null ||
-    document.querySelector('[data-activity-thread-chat-preview]') !== null
+    document.querySelector('[data-activity-thread-chat-preview]:not([data-closing])') !== null
   )
 }
 
