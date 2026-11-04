@@ -7,15 +7,14 @@ import { WORKTREE_NATIVE_CONTEXT_MENU_ATTR } from '../sidebar/workspace-actions/
 import type { AgentPaneThread } from './activity-thread-types'
 import type { ActivityThreadConversation } from './use-activity-thread-conversation'
 
-const SIZE_KEY = 'orca.activityChatPreviewSize'
+// v2: only the width is the reader's; older saves held a height too and are dropped.
+const SIZE_KEY = 'orca.activityChatPreviewSize.v2'
 // The card keeps this much room from the window's top and bottom edges.
 const PREVIEW_EDGE_PX = 16
 
-/** The card's opening height in px: the remembered one, else the window's full height. */
-function openingHeightPx(size: { height: string } | null): number {
-  const remembered = size ? /^(\d+(?:\.\d+)?)px$/.exec(size.height) : null
-  const height = remembered ? Number(remembered[1]) : window.innerHeight
-  return Math.min(height, window.innerHeight - 2 * PREVIEW_EDGE_PX)
+/** The card's height in px: the window's, within its edges. */
+function openingHeightPx(): number {
+  return window.innerHeight - 2 * PREVIEW_EDGE_PX
 }
 
 /** Where the card opens: just right of its row's column, centred in the window's height. */
@@ -93,28 +92,30 @@ function useThemeImageCrop(contentRef: React.RefObject<HTMLDivElement | null>): 
     const observer = new ResizeObserver(apply)
     observer.observe(content)
     window.addEventListener('resize', apply)
+    // Why: the opening animation scales and shifts the card; measure again once it has settled.
+    content.addEventListener('animationend', apply)
     return () => {
       current = false
       cancelAnimationFrame(frame)
       observer.disconnect()
       window.removeEventListener('resize', apply)
+      content.removeEventListener('animationend', apply)
     }
   }, [contentRef])
 }
 
 // The reader's own resize, kept per window; storage can be unavailable, so it is only a convenience.
 // Null until the reader resizes a card: the card then fills the room right of the list.
-function readSavedSize(): { width: string; height: string } | null {
+function readSavedSize(): { width: string } | null {
   try {
     const saved = JSON.parse(window.localStorage.getItem(SIZE_KEY) ?? 'null') as {
       width?: unknown
-      height?: unknown
     } | null
-    if (typeof saved?.width === 'number' && typeof saved.height === 'number') {
-      return { width: `${saved.width}px`, height: `${saved.height}px` }
+    if (typeof saved?.width === 'number') {
+      return { width: `${saved.width}px` }
     }
   } catch {
-    // Fall through to the default size.
+    // Fall through to the full width.
   }
   return null
 }
@@ -147,10 +148,11 @@ export function ActivityThreadChatPreview({
   const [size] = useState(readSavedSize)
   // Why: placed once and fixed to the window, so scrolling the list or a send that moves the
   // row up never moves the card.
-  const [placement] = useState(() => openingPlacement(thread.paneKey, openingHeightPx(size)))
+  const [placement] = useState(() => openingPlacement(thread.paneKey, openingHeightPx()))
   // Why: by default the chat fills the room right of the list, the window's full height.
   const width = size?.width ?? `calc(100vw - ${placement.left + PREVIEW_EDGE_PX}px)`
-  const height = size?.height ?? `calc(100vh - ${2 * PREVIEW_EDGE_PX}px)`
+  // Why: the chat always takes the window's full height; only its width is the reader's to set.
+  const height = `calc(100vh - ${2 * PREVIEW_EDGE_PX}px)`
   const contentRef = useRef<HTMLDivElement>(null)
   // Why: Escape hides the card wherever focus is, and the chat inside never sees it (there it
   // would stop the agent).
@@ -175,19 +177,15 @@ export function ActivityThreadChatPreview({
     if (!content) {
       return
     }
-    const opening = { width: content.style.width, height: content.style.height }
+    const openingWidth = content.style.width
     return () => {
-      const { width, height } = content.style
+      const { width } = content.style
       const widthPx = /^(\d+(?:\.\d+)?)px$/.exec(width)
-      const heightPx = /^(\d+(?:\.\d+)?)px$/.exec(height)
-      if (!widthPx || !heightPx || (width === opening.width && height === opening.height)) {
+      if (!widthPx || width === openingWidth) {
         return
       }
       try {
-        window.localStorage.setItem(
-          SIZE_KEY,
-          JSON.stringify({ width: Number(widthPx[1]), height: Number(heightPx[1]) })
-        )
+        window.localStorage.setItem(SIZE_KEY, JSON.stringify({ width: Number(widthPx[1]) }))
       } catch {
         // A blocked store only means the next card opens at the default size.
       }
@@ -208,8 +206,8 @@ export function ActivityThreadChatPreview({
         maxWidth: `calc(100vw - ${placement.left + PREVIEW_EDGE_PX}px)`,
         maxHeight: `calc(100vh - ${2 * PREVIEW_EDGE_PX}px)`
       }}
-      // Why: the reader can drag the corner; the size is remembered (SIZE_KEY).
-      className="fixed z-50 resize overflow-hidden rounded-lg border border-black/14 shadow-[0_16px_36px_rgba(0,0,0,0.24)] dark:border-white/14 dark:shadow-[0_20px_44px_rgba(0,0,0,0.42)]"
+      // Why: the reader can drag the corner to set the width; it is remembered (SIZE_KEY).
+      className="fixed z-50 resize-x overflow-hidden animate-in fade-in-0 zoom-in-[0.98] slide-in-from-left-2 duration-150 ease-out rounded-lg border border-black/14 shadow-[0_16px_36px_rgba(0,0,0,0.24)] dark:border-white/14 dark:shadow-[0_20px_44px_rgba(0,0,0,0.42)]"
       {...{ [WORKTREE_NATIVE_CONTEXT_MENU_ATTR]: '' }}
       data-activity-thread-chat-preview=""
       onClick={(event) => event.stopPropagation()}

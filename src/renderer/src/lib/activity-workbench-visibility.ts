@@ -169,7 +169,15 @@ export function useActivityEscapeHidesWorkbench(): void {
       setActivityHidesWorkbench(true)
     }
     const onKeyDown = (event: KeyboardEvent): void => {
-      if (event.key !== 'Escape' || event.defaultPrevented || event.isComposing || passingEscape) {
+      if (event.key !== 'Escape' || event.isComposing || passingEscape) {
+        return
+      }
+      // Why: the activity list itself uses Escape (it marks the key handled), yet on a card it must
+      // hide the workspace that card opened; elsewhere a handled Escape is left alone.
+      const onCard =
+        event.target instanceof Element &&
+        event.target.closest('[data-activity-thread-pane-key]') !== null
+      if (event.defaultPrevented && !onCard) {
         return
       }
       if (pendingInterrupt !== null || window.performance.now() - promptClosedAt < 250) {

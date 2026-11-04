@@ -342,7 +342,8 @@ export function NativeChatComposerField({
             className={cn(
               // Use a constant container border so focus changes cannot flash it.
               'group/composer rounded-xl border p-1.5 shadow-xs',
-              compact && 'flex flex-wrap items-end gap-x-1',
+              // Why: controls stay at the top right while the text wraps below the first line.
+              compact && 'flex flex-wrap items-start gap-x-1',
               launch
                 ? 'border-foreground/10 bg-background dark:bg-foreground/[0.04]'
                 : 'border-chat-composer-border bg-chat-composer-surface',
@@ -406,7 +407,7 @@ export function NativeChatComposerField({
                 'w-full bg-transparent px-2 py-1 text-sm outline-none',
                 // Why: the main message box shrinks while the reader scrolls back (native-chat-appearance.css).
                 !launch && !editSession && 'native-chat-composer-editor',
-                compact && 'min-h-7 min-w-0 flex-1 basis-0 self-center pointer-coarse:min-h-9',
+                compact && 'min-h-7 min-w-0 flex-1 basis-0 pointer-coarse:min-h-9',
                 launch
                   ? 'min-h-7 max-h-[calc(6lh+0.5rem)] text-foreground placeholder:text-muted-foreground [&_p.is-editor-empty:first-child]:before:!h-auto [&_p.is-editor-empty:first-child]:before:w-full [&_p.is-editor-empty:first-child]:before:mr-[-100%]'
                   : 'min-h-12 max-h-[calc(8lh+0.5rem)] text-chat-foreground-strong placeholder:text-chat-foreground-faint pointer-coarse:min-h-14',

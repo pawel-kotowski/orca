@@ -32,7 +32,7 @@ export function NativeChatAnswerFrame({
     <div
       ref={ref}
       data-native-chat-turn-answer
-      className="native-chat-answer-frame rounded-xl border border-chat-code-border bg-chat-code-surface/40 px-4 py-3"
+      className="native-chat-answer-frame rounded-xl border border-chat-code-border bg-chat-code-surface/40 py-3 pl-6 pr-5"
     >
       {children}
     </div>

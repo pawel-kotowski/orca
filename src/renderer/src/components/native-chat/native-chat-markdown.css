@@ -119,7 +119,7 @@
   .native-chat-markdown-wide-blocks
   > :not(:is(div:has(> table), [data-native-chat-code-block], div:has(> .mermaid-block))) {
   contain: inline-size;
-  max-width: calc(var(--native-chat-answer-column, 100%) - 2rem - 2px);
+  max-width: calc(var(--native-chat-answer-column, 100%) - 2.75rem - 2px);
   margin-inline: auto;
 }
 
