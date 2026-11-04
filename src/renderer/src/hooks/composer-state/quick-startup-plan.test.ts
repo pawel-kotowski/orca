@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { CLAUDE_WORKSPACE_ACCOUNT_ENV } from '../../../../shared/claude-workspace-account'
-import type { TuiAgent } from '../../../../shared/tui-agent'
+import type { TuiAgent } from '../../../../shared/agent-launch/catalog/tui-agent'
 import { buildQuickComposerStartup } from './quick-startup-plan'
 
 function startup(agent: TuiAgent, claudeAccountId: string | null) {
