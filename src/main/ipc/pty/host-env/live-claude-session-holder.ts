@@ -1,7 +1,7 @@
 import { readdir, readFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
-import { app } from 'electron'
+import { getAppEnvironment } from '../../../../shared/app-environment'
 import type { RefusedPaneResume } from '../../../../shared/agent-status/contracts/agent-status-ipc-payload'
 import type { ResumeSpawnAdmission } from './saved-resume-admission'
 
@@ -73,7 +73,7 @@ export async function findLiveClaudeSessionHolder(
 
 function userDataDir(): string | null {
   try {
-    return app.getPath('userData')
+    return getAppEnvironment().getPath('userData')
   } catch {
     return null
   }
