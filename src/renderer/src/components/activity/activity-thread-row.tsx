@@ -221,6 +221,14 @@ export const ActivityThreadRow = React.memo(function ActivityThreadRow({
           conversation ? 'hover:border-border/60' : 'worktree-sidebar-card-hover'
         )}
       >
+        {conversation ? (
+          // Why: only the card's left half opens its chat (activity-thread-hover-card-intent); a
+          // faint line marks where that half ends, a little clearer while the pointer is on the card.
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-y-2 left-1/2 w-px bg-foreground/[0.06] transition-colors group-hover:bg-foreground/[0.14]"
+          />
+        ) : null}
         <div className="flex min-w-0 items-start gap-1.5">
           <span className="mt-0.5 inline-flex shrink-0">
             <ThreadAgentStateIndicator thread={thread} />
