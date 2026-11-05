@@ -238,6 +238,9 @@ export function useAgentPaneThreads(args: {
 
   // Defer list filtering while typed input updates at full priority.
   const deferredQuery = useDeferredValue(query)
+  // Panes the last build listed under Other agents. Why: a clicked card stays where it was; one
+  // clicked in Other agents must not jump to its status section, nor a just-read one jump down.
+  const lastReadOnlyKeysRef = useRef<ReadonlySet<string>>(EMPTY_PANE_KEYS)
   const { visible: visibleThreads, readOnly: readOnlyThreads } = useMemo(() => {
     const normalizedQuery = isActivitySearchQueryTooLarge(deferredQuery)
       ? null
@@ -251,7 +254,8 @@ export function useAgentPaneThreads(args: {
         thread.events.length > 0 && thread.events.every((event) => event.cleared === true)
       const hiddenAsRead =
         (clearedOnly || (readFilter === 'unread' && !thread.unread)) &&
-        thread.paneKey !== effectiveSelectedPaneKey
+        (thread.paneKey !== effectiveSelectedPaneKey ||
+          lastReadOnlyKeysRef.current.has(thread.paneKey))
       // Why: child agents (e.g. dispatched orchestration workers) are hidden by default to keep top-level agent views focused on root tasks; a live child always keeps its own row.
       if (
         !showChildAgents &&
@@ -273,6 +277,7 @@ export function useAgentPaneThreads(args: {
       }
       return true
     })
+    lastReadOnlyKeysRef.current = new Set(readOnly.map((thread) => thread.paneKey))
     return { visible, readOnly }
   }, [
     scopeVisibleThreads,

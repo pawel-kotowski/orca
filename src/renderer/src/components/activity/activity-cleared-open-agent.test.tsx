@@ -81,4 +81,56 @@ describe('a cleared open agent', () => {
       .flatMap((group) => group.threads.map((thread) => thread.paneKey))
     expect(elsewhere).toEqual([makePaneKey('tab-open', LEAF_ID)])
   })
+
+  it('stays under Other agents when clicked', () => {
+    vi.spyOn(Date, 'now').mockReturnValue(100_000)
+    const repo = makeRepo()
+    const worktree = makeWorktree()
+    const tab = makeTabWithIds('tab-cleared', worktree.id)
+    const paneKey = makePaneKey(tab.id, LEAF_ID)
+    useAppStore.setState({
+      agentStatusByPaneKey: {
+        [paneKey]: {
+          paneKey,
+          state: 'done',
+          prompt: 'p',
+          agentType: 'claude',
+          updatedAt: 50_000,
+          stateStartedAt: 50_000,
+          stateHistory: []
+        }
+      },
+      retainedAgentsByPaneKey: {},
+      migrationUnsupportedByPtyId: {},
+      runtimeAgentOrchestrationByPaneKey: {},
+      acknowledgedAgentsByPaneKey: {},
+      activityClearedAtByPaneKey: { [paneKey]: 50_000 },
+      repos: [repo],
+      worktreesByRepo: { [repo.id]: [worktree] },
+      folderWorkspaces: [],
+      detectedWorktreesByRepo: {},
+      tabsByWorktree: { [worktree.id]: [tab] },
+      unifiedTabsByWorktree: {},
+      agentsVisibleHostIds: null,
+      agentsFilterRepoIds: []
+    })
+    const { result, rerender } = renderHook(
+      ({ selected }: { selected: string | null }) =>
+        useAgentPaneThreads({
+          query: '',
+          readFilter: 'all',
+          groupBy: 'none',
+          selectedPaneKey: selected,
+          showChildAgents: true
+        }),
+      { initialProps: { selected: null as string | null } }
+    )
+    const otherKeys = () =>
+      result.current.visibleThreadGroups
+        .find((group) => group.key === READ_AGENTS_GROUP_KEY)
+        ?.threads.map((thread) => thread.paneKey)
+    expect(otherKeys()).toEqual([paneKey])
+    rerender({ selected: paneKey })
+    expect(otherKeys()).toEqual([paneKey])
+  })
 })
