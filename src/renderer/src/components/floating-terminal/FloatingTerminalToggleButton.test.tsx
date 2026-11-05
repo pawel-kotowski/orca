@@ -1,7 +1,6 @@
 import type * as ReactModule from 'react'
 import type * as ReactI18nextModule from 'react-i18next'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { FLOATING_TERMINAL_TRIGGER_POSITION_STORAGE_KEY } from './floating-terminal-trigger-position'
 
 type EffectCallback = () => void | (() => void)
 
@@ -95,7 +94,7 @@ vi.mock('./FloatingTerminalIconContextMenu', () => ({
   }
 }))
 
-const storeState = vi.hoisted(() => ({ hasFloatingUnread: false }))
+const storeState = vi.hoisted(() => ({ hasFloatingUnread: false, statusBarVisible: true }))
 
 vi.mock('@/store', () => ({
   useAppStore: <T,>(selector: (state: typeof storeState) => T): T => selector(storeState)
@@ -144,120 +143,49 @@ function hasProp(node: unknown, propName: string): boolean {
   return found
 }
 
-function runEffects(): void {
-  const layoutEffects = hookRuntime.layoutEffects.splice(0)
-  for (const effect of layoutEffects) {
-    effect()
-  }
-  const effects = hookRuntime.effects.splice(0)
-  for (const effect of effects) {
-    effect()
-  }
-}
-
 async function renderToggle(open = false, onToggle = vi.fn()): Promise<unknown> {
   hookRuntime.index = 0
   const { FloatingTerminalToggleButton } = await import('./FloatingTerminalToggleButton')
   return FloatingTerminalToggleButton({ open, onToggle })
 }
 
-function getToggleStylePosition(element: unknown): { left: number; top: number } {
+function getToggleStyle(element: unknown): Record<string, number> {
   const container = findByProp(element, 'currentLocation')
-  const style = container.props.style as Record<string, number>
-  return { left: style.left, top: style.top }
+  return container.props.style as Record<string, number>
 }
 
 function getToggleButton(element: unknown): ReactElementLike {
   return findByProp(element, 'data-floating-terminal-toggle')
 }
 
-function getMockedLocalStorage(): {
-  getItem: ReturnType<typeof vi.fn>
-  setItem: ReturnType<typeof vi.fn>
-} {
-  return window.localStorage as unknown as {
-    getItem: ReturnType<typeof vi.fn>
-    setItem: ReturnType<typeof vi.fn>
-  }
-}
-
-function setViewport(width: number, height: number): void {
-  const viewport = window as unknown as { innerHeight: number; innerWidth: number }
-  viewport.innerWidth = width
-  viewport.innerHeight = height
-}
-
-describe('FloatingTerminalToggleButton positioning', () => {
+describe('FloatingTerminalToggleButton placement', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     hookRuntime.effects = []
     hookRuntime.layoutEffects = []
     hookRuntime.index = 0
     hookRuntime.values = []
-    const localStorage = {
-      getItem: vi.fn(() => null),
-      setItem: vi.fn()
-    }
-    vi.stubGlobal('window', {
-      addEventListener: vi.fn(),
-      innerHeight: 800,
-      innerWidth: 1200,
-      localStorage,
-      removeEventListener: vi.fn()
-    })
+    storeState.statusBarVisible = true
   })
 
-  afterEach(() => {
-    vi.unstubAllGlobals()
+  it('sits in the bottom-right corner, the same small gap from the edge and the status bar', async () => {
+    const element = await renderToggle()
+    expect(getToggleStyle(element)).toEqual({ right: 6, bottom: 30 })
   })
 
-  it('restores an anchored right-bottom placement after a skinny viewport clamp', async () => {
-    getMockedLocalStorage().getItem.mockImplementation((key: string) =>
-      key === FLOATING_TERMINAL_TRIGGER_POSITION_STORAGE_KEY
-        ? '{"anchorX":"right","anchorY":"bottom","offsetX":48,"offsetY":80}'
-        : null
-    )
-    setViewport(260, 220)
-
-    let element = await renderToggle()
-    expect(getToggleStylePosition(element)).toEqual({ left: 176, top: 104 })
-
-    setViewport(1200, 800)
-    runEffects()
-    element = await renderToggle()
-
-    expect(getToggleStylePosition(element)).toEqual({ left: 1116, top: 684 })
-    expect(getMockedLocalStorage().setItem).not.toHaveBeenCalled()
+  it('keeps the same gap from the window bottom when the status bar is hidden', async () => {
+    storeState.statusBarVisible = false
+    const element = await renderToggle()
+    expect(getToggleStyle(element)).toEqual({ right: 6, bottom: 6 })
   })
 
-  it('previews drag movement without writing storage until pointer end', async () => {
-    let element = await renderToggle()
+  it('toggles on click and cannot be dragged', async () => {
+    const onToggle = vi.fn()
+    const element = await renderToggle(false, onToggle)
     const button = getToggleButton(element)
-
-    ;(button.props.onPointerDown as (event: unknown) => void)({
-      button: 0,
-      clientX: 0,
-      clientY: 0,
-      currentTarget: { setPointerCapture: vi.fn() },
-      pointerId: 1
-    })
-    ;(button.props.onPointerMove as (event: unknown) => void)({
-      clientX: -100,
-      clientY: -100,
-      pointerId: 1
-    })
-
-    element = await renderToggle()
-    expect(getToggleStylePosition(element)).toEqual({ left: 1040, top: 592 })
-    expect(getMockedLocalStorage().setItem).not.toHaveBeenCalled()
-
-    const movedButton = getToggleButton(element)
-    ;(movedButton.props.onPointerUp as (event: unknown) => void)({ pointerId: 1 })
-
-    expect(getMockedLocalStorage().setItem).toHaveBeenCalledWith(
-      FLOATING_TERMINAL_TRIGGER_POSITION_STORAGE_KEY,
-      '{"anchorX":"right","anchorY":"bottom","offsetX":124,"offsetY":172}'
-    )
+    expect(button.props.onPointerDown).toBeUndefined()
+    ;(button.props.onClick as () => void)()
+    expect(onToggle).toHaveBeenCalledTimes(1)
   })
 })
 

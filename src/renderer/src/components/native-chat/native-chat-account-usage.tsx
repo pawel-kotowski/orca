@@ -216,24 +216,21 @@ function ClaudeAccountUsageChip({
       : null
   ].filter((line): line is string => line !== null)
   return (
-    // Why: under the box, eating into its bottom padding, so the box itself never changes.
-    <div className="-mb-2 mt-1 flex px-3">
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <span
-            data-native-chat-account-usage=""
-            className="flex items-center gap-2.5 whitespace-nowrap text-xs tabular-nums text-chat-foreground-faint"
-          >
-            <span>{name}</span>
-            {session ? <UsageBar label={sessionLabel} window={session} now={now} /> : null}
-            {weekly ? <UsageBar label={weekLabel} window={weekly} now={now} /> : null}
-          </span>
-        </TooltipTrigger>
-        <TooltipContent side="top" sideOffset={4} className="whitespace-pre-line">
-          {detail.join('\n')}
-        </TooltipContent>
-      </Tooltip>
-    </div>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span
+          data-native-chat-account-usage=""
+          className="flex items-center gap-2.5 whitespace-nowrap text-xs tabular-nums text-chat-foreground-faint"
+        >
+          <span>{name}</span>
+          {session ? <UsageBar label={sessionLabel} window={session} now={now} /> : null}
+          {weekly ? <UsageBar label={weekLabel} window={weekly} now={now} /> : null}
+        </span>
+      </TooltipTrigger>
+      <TooltipContent side="top" sideOffset={4} className="whitespace-pre-line">
+        {detail.join('\n')}
+      </TooltipContent>
+    </Tooltip>
   )
 }
 

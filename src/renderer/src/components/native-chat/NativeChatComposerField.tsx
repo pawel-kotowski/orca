@@ -37,7 +37,7 @@ import type { NativeChatFollowUpBehavior } from '../../../../shared/native-chat/
 function noop(): void {}
 import { useNativeChatComposerCollapsed } from './native-chat-composer-collapse-store'
 import { NativeChatComposerToggleButton } from './NativeChatComposerToggleButton'
-import { NativeChatAccountUsageChip } from './native-chat-account-usage'
+import { NativeChatComposerFooter } from './NativeChatComposerFooter'
 
 export type NativeChatComposerFieldProps = {
   editSession?: { cancel: () => void }
@@ -286,12 +286,6 @@ export function NativeChatComposerField({
 
   return (
     <div className={launch ? undefined : 'relative shrink-0 bg-chat-pane'}>
-      {launch ? null : (
-        <NativeChatComposerToggleButton
-          collapsed={collapsed}
-          onSwitchToTerminal={editSession ? undefined : onSwitchToTerminal}
-        />
-      )}
       {/* Why: collapsed hides the box visually but keeps the editor mounted and focusable, so
           the draft and IME survive and any focus that lands in it (typing redirected from the
           transcript, paste, dictation, a returned message) brings it back. Extra bottom padding
@@ -309,6 +303,7 @@ export function NativeChatComposerField({
           data-native-chat-composer-compact={compact ? 'true' : undefined}
           className={cn('relative w-full', !launch && 'mx-auto max-w-(--chat-content-max-width)')}
         >
+          {launch ? null : <NativeChatComposerToggleButton collapsed={collapsed} />}
           {autocomplete.mode === 'slash' ? (
             <NativeChatPickerMenu
               autocomplete={autocomplete}
@@ -472,7 +467,9 @@ export function NativeChatComposerField({
             </div>
           </div>
           {/* The Claude subscription this chat runs on and its limits, under the box. */}
-          {editSession || launch ? null : <NativeChatAccountUsageChip />}
+          {editSession || launch ? null : (
+            <NativeChatComposerFooter onSwitchToTerminal={onSwitchToTerminal} />
+          )}
         </div>
       </div>
     </div>

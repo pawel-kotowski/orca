@@ -11,12 +11,17 @@ export function NativeChatViewSwitchButton({
   to,
   onSwitch,
   className,
-  style
+  style,
+  variant = 'launcher',
+  size = 'icon'
 }: {
   to: 'terminal' | 'chat'
   onSwitch: () => void
   className?: string
   style?: React.CSSProperties
+  /** The corner launcher by default; the line under the message box uses a small ghost button. */
+  variant?: 'launcher' | 'ghost'
+  size?: 'icon' | 'icon-xs'
 }): React.JSX.Element {
   const label =
     to === 'terminal'
@@ -27,8 +32,8 @@ export function NativeChatViewSwitchButton({
       <TooltipTrigger asChild>
         <Button
           type="button"
-          variant="launcher"
-          size="icon"
+          variant={variant}
+          size={size}
           aria-label={label}
           className={className}
           style={style}
@@ -39,9 +44,9 @@ export function NativeChatViewSwitchButton({
           }}
         >
           {to === 'terminal' ? (
-            <SquareTerminal className="size-4" />
+            <SquareTerminal className={size === 'icon' ? 'size-4' : 'size-3.5'} />
           ) : (
-            <MessagesSquare className="size-4" />
+            <MessagesSquare className={size === 'icon' ? 'size-4' : 'size-3.5'} />
           )}
         </Button>
       </TooltipTrigger>

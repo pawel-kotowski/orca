@@ -33,6 +33,7 @@ import { ActivityThreadHoverCardRoot } from './activity-thread-hover-card-root'
 import type { AgentPaneThread } from './activity-thread-types'
 import type { ActivityThreadConversation } from './use-activity-thread-conversation'
 import { useAppStore } from '@/store'
+import { useActivityChatCardControls } from './activity-chat-card-controls'
 import { hideActivityChatPreview, showActivityChatPreview } from './activity-chat-preview-host'
 
 export type ActivityThreadHoverCardProps = {
@@ -98,9 +99,8 @@ export function ActivityThreadHoverCard({
       if (target?.closest('[data-activity-thread-chat-preview]')) {
         return
       }
-      // Why: clicking the card opens its workspace; the chat steps aside until the pointer leaves.
+      // Why: a click on the card itself decides by its half (activity-chat-card-controls).
       if (target?.closest(`[data-activity-thread-pane-key="${CSS.escape(thread.paneKey)}"]`)) {
-        dismissUntilLeave()
         return
       }
       closeHover()
@@ -160,6 +160,21 @@ export function ActivityThreadHoverCard({
       }
     }
   }, [showsChat, thread.paneKey])
+  useActivityChatCardControls(thread.paneKey, conversation !== null, {
+    toggle: () => {
+      if (showsChat) {
+        dismissUntilLeave()
+        return
+      }
+      dismissedUntilLeaveRef.current = false
+      detailsHoverControl.handleHoverOpenChange(true)
+    },
+    hide: () => {
+      if (showsChat) {
+        dismissUntilLeave()
+      }
+    }
+  })
   const { linkActionPopoverProps, onOpenLink, onAuxClickCapture } =
     useWorkspaceReferenceLinkActions(thread.worktree.id, detailsHoverControl)
 

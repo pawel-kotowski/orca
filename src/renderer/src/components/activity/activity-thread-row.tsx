@@ -20,6 +20,7 @@ import { nativeChatActivityFollowsConversation } from '../../../../shared/native
 import { useActivityThreadConversation } from './use-activity-thread-conversation'
 import { ActivityThreadConversationBody } from './activity-thread-conversation-body'
 import { activityCardTintStyle, activityProjectColor } from './activity-project-color'
+import { routeActivityCardClick } from './activity-chat-card-controls'
 
 function ActivityThreadRowAction({
   label,
@@ -215,7 +216,11 @@ export const ActivityThreadRow = React.memo(function ActivityThreadRow({
         data-activity-card-open={selected && conversation ? '' : undefined}
         data-activity-card-previewed={previewed ? '' : undefined}
         data-worktree-card-selected={multiSelected || undefined}
-        onClick={(event) => onSelect(thread, event)}
+        onClick={(event) => {
+          if (routeActivityCardClick(thread.paneKey, event.currentTarget, event) === 'workspace') {
+            onSelect(thread, event)
+          }
+        }}
         role="listitem"
         aria-label={taskTitle}
         aria-current={selected ? 'true' : undefined}
@@ -250,7 +255,10 @@ export const ActivityThreadRow = React.memo(function ActivityThreadRow({
               actions={actions}
               onActivate={(event) => {
                 event.stopPropagation()
-                onSelect(thread, event)
+                const card = event.currentTarget.closest('[data-activity-thread-pane-key]')
+                if (!card || routeActivityCardClick(thread.paneKey, card, event) === 'workspace') {
+                  onSelect(thread, event)
+                }
               }}
             />
           ) : (

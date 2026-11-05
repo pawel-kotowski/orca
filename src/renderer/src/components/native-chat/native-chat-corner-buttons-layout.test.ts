@@ -1,47 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import {
-  floatingLauncherShift,
-  resolveCornerButtonsLayout
-} from './native-chat-corner-buttons-layout'
+import { floatingLauncherShift } from './native-chat-corner-buttons-layout'
 
-const pane = { left: 0, right: 1200, top: 600, bottom: 720 }
 const rect = (left: number, top: number, size = 36) => ({
   left,
   right: left + size,
   top,
   bottom: top + size
-})
-
-describe('resolveCornerButtonsLayout', () => {
-  it('glues the buttons to the bottom edge when the pane has room beside the message box', () => {
-    const column = { left: 200, right: 1000, top: 608, bottom: 704 }
-    expect(
-      resolveCornerButtonsLayout({ pane, column, width: 80, height: 36, launcher: null })
-    ).toEqual({ placement: 'beside', shift: 0 })
-  })
-
-  it('lifts the buttons above the message box when the pane is too narrow', () => {
-    const column = { left: 16, right: 1184, top: 608, bottom: 704 }
-    expect(
-      resolveCornerButtonsLayout({ pane, column, width: 80, height: 36, launcher: null })
-    ).toEqual({ placement: 'above', shift: 0 })
-  })
-
-  it('keeps the bottom edge while the message box is hidden', () => {
-    expect(
-      resolveCornerButtonsLayout({ pane, column: null, width: 80, height: 36, launcher: null })
-        .placement
-    ).toBe('beside')
-  })
-
-  it('lifts the buttons when clearing the floating launcher would push them into the box', () => {
-    const column = { left: 200, right: 1050, top: 608, bottom: 704 }
-    const launcher = rect(1120, 660)
-    expect(resolveCornerButtonsLayout({ pane, column, width: 80, height: 36, launcher })).toEqual({
-      placement: 'above',
-      shift: 0
-    })
-  })
 })
 
 describe('floatingLauncherShift', () => {

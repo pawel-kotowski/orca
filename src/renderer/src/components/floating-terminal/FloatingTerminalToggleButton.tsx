@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useLayoutEffect, useState } from 'react'
 import { PanelsTopLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -7,54 +7,48 @@ import { FloatingTerminalIconContextMenu } from './FloatingTerminalIconContextMe
 import { useShortcutLabel } from '@/hooks/useShortcutLabel'
 import { useAppStore } from '@/store'
 import { selectFloatingWorkspaceHasUnread } from '@/store/selectors'
-import {
-  anchorFloatingTerminalTriggerPosition,
-  clampFloatingTerminalTriggerPosition,
-  getDefaultFloatingTerminalTriggerCommittedPosition,
-  getDefaultFloatingTerminalTriggerPosition,
-  persistFloatingTerminalTriggerPosition,
-  readPersistedFloatingTerminalTriggerPosition,
-  resolveFloatingTerminalTriggerCommittedPosition,
-  resolveFloatingTerminalTriggerPosition,
-  shouldReconcileFloatingTerminalTriggerPosition,
-  type FloatingTerminalTriggerCommittedPosition,
-  type FloatingTerminalTriggerPosition,
-  type FloatingTerminalTriggerPositionSource
-} from './floating-terminal-trigger-position'
 import { translate } from '@/i18n/i18n'
 
-const FLOATING_TERMINAL_TRIGGER_DRAG_THRESHOLD = 4
+// Paweł, 2026-11-05: the launcher sits in the bottom-right corner, always, the same small gap from
+// the right edge and from the status bar. It no longer drags or remembers a dropped position.
+const LAUNCHER_EDGE_GAP = 6
+// The status bar's height (h-6) until it has drawn and can be measured.
+const STATUS_BAR_DEFAULT_HEIGHT = 24
 
-type FloatingTerminalTriggerPositionState = {
-  committedPosition: FloatingTerminalTriggerCommittedPosition
-  position: FloatingTerminalTriggerPosition
-  source: FloatingTerminalTriggerPositionSource
-}
-
-function readInitialTriggerPosition(): FloatingTerminalTriggerPositionState {
-  const defaultCommittedPosition = getDefaultFloatingTerminalTriggerCommittedPosition()
-  const defaultPosition = getDefaultFloatingTerminalTriggerPosition()
-  if (typeof window === 'undefined') {
-    return {
-      committedPosition: defaultCommittedPosition,
-      position: defaultPosition,
-      source: 'default'
+/** The launcher's gap from the window's bottom: above the status bar when it shows. */
+function useLauncherBottom(statusBarVisible: boolean): number {
+  const [bottom, setBottom] = useState(
+    LAUNCHER_EDGE_GAP + (statusBarVisible ? STATUS_BAR_DEFAULT_HEIGHT : 0)
+  )
+  useLayoutEffect(() => {
+    let resizeObserver: ResizeObserver | null = null
+    let mutationObserver: MutationObserver | null = null
+    const measure = (): void => {
+      const bar = statusBarVisible
+        ? document.querySelector<HTMLElement>('[data-orca-status-bar]')
+        : null
+      setBottom(LAUNCHER_EDGE_GAP + (bar ? bar.getBoundingClientRect().height : 0))
+      if (bar && !resizeObserver) {
+        resizeObserver = new ResizeObserver(measure)
+        resizeObserver.observe(bar)
+        mutationObserver?.disconnect()
+        mutationObserver = null
+      }
     }
-  }
-  const persistedPosition = readPersistedFloatingTerminalTriggerPosition()
-  return persistedPosition
-    ? {
-        committedPosition: persistedPosition,
-        position: shouldReconcileFloatingTerminalTriggerPosition('user')
-          ? resolveFloatingTerminalTriggerPosition(persistedPosition, 'user')
-          : resolveFloatingTerminalTriggerCommittedPosition(persistedPosition),
-        source: 'user'
-      }
-    : {
-        committedPosition: defaultCommittedPosition,
-        position: defaultPosition,
-        source: 'default'
-      }
+    measure()
+    // Why: the status bar is a lazy chunk; watch for it to arrive, then only for its size.
+    if (statusBarVisible && !resizeObserver) {
+      mutationObserver = new MutationObserver(measure)
+      mutationObserver.observe(document.body, { childList: true, subtree: true })
+    }
+    window.addEventListener('resize', measure)
+    return () => {
+      resizeObserver?.disconnect()
+      mutationObserver?.disconnect()
+      window.removeEventListener('resize', measure)
+    }
+  }, [statusBarVisible])
+  return bottom
 }
 
 export function FloatingTerminalToggleButton({
@@ -70,132 +64,15 @@ export function FloatingTerminalToggleButton({
   // Read shared unread state so engaging with or closing a tab clears its minimized-panel attention dot.
   const hasFloatingUnread = useAppStore(selectFloatingWorkspaceHasUnread)
   const showAttentionDot = !open && hasFloatingUnread
-  const initialPositionState = useRef<FloatingTerminalTriggerPositionState | null>(null)
-  if (initialPositionState.current === null) {
-    initialPositionState.current = readInitialTriggerPosition()
-  }
-  const positionSourceRef = useRef<FloatingTerminalTriggerPositionSource>(
-    initialPositionState.current.source
-  )
-  const committedPositionRef = useRef<FloatingTerminalTriggerCommittedPosition>(
-    initialPositionState.current.committedPosition
-  )
-  const [position, setPosition] = useState(initialPositionState.current.position)
-  const dragRef = useRef<{
-    pointerId: number
-    startX: number
-    startY: number
-    left: number
-    top: number
-    moved: boolean
-  } | null>(null)
-  const stagedPositionRef = useRef<FloatingTerminalTriggerPosition | null>(null)
-  const suppressClickRef = useRef(false)
-
-  const previewPosition = useCallback((nextPosition: FloatingTerminalTriggerPosition): void => {
-    const clamped = clampFloatingTerminalTriggerPosition(nextPosition)
-    stagedPositionRef.current = clamped
-    setPosition(clamped)
-  }, [])
-
-  const commitPosition = useCallback((nextPosition: FloatingTerminalTriggerPosition): void => {
-    stagedPositionRef.current = null
-    const clamped = clampFloatingTerminalTriggerPosition(nextPosition)
-    setPosition(clamped)
-    const anchoredPosition = anchorFloatingTerminalTriggerPosition(clamped)
-    if (!anchoredPosition) {
-      return
-    }
-    committedPositionRef.current = anchoredPosition
-    positionSourceRef.current = 'user'
-    persistFloatingTerminalTriggerPosition(anchoredPosition)
-  }, [])
-
-  const reconcilePosition = useCallback((): void => {
-    setPosition((current) => {
-      if (!shouldReconcileFloatingTerminalTriggerPosition(positionSourceRef.current)) {
-        // Wait for final viewport sizing before clamping away the user’s saved drag position.
-        return current
-      }
-      const next = resolveFloatingTerminalTriggerPosition(
-        committedPositionRef.current,
-        positionSourceRef.current
-      )
-      return next
-    })
-  }, [])
-
-  useLayoutEffect(() => {
-    // Re-anchor defaults before paint because Electron’s initial viewport can precede final window sizing.
-    reconcilePosition()
-  }, [reconcilePosition])
-
-  useEffect(() => {
-    const handleResize = (): void => reconcilePosition()
-    window.addEventListener('resize', handleResize)
-    return () => window.removeEventListener('resize', handleResize)
-  }, [reconcilePosition])
-
-  const handlePointerDown = (event: React.PointerEvent<HTMLButtonElement>): void => {
-    if (event.button !== 0) {
-      return
-    }
-    dragRef.current = {
-      pointerId: event.pointerId,
-      startX: event.clientX,
-      startY: event.clientY,
-      left: position.left,
-      top: position.top,
-      moved: false
-    }
-    event.currentTarget.setPointerCapture(event.pointerId)
-  }
-
-  const handlePointerMove = (event: React.PointerEvent<HTMLButtonElement>): void => {
-    const drag = dragRef.current
-    if (!drag || drag.pointerId !== event.pointerId) {
-      return
-    }
-    const dx = event.clientX - drag.startX
-    const dy = event.clientY - drag.startY
-    if (!drag.moved && Math.hypot(dx, dy) < FLOATING_TERMINAL_TRIGGER_DRAG_THRESHOLD) {
-      return
-    }
-    drag.moved = true
-    previewPosition({
-      left: drag.left + dx,
-      top: drag.top + dy
-    })
-  }
-
-  const handlePointerEnd = (event: React.PointerEvent<HTMLButtonElement>): void => {
-    const drag = dragRef.current
-    if (!drag || drag.pointerId !== event.pointerId) {
-      return
-    }
-    suppressClickRef.current = drag.moved
-    if (drag.moved && stagedPositionRef.current) {
-      commitPosition(stagedPositionRef.current)
-    }
-    dragRef.current = null
-  }
-
-  const handleClick = (event: React.MouseEvent<HTMLButtonElement>): void => {
-    if (suppressClickRef.current) {
-      suppressClickRef.current = false
-      event.preventDefault()
-      event.stopPropagation()
-      return
-    }
-    onToggle()
-  }
+  const statusBarVisible = useAppStore((state) => state.statusBarVisible !== false)
+  const bottom = useLauncherBottom(statusBarVisible)
 
   return (
     <FloatingTerminalIconContextMenu
       currentLocation="floating-button"
       // Keep the toggle above the panel so overlapping areas remain clickable.
       className="fixed z-[46]"
-      style={{ left: position.left, top: position.top }}
+      style={{ right: LAUNCHER_EDGE_GAP, bottom }}
     >
       <Tooltip>
         <TooltipTrigger asChild>
@@ -203,7 +80,7 @@ export function FloatingTerminalToggleButton({
             type="button"
             variant="launcher"
             size="icon"
-            className="relative cursor-grab hover:-translate-y-0.5 active:translate-y-0 active:cursor-grabbing"
+            className="relative hover:-translate-y-0.5 active:translate-y-0"
             data-floating-terminal-toggle
             aria-label={
               open
@@ -222,11 +99,7 @@ export function FloatingTerminalToggleButton({
                     )
             }
             aria-pressed={open}
-            onPointerDown={handlePointerDown}
-            onPointerMove={handlePointerMove}
-            onPointerUp={handlePointerEnd}
-            onPointerCancel={handlePointerEnd}
-            onClick={handleClick}
+            onClick={onToggle}
           >
             <PanelsTopLeft className="size-4" />
             {showAttentionDot ? (
