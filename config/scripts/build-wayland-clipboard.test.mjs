@@ -252,3 +252,25 @@ describe('Wayland clipboard packaging', () => {
     )
   })
 })
+
+describe('Wayland clipboard build under rootless Docker', () => {
+  it('runs the compile as container root, which rootless Docker maps to the invoking user', () => {
+    const run = vi.fn((_program, args) => {
+      if (args[0] === 'run') {
+        writeExecutable('x64')
+      }
+      return { status: 0 }
+    })
+    buildWaylandClipboard({ root, arch: 'x64', run, rootless: true })
+    const args = run.mock.calls[1][1]
+    expect(args[args.indexOf('--user') + 1]).toBe('0:0')
+  })
+
+  it('detects rootless Docker from its security options', async () => {
+    const { dockerIsRootless } = await import('./build-wayland-clipboard.mjs')
+    const reply = (stdout) => vi.fn(() => ({ status: 0, stdout }))
+    expect(dockerIsRootless(reply('["name=seccomp,profile=builtin","name=rootless"]'))).toBe(true)
+    expect(dockerIsRootless(reply('["name=seccomp,profile=builtin"]'))).toBe(false)
+    expect(dockerIsRootless(vi.fn(() => ({ status: 1, stdout: '' })))).toBe(false)
+  })
+})

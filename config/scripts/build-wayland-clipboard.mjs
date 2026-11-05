@@ -22,10 +22,20 @@ export function waylandClipboardFingerprint(root, arch) {
   return hash.digest('hex')
 }
 
+// Rootless Docker maps container root to the invoking user and every other uid to a subordinate
+// range, so `--user <uid>` there cannot write the bind-mounted output directory.
+export function dockerIsRootless(run = spawnSync) {
+  const result = run('docker', ['info', '--format', '{{json .SecurityOptions}}'], {
+    encoding: 'utf8'
+  })
+  return result.status === 0 && String(result.stdout ?? '').includes('rootless')
+}
+
 export function buildWaylandClipboard({
   arch = process.arch,
   root = resolve(import.meta.dirname, '../..'),
-  run = spawnSync
+  run = spawnSync,
+  rootless = run === spawnSync ? dockerIsRootless() : false
 } = {}) {
   if (arch !== 'x64' && arch !== 'arm64') {
     throw new Error(`Unsupported Wayland clipboard architecture: ${arch}`)
@@ -71,7 +81,7 @@ export function buildWaylandClipboard({
     'run',
     '--rm',
     '--user',
-    `${process.getuid?.() ?? 0}:${process.getgid?.() ?? 0}`,
+    rootless ? '0:0' : `${process.getuid?.() ?? 0}:${process.getgid?.() ?? 0}`,
     '-v',
     `${nativeDir}:/source:ro`,
     '-v',
