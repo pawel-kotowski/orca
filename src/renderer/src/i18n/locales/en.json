@@ -534,7 +534,9 @@
         "compactComposer": "Compact message box",
         "compactComposerDescription": "One line with only Attach, the model and option pickers, and Stop while the agent works. Enter sends.",
         "activityFollowsConversation": "Activity view follows the conversation",
-        "activityFollowsConversationDescription": "Each card shows the first and latest prompt, the latest steps and the answer, and hovering it shows the live chat."
+        "activityFollowsConversationDescription": "Each card shows the first and latest prompt, the latest steps and the answer.",
+        "activityHoverChat": "Show the chat when hovering an activity card",
+        "activityHoverChatDescription": "Hovering a card opens its live chat beside the list. When off, a click anywhere on a card opens its workspace."
       },
       "permissionsAgentsLink": "Settings → Agents",
       "permissionsTitle": "Permissions for new chats",

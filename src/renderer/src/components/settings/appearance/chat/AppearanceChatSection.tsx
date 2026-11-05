@@ -4,6 +4,7 @@ import {
   nativeChatShowsBareWorkingLine,
   nativeChatSoleCallAsLine,
   nativeChatActivityFollowsConversation,
+  nativeChatActivityHoverChat,
   nativeChatCompactComposer,
   nativeChatToolStepsOpen
 } from '../../../../../../shared/native-chat/native-chat-appearance-settings'
@@ -146,12 +147,24 @@ export function AppearanceChatSection({
         )}
         description={translate(
           'settings.chat.appearance.activityFollowsConversationDescription',
-          'Each card shows the first and latest prompt, the latest steps and the answer, and hovering it shows the live chat.'
+          'Each card shows the first and latest prompt, the latest steps and the answer.'
         )}
         checked={nativeChatActivityFollowsConversation(settings)}
         onChange={() =>
           update({ activityFollowsConversation: !nativeChatActivityFollowsConversation(settings) })
         }
+      />
+      <SettingsSwitchRow
+        label={translate(
+          'settings.chat.appearance.activityHoverChat',
+          'Show the chat when hovering an activity card'
+        )}
+        description={translate(
+          'settings.chat.appearance.activityHoverChatDescription',
+          'Hovering a card opens its live chat beside the list. When off, a click anywhere on a card opens its workspace.'
+        )}
+        checked={nativeChatActivityHoverChat(settings)}
+        onChange={() => update({ activityHoverChat: !nativeChatActivityHoverChat(settings) })}
       />
       <ChatFontFamilySetting
         settings={settings}

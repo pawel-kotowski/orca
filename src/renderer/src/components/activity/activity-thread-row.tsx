@@ -16,7 +16,10 @@ import { activityThreadRowCopy } from './activity-thread-presentation'
 import type { AgentPaneThread } from './activity-thread-types'
 import type { ActivityThreadClickEvent } from './use-activity-thread-selection'
 import { useAppStore } from '@/store'
-import { nativeChatActivityFollowsConversation } from '../../../../shared/native-chat/native-chat-appearance-settings'
+import {
+  nativeChatActivityFollowsConversation,
+  nativeChatActivityHoverChat
+} from '../../../../shared/native-chat/native-chat-appearance-settings'
 import { useActivityThreadConversation } from './use-activity-thread-conversation'
 import { ActivityThreadConversationBody } from './activity-thread-conversation-body'
 import { activityCardTintStyle, useActivityProjectColor } from './activity-project-color'
@@ -105,6 +108,7 @@ export const ActivityThreadRow = React.memo(function ActivityThreadRow({
     nativeChatActivityFollowsConversation(state.settings)
   )
   const conversation = useActivityThreadConversation(thread, followsConversation)
+  const hoverChat = useAppStore((state) => nativeChatActivityHoverChat(state.settings))
   const actions = (
     <TooltipProvider delayDuration={800} skipDelayDuration={0}>
       {canJump && showJumpAction ? (
@@ -200,6 +204,138 @@ export const ActivityThreadRow = React.memo(function ActivityThreadRow({
     </TooltipProvider>
   )
 
+  const card = (
+    <div
+      data-current={selected ? 'true' : undefined}
+      data-activity-thread-pane-key={thread.paneKey}
+      data-worktree-card-surface="true"
+      data-worktree-card-active={selected ? 'primary' : undefined}
+      // Why (main.css): the open card reads clearly, the one whose chat shows on hover lightly.
+      data-activity-card-open={selected && conversation ? '' : undefined}
+      data-activity-card-previewed={previewed ? '' : undefined}
+      data-worktree-card-selected={multiSelected || undefined}
+      onClick={(event) => {
+        if (routeActivityCardClick(thread.paneKey, event.currentTarget, event) === 'workspace') {
+          onSelect(thread, event)
+        }
+      }}
+      role="listitem"
+      aria-label={taskTitle}
+      aria-current={selected ? 'true' : undefined}
+      // Why: the project's colour tells the cards apart at a glance.
+      style={activityCardTintStyle(projectColor)}
+      className={cn(
+        'group relative flex w-full cursor-pointer flex-col gap-1 rounded-lg border border-transparent px-1.5 py-1.5 text-left transition-[background-color,border-color,opacity,box-shadow] duration-200 outline-none select-none focus-visible:ring-1 focus-visible:ring-ring',
+        // Why: a conversation card marks hover with a hairline frame, not a filled highlight.
+        conversation ? 'hover:border-border/60' : 'worktree-sidebar-card-hover'
+      )}
+    >
+      {conversation && hoverChat ? (
+        // Why: only the card's left half opens its chat (activity-thread-hover-card-intent); a
+        // faint line marks where that half ends, a little clearer while the pointer is on the card.
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-y-2 left-1/2 w-px bg-foreground/[0.06] transition-colors group-hover:bg-foreground/[0.14]"
+        />
+      ) : null}
+      <div className="flex min-w-0 items-start gap-1.5">
+        <span className="mt-0.5 inline-flex shrink-0">
+          <ThreadAgentStateIndicator thread={thread} />
+        </span>
+        {conversation ? (
+          <ActivityThreadConversationBody
+            thread={thread}
+            conversation={conversation}
+            workspaceLabel={workspaceLabel}
+            agentLabel={agentLabel}
+            compactMode={compactMode}
+            attentionLine={needsAttention ? statusLine : null}
+            actions={actions}
+            onActivate={(event) => {
+              event.stopPropagation()
+              const card = event.currentTarget.closest('[data-activity-thread-pane-key]')
+              if (!card || routeActivityCardClick(thread.paneKey, card, event) === 'workspace') {
+                onSelect(thread, event)
+              }
+            }}
+          />
+        ) : (
+          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+            <div className="flex min-w-0 items-start gap-2">
+              {/* Keep the activation target separate from markdown links and row actions. */}
+              <button
+                type="button"
+                aria-label={taskTitle}
+                aria-keyshortcuts="Enter Space"
+                onClick={(event) => {
+                  event.stopPropagation()
+                  onSelect(thread, event)
+                }}
+                className={cn(
+                  'block min-w-0 flex-1 cursor-pointer text-left text-[13px] leading-5 outline-none focus-visible:ring-1 focus-visible:ring-ring',
+                  compactMode ? 'truncate' : 'line-clamp-2 break-words',
+                  thread.unread ? 'font-semibold text-foreground' : 'font-medium text-foreground'
+                )}
+              >
+                {taskTitle}
+              </button>
+              <EventTime
+                timestamp={thread.latestTimestamp}
+                compact
+                className="shrink-0 whitespace-nowrap py-0.5 text-xs font-medium text-foreground/60 hover:text-foreground/60"
+              />
+            </div>
+
+            {statusLine ? (
+              showMarkdownStatus ? (
+                <CommentMarkdown
+                  content={statusLine}
+                  className={cn(
+                    'min-w-0 break-words text-[13px] leading-5 text-foreground/80',
+                    compactMode ? 'line-clamp-2' : 'line-clamp-3',
+                    '[&_*]:!m-0 [&_*]:!p-0 [&_br]:hidden [&_ol]:list-none [&_ul]:list-none',
+                    // Why: code blocks and tables otherwise render as scroll boxes the line clamp cannot cut.
+                    '[&_pre]:!max-h-none [&_pre]:!overflow-visible [&_pre]:!whitespace-normal [&_pre]:!rounded-none [&_pre]:!bg-transparent [&_pre]:![font:inherit] [&_pre_code]:![font:inherit]',
+                    '[&_div]:!overflow-visible [&_:is(table,thead,tbody,tr,th,td)]:!inline [&_:is(table,thead,tbody,tr,th,td)]:!align-baseline [&_:is(th,td)]:!border-0 [&_:is(th,td)]:!pr-2 [&_table]:![font:inherit]'
+                  )}
+                />
+              ) : (
+                <div
+                  className={cn(
+                    'min-w-0 break-words text-[13px] leading-5',
+                    compactMode ? 'line-clamp-2' : 'line-clamp-3',
+                    needsAttention ? 'text-agent-question-text' : 'text-foreground/80'
+                  )}
+                >
+                  {statusLine}
+                </div>
+              )
+            ) : null}
+
+            <div className="flex min-w-0 items-center gap-2 pt-0.5 text-[11px] text-muted-foreground">
+              <span className="inline-flex shrink-0" title={agentLabel}>
+                <AgentTypeIcon agentType={thread.agentType} size={13} />
+              </span>
+              <span className="min-w-0 flex-1 truncate" title={workspaceLabel}>
+                {workspaceLabel}
+              </span>
+              {actions}
+            </div>
+          </div>
+        )}
+      </div>
+      {/* Fills while the pointer rests; the hover card sets the attribute. Duration = rest minus progress delay. */}
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-2 bottom-0 h-px origin-left scale-x-0 rounded-full bg-muted-foreground/50 group-data-[hover-card-resting]:scale-x-100 group-data-[hover-card-resting]:transition-transform group-data-[hover-card-resting]:duration-400 group-data-[hover-card-resting]:ease-linear motion-reduce:hidden"
+      />
+    </div>
+  )
+  // Why: with hover off (the default) nothing opens on hover and a click anywhere opens the
+  // workspace; no hover card is mounted, so no chat card controls route a click to a chat.
+  if (!hoverChat) {
+    return card
+  }
   return (
     <ActivityThreadHoverCard
       thread={thread}
@@ -208,131 +344,7 @@ export const ActivityThreadRow = React.memo(function ActivityThreadRow({
       suppressed={previewSuppressed}
       conversation={conversation}
     >
-      <div
-        data-current={selected ? 'true' : undefined}
-        data-activity-thread-pane-key={thread.paneKey}
-        data-worktree-card-surface="true"
-        data-worktree-card-active={selected ? 'primary' : undefined}
-        // Why (main.css): the open card reads clearly, the one whose chat shows on hover lightly.
-        data-activity-card-open={selected && conversation ? '' : undefined}
-        data-activity-card-previewed={previewed ? '' : undefined}
-        data-worktree-card-selected={multiSelected || undefined}
-        onClick={(event) => {
-          if (routeActivityCardClick(thread.paneKey, event.currentTarget, event) === 'workspace') {
-            onSelect(thread, event)
-          }
-        }}
-        role="listitem"
-        aria-label={taskTitle}
-        aria-current={selected ? 'true' : undefined}
-        // Why: the project's colour tells the cards apart at a glance.
-        style={activityCardTintStyle(projectColor)}
-        className={cn(
-          'group relative flex w-full cursor-pointer flex-col gap-1 rounded-lg border border-transparent px-1.5 py-1.5 text-left transition-[background-color,border-color,opacity,box-shadow] duration-200 outline-none select-none focus-visible:ring-1 focus-visible:ring-ring',
-          // Why: a conversation card marks hover with a hairline frame, not a filled highlight.
-          conversation ? 'hover:border-border/60' : 'worktree-sidebar-card-hover'
-        )}
-      >
-        {conversation ? (
-          // Why: only the card's left half opens its chat (activity-thread-hover-card-intent); a
-          // faint line marks where that half ends, a little clearer while the pointer is on the card.
-          <span
-            aria-hidden
-            className="pointer-events-none absolute inset-y-2 left-1/2 w-px bg-foreground/[0.06] transition-colors group-hover:bg-foreground/[0.14]"
-          />
-        ) : null}
-        <div className="flex min-w-0 items-start gap-1.5">
-          <span className="mt-0.5 inline-flex shrink-0">
-            <ThreadAgentStateIndicator thread={thread} />
-          </span>
-          {conversation ? (
-            <ActivityThreadConversationBody
-              thread={thread}
-              conversation={conversation}
-              workspaceLabel={workspaceLabel}
-              agentLabel={agentLabel}
-              compactMode={compactMode}
-              attentionLine={needsAttention ? statusLine : null}
-              actions={actions}
-              onActivate={(event) => {
-                event.stopPropagation()
-                const card = event.currentTarget.closest('[data-activity-thread-pane-key]')
-                if (!card || routeActivityCardClick(thread.paneKey, card, event) === 'workspace') {
-                  onSelect(thread, event)
-                }
-              }}
-            />
-          ) : (
-            <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-              <div className="flex min-w-0 items-start gap-2">
-                {/* Keep the activation target separate from markdown links and row actions. */}
-                <button
-                  type="button"
-                  aria-label={taskTitle}
-                  aria-keyshortcuts="Enter Space"
-                  onClick={(event) => {
-                    event.stopPropagation()
-                    onSelect(thread, event)
-                  }}
-                  className={cn(
-                    'block min-w-0 flex-1 cursor-pointer text-left text-[13px] leading-5 outline-none focus-visible:ring-1 focus-visible:ring-ring',
-                    compactMode ? 'truncate' : 'line-clamp-2 break-words',
-                    thread.unread ? 'font-semibold text-foreground' : 'font-medium text-foreground'
-                  )}
-                >
-                  {taskTitle}
-                </button>
-                <EventTime
-                  timestamp={thread.latestTimestamp}
-                  compact
-                  className="shrink-0 whitespace-nowrap py-0.5 text-xs font-medium text-foreground/60 hover:text-foreground/60"
-                />
-              </div>
-
-              {statusLine ? (
-                showMarkdownStatus ? (
-                  <CommentMarkdown
-                    content={statusLine}
-                    className={cn(
-                      'min-w-0 break-words text-[13px] leading-5 text-foreground/80',
-                      compactMode ? 'line-clamp-2' : 'line-clamp-3',
-                      '[&_*]:!m-0 [&_*]:!p-0 [&_br]:hidden [&_ol]:list-none [&_ul]:list-none',
-                      // Why: code blocks and tables otherwise render as scroll boxes the line clamp cannot cut.
-                      '[&_pre]:!max-h-none [&_pre]:!overflow-visible [&_pre]:!whitespace-normal [&_pre]:!rounded-none [&_pre]:!bg-transparent [&_pre]:![font:inherit] [&_pre_code]:![font:inherit]',
-                      '[&_div]:!overflow-visible [&_:is(table,thead,tbody,tr,th,td)]:!inline [&_:is(table,thead,tbody,tr,th,td)]:!align-baseline [&_:is(th,td)]:!border-0 [&_:is(th,td)]:!pr-2 [&_table]:![font:inherit]'
-                    )}
-                  />
-                ) : (
-                  <div
-                    className={cn(
-                      'min-w-0 break-words text-[13px] leading-5',
-                      compactMode ? 'line-clamp-2' : 'line-clamp-3',
-                      needsAttention ? 'text-agent-question-text' : 'text-foreground/80'
-                    )}
-                  >
-                    {statusLine}
-                  </div>
-                )
-              ) : null}
-
-              <div className="flex min-w-0 items-center gap-2 pt-0.5 text-[11px] text-muted-foreground">
-                <span className="inline-flex shrink-0" title={agentLabel}>
-                  <AgentTypeIcon agentType={thread.agentType} size={13} />
-                </span>
-                <span className="min-w-0 flex-1 truncate" title={workspaceLabel}>
-                  {workspaceLabel}
-                </span>
-                {actions}
-              </div>
-            </div>
-          )}
-        </div>
-        {/* Fills while the pointer rests; the hover card sets the attribute. Duration = rest minus progress delay. */}
-        <span
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-x-2 bottom-0 h-px origin-left scale-x-0 rounded-full bg-muted-foreground/50 group-data-[hover-card-resting]:scale-x-100 group-data-[hover-card-resting]:transition-transform group-data-[hover-card-resting]:duration-400 group-data-[hover-card-resting]:ease-linear motion-reduce:hidden"
-        />
-      </div>
+      {card}
     </ActivityThreadHoverCard>
   )
 })

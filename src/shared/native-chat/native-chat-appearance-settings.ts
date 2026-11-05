@@ -45,6 +45,8 @@ export type NativeChatAppearanceSettings = {
    * and hover to a live chat; absent = on.
    */
   activityFollowsConversation?: boolean
+  /** Whether hovering an activity card shows its live chat (or its details); absent = off. */
+  activityHoverChat?: boolean
   /** Whether the message box is one line with only Attach, the option pickers and Stop; absent = on. */
   compactComposer?: boolean
 }
@@ -63,6 +65,18 @@ export function nativeChatActivityFollowsConversation(
 ): boolean {
   // Why: until settings load (and in a bare store) cards keep upstream's copy and hover details.
   return settings != null && settings.nativeChatAppearance?.activityFollowsConversation !== false
+}
+
+/**
+ * Hovering an activity card shows its live chat, only when turned on. Why off by default: Paweł,
+ * 2026-11-05: "let's disable hover behavior for now completely, so cards click anywhere should
+ * show normal tabs, maybe we will go back to it".
+ */
+export function nativeChatActivityHoverChat(
+  settings: { nativeChatAppearance?: NativeChatAppearanceSettings } | null | undefined
+): boolean {
+  // Why: in a bare store (settings not loaded) cards keep upstream's hover details.
+  return settings == null || settings.nativeChatAppearance?.activityHoverChat === true
 }
 
 /** A run of one call is that call's line, one click from its detail, unless the user turned it off. */
