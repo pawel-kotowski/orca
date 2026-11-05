@@ -1,3 +1,4 @@
+import { withNativeChatTransportDiagnostics } from './native-chat-transport-diagnostics'
 import type { NativeChatApi, NativeChatAppendedMessages } from '../../../../preload/api-types'
 import { isWebClientLocation } from '@/lib/web-client-location'
 import { callRuntimeRpc } from '@/runtime/runtime-rpc-client'
@@ -243,7 +244,9 @@ export function getNativeChatSessionTransport(
   runtimeEnvironmentId: string | null
 ): NativeChatSessionTransport {
   if (runtimeEnvironmentId && !isWebClientLocation()) {
-    return createRuntimeNativeChatTransport(runtimeEnvironmentId)
+    return withNativeChatTransportDiagnostics(
+      createRuntimeNativeChatTransport(runtimeEnvironmentId)
+    )
   }
-  return localNativeChatTransport
+  return withNativeChatTransportDiagnostics(localNativeChatTransport)
 }

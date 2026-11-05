@@ -1,5 +1,6 @@
 import { useEffect, useRef, type JSX, type ReactNode } from 'react'
 import { NativeChatEmptyState } from './NativeChatEmptyState'
+import { glassDiagnostic } from '@/lib/glass-diagnostic'
 import {
   resolveNativeChatSession,
   type NativeChatPaneResolution,
@@ -38,6 +39,11 @@ export function NativeChatSessionGate({
     }
     return currentResolution
   })()
+  // Why: which session id a chat mounted with, for chats that come up empty after a restart.
+  const loggedSessionId = resolution?.sessionId ?? null
+  useEffect(() => {
+    glassDiagnostic('chat-session', { paneKey: input.paneKey, sessionId: loggedSessionId })
+  }, [input.paneKey, loggedSessionId])
   useEffect(() => {
     if (resolution) {
       // Retain the rendered identity because hook/title evidence can disappear before transport replay.

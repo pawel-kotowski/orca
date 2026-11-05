@@ -1,4 +1,5 @@
 import { ipcMain, nativeTheme } from 'electron'
+import { attachGlassDiagnosticsLog } from './glass-diagnostics-log'
 import type { BrowserWindow, IpcMainInvokeEvent } from 'electron'
 import type { Store } from '../persistence/loading-store/store'
 import {
@@ -81,6 +82,7 @@ export function attachMainWindowServices(
   }
 ): void {
   registerAppReloadHandler(mainWindow, options?.onBeforeRendererReload)
+  attachGlassDiagnosticsLog(mainWindow.webContents)
   registerRepoHandlers(mainWindow, store, runtime)
   // Repo IPC mutations must invalidate paired-client catalogs too (#11994).
   setRepoRemoteClientNotifier(runtime)
