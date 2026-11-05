@@ -1,3 +1,5 @@
+import { startResponsiveTimeout } from './responsive-timeout'
+
 type FirstWindowStartupServices = {
   startDaemonPtyProvider: (signal: AbortSignal) => Promise<void>
   startAgentHookServer: (signal: AbortSignal) => Promise<void>
@@ -64,21 +66,20 @@ export function startFirstWindowStartupServices({
   const hooks = startService('agent hook server', startAgentHookServer, onAgentHookServerError)
   const allServicesReady = Promise.all([daemon.ready, hooks.ready]).then(() => undefined)
   let windowTimeout: ReturnType<typeof setTimeout> | null = null
-  let failOpenTimeout: ReturnType<typeof setTimeout> | null = null
+  let cancelFailOpen: (() => void) | null = null
   const servicesSettled = allServicesReady.finally(() => {
     if (windowTimeout) {
       clearTimeout(windowTimeout)
     }
-    if (failOpenTimeout) {
-      clearTimeout(failOpenTimeout)
-    }
+    cancelFailOpen?.()
   })
+  // Why responsive time: see responsive-timeout.ts (a frozen main must not abandon the daemon).
   const failOpenReady = new Promise<void>((resolve) => {
-    failOpenTimeout = setTimeout(() => {
+    cancelFailOpen = startResponsiveTimeout(LOCAL_PTY_STARTUP_FAIL_OPEN_TIMEOUT_MS, () => {
       daemon.reportTimeout()
       hooks.reportTimeout()
       resolve()
-    }, LOCAL_PTY_STARTUP_FAIL_OPEN_TIMEOUT_MS)
+    })
   })
   const firstWindowReady = Promise.race([
     servicesSettled,
