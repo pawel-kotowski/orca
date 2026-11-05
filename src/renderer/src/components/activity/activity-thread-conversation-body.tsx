@@ -126,7 +126,7 @@ export function ActivityThreadConversationBody({
             // Why: the tag reads at a glance: a clear fill (the project's colour when it has one)
             // and full-strength text.
             className="max-w-[40%] shrink-0 truncate rounded-full bg-foreground/[0.12] px-2 text-[10.5px] font-semibold leading-[18px] text-foreground"
-            style={activityRepoTagStyle(activityProjectColor(thread.repo?.badgeColor))}
+            style={activityRepoTagStyle(activityProjectColor(thread.repo))}
             title={repoName}
           >
             {repoName}

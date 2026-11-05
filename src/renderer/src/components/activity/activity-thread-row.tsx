@@ -225,7 +225,7 @@ export const ActivityThreadRow = React.memo(function ActivityThreadRow({
         aria-label={taskTitle}
         aria-current={selected ? 'true' : undefined}
         // Why: the project's colour tells the cards apart at a glance.
-        style={activityCardTintStyle(activityProjectColor(thread.repo?.badgeColor))}
+        style={activityCardTintStyle(activityProjectColor(thread.repo))}
         className={cn(
           'group relative flex w-full cursor-pointer flex-col gap-1 rounded-lg border border-transparent px-1.5 py-1.5 text-left transition-[background-color,border-color,opacity,box-shadow] duration-200 outline-none select-none focus-visible:ring-1 focus-visible:ring-ring',
           // Why: a conversation card marks hover with a hairline frame, not a filled highlight.
