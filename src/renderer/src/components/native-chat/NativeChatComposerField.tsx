@@ -37,6 +37,7 @@ import type { NativeChatFollowUpBehavior } from '../../../../shared/native-chat/
 function noop(): void {}
 import { useNativeChatComposerCollapsed } from './native-chat-composer-collapse-store'
 import { NativeChatComposerToggleButton } from './NativeChatComposerToggleButton'
+import { NativeChatAccountUsageChip } from './native-chat-account-usage'
 
 export type NativeChatComposerFieldProps = {
   editSession?: { cancel: () => void }
@@ -470,6 +471,8 @@ export function NativeChatComposerField({
               />
             </div>
           </div>
+          {/* The Claude subscription this chat runs on and its limits, under the box. */}
+          {editSession || launch ? null : <NativeChatAccountUsageChip />}
         </div>
       </div>
     </div>

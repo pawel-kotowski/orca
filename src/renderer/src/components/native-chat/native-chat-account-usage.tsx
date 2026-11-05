@@ -164,8 +164,7 @@ function windowText(window: RateLimitWindow, now: number): string {
 
 /**
  * The Claude subscription this chat runs on and how much of its session (5 h) and weekly limits
- * are used, e.g. "robotec · 12% 3h 10m · wk 22% 2d 21h". It sits in the message box's control row,
- * so it never changes the box's height.
+ * are used, e.g. "robotec · 12% 3h 10m · wk 22% 2d 21h", on a quiet line under the message box.
  */
 export function NativeChatAccountUsageChip(): React.JSX.Element | null {
   const scope = useContext(NativeChatAccountScopeContext)
@@ -224,22 +223,25 @@ function ClaudeAccountUsageChip({
   ].filter((line): line is string => line !== null)
   const strained = Math.max(session?.usedPercent ?? 0, weekly?.usedPercent ?? 0) >= 80
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <span
-          data-native-chat-account-usage=""
-          className={
-            strained
-              ? 'shrink-0 whitespace-nowrap text-xs tabular-nums text-status-warning'
-              : 'shrink-0 whitespace-nowrap text-xs tabular-nums text-chat-foreground-faint'
-          }
-        >
-          {parts.join(' · ')}
-        </span>
-      </TooltipTrigger>
-      <TooltipContent side="top" sideOffset={4} className="whitespace-pre-line">
-        {detail.join('\n')}
-      </TooltipContent>
-    </Tooltip>
+    // Why: under the box, eating into its bottom padding, so the box itself never changes.
+    <div className="-mb-2 mt-1 flex px-3">
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span
+            data-native-chat-account-usage=""
+            className={
+              strained
+                ? 'whitespace-nowrap text-xs tabular-nums text-status-warning'
+                : 'whitespace-nowrap text-xs tabular-nums text-chat-foreground-faint'
+            }
+          >
+            {parts.join(' · ')}
+          </span>
+        </TooltipTrigger>
+        <TooltipContent side="top" sideOffset={4} className="whitespace-pre-line">
+          {detail.join('\n')}
+        </TooltipContent>
+      </Tooltip>
+    </div>
   )
 }

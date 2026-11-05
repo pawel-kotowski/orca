@@ -17,7 +17,6 @@ import { NativeChatComposerGoalChip } from './NativeChatComposerGoalChip'
 import { NativeChatContextUsageRing } from './NativeChatContextUsageRing'
 import type { NativeChatContextUsageSummary } from './native-chat-context-usage-summary'
 import type { NativeChatOptionPickerRequest } from './native-chat-composer-types'
-import { NativeChatAccountUsageChip } from './native-chat-account-usage'
 
 export type NativeChatComposerActionsProps = {
   editSession?: { cancel: () => void }
@@ -241,8 +240,6 @@ export const NativeChatComposerActions = memo(function NativeChatComposerActions
         {onExitGoalMode ? <NativeChatComposerGoalChip onExit={onExitGoalMode} /> : null}
       </div>
       <div className="ml-auto flex items-center gap-1.5">
-        {/* The Claude subscription this chat runs on and its session and weekly limits. */}
-        {editSession ? null : <NativeChatAccountUsageChip />}
         {/* Keep option pickers beside the session actions they affect. */}
         <NativeChatSessionOptionPickers
           surface={sessionOptionsSurface}
