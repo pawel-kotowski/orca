@@ -13,8 +13,8 @@ export function useNativeChatStatusEntry(
         : findTabAgentEntry(state.agentStatusByPaneKey, terminalTabId)
     )
   )
-  return {
-    entry,
-    paneKey: preferredPaneKey ?? entry?.paneKey ?? `${terminalTabId}:`
-  }
+  const paneKey = preferredPaneKey ?? entry?.paneKey ?? `${terminalTabId}:`
+  // Why: an idle agent restored at startup has its session here, not in live status.
+  const sleepingSession = useAppStore((state) => state.sleepingAgentSessionsByPaneKey[paneKey])
+  return { entry, paneKey, sleepingSession }
 }
