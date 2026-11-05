@@ -4,7 +4,12 @@ import type { PhysicalExitTracker } from '../../../shared/physical-exit-tracker'
 import type { PtyStartupIngress } from '../../../shared/terminal/pty/ingress/pty-startup-ingress'
 import type { IPtyProvider } from '../pty-provider-contract'
 import type { PtyDataEvent } from '../pty-provider-events'
-import { getSpawnedShellName, normalizeLocalCallerSessionId } from './local-pty-launch-context'
+import { mintPtySessionId } from '../../daemon/pty-session-id'
+import {
+  getSpawnedShellName,
+  LOCAL_PTY_ID_PREFIX,
+  normalizeLocalCallerSessionId
+} from './local-pty-launch-context'
 
 export type PtyShutdownOperation = {
   promise: Promise<void>
@@ -21,7 +26,6 @@ export type DataCallback = (payload: PtyDataEvent) => void
 
 export type ExitCallback = Parameters<IPtyProvider['onExit']>[0]
 
-let ptyCounter = 0
 export const ptyProcesses = new Map<string, pty.IPty>()
 export const ptyIncarnations = new Map<string, string>()
 // Why: agent sessions always sweep descendant trees; plain terminals preserve nohup children except on immediate win32 shutdown.
@@ -131,9 +135,13 @@ export function allocatePtyId(sessionId: string | undefined): string {
   if (requested) {
     return requested
   }
+  // Why a minted id, not a counter: a counter's "1", "2" are saved in the layout, and when this
+  // in-process provider stands in for an unreachable daemon, the next start asks the daemon to
+  // reattach "1" — which it creates under that id, over another terminal's leftover history
+  // and cwd, and resumes the pane's agent there a second time.
   let id: string
   do {
-    id = String(++ptyCounter)
+    id = `${LOCAL_PTY_ID_PREFIX}${mintPtySessionId()}`
   } while (ptyProcesses.has(id))
   return id
 }

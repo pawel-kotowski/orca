@@ -73,12 +73,19 @@ export function getWslContextFromPreferredDistro(
   return trimmed ? { distro: trimmed, treatPosixCwdAsWsl: true } : undefined
 }
 
+/** Marks ids this in-process provider minted itself (formerly a numeric counter). */
+export const LOCAL_PTY_ID_PREFIX = 'local-'
+
 export function normalizeLocalCallerSessionId(
   sessionId: string | undefined,
   allowNumeric = false
 ): string | null {
   const requested = sessionId?.trim()
-  return !requested || (!allowNumeric && /^\d+$/.test(requested)) ? null : requested
+  // Why: this provider's own ids (legacy numeric, now `local-…`) are never reused except by an
+  // explicit attach; after a restart they would name some other terminal.
+  const ownId =
+    !!requested && (/^\d+$/.test(requested) || requested.startsWith(LOCAL_PTY_ID_PREFIX))
+  return !requested || (!allowNumeric && ownId) ? null : requested
 }
 
 export function normalizeForegroundProcessName(
