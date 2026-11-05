@@ -31,6 +31,7 @@ import {
 import { translate } from '@/i18n/i18n'
 import { getAgentLabel } from '@/lib/agent-catalog'
 import type { SubmitFolderWorkspaceCreateParams } from './folder-workspace-composer-submit-input'
+import { showActivityTabsForLaunch } from '@/lib/activity-workbench-visibility'
 
 export async function submitFolderWorkspaceCreate({
   projectGroup,
@@ -220,6 +221,8 @@ export async function submitFolderWorkspaceCreate({
       value: ReturnType<typeof activateAndRevealFolderWorkspace>
     } = { value: false }
     const revealWorkspace = (): boolean => {
+      // Why: a workspace created from the activity view is meant to be seen, so its tabs show.
+      showActivityTabsForLaunch(true)
       activationHolder.value = activateAndRevealFolderWorkspace(workspace.id, {
         agent: quickAgent,
         ...(!structuredLaunch && startup ? { startup } : {}),

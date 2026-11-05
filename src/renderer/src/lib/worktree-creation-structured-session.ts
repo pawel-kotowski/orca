@@ -22,6 +22,7 @@ import { ensureWebRuntimeWorktreeTerminalAfterWake } from '@/lib/web-runtime-wor
 import { ensureWorktreeHasInitialTerminal } from '@/lib/worktree-initial-terminal-seeding'
 import { mountCreatedWorktreeStartupTabsInBackground } from '@/lib/worktree-creation-background-mount'
 import type { RuntimeClientTarget } from '../../../shared/runtime-client-target'
+import { showActivityTabsForLaunch } from '@/lib/activity-workbench-visibility'
 
 const HANDOFF_READY_TIMEOUT_MS = 5000
 
@@ -236,6 +237,8 @@ export async function launchStructuredWorktreeSession(
         }
       }
       if (stillVisible()) {
+        // Why: a workspace created from the activity view is meant to be seen, so its tabs show.
+        showActivityTabsForLaunch(true)
         activation = activateAndRevealWorktree(args.worktreeId, {
           providesInitialSurface: primaryTabId !== null || recoveryProvidesSurface,
           worktreeCreationId: args.creationId

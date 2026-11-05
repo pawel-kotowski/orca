@@ -159,16 +159,17 @@
 }
 
 /* Why: while the reader scrolls back through the transcript, the message box takes half its room
-   (one line, no action row); it returns to full size at the end or once it has focus. */
+   (one line, no action row); it returns to full size at the end or once it has focus. The compact
+   box is one line already, so it never changes size while scrolling. */
 [data-native-chat-root='true'][data-native-chat-reading-back='true']
-  [data-native-chat-composer-column]:not(:focus-within)
+  [data-native-chat-composer-column]:not(:focus-within, [data-native-chat-composer-compact])
   .native-chat-composer-editor {
   min-height: 0;
   max-height: calc(2lh + 0.5rem);
 }
 
 [data-native-chat-root='true'][data-native-chat-reading-back='true']
-  [data-native-chat-composer-column]:not(:focus-within)
+  [data-native-chat-composer-column]:not(:focus-within, [data-native-chat-composer-compact])
   .native-chat-composer-actions {
   display: none;
 }

@@ -7,6 +7,7 @@ import { NativeChatPaneFileDropSurface } from './NativeChatPaneFileDropSurface'
 import { NativeChatVisualOwnerProvider } from './native-chat-visual-owner'
 import { NativeChatFileLinkExistenceProvider } from './use-native-chat-file-link-existence'
 import { NativeChatMarkdownImageOwnerProvider } from './native-chat-markdown-image-owner'
+import { NativeChatAccountScopeProvider } from './native-chat-account-usage'
 
 export type { NativeChatViewProps } from './native-chat-view-types'
 
@@ -70,21 +71,27 @@ function NativeChatBridgeView({
             tabId={terminalTabId}
             isVisible={isVisible}
           >
-            <NativeChatResolvedView
-              paneKey={resolution.paneKey}
+            <NativeChatAccountScopeProvider
               agent={resolution.agent}
-              sessionId={resolution.sessionId}
               transcriptPath={resolution.transcriptPath}
-              isVisible={isVisible}
-              isFocusedGroup={isFocusedGroup}
-              targetPtyId={targetPtyId}
               terminalTabId={terminalTabId}
-              ownsTabWideLaunchDraft={ownsTabWideLaunchDraft}
-              onSwitchToTerminal={onSwitchToTerminal}
-              readTerminalScreen={readTerminalScreen}
-              readTerminalDraft={readTerminalDraft}
-              contextMenuActions={contextMenuActions}
-            />
+            >
+              <NativeChatResolvedView
+                paneKey={resolution.paneKey}
+                agent={resolution.agent}
+                sessionId={resolution.sessionId}
+                transcriptPath={resolution.transcriptPath}
+                isVisible={isVisible}
+                isFocusedGroup={isFocusedGroup}
+                targetPtyId={targetPtyId}
+                terminalTabId={terminalTabId}
+                ownsTabWideLaunchDraft={ownsTabWideLaunchDraft}
+                onSwitchToTerminal={onSwitchToTerminal}
+                readTerminalScreen={readTerminalScreen}
+                readTerminalDraft={readTerminalDraft}
+                contextMenuActions={contextMenuActions}
+              />
+            </NativeChatAccountScopeProvider>
           </NativeChatMarkdownImageOwnerProvider>
         </NativeChatFileLinkExistenceProvider>
       )}

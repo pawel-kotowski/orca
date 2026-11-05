@@ -304,6 +304,8 @@ export function NativeChatComposerField({
       >
         <div
           data-native-chat-composer-column
+          // Why: the compact box is already one line; the reading-back shrink skips it.
+          data-native-chat-composer-compact={compact ? 'true' : undefined}
           className={cn('relative w-full', !launch && 'mx-auto max-w-(--chat-content-max-width)')}
         >
           {autocomplete.mode === 'slash' ? (

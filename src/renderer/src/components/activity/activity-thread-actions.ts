@@ -121,6 +121,10 @@ export function createActivityThreadActions({
         return
       }
       setActivityHidesWorkbench(false)
+    } else {
+      // Why: the floating workspace's card shows only its panel; the workspace open behind it
+      // steps aside, as when the activity button hides it.
+      setActivityHidesWorkbench(true)
     }
     // Why: the floating panel toggles from its cards: a second click on the card it shows closes
     // it, and opening a card that does not float closes it too.

@@ -36,6 +36,7 @@ import {
 import { prepareCreatedWorktreeActivation } from '@/lib/worktree-creation-initial-tabs'
 import type { UISlice } from '@/store/slices/ui'
 import { saveWorkspaceClaudeAccount } from '@/lib/workspace-claude-account'
+import { showActivityTabsForLaunch } from '@/lib/activity-workbench-visibility'
 
 export async function executeWorktreeCreation(
   creationId: string,
@@ -182,6 +183,8 @@ export async function executeWorktreeCreation(
         executionHostId: creationHostId
       })
       primaryTabId = prepared.primaryTabId
+      // Why: a workspace created from the activity view is meant to be seen, so its tabs show.
+      showActivityTabsForLaunch(true)
       activation = activateAndRevealWorktree(worktree.id, prepared.options)
       primaryTabId ??= activation === false ? null : activation.primaryTabId
     } catch (error) {

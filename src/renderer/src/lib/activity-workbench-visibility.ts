@@ -18,16 +18,21 @@ export function setActivityHidesWorkbench(next: boolean): void {
   hidden = next
   // Why: a card keeps focus after the click that opened its workspace, and the Escape that hides
   // it would show that focus as a frame; with nothing open no card may look chosen.
-  const focused = document.activeElement
-  if (
-    next &&
-    focused instanceof HTMLElement &&
-    focused.closest('[data-activity-thread-pane-key]')
-  ) {
-    focused.blur()
+  if (next && typeof HTMLElement !== 'undefined') {
+    const focused = document.activeElement
+    if (focused instanceof HTMLElement && focused.closest('[data-activity-thread-pane-key]')) {
+      focused.blur()
+    }
   }
   for (const listener of listeners) {
     listener()
+  }
+}
+
+/** A workspace created or launched from the activity view is meant to be seen: its tabs show. */
+export function showActivityTabsForLaunch(launches: unknown): void {
+  if (launches) {
+    setActivityHidesWorkbench(false)
   }
 }
 
@@ -203,7 +208,17 @@ export function useActivityEscapeHidesWorkbench(): void {
     }
     window.addEventListener('keydown', onChatKeyDown, true)
     window.addEventListener('keydown', onKeyDown)
+    // Why: a workspace being created shows its progress in the main area; hidden tabs would hide it.
+    const unsubscribeCreation = useAppStore.subscribe((state, previous) => {
+      if (
+        state.activePendingCreationId !== null &&
+        state.activePendingCreationId !== previous.activePendingCreationId
+      ) {
+        setActivityHidesWorkbench(false)
+      }
+    })
     return () => {
+      unsubscribeCreation()
       window.removeEventListener('keydown', onChatKeyDown, true)
       window.removeEventListener('keydown', onKeyDown)
     }

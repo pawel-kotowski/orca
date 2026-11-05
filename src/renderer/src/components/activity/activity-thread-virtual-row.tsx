@@ -70,7 +70,8 @@ export function ActivityThreadVirtualRow({
   }
   const canJump = canJumpToWorkspace(item.thread)
   // Why: with the tabs hidden nothing is open, so no card may look selected.
-  const isOpen = !hidesTabs && item.thread.paneKey === selectedPaneKey
+  const isActivePane = item.thread.paneKey === selectedPaneKey
+  const isOpen = !hidesTabs && isActivePane
   return (
     <ActivityThreadContextMenu
       thread={item.thread}
@@ -90,7 +91,9 @@ export function ActivityThreadVirtualRow({
           <ActivityThreadRow
             thread={item.thread}
             selected={isOpen}
-            multiSelected={!isOpen && multiSelectedKeys.has(item.thread.paneKey)}
+            // Why: the card whose workspace was opened is the selection's anchor, not a multi-
+            // selection; once its tabs hide it must not take the selected frame instead.
+            multiSelected={!isActivePane && multiSelectedKeys.has(item.thread.paneKey)}
             onSelect={onSelectThread}
             onJump={onJumpToWorkspace}
             onMarkRead={onMarkThreadRead}

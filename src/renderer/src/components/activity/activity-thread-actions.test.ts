@@ -24,6 +24,10 @@ vi.mock('@/lib/worktree-activation', () => ({
 }))
 
 import { createActivityThreadActions, hasActivityThreadWorkspace } from './activity-thread-actions'
+import {
+  activityHidesWorkbench,
+  setActivityHidesWorkbench
+} from '@/lib/activity-workbench-visibility'
 
 const REMOTE_HOST = 'ssh:devbox' as const
 
@@ -154,6 +158,20 @@ describe('activity thread host routing', () => {
       expect.objectContaining({ type: TOGGLE_FLOATING_TERMINAL_EVENT })
     )
     expect(mocks.activateTabAndFocusPane).not.toHaveBeenCalled()
+  })
+
+  it('hides the workspace tabs behind the floating panel when its card opens', () => {
+    const floatingThread = makeFloatingThread()
+    state.sidebarBody = 'agents'
+    state.settings = { floatingTerminalEnabled: true }
+    state.tabsByWorktree = { [FLOATING_TERMINAL_WORKTREE_ID]: [floatingThread.tab] }
+    mocks.activateAndRevealWorkspace.mockReturnValue(false)
+    setActivityHidesWorkbench(false)
+
+    makeActions().selectThread(floatingThread)
+
+    expect(activityHidesWorkbench()).toBe(true)
+    setActivityHidesWorkbench(false)
   })
 
   it('closes the floating panel when a card that does not float opens', () => {
