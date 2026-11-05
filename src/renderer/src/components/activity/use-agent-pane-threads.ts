@@ -246,8 +246,12 @@ export function useAgentPaneThreads(args: {
     const readOnly: AgentPaneThread[] = []
     const visible = scopeVisibleThreads.filter((thread) => {
       // Why: keep the just-selected thread visible after auto-mark-read flips it to read, else unread-only mode makes the clicked row vanish from the list.
+      // Why: a cleared open agent stays listed, under Other agents, whatever the read filter.
+      const clearedOnly =
+        thread.events.length > 0 && thread.events.every((event) => event.cleared === true)
       const hiddenAsRead =
-        readFilter === 'unread' && !thread.unread && thread.paneKey !== effectiveSelectedPaneKey
+        (clearedOnly || (readFilter === 'unread' && !thread.unread)) &&
+        thread.paneKey !== effectiveSelectedPaneKey
       // Why: child agents (e.g. dispatched orchestration workers) are hidden by default to keep top-level agent views focused on root tasks; a live child always keeps its own row.
       if (
         !showChildAgents &&

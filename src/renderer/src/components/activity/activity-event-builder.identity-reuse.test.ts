@@ -166,7 +166,10 @@ import type { Tab } from '../../../../shared/tab-types'
         threadCache
       )
       expect(threadByPane(cleared.threads, PANE_B)).toBe(threadByPane(first.threads, PANE_B))
-      expect(threadByPane(cleared.threads, PANE_A)).toBeUndefined()
+      // A cleared open agent keeps only its cleared stand-in (listed under Other agents).
+      expect(threadByPane(cleared.threads, PANE_A)?.events.every((event) => event.cleared)).toBe(
+        true
+      )
     })
 
     it('freshness decay refreshes the live snapshot without churning event identities', () => {
@@ -367,12 +370,13 @@ import type { Tab } from '../../../../shared/tab-types'
       agentType: 'claude'
     }
 
-    it('hides events stamped at or before the pane cutoff', () => {
+    it('replaces an open agent events at or before the cutoff with one cleared stand-in', () => {
       const { events } = build({
         entries: { [PANE_KEY]: doneEntry },
         activityClearedAtByPaneKey: { [PANE_KEY]: 2_000 }
       })
-      expect(events).toHaveLength(0)
+      expect(events).toHaveLength(1)
+      expect(events[0]).toMatchObject({ state: 'done', cleared: true, unread: false })
     })
 
     it('keeps events newer than the cutoff', () => {

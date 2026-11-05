@@ -268,7 +268,9 @@ describe("an answered subagent ask on a settled parent's Activity row", () => {
     act(() => {
       expect(clearActivityThread(row)).toBe(true)
     })
-    expect(renderActivity().result.current.allThreads).toHaveLength(0)
+    // The open agent stays listed only by its cleared stand-in (under Other agents).
+    const afterClear = renderActivity().result.current.allThreads
+    expect(afterClear.flatMap((entry) => entry.events).every((event) => event.cleared)).toBe(true)
   })
 
   it('keeps each answered done between the asks around it', async () => {

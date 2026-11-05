@@ -60,6 +60,35 @@ type PaneEventInputs = {
 
 /** Build one pane's activity events (bounded by the per-pane cap, cutoff applied). */
 export function buildPaneActivityEvents(args: PaneEventInputs): ActivityEvent[] {
+  const events = buildUnclearedPaneEvents(args)
+  // Why: Paweł wants every open agent listed. Clearing hides its past, not the open tab, so an
+  // open agent with nothing left after the cutoff keeps one stand-in event (under Other agents).
+  if (events.length > 0 || !args.agentAlive || args.clearedAt <= 0) {
+    return events
+  }
+  const entry = args.entry
+  const state: ActivityEventState = isHistoricalActivityState(entry.state) ? entry.state : 'done'
+  const observedAt = entry.stateObservedAt ?? entry.stateStartedAt
+  return [
+    {
+      id: `agent:${entry.paneKey}:${state}:${observedAt}`,
+      state,
+      timestamp: entry.stateStartedAt,
+      observedAt,
+      worktree: args.worktree,
+      repo: args.repo,
+      entry,
+      tab: args.tab,
+      agentType: args.agentType ?? 'unknown',
+      agentAlive: true,
+      migrationUnsupportedPtyId: args.migrationUnsupportedPtyId,
+      unread: false,
+      cleared: true
+    }
+  ]
+}
+
+function buildUnclearedPaneEvents(args: PaneEventInputs): ActivityEvent[] {
   const events: ActivityEvent[] = []
   const seenIds = new Set<string>()
   const append = (
