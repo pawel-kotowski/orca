@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { createContext, useContext } from 'react'
 import { LoaderCircle } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
@@ -9,6 +9,13 @@ import { getWorktreeCardFrameGeometry } from './worktree-card-frame-geometry'
 import type { WorktreeCardController } from '../controller/use-worktree-card-controller'
 import { DEFAULT_WORKSPACE_CARD_TEMPLATE } from '../template/default-workspace-card'
 import { renderWorkspaceCardTemplate } from '../template/render-workspace-card-template'
+import {
+  activityCardTintStyle,
+  useActivityProjectColor
+} from '@/components/activity/activity-project-color'
+
+// The project colour a parent card already paints under its nested workspaces.
+const ParentProjectTintContext = createContext<string | null>(null)
 
 export function WorktreeCardSurface({ card }: { card: WorktreeCardController }): React.JSX.Element {
   const {
@@ -45,6 +52,11 @@ export function WorktreeCardSurface({ card }: { card: WorktreeCardController }):
     contentIndent
   } = card
   const isSleeping = useIsSleepingWorktree(worktree.id)
+  // Why: the same project colour as its activity cards, so the two views match at a glance. A nested
+  // workspace of the same project sits on its parent's wash already, so it paints none of its own.
+  const projectColor = useActivityProjectColor(card.repo)
+  const parentTint = useContext(ParentProjectTintContext)
+  const tintStyle = activityCardTintStyle(projectColor === parentTint ? null : projectColor)
   const geometryFor = (statusLane: boolean) =>
     getWorktreeCardFrameGeometry({ flushSurface, contentIndent, statusLane })
   const { content: parentCardContent, frame } = renderWorkspaceCardTemplate(
@@ -100,7 +112,7 @@ export function WorktreeCardSurface({ card }: { card: WorktreeCardController }):
       onDragStart={!affiliateListMode && nativeDragEnabled ? handleDragStart : undefined}
       onDragEnd={!affiliateListMode && nativeDragEnabled ? handleDragEnd : undefined}
       aria-busy={isDeleting}
-      style={cardStyle}
+      style={tintStyle ? { ...cardStyle, ...tintStyle } : cardStyle}
     >
       {isDeleting && (
         <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-background/50 backdrop-blur-[1px]">
@@ -125,7 +137,9 @@ export function WorktreeCardSurface({ card }: { card: WorktreeCardController }):
           data-worktree-lineage-children=""
           style={lineageChildrenStyle}
         >
-          {lineageChildren}
+          <ParentProjectTintContext.Provider value={projectColor}>
+            {lineageChildren}
+          </ParentProjectTintContext.Provider>
         </div>
       ) : null}
     </div>
