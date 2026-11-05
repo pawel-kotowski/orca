@@ -29,6 +29,7 @@ import {
   getPendingApprovalCheckSuiteUrl
 } from './pr-checks-response-mapping'
 import { parseActionsRunId } from './check-detail-field-mapping'
+import { isCheckRunsPermissionDenied, readActionsJobChecks } from './actions-job-checks'
 export async function getPRChecksViaRestFallback(
   ownerRepo: GitHubApiRepository,
   headSha: string | undefined,
@@ -49,19 +50,28 @@ export async function getPRChecksViaRestFallback(
   try {
     const cacheArgs = noCache ? [] : ['--cache', '60s']
     const encodedHeadSha = encodeURIComponent(headSha)
-    const { stdout } = await ghExecFileAsync(
-      [
-        'api',
-        ...cacheArgs,
-        `repos/${ownerRepo.owner}/${ownerRepo.repo}/commits/${encodedHeadSha}/check-runs?per_page=100`
-      ],
-      ghOptions
-    )
-    noteRepositoryRateLimitSpend(ownerRepo, 'core', 1, ghOptions)
-    const checkRunData = JSON.parse(stdout) as {
-      check_runs?: RestCheckRun[]
+    let checkRuns: PRCheckDetail[]
+    try {
+      const { stdout } = await ghExecFileAsync(
+        [
+          'api',
+          ...cacheArgs,
+          `repos/${ownerRepo.owner}/${ownerRepo.repo}/commits/${encodedHeadSha}/check-runs?per_page=100`
+        ],
+        ghOptions
+      )
+      noteRepositoryRateLimitSpend(ownerRepo, 'core', 1, ghOptions)
+      const checkRunData = JSON.parse(stdout) as {
+        check_runs?: RestCheckRun[]
+      }
+      checkRuns = (checkRunData.check_runs ?? []).map(mapRestCheckRun)
+    } catch (err) {
+      if (!isCheckRunsPermissionDenied(err)) {
+        throw err
+      }
+      // A fine-grained token reads Actions but never check runs: show the workflow jobs.
+      checkRuns = await readActionsJobChecks(ownerRepo, headSha, ghOptions, cacheArgs)
     }
-    const checkRuns = (checkRunData.check_runs ?? []).map(mapRestCheckRun)
     const checkRunNames = new Set(checkRuns.map((check) => check.name))
 
     let legacyStatuses: PRCheckDetail[] = []
