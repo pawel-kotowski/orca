@@ -27,11 +27,19 @@ const launchResultSchema = z.object({
     .object({
       agent: z.string().min(1),
       providerSession: ResumeProviderSessionParam,
-      verdict: z.enum(['admitted', 'chat-home', 'chat-writing', 'unverifiable'])
+      verdict: z.enum([
+        'admitted',
+        'chat-home',
+        'chat-writing',
+        'unverifiable',
+        'running-elsewhere'
+      ])
     })
     .optional(),
   agentResumeUnavailable: z.literal(true).optional(),
-  agentResumeRefused: z.enum(['chat-home', 'chat-writing', 'unverifiable']).optional(),
+  agentResumeRefused: z
+    .enum(['chat-home', 'chat-writing', 'unverifiable', 'running-elsewhere'])
+    .optional(),
   refusedResume: z
     .object({
       agent: z.string().min(1),

@@ -25,6 +25,7 @@ import {
   savedResumeRecord,
   savedResumeResult
 } from './host-env/saved-resume-admission'
+import { refuseIfRunningElsewhere } from './host-env/live-claude-session-holder'
 
 type SpawnAdapter<State extends PtySpawnOperationState> = {
   state: State
@@ -126,6 +127,8 @@ export async function runPtySpawn<State extends PtySpawnOperationState>(
         },
         ctx.expectedWslDistro
       )
+      // Why: the window resumes a cold-restored pane; never into a conversation still running.
+      ctx.resumeAdmission = await refuseIfRunningElsewhere(ctx.resumeAdmission)
       await captureSavedResumeCleanup(
         runtime,
         ctx.deps.store,

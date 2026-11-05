@@ -312,14 +312,14 @@ export function extractAgentProviderSession(
 export type SavedResumeDecision = {
   agent: string
   providerSession: AgentProviderSessionMetadata
-  verdict: 'admitted' | 'chat-home' | 'chat-writing' | 'unverifiable'
+  verdict: 'admitted' | 'chat-home' | 'chat-writing' | 'unverifiable' | 'running-elsewhere'
 }
 
 /** Effective facts of a terminal launch; a refused shell carries no rejected agent metadata. */
 export type TerminalLaunchResult = {
   savedResumeDecision?: SavedResumeDecision
   agentResumeUnavailable?: true
-  agentResumeRefused?: 'chat-home' | 'chat-writing' | 'unverifiable'
+  agentResumeRefused?: 'chat-home' | 'chat-writing' | 'unverifiable' | 'running-elsewhere'
   refusedResume?: RefusedPaneResume
   launchConfig?: SleepingAgentLaunchConfig
   launchAgent?: TuiAgent

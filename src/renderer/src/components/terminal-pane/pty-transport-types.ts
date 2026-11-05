@@ -120,7 +120,7 @@ export type PtyConnectResult = TerminalLaunchResult & {
   agentResumeUnavailable?: true
   /** Main refused the resume and started the plain shell: a native chat is the conversation's home
    *  or may be writing it, or no record could be checked (the saved session is kept to retry). */
-  agentResumeRefused?: 'chat-home' | 'chat-writing' | 'unverifiable'
+  agentResumeRefused?: 'chat-home' | 'chat-writing' | 'unverifiable' | 'running-elsewhere'
   /** Write daemon’s trailing partial escape after reset so racing live bytes can complete it (#7329). */
   pendingEscapeTailAnsi?: string
 }

@@ -45,10 +45,11 @@ type AdmissionRuntime = {
 }
 
 /** `chat-home`: an automatic restore of a conversation an open chat continues; `chat-writing`:
- *  any start of one a chat may be writing; `unverifiable`: an automatic restore with no records. */
+ *  any start of one a chat may be writing; `unverifiable`: an automatic restore with no records;
+ *  `running-elsewhere`: a live Claude process already runs it (live-claude-session-holder). */
 export type ResumeSpawnRefusal = {
   sourceRecord?: SleepingAgentSessionRecord
-  verdict: 'chat-home' | 'chat-writing' | 'unverifiable'
+  verdict: 'chat-home' | 'chat-writing' | 'unverifiable' | 'running-elsewhere'
   refused: RefusedPaneResume
 }
 

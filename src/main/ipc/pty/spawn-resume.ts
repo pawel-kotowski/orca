@@ -3,9 +3,11 @@ import {
   captureSavedResumeCleanup,
   chooseSavedResumeFreshLaunch,
   resumeSpawnRefusal,
+  suppressSavedResumeLaunch,
   type ResumeSpawnAdmission,
   type ResumeSpawnRefusal
 } from './host-env/saved-resume-admission'
+import { refuseIfRunningElsewhere } from './host-env/live-claude-session-holder'
 
 /** Capture the acquired pane's source once; only the physical-fresh branch judges its launch. */
 export async function prepareSavedPtyResume(
@@ -38,6 +40,13 @@ export async function prepareSavedPtyResume(
         ctx.expectedWslDistro,
         ctx.spawnOptions
       ))
+    // Why: a saved resume of a conversation a live Claude already runs would start a second copy.
+    if (!inherited && ctx.resumeAdmission?.verdict === 'admitted') {
+      ctx.resumeAdmission = await refuseIfRunningElsewhere(ctx.resumeAdmission)
+      if (ctx.resumeAdmission?.verdict === 'running-elsewhere') {
+        suppressSavedResumeLaunch(args, ctx.spawnOptions)
+      }
+    }
     if (captured && ctx.resumeAdmission) {
       ctx.resumeAdmission = {
         ...ctx.resumeAdmission,
