@@ -19,6 +19,7 @@ import {
   isClearableActivityThread
 } from './activity-clear-completed'
 import { activityThreadRowCopy } from './activity-thread-presentation'
+import { ActivityThreadDeleteWorkspaceItem } from './activity-thread-delete-workspace'
 import type { AgentPaneThread } from './activity-thread-types'
 
 type CopyTarget = { key: string; label: string; value: string }
@@ -204,6 +205,7 @@ function ActivityThreadSingleMenuItems({
           </ContextMenuItem>
         </>
       ) : null}
+      <ActivityThreadDeleteWorkspaceItem thread={thread} hasWorkspace={canJump} />
     </>
   )
 }

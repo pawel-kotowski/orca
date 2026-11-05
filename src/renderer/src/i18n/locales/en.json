@@ -18433,7 +18433,8 @@
           "markManyUnread_one": "Mark {{count}} Agent Unread",
           "markManyUnread_other": "Mark {{count}} Agents Unread",
           "clearMany_one": "Clear {{count}} Agent from List",
-          "clearMany_other": "Clear {{count}} Agents from List"
+          "clearMany_other": "Clear {{count}} Agents from List",
+          "deleteWorkspace": "Delete Workspace…"
         }
       },
       "confirmation": {
@@ -20545,7 +20546,15 @@
         "scheduled": "Orca will continue this chat at {{time}}.",
         "cancel": "Don't continue"
       },
-      "settings": "Chat settings"
+      "settings": "Chat settings",
+      "account": {
+        "personal": "personal",
+        "week": "wk",
+        "detail": "Claude account {{email}}",
+        "session": "Session (5 h): {{used}}% used, resets in {{reset}}",
+        "weekly": "Weekly: {{used}}% used, resets in {{reset}}",
+        "noUsage": "Usage not loaded yet"
+      }
     },
     "tab": {
       "bar": {

@@ -11,7 +11,19 @@ import type * as ActivityClearCompleted from './activity-clear-completed'
 import type { AgentPaneThread } from './activity-thread-types'
 import { makeRepo, makeTab, makeWorktree } from './ActivityPrototypePage-test-fixtures'
 
-const mocks = vi.hoisted(() => ({ clearActivityThread: vi.fn(), clearCompletedActivity: vi.fn() }))
+const mocks = vi.hoisted(() => ({
+  clearActivityThread: vi.fn(),
+  clearCompletedActivity: vi.fn(),
+  deferDelete: vi.fn()
+}))
+
+vi.mock(
+  '../sidebar/workspace-actions/context-menu/worktree-context-menu-delete-intent',
+  async (importOriginal) => ({
+    ...(await importOriginal<Record<string, unknown>>()),
+    deferWorktreeContextMenuDeleteIntent: mocks.deferDelete
+  })
+)
 
 vi.mock('./activity-clear-completed', async (importOriginal) => ({
   ...(await importOriginal<typeof ActivityClearCompleted>()),
@@ -281,5 +293,24 @@ describe('ActivityThreadContextMenu', () => {
     expect(getActivityThreadCopyTargets(synthetic, false)).toEqual([
       { key: 'title', label: 'Copy Title', value: 'Fix the flaky test' }
     ])
+  })
+
+  it("deletes the workspace through the workspace view's own delete", () => {
+    const thread = makeThread()
+    openMenu(thread)
+
+    fireEvent.click(menuItem('Delete Workspace…'))
+    expect(mocks.deferDelete).toHaveBeenCalledWith({
+      kind: 'worktree',
+      worktree: expect.objectContaining({ id: thread.worktree.id })
+    })
+  })
+
+  it('offers no delete for a main checkout or a workspace with nothing on disk', () => {
+    openMenu(makeThread({ worktree: { ...makeWorktree(), isMainWorktree: true } }))
+    expect(screen.queryByRole('menuitem', { name: 'Delete Workspace…' })).toBeNull()
+    cleanup()
+    openMenu(makeThread(), false)
+    expect(screen.queryByRole('menuitem', { name: 'Delete Workspace…' })).toBeNull()
   })
 })
