@@ -415,8 +415,9 @@ export function NativeChatComposerField({
                     ? 'min-h-7 max-h-[calc(6lh+0.5rem)] text-foreground placeholder:text-muted-foreground [&_p.is-editor-empty:first-child]:before:!h-auto [&_p.is-editor-empty:first-child]:before:w-full [&_p.is-editor-empty:first-child]:before:mr-[-100%]'
                     : 'min-h-12 max-h-[calc(8lh+0.5rem)] text-chat-foreground-strong placeholder:text-chat-foreground-faint pointer-coarse:min-h-14',
                   'overflow-y-auto scrollbar-sleek',
-                  // Why: after the base sizes, so the compact box's one line wins.
-                  compact && 'min-h-7 pointer-coarse:min-h-9',
+                  // Why: after the base sizes, so the compact box's one line wins. The line is as tall
+                  // as the controls row (h-8) and centred in it, so text and controls share one middle.
+                  compact && 'min-h-8 py-1.5 pointer-coarse:min-h-10',
                   // Why: the editor is a contenteditable, which `:disabled` never matches.
                   '[&[contenteditable=false]]:cursor-not-allowed [&[contenteditable=false]]:opacity-50'
                 )}
@@ -426,7 +427,9 @@ export function NativeChatComposerField({
               className={cn(
                 'flex flex-wrap items-center gap-2 pt-0.5',
                 !launch && !editSession && 'native-chat-composer-actions',
-                compact && 'shrink-0 pt-0',
+                // Why: a fixed row height (its buttons are size-8), so the stop button appearing
+                // never moves the controls, and the first text line (min-h-8 py-1.5) shares its middle.
+                compact && 'h-8 shrink-0 pt-0',
                 // An empty launch prompt is one line; its controls appear once it has focus, content or live dictation.
                 launch &&
                   !isDictating &&
