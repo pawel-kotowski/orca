@@ -1,5 +1,8 @@
 import type React from 'react'
 import { useAppStore } from '@/store'
+import { projectMatchesRepo } from '../../../../shared/project-repo-match'
+import { getProjectIdentityKey } from '../../../../shared/project-host-setup-projection'
+import { getProjectHostSetupProjectionFromState } from '@/store/selectors'
 import {
   DEFAULT_REPO_BADGE_COLOR,
   normalizeRepoBadgeColor,
@@ -68,15 +71,40 @@ export function activityRepoTagStyle(color: string | null): React.CSSProperties 
 /**
  * The card's project colour, read live: a thread carries the project as it was when its activity was
  * built, so a colour changed in the project's settings must come from the store, not the thread.
+ * Why through the project: a workspace on another machine (a devbox) has that host's own repo
+ * record, which keeps the default grey; the colour set in settings lives on the project, which the
+ * host's setup links to (as the sidebar groups that workspace under its project).
  */
 export function useActivityProjectColor(
   repo: { id: string; badgeColor?: string | null } | null | undefined
 ): string | null {
   const repoId = repo?.id ?? null
+  const project = useAppStore((state) => {
+    if (!repoId) {
+      return null
+    }
+    // Every host's setups, as the sidebar's grouping reads them.
+    const { projects, setups } = getProjectHostSetupProjectionFromState(state)
+    const record = state.repos?.find((entry) => entry.id === repoId)
+    const projectId =
+      setups.find((setup) => setup.repoId === repoId)?.projectId ??
+      projects.find((entry) => projectMatchesRepo(entry, repoId))?.id ??
+      (record ? getProjectIdentityKey(record) : undefined)
+    return (projectId ? projects.find((entry) => entry.id === projectId) : undefined) ?? null
+  })
   const liveBadgeColor = useAppStore((state) =>
     repoId ? state.repos?.find((entry) => entry.id === repoId)?.badgeColor : undefined
   )
-  return activityProjectColor(
-    repo ? { id: repo.id, badgeColor: liveBadgeColor ?? repo.badgeColor } : null
-  )
+  if (!repo) {
+    return null
+  }
+  const projectColor = normalizeRepoBadgeColor(project?.badgeColor)
+  const repoColor = liveBadgeColor ?? repo.badgeColor
+  // The project's own colour wins; one left grey falls to the repo's, then to a stable pick
+  // keyed by the project, so a project's local and remote workspaces share it.
+  const badgeColor =
+    projectColor && projectColor !== normalizeRepoBadgeColor(DEFAULT_REPO_BADGE_COLOR)
+      ? projectColor
+      : repoColor
+  return activityProjectColor({ id: project?.id ?? repo.id, badgeColor })
 }
