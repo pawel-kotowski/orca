@@ -64,6 +64,7 @@ function ActivityThreadRowAction({
 export const ActivityThreadRow = React.memo(function ActivityThreadRow({
   thread,
   selected,
+  previewed = false,
   multiSelected = false,
   onSelect,
   onJump,
@@ -78,6 +79,8 @@ export const ActivityThreadRow = React.memo(function ActivityThreadRow({
 }: {
   thread: AgentPaneThread
   selected: boolean
+  /** Its chat is the one the shared hover window shows. */
+  previewed?: boolean
   /** In the multi-selection and not the open row. */
   multiSelected?: boolean
   onSelect: (thread: AgentPaneThread, event: ActivityThreadClickEvent) => void
@@ -208,6 +211,9 @@ export const ActivityThreadRow = React.memo(function ActivityThreadRow({
         data-activity-thread-pane-key={thread.paneKey}
         data-worktree-card-surface="true"
         data-worktree-card-active={selected ? 'primary' : undefined}
+        // Why (main.css): the open card reads clearly, the one whose chat shows on hover lightly.
+        data-activity-card-open={selected && conversation ? '' : undefined}
+        data-activity-card-previewed={previewed ? '' : undefined}
         data-worktree-card-selected={multiSelected || undefined}
         onClick={(event) => onSelect(thread, event)}
         role="listitem"

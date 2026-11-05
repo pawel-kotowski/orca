@@ -1517,6 +1517,20 @@ html.native-shell .app-layout {
 }
 
 /* #15971: the wash matches the pill's fill, so its border carries the shape; 80% keeps >=3:1 wherever the validated foreground is >=4.5:1. */
+/* Activity cards (local): the card whose workspace the tabs show reads clearly, with a frame and an
+   accent bar on its left edge; the card whose chat the hover window shows reads lightly. After the
+   primary rules (dark included), which they outrank by order at equal specificity. */
+[data-worktree-card-surface][data-worktree-card-active='primary'][data-activity-card-open] {
+  border-color: color-mix(in srgb, var(--foreground) 38%, transparent);
+  background-color: color-mix(in srgb, var(--foreground) 9%, transparent);
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--foreground) 55%, transparent);
+}
+
+[data-worktree-card-surface][data-activity-card-previewed]:not([data-activity-card-open]) {
+  border-color: color-mix(in srgb, var(--foreground) 18%, transparent);
+  background-color: color-mix(in srgb, var(--foreground) 4%, transparent);
+}
+
 @scope ([data-worktree-card-surface][data-worktree-card-active='primary']) to ([data-worktree-lineage-children]) {
   [data-variant='hostContext'] {
     border-color: color-mix(in srgb, var(--worktree-sidebar-foreground) 80%, transparent);

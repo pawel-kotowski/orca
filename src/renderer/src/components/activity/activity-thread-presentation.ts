@@ -25,6 +25,8 @@ import type {
   AgentPaneThread
 } from './activity-thread-types'
 import { uiDateTimeFormat } from '@/i18n/ui-intl-formatters'
+import { FLOATING_TERMINAL_WORKTREE_ID } from '../../../../shared/constants'
+import { stripLeadingAgentTitleDecoration } from '../../../../shared/agent-status/title/agent-title-decoration'
 
 const ACTIVITY_THREAD_RESPONSE_RENDER_PREVIEW_MAX_LENGTH = 320
 
@@ -254,8 +256,23 @@ function previewDuplicatesIdentity(preview: string, title: string, workspace: st
   return normalized === normalizeScanLabel(title) || normalized === normalizeScanLabel(workspace)
 }
 
+/**
+ * Every floating terminal shares one workspace, so its name tells the cards apart no better than
+ * none: a floating card is named by its terminal (the title the tab shows), else "Floating".
+ */
+function floatingThreadLabel(tab: Pick<TerminalTab, 'title' | 'customTitle'>): string {
+  return (
+    tab.customTitle?.trim() ||
+    stripLeadingAgentTitleDecoration(tab.title ?? '').trim() ||
+    translate('components.activity.floating', 'Floating')
+  )
+}
+
 export function activityThreadRowCopy(thread: AgentPaneThread): ActivityThreadRowCopy {
-  const workspaceLabel = getActivityThreadWorkspaceTitle(thread.worktree)
+  const workspaceLabel =
+    thread.worktree.id === FLOATING_TERMINAL_WORKTREE_ID
+      ? floatingThreadLabel(thread.tab)
+      : getActivityThreadWorkspaceTitle(thread.worktree)
   const taskTitle = thread.paneTitle.trim() || workspaceLabel
   const renderedPreview = activityThreadResponseRenderPreview({
     responsePreview: thread.responsePreview

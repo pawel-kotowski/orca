@@ -42,7 +42,7 @@ function readActivityThreadWorkspaceCatalog(): ActivityThreadWorkspaceCatalog {
 }
 
 /** Whether the floating panel's active tab is this one. */
-function floatingPanelShowsTab(
+export function floatingPanelShowsTab(
   state: ReturnType<typeof useAppStore.getState>,
   tabId: string
 ): boolean {

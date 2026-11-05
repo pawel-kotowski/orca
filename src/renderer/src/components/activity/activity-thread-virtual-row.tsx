@@ -3,10 +3,15 @@ import { translate } from '@/i18n/i18n'
 import { clearActivityThread, isClearableActivityThread } from './activity-clear-completed'
 import { ActivityStatusGroupHeader } from './activity-thread-controls'
 import { ActivityThreadContextMenu } from './activity-thread-context-menu'
+import { floatingPanelShowsTab } from './activity-thread-actions'
 import { ActivityThreadRow } from './activity-thread-row'
 import { useActivityHidesWorkbench } from '@/lib/activity-workbench-visibility'
+import { useAppStore } from '@/store'
+import { useActivityChatPreviewPaneKey } from './activity-chat-preview-host'
 import type { AgentPaneThread } from './activity-thread-types'
 import type { ActivityVirtualItemDescriptor } from './activity-thread-virtual-items'
+import { FLOATING_TERMINAL_WORKTREE_ID } from '../../../../shared/constants'
+import { selectFloatingWorkspacePanelVisible } from '@/store/floating-workspace-panel-selector'
 
 type ContextMenuProps = Parameters<typeof ActivityThreadContextMenu>[0]
 
@@ -48,6 +53,26 @@ export function ActivityThreadVirtualRow({
   showJumpAction: boolean
 }): React.JSX.Element {
   const hidesTabs = useActivityHidesWorkbench()
+  const thread = item.type === 'header' ? null : item.thread
+  // Why the store, not the last clicked card: the workspace can change another way (the sidebar,
+  // Cmd+J), and the card that looks open must be the one shown. A floating card is shown while the
+  // floating panel shows its tab. Null: no active tab is known (a bare test store), so the clicked
+  // card stands in, as upstream has it.
+  const shownInStore = useAppStore((state): boolean | null => {
+    if (thread === null) {
+      return false
+    }
+    if (thread.worktree.id === FLOATING_TERMINAL_WORKTREE_ID) {
+      return (
+        selectFloatingWorkspacePanelVisible(state) && floatingPanelShowsTab(state, thread.tab.id)
+      )
+    }
+    if (state.activeTabId == null) {
+      return null
+    }
+    return state.activeWorktreeId === thread.worktree.id && state.activeTabId === thread.tab.id
+  })
+  const previewedPaneKey = useActivityChatPreviewPaneKey()
   if (item.type === 'header') {
     return (
       <div
@@ -69,9 +94,14 @@ export function ActivityThreadVirtualRow({
     )
   }
   const canJump = canJumpToWorkspace(item.thread)
-  // Why: with the tabs hidden nothing is open, so no card may look selected.
   const isActivePane = item.thread.paneKey === selectedPaneKey
-  const isOpen = !hidesTabs && isActivePane
+  // Why: with the tabs hidden no workspace card is open (the floating panel is not one of the tabs).
+  // Of several agents in one shown tab (split panes), the one last clicked is the open one.
+  const clickedInThisTab = selectedPaneKey?.startsWith(`${item.thread.tab.id}:`) ?? false
+  const floating = item.thread.worktree.id === FLOATING_TERMINAL_WORKTREE_ID
+  const isOpen =
+    (floating || !hidesTabs) &&
+    (shownInStore === null ? isActivePane : shownInStore && (!clickedInThisTab || isActivePane))
   return (
     <ActivityThreadContextMenu
       thread={item.thread}
@@ -91,6 +121,7 @@ export function ActivityThreadVirtualRow({
           <ActivityThreadRow
             thread={item.thread}
             selected={isOpen}
+            previewed={item.thread.paneKey === previewedPaneKey}
             // Why: the card whose workspace was opened is the selection's anchor, not a multi-
             // selection; once its tabs hide it must not take the selected frame instead.
             multiSelected={!isActivePane && multiSelectedKeys.has(item.thread.paneKey)}

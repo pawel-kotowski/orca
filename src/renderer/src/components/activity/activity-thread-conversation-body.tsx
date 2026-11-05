@@ -14,6 +14,8 @@ import { selectWorktreeHostDisplayLabel } from '@/lib/execution-host-display-lab
 import { getExecutionHostIdForWorktree } from '@/lib/worktree-runtime-owner'
 import { parseExecutionHostId } from '../../../../shared/execution-host'
 import { activityProjectColor, activityRepoTagStyle } from './activity-project-color'
+import { PanelsTopLeft } from 'lucide-react'
+import { FLOATING_TERMINAL_WORKTREE_ID } from '../../../../shared/constants'
 
 // Names compared loosely: "slack id-like-to-have-e557" repeats workspace "id-like-to-have-e557".
 function comparable(text: string): string {
@@ -91,7 +93,16 @@ export function ActivityThreadConversationBody({
     <div className="flex min-w-0 flex-1 flex-col gap-1.5">
       {/* Header: the repo's logo, then the workspace name; repo, machine and time at the right. */}
       <div className="flex min-w-0 items-center gap-2">
-        {thread.repo ? (
+        {thread.worktree.id === FLOATING_TERMINAL_WORKTREE_ID ? (
+          // Why: the floating workspace has no repo; its own icon (the floating panel button's)
+          // stands where the repo logo would.
+          <span
+            className="flex size-6 shrink-0 items-center justify-center rounded-md bg-foreground/[0.08]"
+            title={translate('components.activity.floatingWorkspace', 'Floating workspace')}
+          >
+            <PanelsTopLeft className="size-4" />
+          </span>
+        ) : thread.repo ? (
           <RepoIconGlyph
             repoIcon={thread.repo.repoIcon}
             className="size-6 shrink-0 rounded-md"

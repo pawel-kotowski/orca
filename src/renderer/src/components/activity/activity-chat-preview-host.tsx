@@ -38,6 +38,17 @@ export function hideActivityChatPreview(paneKey: string): void {
   }
 }
 
+/** The pane whose chat the shared window shows, so its card can mark itself. */
+export function useActivityChatPreviewPaneKey(): string | null {
+  return useSyncExternalStore(
+    (listener) => {
+      targetListeners.add(listener)
+      return () => targetListeners.delete(listener)
+    },
+    () => currentTarget?.thread.paneKey ?? null
+  )
+}
+
 function useActivityChatPreviewTarget(): ActivityChatPreviewTarget | null {
   return useSyncExternalStore(
     (listener) => {
