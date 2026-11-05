@@ -8,6 +8,7 @@ import {
 } from '@tanstack/react-virtual'
 import { cn } from '@/lib/utils'
 import { translate } from '@/i18n/i18n'
+import { READ_AGENTS_GROUP_KEY } from './activity-thread-grouping'
 import { ActivityThreadListToolbar } from './activity-thread-list-toolbar'
 import {
   getActiveStickyHeaderIndex,
@@ -350,7 +351,11 @@ export function ActivityThreadListPane({
                     'left-0 right-0 w-full',
                     isActiveSticky
                       ? cn(
-                          'sticky -top-px z-20',
+                          // Why: Other agents' extra top room (pt-10, not pt-4) scrolls off above
+                          // the list when its header sticks, so the stuck band matches the others.
+                          item.type === 'header' && item.group.key === READ_AGENTS_GROUP_KEY
+                            ? 'sticky -top-[25px] z-20'
+                            : 'sticky -top-px z-20',
                           resizable ? 'bg-background' : 'bg-worktree-sidebar'
                         )
                       : 'absolute top-0'

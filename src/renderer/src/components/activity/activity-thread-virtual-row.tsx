@@ -5,6 +5,7 @@ import { ActivityStatusGroupHeader } from './activity-thread-controls'
 import { ActivityThreadContextMenu } from './activity-thread-context-menu'
 import { floatingPanelShowsTab } from './activity-thread-actions'
 import { ActivityThreadRow } from './activity-thread-row'
+import { READ_AGENTS_GROUP_KEY } from './activity-thread-grouping'
 import { useActivityHidesWorkbench } from '@/lib/activity-workbench-visibility'
 import { useAppStore } from '@/store'
 import { useActivityChatPreviewPaneKey } from './activity-chat-preview-host'
@@ -82,8 +83,9 @@ export function ActivityThreadVirtualRow({
           '{{value0}} activity',
           { value0: item.group.label }
         )}
-        // Why: room above each section (Working, Done…) so the breaks read at a glance.
-        className="pb-1 pt-4"
+        // Why: room above each section (Working, Done…) so the breaks read at a glance; more
+        // above Other agents, which holds the read and cleared ones apart from the rest.
+        className={item.group.key === READ_AGENTS_GROUP_KEY ? 'pb-1 pt-10' : 'pb-1 pt-4'}
       >
         <ActivityStatusGroupHeader
           group={item.group}
