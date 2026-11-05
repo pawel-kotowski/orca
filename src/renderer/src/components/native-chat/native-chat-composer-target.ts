@@ -1,8 +1,5 @@
 import { translate } from '@/i18n/i18n'
-import {
-  NATIVE_CHAT_COMPOSER_PLACEHOLDER,
-  NATIVE_CHAT_TURN_STATUS_COPY
-} from '../../../../shared/native-chat/transcript/native-chat-turn-status'
+import { NATIVE_CHAT_TURN_STATUS_COPY } from '../../../../shared/native-chat/transcript/native-chat-turn-status'
 import { isRemoteRuntimePtyId } from '../../../../shared/remote-runtime/remote-runtime-pty-id'
 
 export type NativeChatResolvedTarget = {
@@ -41,7 +38,9 @@ export function nativeChatComposerPlaceholder(
       NATIVE_CHAT_TURN_STATUS_COPY.sendAfterStop
     )
   }
-  return translate('components.native-chat.composer.placeholder', NATIVE_CHAT_COMPOSER_PLACEHOLDER)
+  // Why empty: Paweł asked to remove the "Ask anything, @ to mention files…" hint from chats; the
+  // box shows only what it needs to say (held input, what Stop will do).
+  return ''
 }
 
 export function nativeChatComposerTargetIsRemote(ptyId: string | null): boolean {
