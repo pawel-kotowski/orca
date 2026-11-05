@@ -19,7 +19,7 @@ import { useAppStore } from '@/store'
 import { nativeChatActivityFollowsConversation } from '../../../../shared/native-chat/native-chat-appearance-settings'
 import { useActivityThreadConversation } from './use-activity-thread-conversation'
 import { ActivityThreadConversationBody } from './activity-thread-conversation-body'
-import { activityCardTintStyle, activityProjectColor } from './activity-project-color'
+import { activityCardTintStyle, useActivityProjectColor } from './activity-project-color'
 import { routeActivityCardClick } from './activity-chat-card-controls'
 
 function ActivityThreadRowAction({
@@ -98,6 +98,7 @@ export const ActivityThreadRow = React.memo(function ActivityThreadRow({
   useUiLanguageRevision()
   const { taskTitle, statusLine, statusKind, needsAttention, workspaceLabel } =
     activityThreadRowCopy(thread)
+  const projectColor = useActivityProjectColor(thread.repo)
   const showMarkdownStatus = statusKind === 'message'
   const agentLabel = formatAgentTypeLabel(thread.agentType)
   const followsConversation = useAppStore((state) =>
@@ -225,7 +226,7 @@ export const ActivityThreadRow = React.memo(function ActivityThreadRow({
         aria-label={taskTitle}
         aria-current={selected ? 'true' : undefined}
         // Why: the project's colour tells the cards apart at a glance.
-        style={activityCardTintStyle(activityProjectColor(thread.repo))}
+        style={activityCardTintStyle(projectColor)}
         className={cn(
           'group relative flex w-full cursor-pointer flex-col gap-1 rounded-lg border border-transparent px-1.5 py-1.5 text-left transition-[background-color,border-color,opacity,box-shadow] duration-200 outline-none select-none focus-visible:ring-1 focus-visible:ring-ring',
           // Why: a conversation card marks hover with a hairline frame, not a filled highlight.

@@ -13,7 +13,7 @@ import { RepoIconGlyph } from '@/components/repo/repo-icon'
 import { selectWorktreeHostDisplayLabel } from '@/lib/execution-host-display-label'
 import { getExecutionHostIdForWorktree } from '@/lib/worktree-runtime-owner'
 import { parseExecutionHostId } from '../../../../shared/execution-host'
-import { activityProjectColor, activityRepoTagStyle } from './activity-project-color'
+import { activityRepoTagStyle, useActivityProjectColor } from './activity-project-color'
 import { PanelsTopLeft } from 'lucide-react'
 import { FLOATING_TERMINAL_WORKTREE_ID } from '../../../../shared/constants'
 
@@ -74,6 +74,7 @@ export function ActivityThreadConversationBody({
     agentType: thread.agentType
   } as unknown as DashboardAgentRow)
   const repoName = thread.repo?.displayName ?? null
+  const projectColor = useActivityProjectColor(thread.repo)
   // Why: the machine matters only when it is not this one (a devbox, a workstation).
   const machine = useAppStore((state) => {
     const hostId = getExecutionHostIdForWorktree(state, thread.worktree.id)
@@ -126,7 +127,7 @@ export function ActivityThreadConversationBody({
             // Why: the tag reads at a glance: a clear fill (the project's colour when it has one)
             // and full-strength text.
             className="max-w-[40%] shrink-0 truncate rounded-full bg-foreground/[0.12] px-2 text-[10.5px] font-semibold leading-[18px] text-foreground"
-            style={activityRepoTagStyle(activityProjectColor(thread.repo))}
+            style={activityRepoTagStyle(projectColor)}
             title={repoName}
           >
             {repoName}

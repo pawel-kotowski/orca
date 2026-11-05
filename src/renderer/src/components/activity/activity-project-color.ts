@@ -1,4 +1,5 @@
 import type React from 'react'
+import { useAppStore } from '@/store'
 import {
   DEFAULT_REPO_BADGE_COLOR,
   normalizeRepoBadgeColor,
@@ -62,4 +63,20 @@ export function activityRepoTagStyle(color: string | null): React.CSSProperties 
     backgroundColor: `color-mix(in srgb, ${color} 30%, transparent)`,
     boxShadow: `inset 0 0 0 1px color-mix(in srgb, ${color} 55%, transparent)`
   }
+}
+
+/**
+ * The card's project colour, read live: a thread carries the project as it was when its activity was
+ * built, so a colour changed in the project's settings must come from the store, not the thread.
+ */
+export function useActivityProjectColor(
+  repo: { id: string; badgeColor?: string | null } | null | undefined
+): string | null {
+  const repoId = repo?.id ?? null
+  const liveBadgeColor = useAppStore((state) =>
+    repoId ? state.repos?.find((entry) => entry.id === repoId)?.badgeColor : undefined
+  )
+  return activityProjectColor(
+    repo ? { id: repo.id, badgeColor: liveBadgeColor ?? repo.badgeColor } : null
+  )
 }
