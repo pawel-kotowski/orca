@@ -385,3 +385,19 @@ import { formatShortTimeAgo } from '@/lib/short-time-ago'
     })
   })
 }
+
+describe('withReadAgentsGroup', () => {
+  it('adds the agents the unread filter hides as one last section, newest first', async () => {
+    const { withReadAgentsGroup, READ_AGENTS_GROUP_KEY } =
+      await import('./activity-thread-grouping')
+    const older = { paneKey: 'a', latestTimestamp: 1 } as never
+    const newer = { paneKey: 'b', latestTimestamp: 2 } as never
+    const groups = withReadAgentsGroup(
+      [{ key: 'working', label: 'Working', threads: [] }],
+      [older, newer]
+    )
+    expect(groups.map((group) => group.key)).toEqual(['working', READ_AGENTS_GROUP_KEY])
+    expect(groups[1]!.threads).toEqual([newer, older])
+    expect(withReadAgentsGroup([], [])).toEqual([])
+  })
+})

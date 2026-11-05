@@ -89,6 +89,32 @@ export function buildActivityThreadGroups(
   return groups.sort((a, b) => activityStatusRank(a.threads[0]) - activityStatusRank(b.threads[0]))
 }
 
+/** The section key for agents the unread-only filter would hide. */
+export const READ_AGENTS_GROUP_KEY = 'read-agents'
+
+/**
+ * Agents the unread-only filter would hide, as one last section, newest first (Paweł,
+ * 2026-11-05: every open agent stays in the activity view, read or not, without repeating one
+ * another section shows).
+ */
+export function withReadAgentsGroup(
+  groups: ActivityThreadGroup[],
+  readOnly: readonly AgentPaneThread[]
+): ActivityThreadGroup[] {
+  if (readOnly.length === 0) {
+    return groups
+  }
+  const threads = [...readOnly].sort((a, b) => b.latestTimestamp - a.latestTimestamp)
+  return [
+    ...groups,
+    {
+      key: READ_AGENTS_GROUP_KEY,
+      label: translate('components.activity.readAgents', 'Other agents'),
+      threads
+    }
+  ]
+}
+
 function buildThreadSearchText(thread: AgentPaneThread): string {
   const latest = thread.latestEvent
   const stateLabel = threadAgentStateLabel(thread)

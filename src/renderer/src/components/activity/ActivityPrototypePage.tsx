@@ -79,6 +79,11 @@ export default function ActivityPrototypePage(): React.JSX.Element {
     setSelectedPaneKey(null)
   }
 
+  // Why every section: the read agents' section is listed though the unread filter leaves them out.
+  const listedThreadCount = visibleThreadGroups.reduce(
+    (count, group) => count + group.threads.length,
+    0
+  )
   const selectedThread = effectiveSelectedPaneKey
     ? (allThreads.find((thread) => thread.paneKey === effectiveSelectedPaneKey) ?? null)
     : null
@@ -339,7 +344,7 @@ export default function ActivityPrototypePage(): React.JSX.Element {
           hasCompletedThreads={hasCompletedThreads}
           onClearCompleted={handleClearCompleted}
           visibleThreadGroups={visibleThreadGroups}
-          visibleThreadCount={visibleThreads.length}
+          visibleThreadCount={listedThreadCount}
           selectedPaneKey={selectedThread?.paneKey ?? null}
           onSelectThread={selectThread}
           onJumpToWorkspace={jumpToWorkspace}
@@ -363,7 +368,7 @@ export default function ActivityPrototypePage(): React.JSX.Element {
           visiblePortalReady={visiblePortalReady}
           visiblePortalUnavailable={visiblePortalUnavailable}
           showTerminalLoadingLabel={showTerminalLoadingLabel}
-          visibleThreadCount={visibleThreads.length}
+          visibleThreadCount={listedThreadCount}
         />
       </main>
     </div>

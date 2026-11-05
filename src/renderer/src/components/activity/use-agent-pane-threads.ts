@@ -23,6 +23,7 @@ import { filterThreadsByActivityScope, resolveActivityScopeRepoIds } from './act
 import {
   createActivityThreadSearchMatcher,
   buildActivityThreadGroups,
+  withReadAgentsGroup,
   isActivitySearchQueryTooLarge
 } from './activity-thread-grouping'
 import {
@@ -237,20 +238,16 @@ export function useAgentPaneThreads(args: {
 
   // Defer list filtering while typed input updates at full priority.
   const deferredQuery = useDeferredValue(query)
-  const visibleThreads = useMemo(() => {
+  const { visible: visibleThreads, readOnly: readOnlyThreads } = useMemo(() => {
     const normalizedQuery = isActivitySearchQueryTooLarge(deferredQuery)
       ? null
       : deferredQuery.trim().toLowerCase()
     let matchesSearchQuery: ReturnType<typeof createActivityThreadSearchMatcher> | undefined
-    return scopeVisibleThreads.filter((thread) => {
+    const readOnly: AgentPaneThread[] = []
+    const visible = scopeVisibleThreads.filter((thread) => {
       // Why: keep the just-selected thread visible after auto-mark-read flips it to read, else unread-only mode makes the clicked row vanish from the list.
-      if (
-        readFilter === 'unread' &&
-        !thread.unread &&
-        thread.paneKey !== effectiveSelectedPaneKey
-      ) {
-        return false
-      }
+      const hiddenAsRead =
+        readFilter === 'unread' && !thread.unread && thread.paneKey !== effectiveSelectedPaneKey
       // Why: child agents (e.g. dispatched orchestration workers) are hidden by default to keep top-level agent views focused on root tasks; a live child always keeps its own row.
       if (
         !showChildAgents &&
@@ -263,8 +260,16 @@ export function useAgentPaneThreads(args: {
         return false
       }
       matchesSearchQuery ??= createActivityThreadSearchMatcher(normalizedQuery)
-      return matchesSearchQuery(thread)
+      if (!matchesSearchQuery(thread)) {
+        return false
+      }
+      if (hiddenAsRead) {
+        readOnly.push(thread)
+        return false
+      }
+      return true
     })
+    return { visible, readOnly }
   }, [
     scopeVisibleThreads,
     readFilter,
@@ -286,8 +291,8 @@ export function useAgentPaneThreads(args: {
   )
 
   const visibleThreadGroups = useMemo(
-    () => buildActivityThreadGroups(visibleThreads, groupBy),
-    [visibleThreads, groupBy]
+    () => withReadAgentsGroup(buildActivityThreadGroups(visibleThreads, groupBy), readOnlyThreads),
+    [visibleThreads, readOnlyThreads, groupBy]
   )
 
   return {
