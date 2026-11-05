@@ -23,6 +23,11 @@ export type NativeChatAccountScope = {
 
 const NativeChatAccountScopeContext = createContext<NativeChatAccountScope | null>(null)
 
+/** The chat the message box belongs to, or null outside a terminal-backed chat. */
+export function useNativeChatAccountScope(): NativeChatAccountScope | null {
+  return useContext(NativeChatAccountScopeContext)
+}
+
 export function NativeChatAccountScopeProvider({
   agent,
   transcriptPath,
@@ -113,7 +118,7 @@ export function resolveChatClaudeAccount(input: {
   )
 }
 
-function worktreeIdForTab(
+export function worktreeIdForTab(
   tabsByWorktree: Record<string, readonly { id: string }[]>,
   tabId: string
 ): string | null {
@@ -130,7 +135,12 @@ let lastInactiveFetchAt = Number.NEGATIVE_INFINITY
 const INACTIVE_REFRESH_MS = 5 * 60 * 1000
 
 /** What the chat line shows: the subscription's short name, its email when known, its limits. */
-type ChatClaudeUsage = { name: string; email: string | null; limits: ProviderRateLimits | null }
+type ChatClaudeUsage = {
+  /** The subscription owner's short name; null while the host has not reported its login. */
+  name: string | null
+  email: string | null
+  limits: ProviderRateLimits | null
+}
 
 /**
  * A remote host's chat: the managed account its transcript lives under, else that host's active
@@ -138,8 +148,7 @@ type ChatClaudeUsage = { name: string; email: string | null; limits: ProviderRat
  */
 export function resolveRemoteChatClaudeUsage(
   snapshot: ProviderAccountsSnapshot,
-  transcriptPath: string | null,
-  hostLabel: string
+  transcriptPath: string | null
 ): ChatClaudeUsage {
   const { claude, rateLimits } = snapshot
   const fromTranscript = accountIdFromTranscriptPath(transcriptPath)
@@ -158,7 +167,9 @@ export function resolveRemoteChatClaudeUsage(
   }
   const email = claude.systemDefaultEmail ?? claude.systemLoginEmail ?? null
   return {
-    name: email ? accountShortName(email) : hostLabel,
+    // Why never the host's name: the line names the subscription's owner; the machine has its
+    // own place on the line (native-chat-place-line). An older host does not report its login.
+    name: email ? accountShortName(email) : null,
     email,
     limits: claude.activeAccountId === null ? (rateLimits?.claude ?? null) : null
   }
@@ -174,10 +185,6 @@ function useChatClaudeUsage(scope: NativeChatAccountScope): ChatClaudeUsage | nu
     return target === null ? '' : target.kind === 'environment' ? target.environmentId : 'local'
   })
   const remoteId = owner !== 'local' && owner !== '' ? owner : null
-  const hostLabel = useAppStore(
-    (state) =>
-      state.runtimeEnvironments.find((environment) => environment.id === remoteId)?.name ?? ''
-  )
   const snapshot = useRemoteProviderAccounts(remoteId)
   const account = useAppStore((state) =>
     owner === 'local'
@@ -210,9 +217,7 @@ function useChatClaudeUsage(scope: NativeChatAccountScope): ChatClaudeUsage | nu
     void useAppStore.getState().fetchInactiveClaudeAccountUsage()
   }, [needsFetch])
   if (remoteId) {
-    return snapshot
-      ? resolveRemoteChatClaudeUsage(snapshot, scope.transcriptPath, hostLabel || remoteId)
-      : null
+    return snapshot ? resolveRemoteChatClaudeUsage(snapshot, scope.transcriptPath) : null
   }
   return account ? { name: accountShortName(account.email), email: account.email, limits } : null
 }
@@ -249,9 +254,10 @@ function ClaudeAccountUsageChip({
       ? translate('components.native-chat.account.detail', 'Claude account {{email}}', {
           email: usage.email
         })
-      : translate('components.native-chat.account.hostLogin', 'Claude login on {{host}}', {
-          host: usage.name
-        }),
+      : translate(
+          'components.native-chat.account.hostLoginUnknown',
+          "This chat's host has not reported its Claude login yet"
+        ),
     session
       ? translate(
           'components.native-chat.account.session',
@@ -283,7 +289,7 @@ function ClaudeAccountUsageChip({
           data-native-chat-account-usage=""
           className="flex items-center gap-2.5 whitespace-nowrap text-xs tabular-nums text-chat-foreground-faint"
         >
-          <span>{name}</span>
+          {name ? <span>{name}</span> : null}
           {session ? <UsageBar label={sessionLabel} window={session} now={now} /> : null}
           {weekly ? <UsageBar label={weekLabel} window={weekly} now={now} /> : null}
         </span>

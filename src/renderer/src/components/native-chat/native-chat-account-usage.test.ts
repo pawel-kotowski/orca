@@ -68,18 +68,14 @@ describe('native chat account usage', () => {
     ).toBeNull()
   })
 
-  it("names a remote chat by its host, never by this app's accounts", () => {
+  it("names a remote chat by its host's login, never by this app's accounts or the host", () => {
     const session = { usedPercent: 40, windowMinutes: 300, resetsAt: null, resetDescription: null }
     const snapshot = {
       claude: { accounts: [], activeAccountId: null, systemLoginEmail: 'p@moshealth.com' },
       codex: { accounts: [], activeAccountId: null },
       rateLimits: { claude: { session, weekly: null }, inactiveClaudeAccounts: [] }
     } as unknown as ProviderAccountsSnapshot
-    const usage = resolveRemoteChatClaudeUsage(
-      snapshot,
-      '/home/p/.claude/projects/x/s.jsonl',
-      'devbox'
-    )
+    const usage = resolveRemoteChatClaudeUsage(snapshot, '/home/p/.claude/projects/x/s.jsonl')
     expect(usage.name).toBe('moshealth')
     expect(usage.limits?.session).toBe(session)
 
@@ -87,9 +83,7 @@ describe('native chat account usage', () => {
       ...snapshot,
       claude: { ...snapshot.claude, systemLoginEmail: undefined }
     } as ProviderAccountsSnapshot
-    expect(resolveRemoteChatClaudeUsage(noEmail, null, 'devbox')).toMatchObject({
-      name: 'devbox',
-      email: null
-    })
+    // An older host reports no login: no name at all, never the machine's.
+    expect(resolveRemoteChatClaudeUsage(noEmail, null)).toMatchObject({ name: null, email: null })
   })
 })
