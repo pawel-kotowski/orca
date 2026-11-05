@@ -123,6 +123,11 @@ export type ClaudeRateLimitAccountsState = {
   activeAccountIdsByRuntime?: ClaudeManagedAccountRuntimeSelection
   /** The login System default holds, when the host can read it and accounts exist. */
   systemDefaultEmail?: string
+  /**
+   * Local: the host's own Claude login, reported even with no managed accounts (a box whose
+   * agents run on its system login), so a client can name the subscription a remote chat uses.
+   */
+  systemLoginEmail?: string
   systemDefaultOrganizationUuid?: string
   /** The host folder System default launches use, when accounts exist. */
   systemDefaultHome?: string

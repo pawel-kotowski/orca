@@ -9,6 +9,10 @@ import { formatRateLimitWindowChipLabel } from '../../../../shared/rate-limit-wi
 import { clampUsedPercent } from '../../../../shared/usage-percentage-display'
 import { barColor, USAGE_WARNING_PERCENT } from '../status-bar/provider-extra-usage-section'
 import { workspaceClaudeAccountId } from '../../../../shared/claude-workspace-account'
+import { getExecutionHostIdForWorktree } from '@/lib/worktree-runtime-owner'
+import { runtimeRpcTargetForAuthorityKey } from '@/runtime/runtime-client-target'
+import type { ProviderAccountsSnapshot } from '@/runtime/runtime-provider-accounts-client'
+import { useRemoteProviderAccounts } from './native-chat-remote-claude-usage'
 
 /** Which chat the message box belongs to, so its controls can show that chat's Claude account. */
 export type NativeChatAccountScope = {
@@ -125,18 +129,66 @@ function worktreeIdForTab(
 let lastInactiveFetchAt = Number.NEGATIVE_INFINITY
 const INACTIVE_REFRESH_MS = 5 * 60 * 1000
 
-function useChatClaudeUsage(scope: NativeChatAccountScope): {
-  account: ClaudeManagedAccount
-  limits: ProviderRateLimits | null
-} | null {
+/** What the chat line shows: the subscription's short name, its email when known, its limits. */
+type ChatClaudeUsage = { name: string; email: string | null; limits: ProviderRateLimits | null }
+
+/**
+ * A remote host's chat: the managed account its transcript lives under, else that host's active
+ * account, else the host's own system login. Its email is known only when the host reports it.
+ */
+export function resolveRemoteChatClaudeUsage(
+  snapshot: ProviderAccountsSnapshot,
+  transcriptPath: string | null,
+  hostLabel: string
+): ChatClaudeUsage {
+  const { claude, rateLimits } = snapshot
+  const fromTranscript = accountIdFromTranscriptPath(transcriptPath)
+  const accountId =
+    fromTranscript ??
+    // A transcript outside any managed home ran on the system login.
+    (transcriptPath ? null : claude.activeAccountId)
+  const account = claude.accounts.find((entry) => entry.id === accountId) ?? null
+  if (account) {
+    const limits =
+      account.id === claude.activeAccountId
+        ? (rateLimits?.claude ?? null)
+        : (rateLimits?.inactiveClaudeAccounts.find((entry) => entry.accountId === account.id)
+            ?.rateLimits ?? null)
+    return { name: accountShortName(account.email), email: account.email, limits }
+  }
+  const email = claude.systemDefaultEmail ?? claude.systemLoginEmail ?? null
+  return {
+    name: email ? accountShortName(email) : hostLabel,
+    email,
+    limits: claude.activeAccountId === null ? (rateLimits?.claude ?? null) : null
+  }
+}
+
+function useChatClaudeUsage(scope: NativeChatAccountScope): ChatClaudeUsage | null {
+  const worktreeId = useAppStore((state) =>
+    worktreeIdForTab(state.tabsByWorktree, scope.terminalTabId)
+  )
+  // 'local', a remote host's environment id, or '' for a host this app cannot ask (direct SSH).
+  const owner = useAppStore((state) => {
+    const target = runtimeRpcTargetForAuthorityKey(getExecutionHostIdForWorktree(state, worktreeId))
+    return target === null ? '' : target.kind === 'environment' ? target.environmentId : 'local'
+  })
+  const remoteId = owner !== 'local' && owner !== '' ? owner : null
+  const hostLabel = useAppStore(
+    (state) =>
+      state.runtimeEnvironments.find((environment) => environment.id === remoteId)?.name ?? ''
+  )
+  const snapshot = useRemoteProviderAccounts(remoteId)
   const account = useAppStore((state) =>
-    resolveChatClaudeAccount({
-      transcriptPath: scope.transcriptPath,
-      worktreeId: worktreeIdForTab(state.tabsByWorktree, scope.terminalTabId),
-      accounts: state.settings?.claudeManagedAccounts ?? [],
-      accountByWorktreeId: state.settings?.claudeAccountByWorktreeId,
-      activeAccountId: state.settings?.activeClaudeManagedAccountId ?? null
-    })
+    owner === 'local'
+      ? resolveChatClaudeAccount({
+          transcriptPath: scope.transcriptPath,
+          worktreeId,
+          accounts: state.settings?.claudeManagedAccounts ?? [],
+          accountByWorktreeId: state.settings?.claudeAccountByWorktreeId,
+          activeAccountId: state.settings?.activeClaudeManagedAccountId ?? null
+        })
+      : null
   )
   const isActive = useAppStore(
     (state) => account !== null && state.settings?.activeClaudeManagedAccountId === account.id
@@ -157,7 +209,12 @@ function useChatClaudeUsage(scope: NativeChatAccountScope): {
     lastInactiveFetchAt = window.performance.now()
     void useAppStore.getState().fetchInactiveClaudeAccountUsage()
   }, [needsFetch])
-  return account ? { account, limits } : null
+  if (remoteId) {
+    return snapshot
+      ? resolveRemoteChatClaudeUsage(snapshot, scope.transcriptPath, hostLabel || remoteId)
+      : null
+  }
+  return account ? { name: accountShortName(account.email), email: account.email, limits } : null
 }
 
 /**
@@ -184,13 +241,17 @@ function ClaudeAccountUsageChip({
   if (!usage) {
     return null
   }
-  const name = accountShortName(usage.account.email)
+  const { name } = usage
   const sessionLabel = translate('components.native-chat.account.sessionShort', '5h')
   const weekLabel = translate('components.native-chat.account.week', 'wk')
   const detail = [
-    translate('components.native-chat.account.detail', 'Claude account {{email}}', {
-      email: usage.account.email
-    }),
+    usage.email
+      ? translate('components.native-chat.account.detail', 'Claude account {{email}}', {
+          email: usage.email
+        })
+      : translate('components.native-chat.account.hostLogin', 'Claude login on {{host}}', {
+          host: usage.name
+        }),
     session
       ? translate(
           'components.native-chat.account.session',

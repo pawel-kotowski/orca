@@ -20553,7 +20553,9 @@
         "detail": "Claude account {{email}}",
         "session": "Session (5 h): {{used}}% used, resets in {{reset}}",
         "weekly": "Weekly: {{used}}% used, resets in {{reset}}",
-        "noUsage": "Usage not loaded yet"
+        "noUsage": "Usage not loaded yet",
+        "hostLogin": "Claude login on {{host}}",
+        "sessionShort": "5h"
       }
     },
     "tab": {

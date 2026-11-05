@@ -3,8 +3,10 @@ import type { ClaudeManagedAccount } from '../../../../shared/managed-account-ty
 import {
   accountIdFromTranscriptPath,
   accountShortName,
-  resolveChatClaudeAccount
+  resolveChatClaudeAccount,
+  resolveRemoteChatClaudeUsage
 } from './native-chat-account-usage'
+import type { ProviderAccountsSnapshot } from '@/runtime/runtime-provider-accounts-client'
 
 const MOS = '4ea0da2c-7860-4172-bd43-9d2a1177c907'
 const ROBO = 'e6945bb8-13b2-463f-abda-c22153bef8ff'
@@ -64,5 +66,30 @@ describe('native chat account usage', () => {
         worktreeId: null
       })
     ).toBeNull()
+  })
+
+  it("names a remote chat by its host, never by this app's accounts", () => {
+    const session = { usedPercent: 40, windowMinutes: 300, resetsAt: null, resetDescription: null }
+    const snapshot = {
+      claude: { accounts: [], activeAccountId: null, systemLoginEmail: 'p@moshealth.com' },
+      codex: { accounts: [], activeAccountId: null },
+      rateLimits: { claude: { session, weekly: null }, inactiveClaudeAccounts: [] }
+    } as unknown as ProviderAccountsSnapshot
+    const usage = resolveRemoteChatClaudeUsage(
+      snapshot,
+      '/home/p/.claude/projects/x/s.jsonl',
+      'devbox'
+    )
+    expect(usage.name).toBe('moshealth')
+    expect(usage.limits?.session).toBe(session)
+
+    const noEmail = {
+      ...snapshot,
+      claude: { ...snapshot.claude, systemLoginEmail: undefined }
+    } as ProviderAccountsSnapshot
+    expect(resolveRemoteChatClaudeUsage(noEmail, null, 'devbox')).toMatchObject({
+      name: 'devbox',
+      email: null
+    })
   })
 })

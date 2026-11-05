@@ -83,8 +83,9 @@ export class ClaudeAccountSelection {
       .sort((a, b) => b.updatedAt - a.updatedAt)
     const userConfigDir = this.runtimeAuth.router.userConfigDir()
     // Throttle parsing of the large, frequently rewritten personal state file.
-    const systemDefault =
-      accounts.length > 0 ? readClaudeFolderLogin(claudeStateFile(userConfigDir), 5_000) : null
+    // Throttled like the rest; read with no managed accounts too, for systemLoginEmail.
+    const login = readClaudeFolderLogin(claudeStateFile(userConfigDir), 5_000)
+    const systemDefault = accounts.length > 0 ? login : null
     return {
       accounts,
       activeAccountId: selection.host,
@@ -93,6 +94,7 @@ export class ClaudeAccountSelection {
         ? { systemDefaultHome: this.runtimeAuth.router.systemDefaultHome() }
         : {}),
       ...(systemDefault ? { systemDefaultEmail: systemDefault.email } : {}),
+      ...(login?.email ? { systemLoginEmail: login.email } : {}),
       ...(systemDefault?.organizationUuid
         ? { systemDefaultOrganizationUuid: systemDefault.organizationUuid }
         : {}),
