@@ -49,6 +49,18 @@ export type NativeChatAppearanceSettings = {
   activityHoverChat?: boolean
   /** Whether the message box is one line with only Attach, the option pickers and Stop; absent = on. */
   compactComposer?: boolean
+  /**
+   * Whether Ctrl+Enter in a terminal-backed Claude chat sends the message now, reaching Claude while
+   * it works instead of waiting for its turn to end, as Ctrl+Enter does in Claude's terminal; absent = on.
+   */
+  ctrlEnterSendsNow?: boolean
+}
+
+/** Ctrl+Enter sends a terminal Claude chat's message now, unless the user turned that off. */
+export function nativeChatCtrlEnterSendsNow(
+  settings: { nativeChatAppearance?: NativeChatAppearanceSettings } | null | undefined
+): boolean {
+  return settings?.nativeChatAppearance?.ctrlEnterSendsNow !== false
 }
 
 /** The one-line message box, unless the user turned it off. */

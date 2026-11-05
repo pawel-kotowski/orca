@@ -19,6 +19,7 @@ import { unwrapClaudeBashInputBlock } from '../../shared/claude-bash-input'
 import { claudeInterruptedMessageId } from './transcript-turn-markers'
 import { claudeStopHookFeedbackRow } from '../claude/claude-stop-hook-feedback'
 import { structuredAgentSessionStatusBlock } from '../../shared/agent-session/view/structured-agent-session-status-block'
+import { claudeTokenUsage } from '../claude/claude-context-usage'
 
 const MAX_EDIT_PATCH_HUNKS = 40
 const MAX_EDIT_PATCH_HUNK_LINES = 400
@@ -137,8 +138,24 @@ export function decodeClaudeTranscriptLine(
         : blocks,
     timestamp,
     source: 'transcript',
+    ...(role === 'assistant' ? claudeServing(record, message) : {}),
     ...parent
   }
+}
+
+/** The model that answered and its token accounting, which say how full the context window is. */
+function claudeServing(
+  record: Record<string, unknown>,
+  message: Record<string, unknown> | null
+): Pick<NativeChatMessage, 'model' | 'usage'> {
+  // A subagent's reply measures the subagent's context, not this conversation's.
+  if (record.isSidechain === true) {
+    return {}
+  }
+  const model = extractString(message?.model)
+  // Synthetic rows (API errors, interruptions) report zero usage and say nothing about the window.
+  const usage = claudeTokenUsage(message?.usage)
+  return usage ? { ...(model ? { model } : {}), usage } : {}
 }
 
 /** Claude Code's away recap (`※ recap` in its terminal) is a system row; show it as quiet status, not drop it. */

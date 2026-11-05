@@ -54,5 +54,7 @@ export const nativeChatApi = {
     }
   },
   getConversationNameFailureOutput: (sessionId: string): Promise<string | null> =>
-    ipcRenderer.invoke('nativeChat:conversationNameFailureOutput', sessionId)
+    ipcRenderer.invoke('nativeChat:conversationNameFailureOutput', sessionId),
+  getClaudeContextWindows: (transcriptPath: string): Promise<Record<string, number>> =>
+    ipcRenderer.invoke('nativeChat:claudeContextWindows', transcriptPath)
 } satisfies PreloadApi['nativeChat']

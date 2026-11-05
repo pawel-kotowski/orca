@@ -471,7 +471,10 @@ export function NativeChatComposerField({
           </div>
           {/* The Claude subscription this chat runs on and its limits, under the box. */}
           {editSession || launch ? null : (
-            <NativeChatComposerFooter onSwitchToTerminal={onSwitchToTerminal} />
+            <NativeChatComposerFooter
+              onSwitchToTerminal={onSwitchToTerminal}
+              contextUsage={contextUsage}
+            />
           )}
         </div>
       </div>

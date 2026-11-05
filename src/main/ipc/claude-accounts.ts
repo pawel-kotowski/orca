@@ -2,6 +2,7 @@ import { ipcMain } from 'electron'
 import type { ClaudeAccountService } from '../claude-accounts/service'
 import type { ClaudeAccountSelectionTarget } from '../claude-accounts/runtime-selection'
 import { openAccountSignInLink } from './account-sign-in-link-opener'
+import { registerNativeChatClaudeContextWindowsHandler } from './native-chat-claude-context-windows'
 
 export function registerClaudeAccountHandlers(claudeAccounts: ClaudeAccountService): void {
   claudeAccounts.setWslSignInLinkOpener((signInLink) => openAccountSignInLink('claude', signInLink))
@@ -28,4 +29,6 @@ export function registerClaudeAccountHandlers(claudeAccounts: ClaudeAccountServi
         ? claudeAccounts.selectAccountForTarget(args.accountId, args)
         : claudeAccounts.selectAccount(args.accountId)
   )
+  // Each account home caches the model catalog that sizes its chats' context windows.
+  registerNativeChatClaudeContextWindowsHandler()
 }

@@ -24,6 +24,7 @@ import { useNativeChatStructuredComposerSend } from './use-native-chat-structure
 import { useImeEnterGestureOwnership } from '@/lib/ime-composition-keyboard-event'
 import { useNativeChatComposerAppMenuSelection } from './use-native-chat-composer-app-menu-selection'
 import { useNativeChatComposerSubmit } from './use-native-chat-composer-submit'
+import { useNativeChatCtrlEnterSendsNow } from './use-native-chat-ctrl-enter-sends-now'
 import { useNativeChatComposerCommandPicker } from './use-native-chat-composer-command-picker'
 import type * as C from './native-chat-composer-types'
 
@@ -226,7 +227,7 @@ export const NativeChatComposerPane = forwardRef<ComposerHandle, C.NativeChatCom
         paneKey
       })
     const sessionOptionsSurface = structuredTransport?.optionsSurface ?? ptySessionOptionsSurface
-    const contextUsageSummary = useNativeChatContextUsageSummary(structuredTransport)
+    const contextUsage = useNativeChatContextUsageSummary(structuredTransport, agent, recallSource)
     const sessionOptionsSnapshot = structuredTransport?.optionSnapshot ?? ptySessionOptionsSnapshot
 
     const sendStructured = useNativeChatStructuredComposerSend({
@@ -341,6 +342,10 @@ export const NativeChatComposerPane = forwardRef<ComposerHandle, C.NativeChatCom
       send,
       hasAttachments: imageAttachments.length > 0,
       ...(!editSession && steerHead ? { steerHead } : {}),
+      ctrlEnterSendsNow: useNativeChatCtrlEnterSendsNow(
+        agent,
+        !structuredTransport && !editSession && !launchPrompt
+      ),
       setActiveSuggestion,
       setDraft,
       setCaret
@@ -401,7 +406,7 @@ export const NativeChatComposerPane = forwardRef<ComposerHandle, C.NativeChatCom
           onStop={interrupt}
           sessionOptionsSurface={sessionOptionsSurface}
           sessionOptionsSnapshot={sessionOptionsSnapshot}
-          contextUsage={contextUsageSummary}
+          contextUsage={contextUsage}
           sessionOptionsPickerRequest={structuredTransport?.optionPickerRequest ?? null}
           agent={agent}
           launchPrompt={launchPrompt}

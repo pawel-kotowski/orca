@@ -6,6 +6,7 @@ import {
   nativeChatActivityFollowsConversation,
   nativeChatActivityHoverChat,
   nativeChatCompactComposer,
+  nativeChatCtrlEnterSendsNow,
   nativeChatToolStepsOpen
 } from '../../../../../../shared/native-chat/native-chat-appearance-settings'
 import {
@@ -139,6 +140,18 @@ export function AppearanceChatSection({
         )}
         checked={nativeChatCompactComposer(settings)}
         onChange={() => update({ compactComposer: !nativeChatCompactComposer(settings) })}
+      />
+      <SettingsSwitchRow
+        label={translate(
+          'settings.chat.appearance.ctrlEnterSendsNow',
+          'Ctrl+Enter sends now while Claude works'
+        )}
+        description={translate(
+          'settings.chat.appearance.ctrlEnterSendsNowDescription',
+          "In a Claude chat that runs in its terminal, Ctrl+Enter gives Claude the message right away, as Ctrl+Enter does in Claude's terminal. Enter waits until Claude finishes what it is doing."
+        )}
+        checked={nativeChatCtrlEnterSendsNow(settings)}
+        onChange={() => update({ ctrlEnterSendsNow: !nativeChatCtrlEnterSendsNow(settings) })}
       />
       <SettingsSwitchRow
         label={translate(

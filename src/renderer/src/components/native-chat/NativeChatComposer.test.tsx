@@ -9,12 +9,17 @@ import { clearNativeChatSessionOptionCacheForTests } from '../../../../shared/na
 import { clearNativeChatModelEnrichmentForTests } from './native-chat-session-option-enrichment'
 import { NativeChatComposer } from './NativeChatComposer'
 import { sendRuntimePtyInput } from '@/runtime/runtime-terminal-inspection'
+import { submitNativeChatPrompt } from './native-chat-runtime-send'
 
 import type * as RemoteRuntimePtyIdModule from '../../../../shared/remote-runtime/remote-runtime-pty-id'
 
 const mocks = vi.hoisted(() => ({
   cancelPendingSends: vi.fn(),
   composerIsComposing: null as (() => boolean) | null,
+  keyDownArgs: null as {
+    send: (intent?: { sendNow?: true }) => void
+    ctrlEnterSendsNow?: boolean
+  } | null,
   flushPendingAttachments: vi.fn(),
   fieldProps: null as {
     onSend?: () => void
@@ -145,8 +150,11 @@ vi.mock('../dictation/dictation-control-events', () => ({
   dispatchDictationControl: vi.fn()
 }))
 vi.mock('./use-native-chat-composer-keydown', () => ({
-  useNativeChatComposerKeyDown: (args: { isComposing: () => boolean }) => {
+  useNativeChatComposerKeyDown: (
+    args: { isComposing: () => boolean } & NonNullable<typeof mocks.keyDownArgs>
+  ) => {
     mocks.composerIsComposing = args.isComposing
+    mocks.keyDownArgs = args
     return vi.fn()
   }
 }))
@@ -169,6 +177,7 @@ describe('NativeChatComposer', () => {
     mocks.draftScopeKeys.length = 0
     mocks.confirmationObserver = null
     mocks.composerIsComposing = null
+    mocks.keyDownArgs = null
     mocks.createClaudeModelSwitchConfirmationObserver.mockImplementation(() => {
       const observer = {
         ready: Promise.resolve(),
@@ -241,6 +250,52 @@ describe('NativeChatComposer', () => {
     expect(mocks.cancelPendingSends.mock.invocationCallOrder[0]).toBeLessThan(
       onStop.mock.invocationCallOrder[0] ?? Number.POSITIVE_INFINITY
     )
+  })
+
+  describe('Ctrl+Enter in a terminal Claude chat', () => {
+    // Claude Code's send-now chord (Ctrl+X Ctrl+S), bound beside Ctrl+Enter in its terminal.
+    const SEND_NOW = '\x18\x13'
+    const renderChat = (agent: 'claude' | 'codex' = 'claude') =>
+      render(
+        <NativeChatComposer
+          terminalTabId="tab-1"
+          paneKey="tab-1:leaf-1"
+          targetPtyId="pty-1"
+          agent={agent}
+          isWorking
+        />
+      )
+
+    it('submits with the send-now key instead of Enter', () => {
+      renderChat()
+      expect(mocks.keyDownArgs?.ctrlEnterSendsNow).toBe(true)
+      act(() => mocks.keyDownArgs?.send({ sendNow: true }))
+      expect(mocks.sendNativeChatMessage).toHaveBeenCalledExactlyOnceWith(
+        'pty-1',
+        'hello',
+        expect.objectContaining({ submitKey: SEND_NOW })
+      )
+    })
+
+    it('keeps Enter for a plain send', () => {
+      renderChat()
+      act(() => mocks.keyDownArgs?.send())
+      expect(mocks.sendNativeChatMessage).toHaveBeenCalledOnce()
+      expect(mocks.sendNativeChatMessage.mock.calls[0]?.[2]).not.toHaveProperty('submitKey')
+    })
+
+    it('pushes the messages Claude holds when the box is empty', () => {
+      mocks.draft = ''
+      renderChat()
+      act(() => mocks.keyDownArgs?.send({ sendNow: true }))
+      expect(submitNativeChatPrompt).toHaveBeenCalledExactlyOnceWith('pty-1', SEND_NOW)
+      expect(mocks.sendNativeChatMessage).not.toHaveBeenCalled()
+    })
+
+    it('leaves other agents on their own Enter', () => {
+      renderChat('codex')
+      expect(mocks.keyDownArgs?.ctrlEnterSendsNow).toBe(false)
+    })
   })
 
   it('writes nothing from a composer hidden under a prompt card that still holds focus', () => {

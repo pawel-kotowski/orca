@@ -17,6 +17,8 @@ export type NativeChatSendOptions = {
   clearInput?: string | null
   /** For launch-draft replacement, confirm empty input and widen to maximal clearing if residue remains. */
   confirmCleared?: () => boolean
+  /** The key that submits the body; absent is Enter. */
+  submitKey?: string
 }
 
 export function clearUnsubmittedAgentInput(ptyId: string, options?: NativeChatSendOptions): void {

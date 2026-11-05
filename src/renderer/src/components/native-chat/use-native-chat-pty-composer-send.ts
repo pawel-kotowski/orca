@@ -23,6 +23,7 @@ import {
   type NativeChatResolvedTarget
 } from './native-chat-composer-target'
 import { isSlashCommandDraft } from '../../../../shared/native-chat/input/native-chat-slash-commands'
+import { CLAUDE_SEND_NOW_SUBMIT } from '../../../../shared/native-chat/input/native-chat-paste-bytes'
 import type { NativeChatPickerState } from './use-native-chat-picker-state'
 import type { NativeChatSendLifecycle } from './use-native-chat-send-lifecycle'
 import type { NativeChatPtySessionOptionsSurface } from '../../../../shared/native-chat/input/native-chat-pty-session-options'
@@ -31,6 +32,26 @@ import {
   answerNativeChatCommandInComposer,
   type NativeChatLocalCommandAnswer
 } from './use-native-chat-local-command-answer'
+
+/** How one terminal send goes: `sendNow` reaches a working Claude at once instead of queueing. */
+export type NativeChatPtySendDelivery = { sendNow?: boolean }
+
+/**
+ * Claude's send-now key on an empty box, as in its terminal: the messages Claude holds for the
+ * end of the turn go to the model now.
+ */
+function sendClaudeHeldMessagesNow(args: {
+  disabled: boolean
+  isDispatchingSessionOption: boolean
+  resolveTarget: () => NativeChatResolvedTarget | null
+}): boolean {
+  const target = args.disabled || args.isDispatchingSessionOption ? null : args.resolveTarget()
+  if (!target) {
+    return false
+  }
+  submitNativeChatPrompt(target.ptyId, CLAUDE_SEND_NOW_SUBMIT)
+  return true
+}
 
 export function useNativeChatPtyComposerSend(args: {
   agent: AgentType
@@ -57,13 +78,21 @@ export function useNativeChatPtyComposerSend(args: {
   clearSkillOrigin: () => void
   clearImageAttachments: () => void
   setNotice: (notice: string | null) => void
-}): (retry?: { text: string; imagePaths?: string[] }) => boolean {
+}): (
+  retry?: { text: string; imagePaths?: string[] },
+  delivery?: NativeChatPtySendDelivery
+) => boolean {
   return useCallback(
-    (retry) => {
+    (retry, delivery) => {
       let text = retry?.text ?? args.draft
       const imagePaths =
         retry?.imagePaths ??
         (retry ? [] : args.imageAttachments.map((attachment) => attachment.path))
+      // Only Claude Code has a send-now key; other agents' messages go as plain Enter sends them.
+      const sendNow = delivery?.sendNow === true && args.agent === 'claude'
+      if (text.trim() === '' && imagePaths.length === 0 && sendNow && !retry) {
+        return sendClaudeHeldMessagesNow(args)
+      }
       if ((text.trim() === '' && imagePaths.length === 0) || args.disabled) {
         return false
       }
@@ -101,6 +130,7 @@ export function useNativeChatPtyComposerSend(args: {
         args.agent === 'claude' && classification === 'chat'
           ? {
               ...launchSendOptions,
+              ...(sendNow ? { submitKey: CLAUDE_SEND_NOW_SUBMIT } : {}),
               onWriteRejected: () => {
                 if (pendingId) {
                   args.optimisticSendOutcome?.reject(pendingId)

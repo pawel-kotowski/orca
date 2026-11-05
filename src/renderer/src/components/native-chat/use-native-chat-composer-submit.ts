@@ -11,6 +11,7 @@ import type {
 import type { NativeChatStructuredComposerSend } from './use-native-chat-structured-composer-send'
 import type { NativeChatComposerImageAttachment } from './NativeChatComposerField'
 import { nativeChatImagesHoldSend } from './native-chat-image-reattach'
+import type { NativeChatPtySendDelivery } from './use-native-chat-pty-composer-send'
 import {
   clearNativeChatComposerDraftIfUnchanged,
   readNativeChatComposerDraft
@@ -48,7 +49,7 @@ export function useNativeChatComposerSubmit(args: {
   disabled: boolean
   /** An optional-prompt action still passes the shared paste and attachment admission. */
   submitEmpty?: () => void
-  sendPty: () => void
+  sendPty: (retry?: undefined, delivery?: NativeChatPtySendDelivery) => void
   sendStructured: NativeChatStructuredComposerSend
   /** Runs a command Orca owns, like `/resume`; true means the draft never reaches the agent. */
   consumeOrcaCommand?: (draft: string) => boolean
@@ -177,7 +178,7 @@ export function useNativeChatComposerSubmit(args: {
           setGoal(intent)
         }
       } else if (!structuredTransport) {
-        sendPty()
+        sendPty(undefined, intent?.sendNow ? { sendNow: true } : undefined)
       } else if (!disabled && draft.trim() === '' && imageAttachments.length === 0) {
         submitEmpty?.()
       } else if (!disabled) {

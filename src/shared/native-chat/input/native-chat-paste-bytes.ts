@@ -18,6 +18,14 @@ export function isMultilineDraft(text: string): boolean {
 /** Write Enter separately from the framed body; see buildNativeChatPasteBytes. */
 export const NATIVE_CHAT_SUBMIT = SUBMIT
 
+/**
+ * Claude Code's "send now" key: while it works, the message reaches the model at once instead of
+ * waiting for the turn to end (plain Enter queues it); while idle it sends as Enter does. Claude
+ * binds it to both Ctrl+Enter and the chord Ctrl+X Ctrl+S. Why the chord: it is plain control
+ * bytes, so it survives ConPTY, SSH and tmux, which can drop the Ctrl+Enter escape sequence.
+ */
+export const CLAUDE_SEND_NOW_SUBMIT = '\x18\x13'
+
 /** Build sanitized body bytes, bracket-framed for multiline or long input, without submit.
  * Agent TUIs treat CR in the same PTY write as pasted body, leaving text unsent. Write NATIVE_CHAT_SUBMIT separately after a short delay,
  * matching orca-runtime writeTerminalAction Enter handling. */

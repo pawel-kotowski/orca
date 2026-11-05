@@ -74,4 +74,6 @@ export type NativeChatApi = {
   ) => () => void
   /** A local structured chat's last failed naming output; null when none or not local. */
   getConversationNameFailureOutput: (sessionId: string) => Promise<string | null>
+  /** Context window per model id from the Claude catalog cached beside a local transcript. */
+  getClaudeContextWindows?: (transcriptPath: string) => Promise<Record<string, number>>
 }

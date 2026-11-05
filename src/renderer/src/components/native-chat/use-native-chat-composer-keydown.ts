@@ -34,9 +34,24 @@ export type UseNativeChatComposerKeyDownArgs = {
   send: (intent?: NativeChatComposerSendIntent) => void
   /** Cmd/Ctrl+Shift+Enter steers the head queued card, whatever the composer holds. */
   steerHead?: (() => boolean) | undefined
+  /** Ctrl+Enter sends now, on every platform, as it does in Claude's own terminal. */
+  ctrlEnterSendsNow?: boolean
   setActiveSuggestion: Dispatch<SetStateAction<number>>
   setDraft: Dispatch<SetStateAction<string>>
   setCaret: Dispatch<SetStateAction<number>>
+}
+
+/** Ctrl+Enter alone; on macOS it is the Control key, not Command. */
+function isNativeChatCtrlEnter(event: {
+  key: string
+  ctrlKey: boolean
+  metaKey: boolean
+  altKey: boolean
+  shiftKey: boolean
+}): boolean {
+  return (
+    event.key === 'Enter' && event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey
+  )
 }
 
 export function useNativeChatComposerKeyDown({
@@ -54,6 +69,7 @@ export function useNativeChatComposerKeyDown({
   interrupt,
   send,
   steerHead,
+  ctrlEnterSendsNow = false,
   setActiveSuggestion,
   setDraft,
   setCaret
@@ -123,6 +139,14 @@ export function useNativeChatComposerKeyDown({
         interrupt()
         return
       }
+      if (ctrlEnterSendsNow && isNativeChatCtrlEnter(event)) {
+        event.preventDefault()
+        // Why also with an empty box: Claude then sends the messages it holds for the turn's end.
+        if (!event.repeat) {
+          send({ sendNow: true })
+        }
+        return
+      }
       const modified = event.key === 'Enter' && (isMacPlatform() ? event.metaKey : event.ctrlKey)
       // Why before Shift+Enter: that adds a newline, and this chord leaves the draft alone.
       if (modified && event.shiftKey) {
@@ -186,6 +210,7 @@ export function useNativeChatComposerKeyDown({
       mentionFiles,
       send,
       steerHead,
+      ctrlEnterSendsNow,
       setActiveSuggestion,
       setCaret,
       setDraft

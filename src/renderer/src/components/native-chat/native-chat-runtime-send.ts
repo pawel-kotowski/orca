@@ -56,7 +56,10 @@ export function sendNativeChatMessage(
       ptyId,
       [
         { data: buildNativeChatPasteBytes(text), delayBeforeMs: 0 },
-        { data: NATIVE_CHAT_SUBMIT, delayBeforeMs: NATIVE_CHAT_SUBMIT_DELAY_MS }
+        {
+          data: options.submitKey ?? NATIVE_CHAT_SUBMIT,
+          delayBeforeMs: NATIVE_CHAT_SUBMIT_DELAY_MS
+        }
       ],
       options
     )
@@ -80,7 +83,7 @@ export function sendNativeChatMessage(
           sendRuntimePtyInput(ptyId, buildNativeChatPasteBytes(text), 'driving')
           // Measure the Enter delay from the actual body write so renderer stalls cannot collapse the gap.
           delay(NATIVE_CHAT_SUBMIT_DELAY_MS, () => {
-            sendRuntimePtyInput(ptyId, NATIVE_CHAT_SUBMIT, 'driving')
+            sendRuntimePtyInput(ptyId, options?.submitKey ?? NATIVE_CHAT_SUBMIT, 'driving')
             markSubmitted()
           })
         },
@@ -200,8 +203,8 @@ export function sendNativeChatTypedCommand(
   )
 }
 
-export function submitNativeChatPrompt(ptyId: string): void {
-  sendRuntimePtyInput(ptyId, NATIVE_CHAT_SUBMIT, 'driving')
+export function submitNativeChatPrompt(ptyId: string, submitKey = NATIVE_CHAT_SUBMIT): void {
+  sendRuntimePtyInput(ptyId, submitKey, 'driving')
 }
 
 /** Space AskUserQuestion keystroke groups so the TUI selector applies each before the next. */

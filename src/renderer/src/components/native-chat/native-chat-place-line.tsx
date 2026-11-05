@@ -12,9 +12,17 @@ import { useNativeChatAccountScope, worktreeIdForTab } from './native-chat-accou
  */
 export function NativeChatPlaceLine(): React.JSX.Element | null {
   const scope = useNativeChatAccountScope()
-  const terminalTabId = scope?.terminalTabId ?? null
+  // Why: only a terminal-backed chat has a tab to place; the store is read only for one.
+  return scope ? <TerminalChatPlaceLine terminalTabId={scope.terminalTabId} /> : null
+}
+
+function TerminalChatPlaceLine({
+  terminalTabId
+}: {
+  terminalTabId: string
+}): React.JSX.Element | null {
   const place = useAppStore((state) => {
-    const worktreeId = terminalTabId ? worktreeIdForTab(state.tabsByWorktree, terminalTabId) : null
+    const worktreeId = worktreeIdForTab(state.tabsByWorktree, terminalTabId)
     if (!worktreeId) {
       return ''
     }

@@ -533,6 +533,8 @@
         "soleCallAsLineDescription": "A run of one command opens straight to its code and output, without a run header above it.",
         "compactComposer": "Compact message box",
         "compactComposerDescription": "One line with only Attach, the model and option pickers, and Stop while the agent works. Enter sends.",
+        "ctrlEnterSendsNow": "Ctrl+Enter sends now while Claude works",
+        "ctrlEnterSendsNowDescription": "In a Claude chat that runs in its terminal, Ctrl+Enter gives Claude the message right away, as Ctrl+Enter does in Claude's terminal. Enter waits until Claude finishes what it is doing.",
         "activityFollowsConversation": "Activity view follows the conversation",
         "activityFollowsConversationDescription": "Each card shows the first and latest prompt, the latest steps and the answer.",
         "activityHoverChat": "Show the chat when hovering an activity card",
@@ -20283,7 +20285,8 @@
       "contextUsage": {
         "label": "Context {{used}} of {{window}} tokens, {{percent}}% used",
         "title": "Context",
-        "estimated": "Estimated from the last response."
+        "estimated": "Estimated from the last response.",
+        "short": "ctx"
       },
       "contextMenu": {
         "noSessionContext": "No chat context is available.",
