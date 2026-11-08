@@ -1,6 +1,9 @@
 import { useShallow } from 'zustand/react/shallow'
 import { useAppStore } from '@/store'
 import { useActivityProjectColor } from '../activity/activity-project-color'
+import { ActivityMachineMark } from '../activity/activity-machine-mark'
+import { getExecutionHostIdForWorktree } from '@/lib/worktree-runtime-owner'
+import { parseExecutionHostId } from '../../../../shared/execution-host'
 import { getActivityThreadWorkspaceTitle } from '@/lib/activity-thread-display'
 import { selectWorktreeHostDisplayLabel } from '@/lib/execution-host-display-label'
 import { FLOATING_TERMINAL_WORKTREE_ID } from '../../../../shared/constants'
@@ -31,6 +34,7 @@ function TerminalChatPlaceLine({
       }
       if (worktreeId === FLOATING_TERMINAL_WORKTREE_ID) {
         return {
+          local: false,
           machine: null,
           repo: null,
           workspace: translate('components.activity.floatingWorkspace', 'Floating workspace')
@@ -38,8 +42,12 @@ function TerminalChatPlaceLine({
       }
       const worktree = state.getKnownWorktreeById(worktreeId)
       const repo = worktree ? state.repos.find((entry) => entry.id === worktree.repoId) : undefined
+      const local =
+        parseExecutionHostId(getExecutionHostIdForWorktree(state, worktreeId))?.kind === 'local'
       return {
-        machine: selectWorktreeHostDisplayLabel(state, worktreeId)?.trim() || null,
+        // Why: this computer draws as its mark, as on activity cards; only another machine is named.
+        local,
+        machine: local ? null : selectWorktreeHostDisplayLabel(state, worktreeId)?.trim() || null,
         repo: repo ?? null,
         workspace: worktree ? getActivityThreadWorkspaceTitle(worktree).trim() || null : null
       }
@@ -50,7 +58,9 @@ function TerminalChatPlaceLine({
     return null
   }
   const project = place.repo?.displayName?.trim() || null
-  const title = [place.machine, project, place.workspace].filter(Boolean).join(' · ')
+  const title = [place.local ? null : place.machine, project, place.workspace]
+    .filter(Boolean)
+    .join(' · ')
   if (!title) {
     return null
   }
@@ -58,27 +68,32 @@ function TerminalChatPlaceLine({
   // Why: the machine stays quiet, the project takes its own colour (as its activity card does) and
   // the workspace reads in the chat's text colour, so the line says where at a glance.
   return (
+    // Why ml-auto and max-w-full: right-aligned beside the limits, or on a row of its own when
+    // they leave no room (the footer wraps), cut only if even a whole row is too narrow.
     <span
-      className="ml-auto min-w-0 truncate text-xs text-chat-foreground-faint"
+      className="ml-auto flex min-w-0 max-w-full items-center gap-1.5 text-xs text-chat-foreground-faint"
       title={title}
       data-native-chat-place=""
     >
-      {place.machine ? <span>{place.machine}</span> : null}
-      {place.machine && project ? separator : null}
-      {project ? (
-        <span
-          className="font-medium"
-          style={
-            projectColor
-              ? { color: `color-mix(in oklab, ${projectColor} 75%, var(--chat-foreground))` }
-              : undefined
-          }
-        >
-          {project}
-        </span>
-      ) : null}
-      {(place.machine || project) && place.workspace ? separator : null}
-      {place.workspace ? <span className="text-chat-foreground">{place.workspace}</span> : null}
+      {place.local ? <ActivityMachineMark remoteName={null} /> : null}
+      <span className="min-w-0 truncate">
+        {place.machine ? <span>{place.machine}</span> : null}
+        {place.machine && project ? separator : null}
+        {project ? (
+          <span
+            className="font-medium"
+            style={
+              projectColor
+                ? { color: `color-mix(in oklab, ${projectColor} 75%, var(--chat-foreground))` }
+                : undefined
+            }
+          >
+            {project}
+          </span>
+        ) : null}
+        {(place.machine || project) && place.workspace ? separator : null}
+        {place.workspace ? <span className="text-chat-foreground">{place.workspace}</span> : null}
+      </span>
     </span>
   )
 }

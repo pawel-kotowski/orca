@@ -17,7 +17,7 @@ export function NativeChatComposerFooter({
   contextUsage?: NativeChatContextUsageSummary | null
 }): React.JSX.Element {
   return (
-    <div className="-mb-2 mt-1 flex items-center gap-2.5 px-3">
+    <div className="-mb-2 mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1 px-3">
       <NativeChatAccountUsageChip />
       <NativeChatContextUsageChip usage={contextUsage} />
       {onSwitchToTerminal ? (

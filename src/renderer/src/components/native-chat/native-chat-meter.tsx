@@ -42,7 +42,7 @@ export function NativeChatMeter({
       aria-valuemin={0}
       aria-valuemax={100}
       aria-valuenow={Math.round(used)}
-      className="h-1.5 w-12 overflow-hidden bg-chat-foreground-faint/20"
+      className="h-1.5 w-9 overflow-hidden bg-chat-foreground-faint/20"
     >
       <span
         className="block h-full"
