@@ -9,6 +9,8 @@ import { useActivityThreadActionBindings } from '@/components/activity/use-activ
 import { ActivityThreadListPane } from '@/components/activity/activity-thread-list-pane'
 import { useAgentPaneThreads } from '@/components/activity/use-agent-pane-threads'
 import { ActivityThreadOptionsMenu } from '@/components/activity/activity-thread-controls'
+import { ActivityCardPartsBar } from '@/components/activity/activity-card-parts-bar'
+import { nativeChatActivityFollowsConversation } from '../../../../shared/native-chat/native-chat-appearance-settings'
 import type {
   ActivityGroupBy,
   ThreadReadFilter
@@ -50,6 +52,8 @@ export default function SidebarAgentsList({
   const showChildAgents = useAppStore((s) => s.agentsShowChildAgents)
   const setShowChildAgents = useAppStore((s) => s.setAgentsShowChildAgents)
   const [selectedPaneKey, setSelectedPaneKey] = useState<string | null>(null)
+  // Why: the card-contents switches apply to cards read from the conversation only.
+  const followsConversation = useAppStore((s) => nativeChatActivityFollowsConversation(s.settings))
   const activityFilterInputRef = useRef<HTMLInputElement | null>(null)
 
   const handleShowSearchChange = useCallback(
@@ -146,6 +150,7 @@ export default function SidebarAgentsList({
           />
         </div>
       ) : null}
+      {followsConversation ? <ActivityCardPartsBar /> : null}
       <ActivityThreadListPane
         activityFilterInputRef={activityFilterInputRef}
         query={query}

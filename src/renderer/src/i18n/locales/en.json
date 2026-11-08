@@ -21194,7 +21194,19 @@
     },
     "activity": {
       "floating": "Floating",
-      "floatingWorkspace": "Floating workspace"
+      "floatingWorkspace": "Floating workspace",
+      "cardParts": {
+        "label": "Card contents",
+        "status": "Status",
+        "repo": "Repo",
+        "machine": "Machine",
+        "time": "Time",
+        "workspace": "Workspace",
+        "conversation": "Agent",
+        "output": "Output",
+        "latestPrompt": "Prompt",
+        "firstPrompt": "First prompt"
+      }
     }
   },
   "dashboardPopout": {

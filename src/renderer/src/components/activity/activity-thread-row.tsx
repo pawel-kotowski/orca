@@ -225,9 +225,11 @@ export const ActivityThreadRow = React.memo(function ActivityThreadRow({
       // Why: the project's colour tells the cards apart at a glance.
       style={activityCardTintStyle(projectColor)}
       className={cn(
-        'group relative flex w-full cursor-pointer flex-col gap-1 rounded-lg border border-transparent px-1.5 py-1.5 text-left transition-[background-color,border-color,opacity,box-shadow] duration-200 outline-none select-none focus-visible:ring-1 focus-visible:ring-ring',
+        'group relative flex w-full cursor-pointer flex-col gap-1 rounded-lg border border-transparent text-left transition-[background-color,border-color,opacity,box-shadow] duration-200 outline-none select-none focus-visible:ring-1 focus-visible:ring-ring',
         // Why: a conversation card marks hover with a hairline frame, not a filled highlight.
-        conversation ? 'hover:border-border/60' : 'worktree-sidebar-card-hover'
+        conversation
+          ? 'px-2.5 py-2 hover:border-border/60'
+          : 'px-1.5 py-1.5 worktree-sidebar-card-hover'
       )}
     >
       {conversation && hoverChat ? (

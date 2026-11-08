@@ -17,13 +17,15 @@ import type { ActivityThreadGroup, AgentPaneThread } from './activity-thread-typ
 
 // Use exhaustive, unique attention ranks so new states fail typecheck and recency cannot reorder headers.
 const ACTIVITY_STATUS_GROUP_RANK: Record<ActivityThreadStatusId, number> = {
-  waiting: 0,
-  blocked: 1,
-  permission: 2,
-  failed: 3,
-  unconfirmed: 4,
-  working: 5,
-  monitoring: 6,
+  // Why first: an agent monitoring background work is most often an orchestrator, the agent the
+  // others report to (Paweł, 2026-11-08: "monitoring agents should show up at the top").
+  monitoring: 0,
+  waiting: 1,
+  blocked: 2,
+  permission: 3,
+  failed: 4,
+  unconfirmed: 5,
+  working: 6,
   // A user's Stop is not news, so it follows live work, but it is not a finish either.
   interrupted: 7,
   unverifiable: 8,
