@@ -3,6 +3,23 @@ import type { AgentStatusEntry } from './agent-status-types'
 /** Retain explicit status past this threshold so silent hook streams decay working dots back to active. */
 export const AGENT_STATUS_STALE_AFTER_MS = 30 * 60 * 1000
 
+/**
+ * How long a monitoring row (an agent whose turn is held open by its own background shell or
+ * Monitor) stays live without a hook. It is silent by design until that work ends, which for an
+ * orchestrator watching workers can take hours; its process exit still ends it at once.
+ */
+export const AGENT_STATUS_MONITORING_STALE_AFTER_MS = 24 * 60 * 60 * 1000
+
+/** The silence a row may keep before it counts as stale: longer for a monitoring row. */
+export function agentStatusStaleAfterMs(
+  entry: Partial<Pick<AgentStatusEntry, 'state' | 'workingMode'>>,
+  staleAfterMs = AGENT_STATUS_STALE_AFTER_MS
+): number {
+  return entry.state === 'working' && entry.workingMode === 'monitoring'
+    ? Math.max(staleAfterMs, AGENT_STATUS_MONITORING_STALE_AFTER_MS)
+    : staleAfterMs
+}
+
 /** Hydrated nonterminal rows stay unverifiable throughout retention; missing exit evidence must not let the live window end them. */
 export const AGENT_STATUS_HYDRATE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000
 
@@ -67,13 +84,14 @@ export function isAgentStatusFresh(
     | 'mirroredEvidenceReceivedAt'
     | 'restoredUnconfirmed'
     | 'structuredHostOwned'
-  >,
+  > &
+    Partial<Pick<AgentStatusEntry, 'state' | 'workingMode'>>,
   now = Date.now(),
   staleAfterMs = AGENT_STATUS_STALE_AFTER_MS
 ): boolean {
   return (
     entry.restoredUnconfirmed !== true &&
     (entry.structuredHostOwned === true ||
-      now - agentStatusEvidenceObservedAt(entry) <= staleAfterMs)
+      now - agentStatusEvidenceObservedAt(entry) <= agentStatusStaleAfterMs(entry, staleAfterMs))
   )
 }

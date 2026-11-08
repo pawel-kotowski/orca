@@ -2,7 +2,8 @@ import { agentEntryCompletionAt } from '../../../../../shared/agent-status/lifec
 import type { AgentStatusEntry } from '../../../../../shared/agent-status/contracts/agent-status-types'
 import {
   AGENT_STATUS_STALE_AFTER_MS,
-  agentStatusEvidenceObservedAt
+  agentStatusEvidenceObservedAt,
+  agentStatusStaleAfterMs
 } from '../../../../../shared/agent-status/contracts/agent-status-freshness'
 
 export type FreshnessSchedulerDeps = {
@@ -46,7 +47,7 @@ type EntryExpiries = { hookExpiryAt: number; completionExpiryAt: number | null }
 function entryExpiries(entry: AgentStatusEntry): EntryExpiries {
   const completedAt = agentEntryCompletionAt(entry)
   return {
-    hookExpiryAt: agentStatusEvidenceObservedAt(entry) + AGENT_STATUS_STALE_AFTER_MS,
+    hookExpiryAt: agentStatusEvidenceObservedAt(entry) + agentStatusStaleAfterMs(entry),
     completionExpiryAt: completedAt === null ? null : completedAt + AGENT_STATUS_STALE_AFTER_MS
   }
 }

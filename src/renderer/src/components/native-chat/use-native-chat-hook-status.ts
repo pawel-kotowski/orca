@@ -1,4 +1,5 @@
 import { useAppStore } from '../../store'
+import { isAgentStatusFresh } from '../../../../shared/agent-status/contracts/agent-status-freshness'
 import type { AgentStatusState } from '../../../../shared/agent-status/contracts/agent-status-types'
 import {
   nativeChatHookHasWorkingSubagents,
@@ -19,4 +20,16 @@ export function useNativeChatHookStatus(
     nativeChatHookHasWorkingSubagents(store.agentStatusByPaneKey[paneKey])
   )
   return [state, stateStartedAt, hasWorkingSubagents]
+}
+
+/** The pane's agent ended its turn and waits on its own background shell or Monitor. */
+export function useNativeChatHeldByBackgroundWork(paneKey: string): boolean {
+  return useAppStore((store) => {
+    const entry = store.agentStatusByPaneKey[paneKey]
+    return (
+      entry?.state === 'working' &&
+      entry.workingMode === 'monitoring' &&
+      isAgentStatusFresh(entry, Date.now())
+    )
+  })
 }

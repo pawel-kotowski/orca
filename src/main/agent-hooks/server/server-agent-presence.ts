@@ -120,6 +120,40 @@ export abstract class AgentHookServerAgentPresence extends AgentHookServerLifecy
     return exit !== undefined && exit.at >= exitedSince ? 'exited' : null
   }
 
+  /**
+   * A restored row whose agent waits on its own background work (a shell, a Monitor) gets no hook
+   * until that work ends, so nothing would ever confirm it. When the agent's own process still
+   * runs, the restored claim stands: confirm it live. Returns the pane keys confirmed.
+   */
+  async confirmRestoredMonitoringStatuses(): Promise<string[]> {
+    const candidates = this.listUnconfirmedRestoredStatuses().filter(
+      (row) =>
+        row.connectionId === null &&
+        row.payload.state === 'working' &&
+        row.payload.workingMode === 'monitoring' &&
+        row.agentPresence?.process !== undefined &&
+        !row.agentPresence.ended
+    )
+    const confirmed: string[] = []
+    for (const row of candidates) {
+      const verdict = await this.checkAgentPresence(row.paneKey)
+      const current = this.state.lastStatusByPaneKey.get(this.resolvePaneKeyAlias(row.paneKey))
+      // Why: a hook that arrived meanwhile already settled the row; it wins.
+      if (verdict !== 'live' || current !== row) {
+        continue
+      }
+      this.applyNormalizedStatus({
+        ...row,
+        isReplay: undefined,
+        hookEventName: undefined,
+        hasExplicitPrompt: undefined,
+        restoredUnconfirmed: undefined
+      })
+      confirmed.push(row.paneKey)
+    }
+    return confirmed
+  }
+
   checkAgentPresence(paneKey: string): Promise<AgentProcessVerdict | null> {
     const resolved = this.resolvePaneKeyAlias(paneKey)
     this.followClaudeSessionContinuation(resolved)

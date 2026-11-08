@@ -92,7 +92,8 @@ export function NativeChatMessageList({
   turnActivity,
   stopping = false,
   runtimeContext,
-  structuredAttachments = false
+  structuredAttachments = false,
+  heldByBackgroundWork = false
 }: {
   ref?: Parameters<typeof useNativeChatMessageListHandle>[0]
   session: NativeChatLiveSession
@@ -124,6 +125,8 @@ export function NativeChatMessageList({
   /** A person's Stop is ending the live turn: its tail line reads "Stopping…". */
   stopping?: boolean
   runtimeContext?: RuntimeFileOperationArgs | null
+  /** The agent ended its turn but waits on its own background work: its last words are no answer yet. */
+  heldByBackgroundWork?: boolean
 }): React.JSX.Element {
   const [navigationRequest, setNavigationRequest] = useState<NavigationRequest | null>(null)
   const navigationSequence = useRef(0)
@@ -210,6 +213,7 @@ export function NativeChatMessageList({
     lifecycleWorking,
     subagentSections,
     subagentChoices,
+    heldByBackgroundWork,
     line: {
       draws: tailRow === 'activity',
       thinking: turnStatuses.active?.thinking === true,

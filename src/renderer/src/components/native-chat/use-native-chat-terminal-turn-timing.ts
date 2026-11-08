@@ -10,13 +10,20 @@ import {
   nativeChatTranscriptSettledTurns
 } from '../../../../shared/native-chat/native-chat-terminal-turn'
 import { resolveNativeChatHookState } from '../../../../shared/native-chat/native-chat-live-status'
+import { useNativeChatHeldByBackgroundWork } from './use-native-chat-hook-status'
 
 /** Keep host live/latest-turn timing and historical transcript durations across pane remounts. */
 export function useNativeChatTerminalTurnTiming(
   paneKey: string,
   messages: readonly NativeChatMessage[],
   turnActive: boolean
-): { workingStartedAt: number | null; settledTurns: NativeChatSettledTurns } {
+): {
+  workingStartedAt: number | null
+  settledTurns: NativeChatSettledTurns
+  /** The agent ended its turn but waits on its own background work (passed to the list). */
+  heldByBackgroundWork: boolean
+} {
+  const heldByBackgroundWork = useNativeChatHeldByBackgroundWork(paneKey)
   const turnStartedAt = useAppStore((s) =>
     nativeChatHookTurnStartedAt(s.agentStatusByPaneKey[paneKey])
   )
@@ -37,5 +44,5 @@ export function useNativeChatTerminalTurnTiming(
       }),
     [latestTurnId, latestWorkedSeconds, transcriptSettled, turnActive, turnStartedAt]
   )
-  return { workingStartedAt: turnActive ? turnStartedAt : null, settledTurns }
+  return { workingStartedAt: turnActive ? turnStartedAt : null, settledTurns, heldByBackgroundWork }
 }

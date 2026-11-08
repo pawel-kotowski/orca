@@ -1,6 +1,7 @@
 import {
   AGENT_STATUS_STALE_AFTER_MS,
-  agentStatusEvidenceObservedAt
+  agentStatusEvidenceObservedAt,
+  agentStatusStaleAfterMs
 } from '../../../../shared/agent-status/contracts/agent-status-freshness'
 import type { AgentStatusEntry } from '../../../../shared/agent-status/contracts/agent-status-types'
 import { agentProviderSessionsEqual } from '../../../../shared/agent-session/lifecycle/agent-session-resume'
@@ -76,13 +77,15 @@ export function isAgentStatusFresh(
   entry: Pick<
     AgentStatusEntry,
     'updatedAt' | 'evidenceObservedAt' | 'mirroredEvidenceReceivedAt' | 'restoredUnconfirmed'
-  >,
+  > &
+    Partial<Pick<AgentStatusEntry, 'state' | 'workingMode'>>,
   now: number
 ): boolean {
   // Use shared reader-clock observation time like display gating; mirrored row stamps belong to host clocks.
   return (
     entry.restoredUnconfirmed !== true &&
-    now - agentStatusEvidenceObservedAt(entry) <= AGENT_STATUS_STALE_AFTER_MS
+    now - agentStatusEvidenceObservedAt(entry) <=
+      agentStatusStaleAfterMs(entry, AGENT_STATUS_STALE_AFTER_MS)
   )
 }
 

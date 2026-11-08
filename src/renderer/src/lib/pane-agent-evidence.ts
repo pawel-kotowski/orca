@@ -22,7 +22,8 @@ export function isExplicitAgentStatusFresh(
     | 'mirroredEvidenceReceivedAt'
     | 'restoredUnconfirmed'
     | 'structuredHostOwned'
-  >,
+  > &
+    Partial<Pick<AgentStatusEntry, 'state' | 'workingMode'>>,
   now: number,
   staleAfterMs: number
 ): boolean {
