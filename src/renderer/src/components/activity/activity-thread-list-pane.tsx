@@ -16,6 +16,10 @@ import {
   getPreviousStickyHeaderIndex
 } from '../sidebar/worktree-list/viewport/virtual-rows'
 import { ActivityThreadVirtualRow } from './activity-thread-virtual-row'
+import {
+  ActivityPinnedAgentsGroup,
+  useActivityPinnedGroupSplit
+} from './activity-pinned-agents-group'
 import { ActivityThreadListResizeHandle } from './activity-thread-list-resize-handle'
 import {
   buildActivityVirtualItems,
@@ -162,14 +166,15 @@ export function ActivityThreadListPane({
     },
     [scrollTopRef]
   )
+  const { pinnedGroup, listGroups } = useActivityPinnedGroupSplit(visibleThreadGroups)
   const virtualItems = useMemo(
     () =>
       buildActivityVirtualItems({
-        groups: visibleThreadGroups,
+        groups: listGroups,
         groupBy,
         collapsedGroupKeys: effectiveCollapsedGroupKeys
       }),
-    [visibleThreadGroups, groupBy, effectiveCollapsedGroupKeys]
+    [listGroups, groupBy, effectiveCollapsedGroupKeys]
   )
   const headerItemIndexes = useMemo(
     () => getActivityHeaderItemIndexes(virtualItems),
@@ -291,6 +296,24 @@ export function ActivityThreadListPane({
         })
       : null
 
+  // The same row wiring serves the scrolled list and the pinned Other agents section.
+  const rowProps = {
+    onToggleGroup: handleToggleGroup,
+    selectedPaneKey,
+    multiSelectedKeys: selectedKeys,
+    onSelectThread: handleSelectThread,
+    onOpenThread: onSelectThread,
+    getContextMenuTargets,
+    onJumpToWorkspace,
+    onMarkThreadRead,
+    onMarkThreadUnread,
+    onMarkThreadsRead,
+    onMarkThreadsUnread,
+    canJumpToWorkspace,
+    canMarkThreadUnread,
+    compactMode,
+    showJumpAction
+  }
   const resizable = onResizeStart !== undefined
   return (
     <aside
@@ -369,21 +392,7 @@ export function ActivityThreadListPane({
                     collapsed={
                       item.type === 'header' && effectiveCollapsedGroupKeys.has(item.group.key)
                     }
-                    onToggleGroup={handleToggleGroup}
-                    selectedPaneKey={selectedPaneKey}
-                    multiSelectedKeys={selectedKeys}
-                    onSelectThread={handleSelectThread}
-                    onOpenThread={onSelectThread}
-                    getContextMenuTargets={getContextMenuTargets}
-                    onJumpToWorkspace={onJumpToWorkspace}
-                    onMarkThreadRead={onMarkThreadRead}
-                    onMarkThreadUnread={onMarkThreadUnread}
-                    onMarkThreadsRead={onMarkThreadsRead}
-                    onMarkThreadsUnread={onMarkThreadsUnread}
-                    canJumpToWorkspace={canJumpToWorkspace}
-                    canMarkThreadUnread={canMarkThreadUnread}
-                    compactMode={compactMode}
-                    showJumpAction={showJumpAction}
+                    {...rowProps}
                   />
                 </div>
               )
@@ -399,6 +408,7 @@ export function ActivityThreadListPane({
           ) : null}
         </div>
       </div>
+      {pinnedGroup ? <ActivityPinnedAgentsGroup group={pinnedGroup} rowProps={rowProps} /> : null}
       {resizable ? (
         <ActivityThreadListResizeHandle
           isResizing={isThreadListResizing}

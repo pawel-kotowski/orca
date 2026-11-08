@@ -99,12 +99,15 @@ export function ActivityStatusGroupHeader({
   group,
   collapsed = false,
   onToggle,
-  className
+  className,
+  opensUp = false
 }: {
   group: ActivityThreadGroup
   collapsed?: boolean
   onToggle?: () => void
   className?: string
+  /** A section pinned to the list's foot opens upward: its chevron points up while closed. */
+  opensUp?: boolean
 }): React.JSX.Element {
   const isInteractive = Boolean(onToggle)
   return (
@@ -133,7 +136,7 @@ export function ActivityStatusGroupHeader({
       <ChevronDown
         className={cn(
           'size-3 shrink-0 text-muted-foreground transition-transform duration-150 group-hover:text-foreground',
-          collapsed && '-rotate-90'
+          collapsed && (opensUp ? 'rotate-180' : '-rotate-90')
         )}
       />
       {group.state ? (
