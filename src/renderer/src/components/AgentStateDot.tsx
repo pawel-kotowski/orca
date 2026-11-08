@@ -64,7 +64,7 @@ export function agentStateLabel(state: AgentDotState): string {
 
 type Props = {
   state: AgentDotState
-  size?: 'sm' | 'md'
+  size?: 'sm' | 'md' | 'lg'
   className?: string
   /** Overrides the hover tooltip; null suppresses it for an existing tooltip. */
   title?: string | null
@@ -111,9 +111,9 @@ export const AgentStateDot = React.memo(function AgentStateDot({
   progress
 }: Props): React.JSX.Element {
   useUiLanguageRevision()
-  const box = size === 'md' ? 'h-3 w-3' : 'h-2.5 w-2.5'
-  const inner = size === 'md' ? 'size-2' : 'size-1.5'
-  const icon = size === 'md' ? 'size-3' : 'size-2.5'
+  const box = size === 'lg' ? 'h-4 w-4' : size === 'md' ? 'h-3 w-3' : 'h-2.5 w-2.5'
+  const inner = size === 'lg' ? 'size-2.5' : size === 'md' ? 'size-2' : 'size-1.5'
+  const icon = size === 'lg' ? 'size-4' : size === 'md' ? 'size-3' : 'size-2.5'
   const ring = progressRing(state, progress)
   const label = withRingPercent(agentStateLabel(state), ring)
   const tooltipLabel = title === null ? null : (title ?? label)

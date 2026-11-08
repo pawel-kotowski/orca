@@ -103,49 +103,68 @@ export function ActivityThreadConversationBody({
   const showsOutput = shows('output')
   const outputClamp = compactMode ? 'line-clamp-2' : 'line-clamp-4'
 
-  const topLine = shows('status') || repoName !== null || machine !== null || shows('time')
-  // Why: the hover controls ride on the first line the card draws.
+  const showsConversation = shows('conversation')
+  // Why: the hover controls ride on the top line, which is always drawn.
   const actionsSlot = (
-    <span className="ml-auto flex shrink-0 items-center gap-0.5 transition-opacity can-hover:opacity-0 can-hover:group-hover:opacity-100 group-focus-within:opacity-100">
+    <span className="flex shrink-0 items-center gap-0.5 transition-opacity can-hover:opacity-0 can-hover:group-hover:opacity-100 group-focus-within:opacity-100">
       {actions}
     </span>
   )
-  const actionsOn = topLine ? 'top' : shows('workspace') ? 'workspace' : 'conversation'
 
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-1">
-      {topLine ? (
-        <div className="flex min-w-0 items-center gap-1.5">
-          {shows('status') ? <span className="inline-flex shrink-0">{statusIndicator}</span> : null}
-          {repoName ? (
-            <span
-              // Why: the tag reads at a glance: a clear fill (the project's colour when it has one)
-              // and full-strength text.
-              className="min-w-0 shrink truncate rounded-full bg-foreground/[0.12] px-2 text-[10.5px] font-semibold leading-[18px] text-foreground"
-              style={activityRepoTagStyle(projectColor)}
-              title={repoName}
-            >
-              {repoName}
+      {/* Top line: tags and whose conversation this is at the left; time and state at the right. */}
+      {/* Why always drawn: the hover controls live here even with every other piece hidden. */}
+      <div className="flex min-h-5 min-w-0 items-center gap-1.5">
+        {repoName ? (
+          <span
+            // Why: the tag reads at a glance: a clear fill (the project's colour when it has one)
+            // and full-strength text.
+            className="min-w-0 max-w-[45%] shrink-0 truncate rounded-full bg-foreground/[0.12] px-2 text-[10.5px] font-semibold leading-[18px] text-foreground"
+            style={activityRepoTagStyle(projectColor)}
+            title={repoName}
+          >
+            {repoName}
+          </span>
+        ) : null}
+        {machine ? (
+          <span
+            className="min-w-0 max-w-[30%] shrink-0 truncate rounded-full border border-border/70 px-1.5 text-[10.5px] font-medium leading-4 text-muted-foreground"
+            title={machine}
+          >
+            {machine}
+          </span>
+        ) : null}
+        {showsConversation ? (
+          <span className="flex min-w-0 flex-1 items-center gap-1 text-[11.5px] leading-4 text-muted-foreground">
+            <span className="inline-flex shrink-0" title={agentLabel}>
+              <AgentTypeIcon agentType={thread.agentType} size={12} />
             </span>
-          ) : null}
-          {machine ? (
-            <span
-              className="min-w-0 shrink truncate rounded-full border border-border/70 px-1.5 text-[10.5px] font-medium leading-4 text-muted-foreground"
-              title={machine}
-            >
-              {machine}
+            <span className="min-w-0 truncate" title={conversationName ?? agentLabel}>
+              {showsConversationName ? conversationName : agentLabel}
             </span>
-          ) : null}
-          {actionsSlot}
-          {shows('time') ? (
-            <EventTime
-              timestamp={thread.latestTimestamp}
-              compact
-              className="shrink-0 whitespace-nowrap text-[11px] tabular-nums text-muted-foreground hover:text-muted-foreground"
-            />
-          ) : null}
-        </div>
-      ) : null}
+            {showsBranch && branch ? (
+              <span
+                className="min-w-0 shrink-[2] truncate font-mono text-[10.5px] text-muted-foreground/80"
+                title={branch}
+              >
+                {branch}
+              </span>
+            ) : null}
+          </span>
+        ) : (
+          <span className="flex-1" />
+        )}
+        {actionsSlot}
+        {shows('time') ? (
+          <EventTime
+            timestamp={thread.latestTimestamp}
+            compact
+            className="shrink-0 whitespace-nowrap text-[11px] tabular-nums text-muted-foreground hover:text-muted-foreground"
+          />
+        ) : null}
+        {shows('status') ? <span className="inline-flex shrink-0">{statusIndicator}</span> : null}
+      </div>
 
       {/* The workspace: the repo's logo, then its whole name, wrapping rather than cut. */}
       {shows('workspace') ? (
@@ -178,29 +197,6 @@ export function ActivityThreadConversationBody({
           >
             {workspaceLabel}
           </button>
-          {actionsOn === 'workspace' ? actionsSlot : null}
-        </div>
-      ) : null}
-
-      {/* One quiet line: whose conversation this is, and its branch when that says something new. */}
-      {shows('conversation') || actionsOn === 'conversation' ? (
-        <div className="flex min-w-0 items-center gap-1.5 text-[11.5px] leading-4 text-muted-foreground">
-          {shows('conversation') ? (
-            <>
-              <span className="inline-flex shrink-0" title={agentLabel}>
-                <AgentTypeIcon agentType={thread.agentType} size={12} />
-              </span>
-              <span className="min-w-0 truncate" title={conversationName ?? agentLabel}>
-                {showsConversationName ? conversationName : agentLabel}
-              </span>
-              {showsBranch && branch ? (
-                <span className="min-w-0 shrink truncate font-mono text-[10.5px] text-muted-foreground/80">
-                  {branch}
-                </span>
-              ) : null}
-            </>
-          ) : null}
-          {actionsOn === 'conversation' ? actionsSlot : null}
         </div>
       ) : null}
 

@@ -255,7 +255,7 @@ export const ActivityThreadRow = React.memo(function ActivityThreadRow({
             agentLabel={agentLabel}
             compactMode={compactMode}
             attentionLine={needsAttention ? statusLine : null}
-            statusIndicator={<ThreadAgentStateIndicator thread={thread} />}
+            statusIndicator={<ThreadAgentStateIndicator thread={thread} large />}
             actions={actions}
             onActivate={(event) => {
               event.stopPropagation()

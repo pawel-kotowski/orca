@@ -67,17 +67,25 @@ export function EventRepoBadge({ repo }: { repo: Repo | null }): React.JSX.Eleme
 }
 
 export function ThreadAgentStateIndicator({
-  thread
+  thread,
+  large = false
 }: {
   thread: AgentPaneThread
+  /** The conversation card's glyph at the end of its top line, drawn a size up. */
+  large?: boolean
 }): React.JSX.Element {
   const state = activityThreadStatusId(thread)
   const label = threadAgentStateLabel(thread)
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <span className="inline-flex size-4 shrink-0 items-center justify-center">
-          <AgentStateDot state={state} size="md" title={null} />
+        <span
+          className={cn(
+            'inline-flex shrink-0 items-center justify-center',
+            large ? 'size-5' : 'size-4'
+          )}
+        >
+          <AgentStateDot state={state} size={large ? 'lg' : 'md'} title={null} />
         </span>
       </TooltipTrigger>
       <TooltipContent side="top" sideOffset={4}>
