@@ -23,6 +23,11 @@ import { sayNativeChatSessionOptionTranslated as say } from './native-chat-sessi
 import type { NativeChatOptionPickerRequest } from './native-chat-composer-types'
 import { runSessionOptionSurfaceCall } from './native-chat-session-option-surface-call'
 import { NativeChatModelCombobox } from './NativeChatModelCombobox'
+import {
+  NativeChatModelProviderIcon,
+  nativeChatModelProvider,
+  type NativeChatModelProvider
+} from './native-chat-model-provider'
 import { useNativeChatPickerFocusReturn } from './native-chat-picker-focus-return'
 import { NativeChatSessionOptionRows } from './NativeChatSessionOptionRows'
 import { NativeChatSessionOptionWriteGroup } from './NativeChatSessionOptionWriteGroup'
@@ -77,6 +82,8 @@ function pillAccessibleName(title: string, value: string): string {
 
 function PickerTrigger(props: {
   modelLabel: string
+  /** The model's maker, drawn as its logo before the name. */
+  provider: NativeChatModelProvider | null
   /** The options' values, shown after the model; empty when there are none to show. */
   optionsLabel: string
   accessibleName: string
@@ -103,6 +110,7 @@ function PickerTrigger(props: {
             className="max-w-64"
             onKeyDown={props.onKeyDown}
           >
+            {props.provider ? <NativeChatModelProviderIcon provider={props.provider} /> : null}
             <span className="truncate text-chat-foreground">{props.modelLabel}</span>
             {props.optionsLabel ? <span className="shrink-0">{props.optionsLabel}</span> : null}
             <ChevronDown className="size-3" />
@@ -210,6 +218,7 @@ function SessionOptionPopover(props: {
     <Popover open={open} onOpenChange={(next) => setOpen(next && canOpen)}>
       <PickerTrigger
         modelLabel={modelLabel}
+        provider={nativeChatModelProvider(model, modelLabel)}
         optionsLabel={optionsLabel}
         accessibleName={
           optionsLabel

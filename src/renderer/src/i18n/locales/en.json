@@ -1155,6 +1155,30 @@
       "saving": "Saving…",
       "save": "Save formatter",
       "placeholder": "npx --no-install prettier --stdin-filepath \"${file}\""
+    },
+    "themeBackground": {
+      "title": "Background image",
+      "description": "An image from your disk behind terminals and chats, in place of the theme’s own.",
+      "hidden": "Shows behind terminals and chats once Terminal → Background Opacity is below 1 and Reduce Visual Effects is off.",
+      "use": "Use this image",
+      "remove": "Remove this image",
+      "none": "Theme’s own",
+      "add": "Add image…",
+      "tooLarge": "That image is over 25 MB.",
+      "notImage": "Choose a PNG, JPEG, WebP or GIF image.",
+      "strength": "Strength",
+      "fit": "Fit",
+      "cover": "Fill",
+      "contain": "Fit",
+      "tile": "Tile",
+      "position": "Anchor",
+      "at": {
+        "center": "Center",
+        "top": "Top",
+        "bottom": "Bottom",
+        "left": "Left",
+        "right": "Right"
+      }
     }
   },
   "menu": {

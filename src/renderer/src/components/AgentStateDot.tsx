@@ -5,6 +5,7 @@ import { translate } from '@/i18n/i18n'
 import { useUiLanguageRevision } from '@/i18n/use-ui-language-revision'
 import { AgentQuestionIcon } from '@/components/AgentQuestionIcon'
 import { AgentWorkingSpinner } from '@/components/AgentWorkingSpinner'
+import { observeOffscreenAnimation } from '@/lib/offscreen-animation-pause'
 import {
   AgentProgressRing,
   formatAgentProgressPercent,
@@ -142,7 +143,13 @@ export const AgentStateDot = React.memo(function AgentStateDot({
         className={cn('inline-flex shrink-0 items-center justify-center', box, className)}
         aria-label={agentStateLabel(state)}
       >
-        <Activity className={cn('text-agent-working', icon)} aria-hidden="true" />
+        <span className={cn('relative inline-flex', icon)} aria-hidden="true">
+          <Activity className={cn('text-agent-working opacity-35', icon)} />
+          <Activity
+            ref={observeOffscreenAnimation}
+            className={cn('agent-monitoring-trace absolute inset-0 text-agent-working', icon)}
+          />
+        </span>
       </span>
     )
   } else if (state === 'done') {

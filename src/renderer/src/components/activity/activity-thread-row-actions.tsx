@@ -3,6 +3,7 @@ import { Bell, ExternalLink, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
+import { observeOffscreenAnimation } from '@/lib/offscreen-animation-pause'
 import { translate } from '@/i18n/i18n'
 import { FilledBellIcon } from '../sidebar/workspace-card/identity/worktree-card-glyphs'
 import { useActivityCardHiddenParts } from './activity-card-parts'
@@ -124,7 +125,9 @@ export function ActivityThreadRowActions({
           keyboardReachable
           onClick={() => onMarkRead(thread)}
         >
-          <FilledBellIcon className="size-4 shrink-0 text-amber-500 drop-shadow-sm" aria-hidden />
+          <span ref={observeOffscreenAnimation} className="agent-bell-ring inline-flex">
+            <FilledBellIcon className="size-4 shrink-0 text-amber-500 drop-shadow-sm" />
+          </span>
         </RowAction>
       ) : (
         <RowAction

@@ -7,6 +7,7 @@ import { useSplitDividerSetting } from '@/hooks/use-split-divider-setting'
 import { rebuildAllTerminalWebglRenderers } from '@/lib/pane-manager/pane-manager-registry'
 import { applyDocumentTheme, applyPluginAppTheme } from '../lib/document-theme'
 import { applyThemeBackground } from '../lib/theme-background'
+import { useUserThemeBackground } from '../lib/user-theme-background'
 import { tolerantPluginThemeBackgroundRegistration } from '../../../shared/plugins/artifacts/plugin-theme-background'
 import {
   findCodeEditorTheme,
@@ -93,10 +94,13 @@ export function useDocumentAppearance(): void {
   // Why re-parse: the theme list keeps the registration as received, and a newer host may send
   // a background this build cannot paint; it must drop to no image, never reach CSS.
   const registeredBackground = pluginTheme?.background
-  const themeBackground = useMemo(
+  const pluginBackground = useMemo(
     () => tolerantPluginThemeBackgroundRegistration.parse(registeredBackground),
     [registeredBackground]
   )
+  // Why first: an image the person picked from disk (Settings → Appearance) replaces the theme's own.
+  const userBackground = useUserThemeBackground()
+  const themeBackground = userBackground ?? pluginBackground
 
   // Why `dark` too: a system theme repaints when the OS flips, before the slot paint below.
   useEffect(() => {

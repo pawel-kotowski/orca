@@ -7,6 +7,7 @@ import type {
   WarpThemeImportPreview,
   WarpThemeImportSource
 } from '../../shared/terminal-themes/terminal-custom-themes'
+import type { UserThemeBackgroundImage } from '../../shared/theme-background/user-theme-background'
 import type { PreloadApi } from '../api-types'
 
 export const settingsApi = {
@@ -34,6 +35,18 @@ export const settingsApi = {
 
   previewWarpThemeImport: (source: WarpThemeImportSource): Promise<WarpThemeImportPreview> =>
     ipcRenderer.invoke('settings:previewWarpThemeImport', source),
+
+  pickThemeBackground: (): Promise<{ name: string } | { error: string } | null> =>
+    ipcRenderer.invoke('settings:pickThemeBackground'),
+
+  listThemeBackgrounds: (): Promise<string[]> =>
+    ipcRenderer.invoke('settings:listThemeBackgrounds'),
+
+  readThemeBackground: (name: string): Promise<UserThemeBackgroundImage | null> =>
+    ipcRenderer.invoke('settings:readThemeBackground', name),
+
+  removeThemeBackground: (name: string): Promise<void> =>
+    ipcRenderer.invoke('settings:removeThemeBackground', name),
 
   onChanged: (callback: (updates: Record<string, unknown>) => void): (() => void) => {
     const listener = (_event: Electron.IpcRendererEvent, updates: Record<string, unknown>): void =>

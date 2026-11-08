@@ -9,14 +9,15 @@ import { AgentWorkingSpinner } from './AgentWorkingSpinner'
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
 describe('AgentWorkingSpinner', () => {
-  it('renders the spinner animation and reduced-motion classes', () => {
+  it('renders the spinner animation classes', () => {
     const markup = renderToStaticMarkup(React.createElement(AgentWorkingSpinner))
 
     expect(markup).toContain('agent-working-spinner')
     expect(markup).toContain('data-agent-spinner')
     expect(markup).toContain('border-agent-working')
     expect(markup).toContain('border-t-transparent')
-    expect(markup).toContain('motion-reduce:border-t-agent-working')
+    // Why not: the ring keeps turning under reduced motion in this build (main.css).
+    expect(markup).not.toContain('motion-reduce:border-t-agent-working')
   })
 
   it('renders when the Web Animations API is unavailable', async () => {

@@ -142,9 +142,13 @@ export const NativeChatComposerActions = memo(function NativeChatComposerActions
       // A press keeps focus where it was; a focused button drops it to <body> when it disables.
       onMouseDown={(event) => event.preventDefault()}
       onClick={handleCriticalAction}
-      variant={stops ? 'secondary' : 'default'}
+      variant={stops ? 'destructive' : 'default'}
       size="icon"
-      className="size-8 rounded-full pointer-coarse:size-10"
+      // Why red: Stop ends the agent's turn; it must not read like Send (Paweł, 2026-11-08).
+      className={cn(
+        'size-8 rounded-full pointer-coarse:size-10',
+        stops && 'dark:bg-destructive dark:hover:bg-destructive/90'
+      )}
     >
       {stops ? <Square className="size-3.5 fill-current" /> : <ArrowUp className="size-4" />}
     </Button>

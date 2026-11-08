@@ -5,6 +5,7 @@ import type { GlobalSettings } from '../../shared/global-settings-types'
 import type { PersistedState } from '../../shared/persisted-state-types'
 import { listSystemFontFamilies } from '../window/desktop-integration/system-fonts'
 import { registerSettingsImportHandlers } from './settings-import-handlers'
+import { registerThemeBackgroundHandlers } from './theme-background-handlers'
 import { setMainUiLanguage } from '../i18n/main-i18n'
 import { rebuildAppMenu } from '../menu/register-app-menu'
 import { rebuildSystemTrayMenu } from '../tray/system-tray'
@@ -308,6 +309,7 @@ export function registerSettingsHandlers(
   ipcMain.handle('settings:listFonts', () => listSystemFontFamilies())
 
   registerSettingsImportHandlers(store)
+  registerThemeBackgroundHandlers()
 
   ipcMain.handle('cache:getGitHub', () => {
     return store.getGitHubCache()

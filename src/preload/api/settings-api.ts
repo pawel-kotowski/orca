@@ -4,6 +4,7 @@ import type {
   WarpThemeImportSource
 } from '../../shared/terminal-themes/terminal-custom-themes'
 import type { GlobalSettings } from '../../shared/global-settings-types'
+import type { UserThemeBackgroundImage } from '../../shared/theme-background/user-theme-background'
 import type {
   TerminalConfigImportPreview,
   TerminalConfigImportSource
@@ -24,6 +25,11 @@ export type SettingsApi = {
   ) => Promise<TerminalConfigImportPreview>
   previewKittyImport: (source?: TerminalConfigImportSource) => Promise<TerminalConfigImportPreview>
   previewWarpThemeImport: (source: WarpThemeImportSource) => Promise<WarpThemeImportPreview>
+  /** Window background images picked from disk (main: user-theme-backgrounds.ts). */
+  pickThemeBackground: () => Promise<{ name: string } | { error: string } | null>
+  listThemeBackgrounds: () => Promise<string[]>
+  readThemeBackground: (name: string) => Promise<UserThemeBackgroundImage | null>
+  removeThemeBackground: (name: string) => Promise<void>
   onChanged: (callback: (updates: Partial<GlobalSettings>) => void) => () => void
 }
 

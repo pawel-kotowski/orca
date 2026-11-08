@@ -1848,10 +1848,65 @@ html.native-shell .app-layout {
   animation: none;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .agent-working-spinner {
-    animation: none;
+/* Why no reduced-motion stop (local build): the turning ring is how a working agent is told apart
+   from a finished one, and a Mac with Reduce Motion on showed a still, closed ring (Paweł,
+   2026-11-08: "working icon should be animated ... same for monitoring"). */
+
+/* Monitoring: a bright stretch runs along the heartbeat line over a faint copy of it. Stepped
+   like the spinner (about 12 frames a second) so the compositor is not ticking at full rate. */
+@keyframes agent-monitoring-trace {
+  from {
+    stroke-dashoffset: 60;
   }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.agent-monitoring-trace path {
+  stroke-dasharray: 20 40;
+  animation: agent-monitoring-trace 1.6s steps(20, end) infinite;
+}
+
+.agent-monitoring-trace[data-animation-offscreen] path {
+  animation: none;
+}
+
+/* An unread bell rings now and then: a short swing from its top, then a rest. Transform only, so
+   it stays on the compositor. */
+@keyframes agent-bell-ring {
+  0%,
+  28%,
+  100% {
+    transform: rotate(0deg);
+  }
+  4% {
+    transform: rotate(16deg);
+  }
+  8% {
+    transform: rotate(-14deg);
+  }
+  12% {
+    transform: rotate(10deg);
+  }
+  16% {
+    transform: rotate(-8deg);
+  }
+  20% {
+    transform: rotate(4deg);
+  }
+  24% {
+    transform: rotate(-2deg);
+  }
+}
+
+.agent-bell-ring {
+  transform-origin: 50% 12%;
+  animation: agent-bell-ring 3.2s ease-in-out infinite;
+}
+
+.agent-bell-ring[data-animation-offscreen] {
+  animation: none;
 }
 
 /* Why: keyframes run when the content mounts already in its final state. */

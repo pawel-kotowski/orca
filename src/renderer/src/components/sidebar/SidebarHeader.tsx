@@ -94,7 +94,13 @@ const SidebarHeader = React.memo(function SidebarHeader({
                     onClick={() => toggleActivityView()}
                   >
                     <span className="relative h-5 w-6 shrink-0">
-                      <Bell className="absolute left-0 top-1 size-3" />
+                      {/* Why: the bell rings while an agent needs you. */}
+                      <Bell
+                        className={cn(
+                          'absolute left-0 top-1 size-3',
+                          counts.attention > 0 && 'agent-bell-ring'
+                        )}
+                      />
                       <span
                         className="pointer-events-none absolute inset-0"
                         id={activityBadgeId}

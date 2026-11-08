@@ -40,8 +40,8 @@ export function AgentWorkingSpinner({ className }: { className?: string }): Reac
       onAnimationStart={handleSpinnerAnimationStart}
       data-agent-spinner=""
       className={cn(
-        // Fill the top under reduced motion so the frozen ring looks intentional (#9515).
-        'agent-working-spinner block rounded-full border-2 border-agent-working border-t-transparent motion-reduce:border-t-agent-working',
+        // Why no reduced-motion fill (local build): the ring keeps turning; see main.css.
+        'agent-working-spinner block rounded-full border-2 border-agent-working border-t-transparent',
         className
       )}
     />

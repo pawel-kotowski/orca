@@ -29,15 +29,11 @@ import {
   UI_LANGUAGE_CHOICES
 } from '@/i18n/supported-languages'
 import { translate } from '@/i18n/i18n'
+import { AppearanceThemeSlotRows } from './themes/AppearanceThemeSlotRows'
 import type { UiLanguage } from '../../../../../shared/ui-language'
 import { matchesSettingsSearch, normalizeSettingsSearchQuery } from '../search/settings-search'
-import { translateSearchKeyword } from '../search/settings-search-keywords'
 import { usePluginLanguagePacks } from '@/store/plugin-language-packs'
-import {
-  AppearanceThemeControl,
-  AppearanceThemeSlotSelect,
-  CodeEditorThemeSelect
-} from './themes/AppearanceThemeControl'
+import { AppearanceThemeControl, CodeEditorThemeSelect } from './themes/AppearanceThemeControl'
 import { usePluginIconThemes } from '@/store/plugin-icon-themes'
 
 type AppearanceInterfaceSectionProps = {
@@ -64,22 +60,6 @@ export function AppearanceInterfaceSection({
   const searchQuery = useAppStore((state) => state.settingsSearchQuery)
   const pluginLanguagePacks = usePluginLanguagePacks()
   const pluginIconThemes = usePluginIconThemes()
-  const themeSlots = [
-    {
-      base: 'light' as const,
-      title: translate(
-        'auto.components.settings.AppearanceInterfaceSection.lightTheme',
-        'Light theme'
-      )
-    },
-    {
-      base: 'dark' as const,
-      title: translate(
-        'auto.components.settings.AppearanceInterfaceSection.darkTheme',
-        'Dark theme'
-      )
-    }
-  ]
   const editorThemeEntry = getCodeEditorThemeEntries()[0]
   const editorThemeSlots = [
     {
@@ -145,39 +125,11 @@ export function AppearanceInterfaceSection({
         />
       </SearchableSetting>
 
-      {themeSlots.map((slot) => (
-        <SearchableSetting
-          key={slot.base}
-          title={slot.title}
-          description={translate(
-            'auto.components.settings.AppearanceInterfaceSection.themeSlot.description',
-            'App colors for this mode.'
-          )}
-          keywords={[
-            'plugin',
-            'theme',
-            'terminal',
-            slot.base,
-            ...translateSearchKeyword(
-              'auto.components.settings.appearance.search.matchTerminal',
-              'match terminal'
-            )
-          ]}
-          forceVisible={forceVisiblePrimary}
-        >
-          <SettingsRow
-            label={slot.title}
-            control={
-              <AppearanceThemeSlotSelect
-                base={slot.base}
-                label={slot.title}
-                settings={settings}
-                updateSettings={updateSettings}
-              />
-            }
-          />
-        </SearchableSetting>
-      ))}
+      <AppearanceThemeSlotRows
+        settings={settings}
+        updateSettings={updateSettings}
+        forceVisible={forceVisiblePrimary}
+      />
 
       {editorThemeSlots.map((slot) => (
         <SearchableSetting
