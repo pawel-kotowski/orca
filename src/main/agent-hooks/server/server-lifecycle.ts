@@ -253,6 +253,7 @@ export abstract class AgentHookServerLifecycle extends AgentHookServerStatusHook
       this.flushStatusPersistSync()
     }
     this.stopOpenCodeBinderLoop()
+    this.stopLiveSpoolDrain()
     this.stopTmuxStatus()
     this.rollbackTransportStart()
     this.env = 'production'

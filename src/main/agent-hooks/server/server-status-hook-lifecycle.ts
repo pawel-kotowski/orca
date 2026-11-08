@@ -6,9 +6,14 @@ import { hookRootAnswerDeadline } from '../../../shared/agent-hook-listener/pres
 import { AgentHookServerRuntimeEnv } from './server-runtime-env'
 import { ClaudeAgentViewBridge } from '../../claude/agent-view/agent-view-bridge'
 
+/** How often a running server replays hooks its agents spooled while it could not answer. */
+const LIVE_SPOOL_DRAIN_INTERVAL_MS = 5000
+
 export abstract class AgentHookServerStatusHookLifecycle extends AgentHookServerRuntimeEnv {
   readonly claudeAgentViews = new ClaudeAgentViewBridge()
   private statusHookInitialization: Promise<void> | null = null
+  private liveSpoolTimer: ReturnType<typeof setInterval> | null = null
+  private liveSpoolDraining = false
 
   setStatusHooksEnabled(enabled: boolean): void {
     if (enabled === this.statusHooksEnabled) {
@@ -16,6 +21,7 @@ export abstract class AgentHookServerStatusHookLifecycle extends AgentHookServer
     }
     this.statusHookGeneration += 1
     if (!enabled) {
+      this.stopLiveSpoolDrain()
       this.claudeAgentViews.clear()
       this.flushStatusPersistSync()
       this.stopOpenCodeBinderLoop()
@@ -77,6 +83,63 @@ export abstract class AgentHookServerStatusHookLifecycle extends AgentHookServer
       }
       this.ownerStateInitialized = true
       this.activateClaudeHelperObservations()
+    }
+    this.startLiveSpoolDrain()
+  }
+
+  /**
+   * A hook posts with a 1.5 s limit and spools its event when Orca does not answer in time. The
+   * spool was replayed only at startup, so an event spooled while Orca ran (busy for a moment)
+   * waited for the next restart: a lost Stop left a finished agent "working" (2026-11-08). A
+   * running server now replays the spool every few seconds.
+   */
+  private startLiveSpoolDrain(): void {
+    if (this.liveSpoolTimer || !this.endpointDir) {
+      return
+    }
+    this.liveSpoolTimer = setInterval(() => {
+      void this.drainLiveSpool().catch((error: unknown) => {
+        console.warn('[agent-hooks] live spool replay failed', error)
+      })
+    }, LIVE_SPOOL_DRAIN_INTERVAL_MS)
+    this.liveSpoolTimer.unref?.()
+  }
+
+  protected stopLiveSpoolDrain(): void {
+    if (this.liveSpoolTimer) {
+      clearInterval(this.liveSpoolTimer)
+      this.liveSpoolTimer = null
+    }
+  }
+
+  private async drainLiveSpool(): Promise<void> {
+    if (this.liveSpoolDraining || !this.endpointDir || !this.ownerStateInitialized) {
+      return
+    }
+    const token = this.token
+    const statusHookGeneration = this.statusHookGeneration
+    this.liveSpoolDraining = true
+    try {
+      await drainAgentHookSpoolAsync({
+        endpointDir: this.endpointDir,
+        getPersistedLaunchTokenHash: (paneKey) =>
+          this.hydratedLaunchTokenHashByPaneKey.get(this.resolvePaneKeyAlias(paneKey)),
+        ingest: async (record: SpoolRecord) => {
+          if (this.token !== token || this.statusHookGeneration !== statusHookGeneration) {
+            throw new Error('Status hook spool replay interrupted')
+          }
+          // Why: a live hook that reached the pane after this one was spooled already says more;
+          // replaying the older event would undo it. Spool stamps have whole-second precision.
+          const row = this.state.lastStatusByPaneKey.get(this.resolvePaneKeyAlias(record.paneKey))
+          const rowReceivedAt = row && 'receivedAt' in row ? Number(row.receivedAt) : 0
+          if (record.receivedAt + 1000 <= rowReceivedAt) {
+            return
+          }
+          await this.ingestSpoolRecord(record, hookRootAnswerDeadline())
+        }
+      })
+    } finally {
+      this.liveSpoolDraining = false
     }
   }
 }
