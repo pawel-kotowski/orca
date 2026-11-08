@@ -44,17 +44,13 @@ export function useActivityHidesWorkbench(): boolean {
 
 /**
  * The activity button: from the workspace view it opens the activity view with the tabs hidden;
- * in the activity view it hides the tabs a card brought back, and with them hidden it returns to
- * the workspace view.
+ * in the activity view it returns straight to the workspace view, whether or not a card brought
+ * its tabs back (Escape is what hides them).
  */
 export function toggleActivityView(): void {
   const state = useAppStore.getState()
   if (state.sidebarBody !== 'agents') {
     state.setSidebarBody('agents')
-    setActivityHidesWorkbench(true)
-    return
-  }
-  if (!hidden) {
     setActivityHidesWorkbench(true)
     return
   }

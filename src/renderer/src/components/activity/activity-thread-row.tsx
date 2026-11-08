@@ -239,9 +239,12 @@ export const ActivityThreadRow = React.memo(function ActivityThreadRow({
         />
       ) : null}
       <div className="flex min-w-0 items-start gap-1.5">
-        <span className="mt-0.5 inline-flex shrink-0">
-          <ThreadAgentStateIndicator thread={thread} />
-        </span>
+        {/* Why: a conversation card shows the state on its top line, not in a column of its own. */}
+        {conversation ? null : (
+          <span className="mt-0.5 inline-flex shrink-0">
+            <ThreadAgentStateIndicator thread={thread} />
+          </span>
+        )}
         {conversation ? (
           <ActivityThreadConversationBody
             thread={thread}
@@ -250,6 +253,7 @@ export const ActivityThreadRow = React.memo(function ActivityThreadRow({
             agentLabel={agentLabel}
             compactMode={compactMode}
             attentionLine={needsAttention ? statusLine : null}
+            statusIndicator={<ThreadAgentStateIndicator thread={thread} />}
             actions={actions}
             onActivate={(event) => {
               event.stopPropagation()

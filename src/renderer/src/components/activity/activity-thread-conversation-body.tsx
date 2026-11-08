@@ -39,10 +39,11 @@ function repeats(text: string | null | undefined, of: string): boolean {
 }
 
 /**
- * An activity card read from its conversation, built to scan: the workspace leads (repo and time
- * at its right), one quiet line names the agent's conversation, what the person asked sits in one
- * inset panel (first and latest), the agent's latest narration follows behind a thin rule, and the
- * answer closes it once the turn is done. Nothing repeats; controls appear on hover.
+ * An activity card read from its conversation, built to scan: a top line carries the agent's
+ * state, the repo and machine tags and the time; the workspace name follows on a row of its own,
+ * never cut; one quiet line names the agent's conversation; what the person asked sits in one
+ * inset panel (first, then latest, brighter); then one line of the agent's latest output: the
+ * answer once the turn is done, else its latest narration. Nothing repeats; controls appear on hover.
  */
 export function ActivityThreadConversationBody({
   thread,
@@ -51,6 +52,7 @@ export function ActivityThreadConversationBody({
   agentLabel,
   compactMode,
   attentionLine,
+  statusIndicator,
   actions,
   onActivate
 }: {
@@ -61,6 +63,8 @@ export function ActivityThreadConversationBody({
   compactMode: boolean
   /** What the agent waits on (a question, a permission); it replaces the narration. */
   attentionLine: string | null
+  /** The agent's state icon; it leads the top line instead of taking a column of its own. */
+  statusIndicator: ReactNode
   actions: ReactNode
   onActivate: (event: React.MouseEvent<HTMLButtonElement>) => void
 }): React.JSX.Element {
@@ -86,47 +90,21 @@ export function ActivityThreadConversationBody({
   const showsConversationName = !repeats(conversationName, workspaceLabel)
   const showsBranch = !repeats(branch, workspaceLabel)
   const showsBothPrompts = firstPrompt !== null && lastPrompt !== null && lastPrompt !== firstPrompt
-  const narration = compactMode ? steps.slice(-1) : steps.slice(-2)
-  const clamp = compactMode ? 'line-clamp-1' : 'line-clamp-2'
-  const emphasis = thread.unread ? 'font-semibold' : 'font-medium'
+  // Why: one line of output, the newest thing the agent produced: the answer once the turn is
+  // done, otherwise its latest narration.
+  const latestStep = steps.at(-1) ?? null
+  const outputClamp = compactMode ? 'line-clamp-1' : 'line-clamp-2'
 
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-      {/* Header: the repo's logo, then the workspace name; repo, machine and time at the right. */}
-      <div className="flex min-w-0 items-center gap-2">
-        {thread.worktree.id === FLOATING_TERMINAL_WORKTREE_ID ? (
-          // Why: the floating workspace has no repo; its own icon (the floating panel button's)
-          // stands where the repo logo would.
-          <span
-            className="flex size-6 shrink-0 items-center justify-center rounded-md bg-foreground/[0.08]"
-            title={translate('components.activity.floatingWorkspace', 'Floating workspace')}
-          >
-            <PanelsTopLeft className="size-4" />
-          </span>
-        ) : thread.repo ? (
-          <RepoIconGlyph
-            repoIcon={thread.repo.repoIcon}
-            className="size-6 shrink-0 rounded-md"
-            iconClassName="size-5"
-          />
-        ) : null}
-        <button
-          type="button"
-          aria-keyshortcuts="Enter Space"
-          onClick={onActivate}
-          title={workspaceLabel}
-          className={cn(
-            'min-w-0 flex-1 cursor-pointer truncate text-left text-[14px] leading-5 text-foreground outline-none focus-visible:ring-1 focus-visible:ring-ring',
-            thread.unread ? 'font-bold' : 'font-semibold'
-          )}
-        >
-          {workspaceLabel}
-        </button>
+      {/* Top line: state, tags, then controls (on hover) and the time at the right. */}
+      <div className="flex min-w-0 items-center gap-1.5">
+        <span className="inline-flex shrink-0">{statusIndicator}</span>
         {repoName ? (
           <span
             // Why: the tag reads at a glance: a clear fill (the project's colour when it has one)
             // and full-strength text.
-            className="max-w-[40%] shrink-0 truncate rounded-full bg-foreground/[0.12] px-2 text-[10.5px] font-semibold leading-[18px] text-foreground"
+            className="min-w-0 shrink truncate rounded-full bg-foreground/[0.12] px-2 text-[10.5px] font-semibold leading-[18px] text-foreground"
             style={activityRepoTagStyle(projectColor)}
             title={repoName}
           >
@@ -135,17 +113,52 @@ export function ActivityThreadConversationBody({
         ) : null}
         {machine ? (
           <span
-            className="max-w-[30%] shrink-0 truncate rounded-full border border-border/70 px-1.5 text-[10.5px] font-medium leading-4 text-muted-foreground"
+            className="min-w-0 shrink truncate rounded-full border border-border/70 px-1.5 text-[10.5px] font-medium leading-4 text-muted-foreground"
             title={machine}
           >
             {machine}
           </span>
         ) : null}
+        <span className="ml-auto flex shrink-0 items-center gap-0.5 transition-opacity can-hover:opacity-0 can-hover:group-hover:opacity-100 group-focus-within:opacity-100">
+          {actions}
+        </span>
         <EventTime
           timestamp={thread.latestTimestamp}
           compact
           className="shrink-0 whitespace-nowrap text-[11px] tabular-nums text-muted-foreground hover:text-muted-foreground"
         />
+      </div>
+
+      {/* The workspace: the repo's logo, then its whole name, wrapping rather than cut. */}
+      <div className="-mt-0.5 flex min-w-0 items-start gap-2">
+        {thread.worktree.id === FLOATING_TERMINAL_WORKTREE_ID ? (
+          // Why: the floating workspace has no repo; its own icon (the floating panel button's)
+          // stands where the repo logo would.
+          <span
+            className="flex size-5 shrink-0 items-center justify-center rounded-md bg-foreground/[0.08]"
+            title={translate('components.activity.floatingWorkspace', 'Floating workspace')}
+          >
+            <PanelsTopLeft className="size-3.5" />
+          </span>
+        ) : thread.repo ? (
+          <RepoIconGlyph
+            repoIcon={thread.repo.repoIcon}
+            className="size-5 shrink-0 rounded-md"
+            iconClassName="size-4"
+          />
+        ) : null}
+        <button
+          type="button"
+          aria-keyshortcuts="Enter Space"
+          onClick={onActivate}
+          title={workspaceLabel}
+          className={cn(
+            'min-w-0 flex-1 cursor-pointer break-words text-left text-[14px] leading-5 text-foreground outline-none [overflow-wrap:anywhere] focus-visible:ring-1 focus-visible:ring-ring',
+            thread.unread ? 'font-bold' : 'font-semibold'
+          )}
+        >
+          {workspaceLabel}
+        </button>
       </div>
 
       {/* One quiet line: whose conversation this is, and its branch when that says something new. */}
@@ -161,57 +174,36 @@ export function ActivityThreadConversationBody({
             {branch}
           </span>
         ) : null}
-        <span className="ml-auto flex shrink-0 items-center gap-0.5 transition-opacity can-hover:opacity-0 can-hover:group-hover:opacity-100 group-focus-within:opacity-100">
-          {actions}
-        </span>
       </div>
 
-      {/* What the person asked: first and latest, together and labeled. */}
+      {/* What the person asked: the first prompt, then the latest, brighter. */}
       {firstPrompt !== null || lastPrompt !== null ? (
-        <div className="flex min-w-0 flex-col gap-1 rounded-md bg-foreground/[0.04] px-2 py-1.5">
-          <PromptRow
-            label={showsBothPrompts ? translate('components.activity.prompt.first', 'First') : null}
-            className={cn(clamp, emphasis)}
-            text={firstPrompt ?? lastPrompt ?? ''}
-          />
+        <div className="flex min-w-0 flex-col gap-1 rounded-md bg-foreground/[0.06] px-2 py-1.5">
           {showsBothPrompts ? (
-            <PromptRow
-              label={translate('components.activity.prompt.latest', 'Latest')}
-              className={cn(clamp, emphasis)}
-              text={lastPrompt ?? ''}
-            />
+            <PromptLine text={firstPrompt ?? ''} className="line-clamp-1 text-foreground/65" />
           ) : null}
+          <PromptLine
+            text={(showsBothPrompts ? lastPrompt : (firstPrompt ?? lastPrompt)) ?? ''}
+            className={cn(
+              compactMode ? 'line-clamp-2' : 'line-clamp-3',
+              'text-foreground',
+              thread.unread ? 'font-semibold' : 'font-medium'
+            )}
+          />
         </div>
       ) : null}
 
-      {/* What the agent is saying: its latest narration, newest brightest; or what it waits on. */}
+      {/* The agent's latest output: what it waits on, its answer, or its latest narration. */}
       {attentionLine ? (
         <div
           className={cn(
             'min-w-0 break-words border-l-2 border-agent-question-text/60 pl-2 text-[12.5px] leading-5 text-agent-question-text',
-            clamp
+            outputClamp
           )}
         >
           {attentionLine}
         </div>
-      ) : narration.length > 0 ? (
-        <div className="flex min-w-0 flex-col gap-0.5 border-l border-border pl-2">
-          {narration.map((step, index) => (
-            <div
-              key={`${index}:${step.text}`}
-              className={cn(
-                'min-w-0 truncate text-[12px] leading-[18px]',
-                index === narration.length - 1 ? 'text-foreground/80' : 'text-foreground/50'
-              )}
-            >
-              {step.text}
-            </div>
-          ))}
-        </div>
-      ) : null}
-
-      {/* The answer, once the turn is done. */}
-      {finalAnswer && !attentionLine ? (
+      ) : finalAnswer ? (
         <CommentMarkdown
           content={finalAnswer}
           className={cn(
@@ -222,36 +214,23 @@ export function ActivityThreadConversationBody({
             '[&_div]:!overflow-visible [&_:is(table,thead,tbody,tr,th,td)]:!inline [&_:is(th,td)]:!border-0 [&_:is(th,td)]:!pr-2'
           )}
         />
+      ) : latestStep ? (
+        <div
+          className={cn(
+            'min-w-0 break-words border-l border-border pl-2 text-[12px] leading-[18px] text-foreground/75',
+            outputClamp
+          )}
+        >
+          {latestStep.text}
+        </div>
       ) : null}
     </div>
   )
 }
 
-/** A prompt with a small label column ("First", "Latest") so the two never run together. */
-function PromptRow({
-  label,
-  text,
-  className
-}: {
-  label: string | null
-  text: string
-  className: string
-}): React.JSX.Element {
+/** One prompt the person sent, in the card's prompt panel. */
+function PromptLine({ text, className }: { text: string; className: string }): React.JSX.Element {
   return (
-    <div className="flex min-w-0 items-baseline gap-2">
-      {label ? (
-        <span className="w-9 shrink-0 text-[9.5px] font-semibold uppercase tracking-[0.06em] text-muted-foreground/80">
-          {label}
-        </span>
-      ) : null}
-      <span
-        className={cn(
-          'min-w-0 flex-1 break-words text-[12.5px] leading-[18px] text-foreground/90',
-          className
-        )}
-      >
-        {text}
-      </span>
-    </div>
+    <span className={cn('min-w-0 break-words text-[13px] leading-[18px]', className)}>{text}</span>
   )
 }
