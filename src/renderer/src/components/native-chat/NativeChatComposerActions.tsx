@@ -260,6 +260,22 @@ export const NativeChatComposerActions = memo(function NativeChatComposerActions
             {translate('common.cancel', 'Cancel')}
           </Button>
         ) : null}
+        {/* Why visible, not only in Send's tooltip: what Cmd/Ctrl+Enter does instead (steer or
+            queue) must be seen while typing to a working agent (Paweł, 2026-11-08: "i need to
+            see that i have to press it"). */}
+        {!stops && alternateSend && !sendReason && hasDraft ? (
+          <span
+            data-native-chat-alternate-send={alternateSend}
+            className="flex shrink-0 items-center gap-1 whitespace-nowrap text-2xs text-chat-foreground-faint"
+          >
+            <kbd className="rounded border border-chat-code-border px-1 font-sans text-3xs leading-4 text-chat-foreground">
+              {getScreenSubmitShortcutLabel()}
+            </kbd>
+            {alternateSend === 'steer'
+              ? translate('components.native-chat.composer.alternateSteerChip', 'steer')
+              : translate('components.native-chat.composer.alternateQueueChip', 'queue')}
+          </span>
+        ) : null}
         {compact && !stops ? null : sendHint ? (
           <Tooltip>
             <TooltipTrigger asChild>

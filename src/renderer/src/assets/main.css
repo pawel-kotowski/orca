@@ -1520,10 +1520,16 @@ html.native-shell .app-layout {
 /* Activity cards (local): the card whose workspace the tabs show reads clearly, with a frame and an
    accent bar on its left edge; the card whose chat the hover window shows reads lightly. After the
    primary rules (dark included), which they outrank by order at equal specificity. */
+/* Why yellow: the open card is told apart from the rest at a glance (Paweł, 2026-11-08: "current
+   selected frame in activity cards should be yellow"); a deeper amber on light themes. */
 [data-worktree-card-surface][data-worktree-card-active='primary'][data-activity-card-open] {
-  border-color: color-mix(in srgb, var(--foreground) 38%, transparent);
-  background-color: color-mix(in srgb, var(--foreground) 9%, transparent);
-  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--foreground) 55%, transparent);
+  --activity-open-frame: #ca8a04;
+  border-color: color-mix(in srgb, var(--activity-open-frame) 80%, transparent);
+  background-color: color-mix(in srgb, var(--activity-open-frame) 7%, transparent);
+  box-shadow: inset 3px 0 0 var(--activity-open-frame);
+}
+.dark [data-worktree-card-surface][data-worktree-card-active='primary'][data-activity-card-open] {
+  --activity-open-frame: #facc15;
 }
 
 [data-worktree-card-surface][data-activity-card-previewed]:not([data-activity-card-open]) {

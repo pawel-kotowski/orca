@@ -277,6 +277,12 @@ export function NativeChatQueuedMessageCard({
                       )}
                     </NativeChatPendingIcon>
                     {sendNow.label}
+                    {/* Why visible: the chord that steers the head card must be seen, not hovered for. */}
+                    {showsSteerShortcut && sendNow.steers ? (
+                      <span aria-hidden className="font-sans text-3xs opacity-70">
+                        {isMac ? '⌘⇧↵' : 'Ctrl+Shift+Enter'}
+                      </span>
+                    ) : null}
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent side="top" sideOffset={4}>
