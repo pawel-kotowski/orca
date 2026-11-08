@@ -39,10 +39,10 @@ function writeOpen(open: boolean): void {
 }
 
 /**
- * The "Other agents" section, pinned to the bottom of the activity list: its header stays at the
- * list's foot, and opening it grows its cards upward over the list (Paweł, 2026-11-08: "other
- * agents section should be pinned to bottom and open to top"). Closed until opened; the choice
- * is kept for this viewer.
+ * The "Other agents" section, pinned to the bottom of the activity list: closed, its header sits at
+ * the list's foot; opening it slides the header up with its cards below it, like a drawer (Paweł,
+ * 2026-11-08: "pinned to bottom and open to top", "header should go up on expansion"). Closed
+ * until opened; the choice is kept for this viewer.
  */
 export function ActivityPinnedAgentsGroup({
   group,
@@ -63,8 +63,11 @@ export function ActivityPinnedAgentsGroup({
       data-activity-pinned-group={group.key}
       className="flex max-h-[55%] min-h-0 shrink-0 flex-col border-t border-border/60"
     >
+      <div className="shrink-0 px-1.5 py-1.5">
+        <ActivityStatusGroupHeader group={group} collapsed={!open} onToggle={toggle} opensUp />
+      </div>
       {open ? (
-        <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-1.5 pt-1.5 scrollbar-sleek">
+        <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-1.5 pb-1.5 scrollbar-sleek">
           {group.threads.map((thread) => (
             <ActivityThreadVirtualRow
               key={thread.paneKey}
@@ -75,9 +78,6 @@ export function ActivityPinnedAgentsGroup({
           ))}
         </div>
       ) : null}
-      <div className="shrink-0 px-1.5 py-1.5">
-        <ActivityStatusGroupHeader group={group} collapsed={!open} onToggle={toggle} opensUp />
-      </div>
     </div>
   )
 }
