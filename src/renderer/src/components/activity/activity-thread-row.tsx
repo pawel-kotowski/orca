@@ -1,14 +1,9 @@
 import React from 'react'
-import { Bell, ExternalLink, X } from 'lucide-react'
 import { AgentTypeIcon } from '@/lib/agent-type-icon'
 import { formatAgentTypeLabel } from '../../../../shared/agent-status/presentation/agent-type-label'
-import { Button } from '@/components/ui/button'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
-import { translate } from '@/i18n/i18n'
 import { useUiLanguageRevision } from '@/i18n/use-ui-language-revision'
 import '../sidebar/workspace-card/activity/worktree-card-empty-inputs'
-import { FilledBellIcon } from '../sidebar/workspace-card/identity/worktree-card-glyphs'
 import CommentMarkdown from '../sidebar/CommentMarkdown'
 import { EventTime, ThreadAgentStateIndicator } from './activity-thread-controls'
 import { ActivityThreadHoverCard } from './activity-thread-hover-card'
@@ -24,45 +19,7 @@ import { useActivityThreadConversation } from './use-activity-thread-conversatio
 import { ActivityThreadConversationBody } from './activity-thread-conversation-body'
 import { activityCardTintStyle, useActivityProjectColor } from './activity-project-color'
 import { routeActivityCardClick } from './activity-chat-card-controls'
-
-function ActivityThreadRowAction({
-  label,
-  onClick,
-  keyboardReachable = false,
-  children
-}: {
-  label: string
-  onClick: () => void
-  // Hover-only actions stay `invisible` so long lists don't gain a tab stop per row.
-  keyboardReachable?: boolean
-  children: React.ReactNode
-}): React.JSX.Element {
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Button
-          data-activity-thread-control=""
-          type="button"
-          variant="ghost"
-          size="icon-xs"
-          className={cn(
-            'size-4 p-0 text-muted-foreground transition-opacity hover:text-foreground can-hover:pointer-events-none can-hover:opacity-0 can-hover:group-hover:pointer-events-auto can-hover:group-hover:opacity-100 focus-visible:opacity-100',
-            !keyboardReachable && 'can-hover:invisible can-hover:group-hover:visible'
-          )}
-          aria-label={label}
-          onClick={(event) => {
-            event.stopPropagation()
-            onClick()
-          }}
-          onMouseDown={(event) => event.stopPropagation()}
-        >
-          {children}
-        </Button>
-      </TooltipTrigger>
-      <TooltipContent side="left">{label}</TooltipContent>
-    </Tooltip>
-  )
-}
+import { ActivityThreadRowActions } from './activity-thread-row-actions'
 
 // Stable thread/callback identities let memoized rows skip query, selection and grouping updates.
 export const ActivityThreadRow = React.memo(function ActivityThreadRow({
@@ -110,98 +67,15 @@ export const ActivityThreadRow = React.memo(function ActivityThreadRow({
   const conversation = useActivityThreadConversation(thread, followsConversation)
   const hoverChat = useAppStore((state) => nativeChatActivityHoverChat(state.settings))
   const actions = (
-    <TooltipProvider delayDuration={800} skipDelayDuration={0}>
-      {canJump && showJumpAction ? (
-        <ActivityThreadRowAction
-          label={translate(
-            'auto.components.activity.ActivityPrototypePage.4616ea39fd',
-            'Jump to workspace'
-          )}
-          onClick={() => onJump(thread)}
-        >
-          <ExternalLink className="size-2.75" />
-        </ActivityThreadRowAction>
-      ) : null}
-      {onClear ? (
-        <ActivityThreadRowAction
-          label={translate(
-            'auto.components.activity.ActivityThreadRow.clearNotification',
-            'Clear notification'
-          )}
-          keyboardReachable
-          onClick={() => onClear(thread)}
-        >
-          <X className="size-2.75" />
-        </ActivityThreadRowAction>
-      ) : null}
-      <span
-        data-activity-thread-control=""
-        className="inline-flex size-4 shrink-0 items-center justify-center"
-      >
-        {thread.unread ? (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                type="button"
-                onClick={(event) => {
-                  event.stopPropagation()
-                  onMarkRead(thread)
-                }}
-                onMouseDown={(event) => event.stopPropagation()}
-                className="flex size-4 shrink-0 cursor-pointer items-center justify-center rounded hover:bg-accent/80 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                aria-label={translate(
-                  'auto.components.activity.ActivityPrototypePage.markThreadRead',
-                  'Mark thread as read'
-                )}
-              >
-                <FilledBellIcon
-                  className="size-3 shrink-0 text-amber-500 drop-shadow-sm"
-                  aria-hidden="true"
-                />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="left">
-              {translate(
-                'auto.components.activity.ActivityPrototypePage.markThreadRead',
-                'Mark thread as read'
-              )}
-            </TooltipContent>
-          </Tooltip>
-        ) : (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                type="button"
-                disabled={disableMarkUnread}
-                onClick={(event) => {
-                  event.stopPropagation()
-                  onMarkUnread(thread)
-                }}
-                onMouseDown={(event) => event.stopPropagation()}
-                className={cn(
-                  'flex size-4 shrink-0 cursor-pointer items-center justify-center rounded transition-opacity',
-                  'can-hover:opacity-0 can-hover:group-hover:opacity-100',
-                  'hover:bg-accent/80 active:scale-95',
-                  'focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring'
-                )}
-                aria-label={translate(
-                  'auto.components.activity.ActivityPrototypePage.59b131fbd9',
-                  'Mark thread unread'
-                )}
-              >
-                <Bell className="size-2.75 text-muted-foreground" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="left">
-              {translate(
-                'auto.components.activity.ActivityPrototypePage.59b131fbd9',
-                'Mark thread unread'
-              )}
-            </TooltipContent>
-          </Tooltip>
-        )}
-      </span>
-    </TooltipProvider>
+    <ActivityThreadRowActions
+      thread={thread}
+      canJump={canJump && showJumpAction}
+      disableMarkUnread={disableMarkUnread}
+      onJump={onJump}
+      onMarkRead={onMarkRead}
+      onMarkUnread={onMarkUnread}
+      onClear={onClear}
+    />
   )
 
   const card = (

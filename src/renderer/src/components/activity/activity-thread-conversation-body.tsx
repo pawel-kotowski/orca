@@ -104,12 +104,9 @@ export function ActivityThreadConversationBody({
   const outputClamp = compactMode ? 'line-clamp-2' : 'line-clamp-4'
 
   const showsConversation = shows('conversation')
-  // Why: the hover controls ride on the top line, which is always drawn.
-  const actionsSlot = (
-    <span className="flex shrink-0 items-center gap-0.5 transition-opacity can-hover:opacity-0 can-hover:group-hover:opacity-100 group-focus-within:opacity-100">
-      {actions}
-    </span>
-  )
+  // Why: the buttons ride on the top line, which is always drawn; each one decides whether it shows
+  // only on hover (activity-thread-row-actions).
+  const actionsSlot = <span className="flex shrink-0 items-center gap-0.5">{actions}</span>
 
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-1">

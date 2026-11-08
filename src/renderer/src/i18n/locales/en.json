@@ -21203,6 +21203,7 @@
         "repo": "Repo",
         "machine": "Machine",
         "time": "Time",
+        "buttons": "Bell & clear",
         "workspace": "Workspace",
         "conversation": "Agent",
         "output": "Output",

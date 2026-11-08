@@ -5,6 +5,7 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { TooltipProvider } from '@/components/ui/tooltip'
+import { useAppStore } from '@/store'
 import type { Worktree } from '../../../../shared/worktree/types'
 import { ActivityThreadHoverCard } from './activity-thread-hover-card'
 import { _resetActivityHoverCardIntentForTest } from './activity-thread-hover-card-intent'
@@ -161,15 +162,38 @@ describe('ActivityThreadHoverCard and ActivityThreadRow', () => {
       'button[aria-label="Clear notification"]'
     )
     expect(clearButton).not.toBeNull()
-    expect(clearButton?.className).toContain('focus-visible:opacity-100')
-    expect(clearButton?.className).toContain('can-hover:pointer-events-none')
-    expect(clearButton?.className).toContain('can-hover:group-hover:pointer-events-auto')
+    // Why: the "Bell & clear" card part is on by default, so the button is always drawn.
+    expect(clearButton?.className).not.toContain('can-hover:opacity-0')
     expect(clearButton?.className).not.toContain('invisible')
 
     act(() => clearButton?.click())
 
     expect(onClear).toHaveBeenCalledWith(thread)
     expect(onSelect).not.toHaveBeenCalled()
+  })
+
+  it('shows the clear button only on hover while the "Bell & clear" part is off', async () => {
+    const previousSettings = useAppStore.getState().settings
+    useAppStore.setState({
+      settings: {
+        ...previousSettings,
+        nativeChatAppearance: { activityCardHidden: ['buttons'] }
+      } as typeof previousSettings
+    })
+    try {
+      await act(async () => {
+        root.render(<Harness thread={createTestThread()} onClear={vi.fn()} onSelect={vi.fn()} />)
+      })
+      const clearButton = container.querySelector<HTMLButtonElement>(
+        'button[aria-label="Clear notification"]'
+      )
+      expect(clearButton?.className).toContain('focus-visible:opacity-100')
+      expect(clearButton?.className).toContain('can-hover:pointer-events-none')
+      expect(clearButton?.className).toContain('can-hover:group-hover:pointer-events-auto')
+      expect(clearButton?.className).not.toContain('invisible')
+    } finally {
+      useAppStore.setState({ settings: previousSettings })
+    }
   })
 
   it('renders hover card content with workspace info, host, task details, and notes', async () => {
