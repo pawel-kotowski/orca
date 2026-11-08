@@ -7,7 +7,7 @@ import type { ClaudeManagedAccount } from '../../../../shared/managed-account-ty
 import type { ProviderRateLimits, RateLimitWindow } from '../../../../shared/rate-limit-types'
 import { formatRateLimitWindowChipLabel } from '../../../../shared/rate-limit-window-label'
 import { clampUsedPercent } from '../../../../shared/usage-percentage-display'
-import { barColor, USAGE_WARNING_PERCENT } from '../status-bar/provider-extra-usage-section'
+import { NativeChatMeter } from './native-chat-meter'
 import { workspaceClaudeAccountId } from '../../../../shared/claude-workspace-account'
 import { getExecutionHostIdForWorktree } from '@/lib/worktree-runtime-owner'
 import { runtimeRpcTargetForAuthorityKey } from '@/runtime/runtime-client-target'
@@ -289,7 +289,12 @@ function ClaudeAccountUsageChip({
           data-native-chat-account-usage=""
           className="flex items-center gap-2.5 whitespace-nowrap text-xs tabular-nums text-chat-foreground-faint"
         >
-          {name ? <span>{name}</span> : null}
+          {name ? (
+            // Why: whose subscription this is reads at a glance, in the theme's blue.
+            <span className="font-medium text-[color:var(--chat-hue-blue,var(--chat-foreground-faint))]">
+              {name}
+            </span>
+          ) : null}
           {session ? <UsageBar label={sessionLabel} window={session} now={now} /> : null}
           {weekly ? <UsageBar label={weekLabel} window={weekly} now={now} /> : null}
         </span>
@@ -315,22 +320,8 @@ function UsageBar({
   return (
     <span className="flex items-center gap-1">
       <span>{label}</span>
-      <span
-        role="meter"
-        aria-label={label}
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={Math.round(used)}
-        className="h-1.5 w-12 overflow-hidden rounded-full bg-chat-foreground-faint/20"
-      >
-        <span
-          // Why: the status bar's grey is too close to this track; low use reads in the chat's
-          // own faint text colour, then yellow and red as the limit nears.
-          className={`block h-full rounded-full ${used < USAGE_WARNING_PERCENT ? 'bg-chat-foreground-faint' : barColor(used)}`}
-          style={{ width: `${used}%` }}
-        />
-      </span>
-      <span>{formatRateLimitWindowChipLabel(window, now)}</span>
+      <NativeChatMeter label={label} usedPercent={used} />
+      <span className="text-chat-foreground">{formatRateLimitWindowChipLabel(window, now)}</span>
     </span>
   )
 }

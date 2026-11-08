@@ -1,6 +1,7 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { translate } from '@/i18n/i18n'
 import { cn } from '@/lib/utils'
+import { NativeChatMeter } from './native-chat-meter'
 import {
   formatContextTokenCount,
   type NativeChatContextUsageSummary
@@ -46,7 +47,17 @@ export function NativeChatContextUsageChip({
           )}
         >
           <span>{translate('components.native-chat.contextUsage.short', 'ctx')}</span>
-          <span>{usage.percentage}%</span>
+          <NativeChatMeter
+            label={translate('components.native-chat.contextUsage.short', 'ctx')}
+            usedPercent={usage.percentage}
+            warningPercent={70}
+            urgentPercent={CRITICAL_PERCENTAGE}
+          />
+          <span
+            className={usage.percentage >= CRITICAL_PERCENTAGE ? undefined : 'text-chat-foreground'}
+          >
+            {usage.percentage}%
+          </span>
         </span>
       </TooltipTrigger>
       <TooltipContent side="top" sideOffset={4} className="whitespace-pre-line">
