@@ -291,7 +291,10 @@ function ClaudeAccountUsageChip({
         >
           {name ? (
             // Why: whose subscription this is reads at a glance, in the theme's blue.
-            <span className="font-medium text-[color:var(--chat-hue-blue,var(--chat-foreground-faint))]">
+            <span
+              className="font-medium"
+              style={{ color: 'var(--chat-hue-blue, var(--chat-foreground-faint))' }}
+            >
               {name}
             </span>
           ) : null}
