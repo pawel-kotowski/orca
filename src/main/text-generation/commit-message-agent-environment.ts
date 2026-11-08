@@ -1,5 +1,6 @@
 import type { ClaudeRuntimeAuthPreparation } from '../claude-accounts/runtime-auth-service'
 import { applyClaudeEnvPatch } from '../claude-accounts/environment'
+import { withoutRejectedClaudeApiKey } from './claude-rejected-api-key'
 import { readShellStartupEnvVar } from '../pty/shell-startup/shell-startup-env'
 import { parseWslUncPath } from '../../shared/wsl-paths'
 
@@ -147,7 +148,9 @@ export async function prepareLocalCommitMessageAgentEnv(
 
     if (agentId === 'claude' && resolvers.prepareForClaudeLaunch) {
       const preparation = await resolvers.prepareForClaudeLaunch(target)
-      const env = applyClaudeEnvPatch({ ...base }, preparation.envPatch)
+      const env = withoutRejectedClaudeApiKey(
+        applyClaudeEnvPatch({ ...base }, preparation.envPatch)
+      )
       return { ok: true, env }
     }
   } catch (error) {
@@ -158,5 +161,9 @@ export async function prepareLocalCommitMessageAgentEnv(
     }
   }
 
+  if (agentId === 'claude') {
+    // Why: with no account resolver Claude still runs on the shell env; honour its key answer too.
+    return { ok: true, env: withoutRejectedClaudeApiKey(hostBase ?? cloneProcessEnv()) }
+  }
   return hostBase ? { ok: true, env: hostBase } : { ok: true }
 }
