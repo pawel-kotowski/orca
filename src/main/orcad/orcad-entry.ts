@@ -28,6 +28,7 @@ import {
 import { stampRuntimeSourceEnv } from '../../shared/runtime-source-env'
 import { adoptWslHostLoginEnvironmentLogged } from './orcad-wsl-host-login-environment'
 import { installOrcadProcessErrorGuards } from './orcad-process-error-guards'
+import { attachOrcadAgentStatusFollowers } from './orcad-first-work-rename'
 import { orcadWsPortOptions } from './orcad-ws-port-policy'
 import { createOrcadStartupTiming } from './orcad-startup-timing'
 import { ORCA_LAYOUT_OWNER_IS_MAIN } from '../../shared/layout-owner-switch'
@@ -97,8 +98,6 @@ async function startOrcadRuntime(
   const { agentHookServer } = await import('../agent-hooks/server')
   await import('../agent-hooks/managed-agent-hook-controls')
   const { agentHookRuntimeDeps } = await import('../agent-hooks/agent-hook-runtime-deps')
-  const { installHookStatusSessionTabsRepublish } =
-    await import('../agent-hooks/hook-status-session-tabs-republish')
   const { startOrcadAgentHookServer, startOrcadManagedAgentHooks } =
     await import('./orcad-managed-agent-hooks')
   const { AgentStatusObservedPaneIdentities, AgentStatusObservedPaneIdentityCapture } =
@@ -109,12 +108,10 @@ async function startOrcadRuntime(
 
   let paneGridsForShutdown: { flushPaneGrids(): Promise<void> | null } | null = null
   let profileStoreForShutdown: Parameters<typeof flushOrcadProfileStoreForShutdown>[0] | undefined
-  let uninstallHookStatusRepublish = (): void => {}
   let uninstallObservedStatusIdentity = (): void => {}
   // Cleanups run in reverse: RPC, then recovery and watchers, then the final flush; the daemon
   // disconnect, registered above, runs last.
   registerCleanup(() => agentHookServer.stop())
-  registerCleanup(() => uninstallHookStatusRepublish())
   registerCleanup(() => uninstallObservedStatusIdentity())
   registerCleanup(async () => {
     // A SQLite-backed orcad has no JSON mirror to absorb a debounced write after SIGTERM.
@@ -250,12 +247,8 @@ async function startOrcadRuntime(
     await repairDuplicatePtyPanesOnStart(profileStore, runtime)
   }
 
-  // Status changes must republish session.tabs to paired clients.
-  uninstallHookStatusRepublish = installHookStatusSessionTabsRepublish(
-    agentHookServer,
-    () => runtime
-  )
-  registerCleanup(runtime.attachAgentStatusStore(agentHookServer))
+  // The runtime follows hook status: session.tabs republish, its status store, first-work naming.
+  registerCleanup(await attachOrcadAgentStatusFollowers(agentHookServer, profileStore, runtime))
 
   // Headless registration threads Store into persistence; account homes prefer client then host selection.
   // WSL has no host selection and keeps the desktop-prepared environment.
