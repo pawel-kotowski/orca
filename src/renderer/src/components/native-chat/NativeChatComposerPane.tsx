@@ -16,6 +16,7 @@ import { useNativeChatComposerHandle } from './use-native-chat-composer-handle'
 import { useNativeChatFileDrops } from './use-native-chat-file-drops'
 import { useNativeChatComposerKeyDown } from './use-native-chat-composer-keydown'
 import { useNativeChatSendLifecycle } from './use-native-chat-send-lifecycle'
+import { newestModel } from './native-chat-transcript-context-usage'
 import { useNativeChatSessionOptions } from './use-native-chat-session-options'
 import { useNativeChatDictation } from './use-native-chat-dictation'
 import { useNativeChatSessionOptionCommand } from './use-native-chat-session-option-command'
@@ -224,7 +225,8 @@ export const NativeChatComposerPane = forwardRef<ComposerHandle, C.NativeChatCom
         dispatchCommand: dispatchSessionOptionCommand,
         onAgentPicker: onSwitchToTerminal,
         readTerminalScreen,
-        paneKey
+        paneKey,
+        transcriptModel: newestModel(recallSource?.messages ?? [])
       })
     const sessionOptionsSurface = structuredTransport?.optionsSurface ?? ptySessionOptionsSurface
     const contextUsage = useNativeChatContextUsageSummary(structuredTransport, agent, recallSource)

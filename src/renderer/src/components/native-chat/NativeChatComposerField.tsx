@@ -340,8 +340,9 @@ export function NativeChatComposerField({
             className={cn(
               // Use a constant container border so focus changes cannot flash it.
               'group/composer rounded-xl border p-1.5 shadow-xs',
-              // Why: controls stay at the top right while the text wraps below the first line.
-              compact && 'flex flex-wrap items-start gap-x-1',
+              // Why: the controls sit at the right, centred on the box's height however many lines
+              // the text takes (Paweł, 2026-11-08: "should be centered always").
+              compact && 'flex flex-wrap items-center gap-x-1',
               launch
                 ? 'border-foreground/10 bg-background dark:bg-foreground/[0.04]'
                 : 'border-chat-composer-border bg-chat-composer-surface',

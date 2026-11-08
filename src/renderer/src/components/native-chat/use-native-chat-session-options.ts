@@ -19,7 +19,11 @@ import {
   discoverNativeChatCatalogModels,
   resolveNativeChatModelDiscoveryContext
 } from './native-chat-session-option-discovery'
-import { readClaudeSessionOptionsFromTerminalScreen } from './claude-terminal-session-options'
+import {
+  claudeTranscriptSessionValues,
+  readClaudeSessionOptionsFromTerminalScreen,
+  withClaudeHookEffort
+} from './claude-terminal-session-options'
 
 import { enqueueSessionOptionSettingsWrite } from './native-chat-session-option-settings-write'
 
@@ -38,6 +42,8 @@ export function useNativeChatSessionOptions(args: {
   readTerminalScreen?: () => string | null
   /** OMP model evidence comes from its hook; Claude uses its terminal frame. */
   paneKey?: string
+  /** Claude: the model id of the transcript's newest reply, for when the frame scrolled away. */
+  transcriptModel?: string | null
 }): {
   surface: NativeChatPtySessionOptionsSurface | null
   snapshot: SessionOptionDescriptor[]
@@ -49,8 +55,15 @@ export function useNativeChatSessionOptions(args: {
     dispatchCommand,
     onAgentPicker,
     readTerminalScreen,
-    paneKey
+    paneKey,
+    transcriptModel = null
   } = args
+  // Claude reports its live effort level on tool and Stop hooks; fresher than the startup frame.
+  const hookEffort = useAppStore((state) =>
+    paneKey && agent === 'claude'
+      ? (state.agentStatusByPaneKey[paneKey]?.providerSession?.effort ?? null)
+      : null
+  )
   const reportedModel = useAppStore((state) =>
     paneKey ? (state.agentStatusByPaneKey[paneKey]?.model ?? null) : null
   )
@@ -147,15 +160,33 @@ export function useNativeChatSessionOptions(args: {
           return
         }
         reportedScreenRef.current = screen
-        surface.reportSessionOptions(reportedValues)
+        surface.reportSessionOptions(withClaudeHookEffort(reportedValues, hookEffort))
         return
+      }
+      // Why: the startup frame scrolls away or a resumed session never draws it; the newest
+      // reply still names the model, so the pill shows it rather than a bare "Model".
+      const transcriptValues = claudeTranscriptSessionValues(
+        transcriptModel,
+        models ?? undefined,
+        hookEffort
+      )
+      if (transcriptValues && !cancelled) {
+        surface.reportSessionOptions(transcriptValues)
       }
     }
     void reportCurrentValues()
     return () => {
       cancelled = true
     }
-  }, [agent, discoveryContext, readTerminalScreen, surface, targetPtyId])
+  }, [
+    agent,
+    discoveryContext,
+    hookEffort,
+    readTerminalScreen,
+    surface,
+    targetPtyId,
+    transcriptModel
+  ])
 
   // Scope survives surface rebuilds; reapplying an unchanged report would revert the user’s pick.
   useEffect(() => {

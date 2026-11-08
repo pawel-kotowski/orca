@@ -197,3 +197,40 @@ export function readClaudeSessionOptionsFromTerminalScreen(
   }
   return result
 }
+
+/** The live effort Claude reported on its hooks replaces the startup frame's, when known. */
+export function withClaudeHookEffort(
+  values: Record<string, SessionOptionValue>,
+  hookEffort: string | null
+): Record<string, SessionOptionValue> {
+  const effort = hookEffort ? EFFORT_ID_BY_LABEL[hookEffort.toLowerCase()] : undefined
+  return effort && 'model' in values ? { ...values, effort } : values
+}
+
+/**
+ * The session's model from its transcript's newest reply (a model id such as `claude-opus-5-5`),
+ * matched to the picker's catalog, with the hook-reported effort. Null when no reply names one.
+ */
+export function claudeTranscriptSessionValues(
+  transcriptModel: string | null,
+  models: readonly CatalogModel[] | undefined,
+  hookEffort: string | null
+): Record<string, SessionOptionValue> | null {
+  const id = transcriptModel?.trim()
+  // Why: `<synthetic>` replies (an interrupted or local turn) name no model.
+  if (!id || id.startsWith('<')) {
+    return null
+  }
+  const listed = [...(models ?? []), ...(getAgentSessionOptionCatalog('claude')?.models ?? [])]
+  const lower = id.toLowerCase()
+  const model =
+    listed.find((entry) => entry.id.toLowerCase() === lower) ??
+    // Why longest first: a discovered `claude-opus-5-5` beats the seed family `opus`.
+    [...listed]
+      .sort((left, right) => right.id.length - left.id.length)
+      .find((entry) => lower.includes(entry.id.toLowerCase().replace(/\[[^\]]*\]$/u, '')))
+  if (!model) {
+    return { model: id }
+  }
+  return withClaudeHookEffort({ model: model.id }, hookEffort)
+}

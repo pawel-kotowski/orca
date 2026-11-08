@@ -35,7 +35,8 @@ export function transcriptContextUsageSummary(
   }
 }
 
-function newestModel(messages: readonly NativeChatMessage[]): string | null {
+/** The model of the newest reply that names one (a terminal-backed chat's transcript). */
+export function newestModel(messages: readonly NativeChatMessage[]): string | null {
   for (let index = messages.length - 1; index >= 0; index -= 1) {
     const model = messages[index]!.model
     if (model) {
