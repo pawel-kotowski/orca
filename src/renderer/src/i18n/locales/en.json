@@ -538,7 +538,9 @@
         "activityFollowsConversation": "Activity view follows the conversation",
         "activityFollowsConversationDescription": "Each card shows the first and latest prompt, the latest steps and the answer.",
         "activityHoverChat": "Show the chat when hovering an activity card",
-        "activityHoverChatDescription": "Hovering a card opens its live chat beside the list. When off, a click anywhere on a card opens its workspace."
+        "activityHoverChatDescription": "Hovering a card opens its live chat beside the list. When off, a click anywhere on a card opens its workspace.",
+        "chatColors": "Colour from the terminal theme",
+        "chatColorsDescription": "Step icons by kind, links, code, headings, list markers and your messages take colours from the terminal theme's palette. Off keeps the chat in its text colours."
       },
       "permissionsAgentsLink": "Settings → Agents",
       "permissionsTitle": "Permissions for new chats",

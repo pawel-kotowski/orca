@@ -5,6 +5,7 @@ import {
   nativeChatSoleCallAsLine,
   nativeChatActivityFollowsConversation,
   nativeChatActivityHoverChat,
+  nativeChatColors,
   nativeChatCompactComposer,
   nativeChatCtrlEnterSendsNow,
   nativeChatToolStepsOpen
@@ -86,6 +87,15 @@ export function AppearanceChatSection({
         value={appearance.imageOverlayOpacity}
         onChange={update}
         forceVisible={forceVisiblePrimary}
+      />
+      <SettingsSwitchRow
+        label={translate('settings.chat.appearance.chatColors', 'Colour from the terminal theme')}
+        description={translate(
+          'settings.chat.appearance.chatColorsDescription',
+          "Step icons by kind, links, code, headings, list markers and your messages take colours from the terminal theme's palette. Off keeps the chat in its text colours."
+        )}
+        checked={nativeChatColors(settings)}
+        onChange={() => update({ chatColors: !nativeChatColors(settings) })}
       />
       <SettingsSwitchRow
         label={translate('settings.chat.appearance.toolStepsOpen', 'Show every tool step')}

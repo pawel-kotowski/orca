@@ -252,7 +252,11 @@ export function NativeChatToolRun({
             {/* Mark only stated success after settlement; idle gaps between live calls are not completion. */}
             {!live && runSucceeded ? (
               <span className="flex h-[1lh] shrink-0 items-center">
-                <Check aria-hidden className="size-3 shrink-0 text-chat-foreground-faint" />
+                <Check
+                  aria-hidden
+                  data-native-chat-step-done
+                  className="size-3 shrink-0 text-chat-foreground-faint"
+                />
               </span>
             ) : null}
             {latestCallLabel ? (

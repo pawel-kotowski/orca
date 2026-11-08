@@ -54,6 +54,19 @@ export type NativeChatAppearanceSettings = {
    * it works instead of waiting for its turn to end, as Ctrl+Enter does in Claude's terminal; absent = on.
    */
   ctrlEnterSendsNow?: boolean
+  /**
+   * Whether the chat takes colour from the terminal theme's palette: step icons by kind, links,
+   * code, headings, list markers, the person's bubbles; absent = on.
+   */
+  chatColors?: boolean
+}
+
+/** Colour from the terminal palette in the chat, unless the user turned it off. */
+export function nativeChatColors(
+  settings: { nativeChatAppearance?: NativeChatAppearanceSettings } | null | undefined
+): boolean {
+  // Why: until settings load (and in a bare store) the chat keeps upstream's monochrome look.
+  return settings != null && settings.nativeChatAppearance?.chatColors !== false
 }
 
 /** Ctrl+Enter sends a terminal Claude chat's message now, unless the user turned that off. */

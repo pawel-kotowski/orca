@@ -1,9 +1,16 @@
 import './native-chat-appearance.css'
+import './native-chat-colors.css'
 import { useMemo, type CSSProperties } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import type { GlobalSettings } from '../../../../shared/global-settings-types'
-import { resolveNativeChatAppearanceSettings } from '../../../../shared/native-chat/native-chat-appearance-settings'
-import { resolveConfiguredTerminalColors } from '../../../../shared/terminal-themes/terminal-theme-selection'
+import {
+  nativeChatColors,
+  resolveNativeChatAppearanceSettings
+} from '../../../../shared/native-chat/native-chat-appearance-settings'
+import {
+  resolveConfiguredTerminalColors,
+  resolveTerminalPalette
+} from '../../../../shared/terminal-themes/terminal-theme-selection'
 import { MATCH_TERMINAL_APP_THEME } from '../../../../shared/plugin-theme-settings'
 import { buildFontFamily } from '@/lib/monospace-font-family'
 import { buildAppFontFamily } from '@/lib/app-font-family'
@@ -137,6 +144,30 @@ function applyTerminalChatColors(
   })
 }
 
+type PaletteTheme = ReturnType<typeof resolveTerminalPalette>['theme']
+const CHAT_HUES = ['red', 'green', 'yellow', 'blue', 'magenta', 'cyan'] as const
+
+/**
+ * The chat's colours come from the terminal theme's own palette, so they match the terminal and
+ * follow any theme (native-chat-colors.css). The bright variants read better on a dark canvas;
+ * a light theme's plain ones are already its darker, readable set.
+ */
+function applyChatPaletteHues(style: NativeChatAppearanceStyle, theme: PaletteTheme): void {
+  if (!theme) {
+    return
+  }
+  const dark = theme.background ? !isTerminalBackgroundLight(theme.background) : true
+  for (const hue of CHAT_HUES) {
+    const bright = `bright${hue[0]!.toUpperCase()}${hue.slice(1)}` as const
+    const value = (dark ? (theme[bright] ?? theme[hue]) : (theme[hue] ?? theme[bright])) as
+      | string
+      | undefined
+    if (value) {
+      style[`--chat-hue-${hue}`] = value
+    }
+  }
+}
+
 export function nativeChatAppearanceStyle(
   settings: Partial<GlobalSettings> | null | undefined,
   measuredColumnWidthPx?: number | null,
@@ -186,22 +217,23 @@ export function nativeChatAppearanceStyle(
   const appMatchesTerminal =
     (light ? settings?.pluginAppThemeLight : settings?.pluginAppThemeDark) ===
     MATCH_TERMINAL_APP_THEME
+  const paletteSettings = {
+    theme: settings?.theme ?? 'dark',
+    terminalThemeDark: settings?.terminalThemeDark ?? '',
+    terminalThemeLight: settings?.terminalThemeLight ?? '',
+    terminalUseSeparateLightTheme: settings?.terminalUseSeparateLightTheme ?? false,
+    terminalCustomThemes: settings?.terminalCustomThemes,
+    terminalPluginPalettes: settings?.terminalPluginPalettes,
+    pluginSystemEnabled: settings?.pluginSystemEnabled,
+    disabledPlugins: settings?.disabledPlugins,
+    terminalColorOverrides: settings?.terminalColorOverrides,
+    terminalColorOverridesLight: settings?.terminalColorOverridesLight
+  }
+  if (nativeChatColors(settings)) {
+    applyChatPaletteHues(style, resolveTerminalPalette(paletteSettings, systemPrefersDark).theme)
+  }
   if (matching || appMatchesTerminal) {
-    const colors = resolveConfiguredTerminalColors(
-      {
-        theme: settings?.theme ?? 'dark',
-        terminalThemeDark: settings?.terminalThemeDark ?? '',
-        terminalThemeLight: settings?.terminalThemeLight ?? '',
-        terminalUseSeparateLightTheme: settings?.terminalUseSeparateLightTheme ?? false,
-        terminalCustomThemes: settings?.terminalCustomThemes,
-        terminalPluginPalettes: settings?.terminalPluginPalettes,
-        pluginSystemEnabled: settings?.pluginSystemEnabled,
-        disabledPlugins: settings?.disabledPlugins,
-        terminalColorOverrides: settings?.terminalColorOverrides,
-        terminalColorOverridesLight: settings?.terminalColorOverridesLight
-      },
-      systemPrefersDark
-    )
+    const colors = resolveConfiguredTerminalColors(paletteSettings, systemPrefersDark)
     const readable =
       colors.background && colors.foreground
         ? { background: colors.background, foreground: colors.foreground }

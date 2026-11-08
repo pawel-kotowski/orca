@@ -1,0 +1,92 @@
+/*
+ * Colour in the chat, from the terminal theme's palette (Paweł, 2026-11-08: "add some life to chat
+ * ui, it is all monochrome basically"). native-chat-appearance-style.ts sets --chat-hue-{red,
+ * green,yellow,blue,magenta,cyan} on the chat root only while Settings → Chat → "Colour from the
+ * terminal theme" is on. Every tint below is derived on the root: with no hue it is invalid, so
+ * each use falls back to the monochrome value it replaces.
+ */
+[data-native-chat-root] {
+  --chat-tint-orange: color-mix(in oklab, var(--chat-hue-red) 45%, var(--chat-hue-yellow));
+  --chat-tint-link-line: color-mix(in oklab, var(--chat-hue-blue) 45%, transparent);
+  --chat-tint-code-border: color-mix(
+    in oklab,
+    var(--chat-hue-red) 20%,
+    var(--chat-inline-code-border)
+  );
+  --chat-tint-code-surface: color-mix(
+    in oklab,
+    var(--chat-hue-yellow) 7%,
+    var(--chat-inline-code-surface)
+  );
+  --chat-tint-user-border: color-mix(in oklab, var(--chat-hue-blue) 40%, var(--chat-user-border));
+  --chat-tint-answer-border: color-mix(
+    in oklab,
+    var(--chat-hue-green) 32%,
+    var(--chat-code-border)
+  );
+  --chat-tint-quote: color-mix(in oklab, var(--chat-hue-cyan) 60%, transparent);
+}
+
+/* Each step's icon by what it does: commands green, reading and searching blue, edits yellow,
+   the browser cyan, integrations magenta, other agents and task lists orange. */
+[data-native-chat-root] [data-native-chat-glyph='square-terminal'] {
+  color: var(--chat-hue-green, inherit);
+}
+[data-native-chat-root]
+  :is(
+    [data-native-chat-glyph='eye'],
+    [data-native-chat-glyph='search'],
+    [data-native-chat-glyph='folder']
+  ) {
+  color: var(--chat-hue-blue, inherit);
+}
+[data-native-chat-root]
+  :is([data-native-chat-glyph='pencil'], [data-native-chat-glyph='message-square-more']) {
+  color: var(--chat-hue-yellow, inherit);
+}
+[data-native-chat-root] [data-native-chat-glyph='globe'] {
+  color: var(--chat-hue-cyan, inherit);
+}
+[data-native-chat-root] :is([data-native-chat-glyph='plug'], [data-native-chat-glyph='brain']) {
+  color: var(--chat-hue-magenta, inherit);
+}
+[data-native-chat-root]
+  :is([data-native-chat-glyph='bot'], [data-native-chat-glyph='list-checks']) {
+  color: var(--chat-tint-orange, inherit);
+}
+[data-native-chat-root] [data-native-chat-step-done] {
+  color: var(--chat-hue-green, inherit);
+}
+
+/* The answer's words: links blue, inline code orange on a warm chip, headings and list markers
+   yellow, quotes ruled cyan. */
+[data-native-chat-root] .native-chat-markdown a {
+  color: var(--chat-hue-blue, var(--chat-foreground-strong));
+  text-decoration-color: var(
+    --chat-tint-link-line,
+    color-mix(in srgb, currentColor 40%, transparent)
+  );
+}
+[data-native-chat-root] .native-chat-markdown :not(pre) > code {
+  border-color: var(--chat-tint-code-border, var(--chat-inline-code-border));
+  background: var(--chat-tint-code-surface, var(--chat-inline-code-surface));
+  color: var(--chat-tint-orange, var(--chat-code-foreground));
+}
+[data-native-chat-root] .native-chat-markdown :is(h1, h2, h3) {
+  color: var(--chat-hue-yellow, var(--chat-foreground-strong));
+}
+[data-native-chat-root] .native-chat-markdown li::marker {
+  color: var(--chat-hue-yellow, inherit);
+}
+[data-native-chat-root] .native-chat-markdown blockquote {
+  border-left-color: var(--chat-tint-quote, revert-layer);
+}
+
+/* The person's own messages lean blue; a finished answer's frame leans green. */
+[data-native-chat-root] [data-native-chat-user-bubble] {
+  /* Why border only: the bubble's fill is the person's own colour choice (Settings → Chat). */
+  border-color: var(--chat-tint-user-border, var(--chat-user-border));
+}
+[data-native-chat-root] [data-native-chat-turn-answer] {
+  border-color: var(--chat-tint-answer-border, var(--chat-code-border));
+}

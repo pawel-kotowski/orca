@@ -109,7 +109,10 @@ export function NativeChatUserMessageRow({
           onRefolded={onRefolded}
         />
       ) : (
-        <div className="max-w-[80%] rounded-xl border border-chat-user-border bg-chat-user-surface px-3.5 py-2.5 text-sm text-chat-foreground-strong">
+        <div
+          data-native-chat-user-bubble
+          className="max-w-[80%] rounded-xl border border-chat-user-border bg-chat-user-surface px-3.5 py-2.5 text-sm text-chat-foreground-strong"
+        >
           {markdown ? (
             <>
               <NativeChatImageAttachments

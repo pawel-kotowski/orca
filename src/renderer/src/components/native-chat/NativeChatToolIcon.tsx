@@ -38,13 +38,19 @@ const NATIVE_CHAT_TOOL_GLYPHS: Record<NativeChatToolIconName, LucideIcon> = {
 /** Use the same fixed glyph slot for known and unknown categories to align rows. */
 function NativeChatGlyphSlot({
   glyph: Glyph,
+  name,
   className
 }: {
   glyph: LucideIcon
+  /** The glyph's name, which colours it by kind (native-chat-colors.css). */
+  name: NativeChatToolIconName
   className?: string
 }): React.JSX.Element {
   return (
-    <span className={cn('flex size-4 shrink-0 items-center justify-center', className)}>
+    <span
+      data-native-chat-glyph={name}
+      className={cn('flex size-4 shrink-0 items-center justify-center', className)}
+    >
       <Glyph aria-hidden className="size-3.5" />
     </span>
   )
@@ -64,11 +70,9 @@ export function NativeChatToolIcon({
   input?: unknown
   className?: string
 }): React.JSX.Element {
+  const name = nativeChatToolIconName(rowWord, mcpIdentity, input)
   return (
-    <NativeChatGlyphSlot
-      glyph={NATIVE_CHAT_TOOL_GLYPHS[nativeChatToolIconName(rowWord, mcpIdentity, input)]}
-      className={className}
-    />
+    <NativeChatGlyphSlot glyph={NATIVE_CHAT_TOOL_GLYPHS[name]} name={name} className={className} />
   )
 }
 
@@ -80,5 +84,11 @@ export function NativeChatToolRunIcon({
   iconName: NativeChatToolIconName
   className?: string
 }): React.JSX.Element {
-  return <NativeChatGlyphSlot glyph={NATIVE_CHAT_TOOL_GLYPHS[iconName]} className={className} />
+  return (
+    <NativeChatGlyphSlot
+      glyph={NATIVE_CHAT_TOOL_GLYPHS[iconName]}
+      name={iconName}
+      className={className}
+    />
+  )
 }
