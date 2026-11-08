@@ -21206,6 +21206,9 @@
         "output": "Output",
         "latestPrompt": "Prompt",
         "firstPrompt": "First prompt"
+      },
+      "machine": {
+        "local": "This computer"
       }
     }
   },

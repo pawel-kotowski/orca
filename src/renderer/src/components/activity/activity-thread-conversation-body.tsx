@@ -15,6 +15,7 @@ import { getExecutionHostIdForWorktree } from '@/lib/worktree-runtime-owner'
 import { parseExecutionHostId } from '../../../../shared/execution-host'
 import { activityRepoTagStyle, useActivityProjectColor } from './activity-project-color'
 import { CornerDownRight, PanelsTopLeft } from 'lucide-react'
+import { ActivityMachineMark } from './activity-machine-mark'
 import { useActivityCardHiddenParts, type ActivityCardPart } from './activity-card-parts'
 import { FLOATING_TERMINAL_WORKTREE_ID } from '../../../../shared/constants'
 
@@ -82,14 +83,13 @@ export function ActivityThreadConversationBody({
   } as unknown as DashboardAgentRow)
   const repoName = shows('repo') ? (thread.repo?.displayName ?? null) : null
   const projectColor = useActivityProjectColor(thread.repo)
-  // Why: the machine matters only when it is not this one (a devbox, a workstation).
-  const machineLabel = useAppStore((state) => {
+  // Why: null for this computer, which draws as its own mark; another machine by its name.
+  const remoteMachine = useAppStore((state) => {
     const hostId = getExecutionHostIdForWorktree(state, thread.worktree.id)
     return parseExecutionHostId(hostId)?.kind === 'local'
       ? null
       : selectWorktreeHostDisplayLabel(state, thread.worktree.id)
   })
-  const machine = shows('machine') ? machineLabel : null
   const branch = thread.worktree.branch?.replace(/^refs\/heads\//, '') ?? null
   const showsConversationName = !repeats(conversationName, workspaceLabel)
   const showsBranch = !repeats(branch, workspaceLabel)
@@ -127,14 +127,7 @@ export function ActivityThreadConversationBody({
             {repoName}
           </span>
         ) : null}
-        {machine ? (
-          <span
-            className="min-w-0 max-w-[30%] shrink-0 truncate rounded-full border border-border/70 px-1.5 text-[10.5px] font-medium leading-4 text-muted-foreground"
-            title={machine}
-          >
-            {machine}
-          </span>
-        ) : null}
+        {shows('machine') ? <ActivityMachineMark remoteName={remoteMachine} /> : null}
         {showsConversation ? (
           <span className="flex min-w-0 flex-1 items-center gap-1 text-[11.5px] leading-4 text-muted-foreground">
             <span className="inline-flex shrink-0" title={agentLabel}>
