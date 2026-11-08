@@ -15,6 +15,7 @@ import { buildAiVaultResumeShellCommand } from '../../ai-vault/resume/ai-vault-r
 import { normalizeRuntimePathForComparison } from '../../cross-platform-path'
 import { parseWslUncPath } from '../../wsl-paths'
 import { dropRecordedAgentPermissionArgs } from '../permissions/tui-agent-permission-lift'
+import { claudeResumeAccountEnv } from './claude-resume-account'
 
 export function buildAgentResumeStartupPlan(args: {
   agent: ResumableTuiAgent
@@ -37,6 +38,8 @@ export function buildAgentResumeStartupPlan(args: {
   fork?: boolean
   /** OS that runs the agent when `platform` only picks quoting; null when unreported. */
   agentHostPlatform?: NodeJS.Platform | null
+  /** Relaunch on the currently selected Claude account instead of the one the session ran on. */
+  moveClaudeAccount?: boolean
 }): AgentStartupPlan | null {
   const resumeArgv = args.fork
     ? getAgentForkArgv(args.agent, args.providerSession)
@@ -100,6 +103,9 @@ export function buildAgentResumeStartupPlan(args: {
         })
       : resumeCommand
   const applied = baseCommand.appliedSessionOptions
+  // Why not in launchConfig: the account is the session's, not a launch preference to replay.
+  const accountEnv = args.moveClaudeAccount ? null : claudeResumeAccountEnv(args)
+  const env = args.agentEnv || accountEnv ? { ...args.agentEnv, ...accountEnv } : null
   return {
     agent: args.agent,
     launchCommand,
@@ -108,7 +114,7 @@ export function buildAgentResumeStartupPlan(args: {
     launchConfig,
     ...(args.agent === 'codex' ? { startupCommandDelivery: 'shell-ready' as const } : {}),
     ...(Object.keys(applied).length > 0 ? { sessionOptions: { ...applied } } : {}),
-    ...(args.agentEnv ? { env: { ...args.agentEnv } } : {})
+    ...(env ? { env } : {})
   }
 }
 

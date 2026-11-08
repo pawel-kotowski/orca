@@ -86,6 +86,8 @@ export function resolveAgentAccountRestartResumeStartup(
   const startupPlan = buildAgentResumeStartupPlan({
     agent,
     providerSession,
+    // Why: this restart exists to move the session onto the newly selected account.
+    moveClaudeAccount: true,
     cmdOverrides: state.settings?.agentCmdOverrides ?? {},
     agentArgs:
       launchConfig !== undefined
