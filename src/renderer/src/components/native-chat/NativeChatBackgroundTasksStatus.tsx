@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Activity, Bot, ChevronDown, CircleHelp, SquareTerminal, Workflow } from 'lucide-react'
 import type { AgentSessionBackgroundTask } from '../../../../shared/agent-session/agent-session-background-task-wire'
 import type {
@@ -50,6 +50,29 @@ function useNarrowStrip(ref: React.RefObject<HTMLDivElement | null>): boolean {
     return () => observer.disconnect()
   }, [ref])
   return narrow
+}
+
+/**
+ * Publish the strip's height on the chat root (`--native-chat-tasks-strip-height`), so Jump to
+ * latest, when it sits above the message box, sits above the strip instead of on it.
+ */
+function usePublishStripHeight(ref: React.RefObject<HTMLDivElement | null>): void {
+  useLayoutEffect(() => {
+    const element = ref.current
+    const root = element?.closest<HTMLElement>('[data-native-chat-root="true"]')
+    if (!element || !root || typeof ResizeObserver === 'undefined') {
+      return
+    }
+    const publish = (): void =>
+      root.style.setProperty('--native-chat-tasks-strip-height', `${element.offsetHeight}px`)
+    publish()
+    const observer = new ResizeObserver(publish)
+    observer.observe(element)
+    return () => {
+      observer.disconnect()
+      root.style.removeProperty('--native-chat-tasks-strip-height')
+    }
+  }, [ref])
 }
 
 export const KIND_ICONS = {
@@ -155,6 +178,8 @@ export function NativeChatBackgroundTasksStatus(props: {
   const taskListId = useId()
   const stripRef = useRef<HTMLDivElement>(null)
   const narrow = useNarrowStrip(stripRef)
+  const outerRef = useRef<HTMLDivElement>(null)
+  usePublishStripHeight(outerRef)
   // The 1 Hz elapsed tick must not re-group, re-sort and re-translate the whole roster.
   const groups: BackgroundTaskGroup[] = useMemo(
     () =>
@@ -168,6 +193,7 @@ export function NativeChatBackgroundTasksStatus(props: {
   const headerText = backgroundTasksHeaderText(header)
   return (
     <div
+      ref={outerRef}
       data-native-chat-background-tasks="true"
       className="group/tasks shrink-0 bg-chat-pane px-3 pt-2 sm:px-4"
     >
