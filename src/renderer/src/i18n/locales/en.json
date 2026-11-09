@@ -21258,6 +21258,10 @@
         "of": "Worker of {{name}}"
       },
       "resizeSection": "Resize section"
+    },
+    "sidebar": {
+      "expandAll": "Expand all",
+      "collapseAll": "Collapse all projects"
     }
   },
   "dashboardPopout": {
