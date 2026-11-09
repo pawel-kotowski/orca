@@ -20590,7 +20590,12 @@
         "weekly": "Weekly: {{used}}% used, resets in {{reset}}",
         "noUsage": "Usage not loaded yet",
         "sessionShort": "5h",
-        "hostLoginUnknown": "This chat's host has not reported its Claude login yet"
+        "hostLoginUnknown": "This chat's host has not reported its Claude login yet",
+        "switching": "Moving this chat to {{name}}",
+        "switchingRestart": "Claude restarts on it when its turn ends and picks the conversation up.",
+        "switchingNext": "The next Claude in this workspace starts on it.",
+        "switchLabel": "Claude subscription {{name}}: switch",
+        "switchTitle": "Run this chat on"
       }
     },
     "tab": {

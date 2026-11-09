@@ -8,6 +8,7 @@ import type { ProviderRateLimits, RateLimitWindow } from '../../../../shared/rat
 import { formatRateLimitWindowChipLabel } from '../../../../shared/rate-limit-window-label'
 import { clampUsedPercent } from '../../../../shared/usage-percentage-display'
 import { NativeChatMeter } from './native-chat-meter'
+import { NativeChatAccountSwitch } from './native-chat-account-switch'
 import { workspaceClaudeAccountId } from '../../../../shared/claude-workspace-account'
 import { getExecutionHostIdForWorktree } from '@/lib/worktree-runtime-owner'
 import { runtimeRpcTargetForAuthorityKey } from '@/runtime/runtime-client-target'
@@ -140,6 +141,9 @@ type ChatClaudeUsage = {
   name: string | null
   email: string | null
   limits: ProviderRateLimits | null
+  /** The managed account and workspace a switch acts on; null for another machine's chat. */
+  accountId?: string | null
+  worktreeId?: string | null
 }
 
 /**
@@ -219,7 +223,15 @@ function useChatClaudeUsage(scope: NativeChatAccountScope): ChatClaudeUsage | nu
   if (remoteId) {
     return snapshot ? resolveRemoteChatClaudeUsage(snapshot, scope.transcriptPath) : null
   }
-  return account ? { name: accountShortName(account.email), email: account.email, limits } : null
+  return account
+    ? {
+        name: accountShortName(account.email),
+        email: account.email,
+        limits,
+        accountId: account.id,
+        worktreeId
+      }
+    : null
 }
 
 /**
@@ -290,13 +302,14 @@ function ClaudeAccountUsageChip({
           className="flex items-center gap-2.5 whitespace-nowrap text-2xs tabular-nums text-chat-foreground-faint"
         >
           {name ? (
-            // Why: whose subscription this is reads at a glance, in the theme's blue.
-            <span
-              className="font-medium"
-              style={{ color: 'var(--chat-hue-blue, var(--chat-foreground-faint))' }}
-            >
-              {name}
-            </span>
+            // Why: whose subscription this is reads at a glance, in the theme's blue; a click
+            // moves the chat to another one (native-chat-account-switch).
+            <NativeChatAccountSwitch
+              name={name}
+              currentAccountId={usage.accountId ?? null}
+              worktreeId={usage.worktreeId ?? null}
+              terminalTabId={scope.terminalTabId}
+            />
           ) : null}
           {session ? <UsageBar label={sessionLabel} window={session} now={now} /> : null}
           {weekly ? <UsageBar label={weekLabel} window={weekly} now={now} /> : null}
