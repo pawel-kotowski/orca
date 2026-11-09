@@ -109,7 +109,7 @@ export function GitGraphColumnResizeHandle({
   onResize: (width: number) => void
   onReset: () => void
 }): React.JSX.Element {
-  const dragRef = useRef<{ x: number; width: number } | null>(null)
+  const dragRef = useRef<{ x: number; width: number; zoom: number } | null>(null)
   return (
     <div
       role="separator"
@@ -123,14 +123,17 @@ export function GitGraphColumnResizeHandle({
         event.preventDefault()
         event.stopPropagation()
         event.currentTarget.setPointerCapture(event.pointerId)
-        dragRef.current = { x: event.clientX, width }
+        // Why the zoom: pointer moves are screen pixels, widths are pixels of the zoomed graph.
+        const zoom = (event.currentTarget as HTMLElement & { currentCSSZoom?: number })
+          .currentCSSZoom
+        dragRef.current = { x: event.clientX, width, zoom: zoom && zoom > 0 ? zoom : 1 }
       }}
       onPointerMove={(event) => {
         const drag = dragRef.current
         if (!drag) {
           return
         }
-        const delta = event.clientX - drag.x
+        const delta = (event.clientX - drag.x) / drag.zoom
         onResize(edge === 'right' ? drag.width + delta : drag.width - delta)
       }}
       onPointerUp={() => {

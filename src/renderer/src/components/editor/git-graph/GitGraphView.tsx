@@ -1,7 +1,7 @@
 // Local (glass build): the Git Graph tab — every branch's history as a full-size graph, with a
 // details pane whose files open as diffs beside it. Reuses the sidebar's graph layout and drawing.
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { RefreshCw, Search } from 'lucide-react'
+import { Minus, Plus, RefreshCw, Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { isImeOwnedKeyboardEvent } from '@/lib/ime-composition-keyboard-event'
 import { Button } from '@/components/ui/button'
@@ -22,6 +22,37 @@ import { GitGraphCommitDetails } from './git-graph-commit-details'
 // Matches SWIMLANE_WIDTH in git-history-graph-svg.tsx: one lane's width in px.
 const LANE_WIDTH = 11
 const ALL_REFS_STORAGE_KEY = 'orca.gitGraph.allRefs'
+// Text size of the graph, list and details (Paweł, 2026-11-09: "git graph font size is too small
+// add resize button"); CSS zoom keeps rows, lanes and text in proportion.
+const ZOOM_STORAGE_KEY = 'orca.gitGraph.zoom'
+const ZOOM_STEPS = [0.9, 1, 1.1, 1.15, 1.25, 1.4, 1.6, 1.8]
+const DEFAULT_ZOOM = 1.15
+
+function readZoom(): number {
+  try {
+    const stored = Number(window.localStorage.getItem(ZOOM_STORAGE_KEY))
+    return ZOOM_STEPS.includes(stored) ? stored : DEFAULT_ZOOM
+  } catch {
+    return DEFAULT_ZOOM
+  }
+}
+
+function useGitGraphZoom(): [number, (direction: 1 | -1) => void] {
+  const [zoom, setZoom] = useState(readZoom)
+  const step = useCallback((direction: 1 | -1) => {
+    setZoom((current) => {
+      const index = ZOOM_STEPS.indexOf(current)
+      const next = ZOOM_STEPS[Math.min(ZOOM_STEPS.length - 1, Math.max(0, index + direction))]
+      try {
+        window.localStorage.setItem(ZOOM_STORAGE_KEY, String(next))
+      } catch {
+        // Storage unavailable: the size lasts for this tab only.
+      }
+      return next
+    })
+  }, [])
+  return [zoom, step]
+}
 // Selection and scroll survive the tab remounting (a split beside it moves its group).
 const viewByWorktree = new Map<string, { selectedId: string | null; scrollTop: number }>()
 
@@ -178,6 +209,7 @@ export function GitGraphView({ worktreeId }: { worktreeId: string }): React.JSX.
     }
   }, [allRefs])
 
+  const [zoom, stepZoom] = useGitGraphZoom()
   const scopeButton = (value: boolean, label: string): React.JSX.Element => (
     <button
       type="button"
@@ -228,6 +260,29 @@ export function GitGraphView({ worktreeId }: { worktreeId: string }): React.JSX.
             {history.items.length}
             {history.hasMore ? '+' : ''} commits
           </span>
+          <div className="flex shrink-0 items-center">
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              aria-label={translate('local.gitGraph.smaller', 'Smaller text')}
+              disabled={zoom <= ZOOM_STEPS[0]}
+              onClick={() => stepZoom(-1)}
+            >
+              <Minus className="size-3.5" />
+            </Button>
+            <span className="w-9 text-center text-xs tabular-nums text-muted-foreground">
+              {Math.round(zoom * 100)}%
+            </span>
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              aria-label={translate('local.gitGraph.larger', 'Larger text')}
+              disabled={zoom >= (ZOOM_STEPS.at(-1) ?? DEFAULT_ZOOM)}
+              onClick={() => stepZoom(1)}
+            >
+              <Plus className="size-3.5" />
+            </Button>
+          </div>
           <Button
             variant="ghost"
             size="icon-xs"
@@ -246,7 +301,7 @@ export function GitGraphView({ worktreeId }: { worktreeId: string }): React.JSX.
           )}
         </div>
       )}
-      <div className="flex min-h-0 flex-1">
+      <div className="flex min-h-0 flex-1" style={{ zoom }}>
         <div ref={columnRef} className="flex min-w-0 flex-1 flex-col">
           <GitGraphHeaderRow layout={layout} onResize={setWidth} onReset={resetWidth} />
           <div
