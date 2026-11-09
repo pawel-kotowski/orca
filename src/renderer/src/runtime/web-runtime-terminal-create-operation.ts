@@ -46,10 +46,20 @@ import {
 } from './web-runtime-terminal-identity'
 import { settleWebRuntimeTerminalPlacement } from './web-runtime-terminal-placement-settlement'
 import { buildPlainCreateTerminalParams } from './web-runtime-plain-terminal-create-params'
+import { defaultAgentTabViewMode } from '@/lib/agent-tab-default-view-mode'
 
 export async function createWebRuntimeSessionTerminalResult(
-  args: CreateWebRuntimeSessionTerminalArgs
+  requestedArgs: CreateWebRuntimeSessionTerminalArgs
 ): Promise<CreatedWebRuntimeSessionTerminal> {
+  // Why: a remote tab is made on its host and mirrored, so local tab creation never applies "Open
+  // CLI agents in Chat UI" (Paweł, 2026-11-09: remote chats opened as terminals). Ask the host.
+  const agentForView = requestedArgs.launchAgent ?? requestedArgs.agent
+  const args: CreateWebRuntimeSessionTerminalArgs = {
+    ...requestedArgs,
+    viewMode:
+      requestedArgs.viewMode ??
+      defaultAgentTabViewMode(useAppStore.getState(), requestedArgs.worktreeId, agentForView)
+  }
   const environmentId = resolveWebRuntimeSessionEnvironmentId(
     args.environmentId,
     useAppStore.getState().settings?.activeRuntimeEnvironmentId
