@@ -68,8 +68,8 @@ function TerminalChatPlaceLine({
   // Why: the machine stays quiet, the project takes its own colour (as its activity card does) and
   // the workspace reads in the chat's text colour, so the line says where at a glance.
   return (
-    // Why ml-auto and max-w-full: right-aligned beside the limits, or on a row of its own when
-    // they leave no room (the footer wraps), cut only if even a whole row is too narrow.
+    // Why ml-auto and min-w-0: right-aligned beside the limits on the footer's one line, cut short
+    // when they leave too little room.
     <span
       className="ml-auto flex min-w-0 max-w-full items-center gap-1.5 text-2xs text-chat-foreground-faint"
       title={title}

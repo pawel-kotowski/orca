@@ -19,7 +19,10 @@ export function NativeChatComposerFooter({
 }): React.JSX.Element {
   return (
     // Why a container: the limit bars collapse to percentages when this line is narrow.
-    <div className="@container/chat-footer -mb-2 mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1 px-3">
+    // Why one line: the place takes what is left and truncates, instead of dropping to a second
+    // line under the box (Paweł, 2026-11-09: "should use whole chat width when available"). A
+    // narrow line already turns the limit bars into percentages.
+    <div className="@container/chat-footer -mb-2 mt-1 flex flex-nowrap items-center gap-x-2.5 gap-y-1 px-3">
       <NativeChatAccountUsageChip />
       <NativeChatContextUsageChip usage={contextUsage} />
       {onSwitchToTerminal ? (

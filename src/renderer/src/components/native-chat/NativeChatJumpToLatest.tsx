@@ -5,8 +5,12 @@ import { createPortal } from 'react-dom'
 import { ArrowDown } from 'lucide-react'
 import { useNativeChatCornerSlot } from './native-chat-corner-slot'
 import { translate } from '@/i18n/i18n'
-import { buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+
+// Why: small and drawn like the message box (native-chat-appearance.css, data-native-chat-jump)
+// (Paweł, 2026-11-09: "make go down button smaller and in style with input box").
+const JUMP_BUTTON =
+  'inline-flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-full text-chat-foreground-faint hover:text-chat-foreground'
 
 const READING_BACK_SETTLE_MS = 250
 const READING_BACK_HOLD_MS = 600
@@ -74,12 +78,13 @@ export function NativeChatJumpToLatest({
                 title={label}
                 onMouseDown={keepFocus}
                 onClick={onJump}
+                data-native-chat-jump=""
                 className={cn(
-                  buttonVariants({ variant: 'launcher', size: 'icon' }),
+                  JUMP_BUTTON,
                   'animate-in fade-in-0 slide-in-from-bottom-1 duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:animate-none'
                 )}
               >
-                <ArrowDown className="size-4" />
+                <ArrowDown className="size-3.5" />
               </button>,
               slot
             )
@@ -100,12 +105,13 @@ export function NativeChatJumpToLatest({
         aria-hidden={!visible || undefined}
         onMouseDown={keepFocus}
         onClick={onJump}
+        data-native-chat-jump=""
         className={cn(
-          buttonVariants({ variant: 'launcher', size: 'icon' }),
+          JUMP_BUTTON,
           'absolute right-[calc(1rem+var(--native-chat-toggle-clearance,0px))] bottom-3 z-10 transition-[opacity,translate] duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none data-[shown=false]:pointer-events-none data-[shown=false]:translate-y-1 data-[shown=false]:opacity-0'
         )}
       >
-        <ArrowDown className="size-4" />
+        <ArrowDown className="size-3.5" />
       </button>
     </>
   )

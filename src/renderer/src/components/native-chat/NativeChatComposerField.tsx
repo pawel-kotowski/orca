@@ -470,14 +470,16 @@ export function NativeChatComposerField({
               />
             </div>
           </div>
-          {/* The Claude subscription this chat runs on and its limits, under the box. */}
-          {editSession || launch ? null : (
-            <NativeChatComposerFooter
-              onSwitchToTerminal={onSwitchToTerminal}
-              contextUsage={contextUsage}
-            />
-          )}
         </div>
+        {/* The Claude subscription this chat runs on and its limits, under the box. Why outside
+            the box's column: the line spans the whole chat, not only the box's width (Paweł,
+            2026-11-09: "use full chat width when possible ... not only chat input / text width"). */}
+        {editSession || launch ? null : (
+          <NativeChatComposerFooter
+            onSwitchToTerminal={onSwitchToTerminal}
+            contextUsage={contextUsage}
+          />
+        )}
       </div>
     </div>
   )
