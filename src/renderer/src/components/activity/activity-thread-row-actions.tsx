@@ -1,5 +1,5 @@
 import React from 'react'
-import { ExternalLink, X } from 'lucide-react'
+import { ExternalLink, Inbox, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
@@ -74,7 +74,8 @@ export function ActivityThreadCornerSlot({
   inInbox,
   statusIndicator,
   onMarkRead,
-  onClear
+  onClear,
+  onRestore
 }: {
   thread: AgentPaneThread
   inInbox: boolean
@@ -82,6 +83,8 @@ export function ActivityThreadCornerSlot({
   statusIndicator: React.ReactNode
   onMarkRead: (thread: AgentPaneThread) => void
   onClear?: (thread: AgentPaneThread) => void
+  /** Standing by only: the status, which turns into an Inbox button on hover, brings it back. */
+  onRestore?: (thread: AgentPaneThread) => void
 }): React.JSX.Element | null {
   if (inInbox && thread.unread) {
     return (
@@ -97,8 +100,21 @@ export function ActivityThreadCornerSlot({
       </TooltipProvider>
     )
   }
-  const dismissable = inInbox && onClear !== undefined
-  if (!dismissable) {
+  const action =
+    inInbox && onClear !== undefined
+      ? {
+          label: translate('components.activity.standBy', 'Done with it: move to Standing by'),
+          run: () => onClear(thread),
+          icon: <X className="size-4" />
+        }
+      : !inInbox && onRestore !== undefined
+        ? {
+            label: translate('components.activity.backToInbox', 'Back to the Inbox'),
+            run: () => onRestore(thread),
+            icon: <Inbox className="size-3.5" />
+          }
+        : null
+  if (!action) {
     return statusIndicator ? <span className="inline-flex shrink-0">{statusIndicator}</span> : null
   }
   return (
@@ -110,11 +126,11 @@ export function ActivityThreadCornerSlot({
       ) : null}
       <TooltipProvider delayDuration={800} skipDelayDuration={0}>
         <SlotButton
-          label={translate('components.activity.standBy', 'Done with it: move to Standing by')}
-          onClick={() => onClear(thread)}
+          label={action.label}
+          onClick={action.run}
           className="absolute inset-0 transition-opacity can-hover:pointer-events-none can-hover:opacity-0 can-hover:group-hover:pointer-events-auto can-hover:group-hover:opacity-100 focus-visible:pointer-events-auto focus-visible:opacity-100"
         >
-          <X className="size-4" />
+          {action.icon}
         </SlotButton>
       </TooltipProvider>
     </span>

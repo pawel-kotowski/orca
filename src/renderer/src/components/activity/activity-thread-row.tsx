@@ -34,6 +34,7 @@ export const ActivityThreadRow = React.memo(function ActivityThreadRow({
   onJump,
   onMarkRead,
   onClear,
+  onRestore,
   inInbox = false,
   canJump,
   compactMode,
@@ -50,6 +51,8 @@ export const ActivityThreadRow = React.memo(function ActivityThreadRow({
   onJump: (thread: AgentPaneThread) => void
   onMarkRead: (thread: AgentPaneThread) => void
   onClear?: (thread: AgentPaneThread) => void
+  /** Under Standing by: bring it back to the Inbox. */
+  onRestore?: (thread: AgentPaneThread) => void
   /** In the Inbox: it may ring its bell and be cleared to Standing by. */
   inInbox?: boolean
   canJump: boolean
@@ -86,6 +89,7 @@ export const ActivityThreadRow = React.memo(function ActivityThreadRow({
       }
       onMarkRead={onMarkRead}
       onClear={onClear}
+      onRestore={onRestore}
     />
   )
 

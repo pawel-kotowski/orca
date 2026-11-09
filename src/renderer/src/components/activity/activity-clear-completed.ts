@@ -127,6 +127,18 @@ export function clearActivityThread(thread: AgentPaneThread): boolean {
   return true
 }
 
+/**
+ * Bring a card back from Standing by to the Inbox (Paweł, 2026-11-09: "add option to bring
+ * session back to inbox from standing by, maybe by clicking status icon"): lift its clear and
+ * mark it unread, so it rings again and the auto-move timer, which only moves seen cards, leaves
+ * it there until you look.
+ */
+export function restoreActivityThreadToInbox(thread: AgentPaneThread): void {
+  const state = useAppStore.getState()
+  state.applyActivityClearedAt({ [thread.paneKey]: null })
+  state.unacknowledgeAgents([thread.paneKey])
+}
+
 /** Persist per-pane cutoffs and remove retained snapshots without altering live status/resume identity. Defer identity-checked disk eviction until the undo window closes for lossless restoration. */
 export function clearCompletedActivity(threads: readonly AgentPaneThread[]): boolean {
   const state = useAppStore.getState()

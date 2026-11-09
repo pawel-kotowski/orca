@@ -1,6 +1,10 @@
 import type React from 'react'
 import { translate } from '@/i18n/i18n'
-import { clearActivityThread, isClearableActivityThread } from './activity-clear-completed'
+import {
+  clearActivityThread,
+  isClearableActivityThread,
+  restoreActivityThreadToInbox
+} from './activity-clear-completed'
 import { ActivityStatusGroupHeader } from './activity-thread-controls'
 import { ActivityThreadContextMenu } from './activity-thread-context-menu'
 import { floatingPanelShowsTab } from './activity-thread-actions'
@@ -150,6 +154,13 @@ export function ActivityThreadVirtualRow({
             inInbox={inInbox}
             onClear={
               inInbox && isClearableActivityThread(item.thread) ? clearActivityThread : undefined
+            }
+            // Why its state decides: an idle or working agent has no place in the Inbox to return to.
+            onRestore={
+              item.groupKey === READ_AGENTS_GROUP_KEY &&
+              activityThreadSection(item.thread) === 'inbox'
+                ? restoreActivityThreadToInbox
+                : undefined
             }
             canJump={canJump}
             compactMode={compactMode}
