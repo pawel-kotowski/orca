@@ -6,28 +6,16 @@ import type { GitHistoryItemRef } from '../../../../../shared/git/history/git-hi
 import type { GitHistoryItemViewModel } from '../../../../../shared/git/history/git-history-graph'
 import { dedupeRemoteTrackingRefs } from '../../../../../shared/git/history/git-history-ref-display'
 import {
+  GitGraphColumnResizeHandle,
+  type GitGraphColumnKey,
+  type GitGraphLayout
+} from './git-graph-columns'
+import {
   GitHistoryGraphSvg,
   graphColor
 } from '@/components/right-sidebar/source-control/sync/git-history-graph-svg'
 
 export const GIT_GRAPH_ROW_HEIGHT = 24
-
-/** Which optional columns fit: Author drops first, then Date, so the description always shows. */
-export type GitGraphColumns = { author: boolean; date: boolean }
-
-export function gitGraphColumnsForWidth(width: number): GitGraphColumns {
-  return { author: width >= 760, date: width >= 560 }
-}
-
-export function gitGraphGridTemplate(columns: GitGraphColumns): string {
-  return [
-    'auto',
-    'minmax(0,1fr)',
-    ...(columns.author ? ['10rem'] : []),
-    ...(columns.date ? ['8rem'] : []),
-    '4.5rem'
-  ].join(' ')
-}
 
 const relativeTime = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' })
 const RELATIVE_STEPS: [Intl.RelativeTimeFormatUnit, number][] = [
@@ -81,8 +69,7 @@ export function GitGraphRefBadge({
 
 type GitGraphRowProps = Omit<React.HTMLAttributes<HTMLDivElement>, 'onSelect'> & {
   viewModel: GitHistoryItemViewModel
-  graphWidth: number
-  columns: GitGraphColumns
+  layout: GitGraphLayout
   selected: boolean
   currentRefId?: string
   onSelect: () => void
@@ -90,17 +77,7 @@ type GitGraphRowProps = Omit<React.HTMLAttributes<HTMLDivElement>, 'onSelect'> &
 }
 
 export const GitGraphRow = React.forwardRef<HTMLDivElement, GitGraphRowProps>(function GitGraphRow(
-  {
-    viewModel,
-    graphWidth,
-    columns,
-    selected,
-    currentRefId,
-    onSelect,
-    onOpen,
-    className,
-    ...rootProps
-  },
+  { viewModel, layout, selected, currentRefId, onSelect, onOpen, className, ...rootProps },
   ref
 ): React.JSX.Element {
   const item = viewModel.historyItem
@@ -119,11 +96,11 @@ export const GitGraphRow = React.forwardRef<HTMLDivElement, GitGraphRowProps>(fu
         isBoundary && 'text-muted-foreground italic',
         className
       )}
-      style={{ height: GIT_GRAPH_ROW_HEIGHT, gridTemplateColumns: gitGraphGridTemplate(columns) }}
+      style={{ height: GIT_GRAPH_ROW_HEIGHT, gridTemplateColumns: layout.template }}
       onClick={isBoundary ? undefined : onSelect}
       onDoubleClick={isBoundary ? undefined : onOpen}
     >
-      <div className="flex h-full items-stretch pl-2" style={{ width: graphWidth + 8 }}>
+      <div className="flex h-full items-stretch overflow-hidden pl-2">
         <GitHistoryGraphSvg viewModel={viewModel} />
       </div>
       <div className="flex min-w-0 items-center gap-1.5 overflow-hidden">
@@ -138,12 +115,12 @@ export const GitGraphRow = React.forwardRef<HTMLDivElement, GitGraphRowProps>(fu
           {item.subject}
         </span>
       </div>
-      {columns.author && (
+      {layout.author && (
         <span className="truncate text-muted-foreground" title={item.authorEmail}>
           {item.author}
         </span>
       )}
-      {columns.date && (
+      {layout.date && (
         <span
           className="truncate text-muted-foreground"
           title={item.timestamp ? new Date(item.timestamp).toLocaleString() : undefined}
@@ -159,24 +136,49 @@ export const GitGraphRow = React.forwardRef<HTMLDivElement, GitGraphRowProps>(fu
 })
 
 export function GitGraphHeaderRow({
-  graphWidth,
-  columns
+  layout,
+  onResize,
+  onReset
 }: {
-  graphWidth: number
-  columns: GitGraphColumns
+  layout: GitGraphLayout
+  onResize: (key: GitGraphColumnKey, width: number) => void
+  onReset: (key: GitGraphColumnKey) => void
 }): React.JSX.Element {
+  const handle = (key: GitGraphColumnKey, edge: 'left' | 'right', label: string) => (
+    <GitGraphColumnResizeHandle
+      edge={edge}
+      width={key === 'graph' ? layout.graph : layout.widths[key]}
+      label={`Resize ${label} column`}
+      onResize={(width) => onResize(key, width)}
+      onReset={() => onReset(key)}
+    />
+  )
   return (
     <div
-      className="grid shrink-0 gap-x-3 border-b border-border pr-3 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase"
-      style={{ gridTemplateColumns: gitGraphGridTemplate(columns) }}
+      className="grid shrink-0 gap-x-3 border-b border-border pr-3 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase select-none"
+      style={{ gridTemplateColumns: layout.template }}
     >
-      <span className="py-1 pl-2" style={{ width: graphWidth + 8 }}>
+      <span className="relative py-1 pl-2">
         Graph
+        {handle('graph', 'right', 'Graph')}
       </span>
       <span className="py-1">Description</span>
-      {columns.author && <span className="py-1">Author</span>}
-      {columns.date && <span className="py-1">Date</span>}
-      <span className="py-1">Commit</span>
+      {layout.author && (
+        <span className="relative py-1">
+          {handle('author', 'left', 'Author')}
+          Author
+        </span>
+      )}
+      {layout.date && (
+        <span className="relative py-1">
+          {handle('date', 'left', 'Date')}
+          Date
+        </span>
+      )}
+      <span className="relative py-1">
+        {handle('commit', 'left', 'Commit')}
+        Commit
+      </span>
     </div>
   )
 }

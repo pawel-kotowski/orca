@@ -53,5 +53,10 @@ it("lists the project's conversations and resumes a pick in this chat's terminal
   expect(option).toBeTruthy()
   await act(async () => option.click())
   expect(sent).toEqual([['pty-1', '/resume older-1']])
+  // Closing the list must not hand focus back to the button: that opened its tooltip, and with the
+  // pointer elsewhere nothing closed it.
+  await act(async () => new Promise((resolve) => setTimeout(resolve, 50)))
+  expect(document.activeElement).not.toBe(div.querySelector('button'))
+  expect(document.querySelector('[role="tooltip"]')).toBeNull()
   vi.unstubAllGlobals()
 })

@@ -15,12 +15,8 @@ import {
   buildGitHistoryViewModels
 } from '../../../../../shared/git/history/git-history-graph'
 import { useGitGraphHistory } from './use-git-graph-history'
-import {
-  GIT_GRAPH_ROW_HEIGHT,
-  GitGraphHeaderRow,
-  GitGraphRow,
-  gitGraphColumnsForWidth
-} from './git-graph-row'
+import { GIT_GRAPH_ROW_HEIGHT, GitGraphHeaderRow, GitGraphRow } from './git-graph-row'
+import { useGitGraphColumns } from './git-graph-columns'
 import { GitGraphCommitDetails } from './git-graph-commit-details'
 
 // Matches SWIMLANE_WIDTH in git-history-graph-svg.tsx: one lane's width in px.
@@ -61,7 +57,6 @@ export function GitGraphView({ worktreeId }: { worktreeId: string }): React.JSX.
     observer.observe(el)
     return () => observer.disconnect()
   }, [])
-  const columns = useMemo(() => gitGraphColumnsForWidth(listWidth), [listWidth])
   const restoredScrollRef = useRef(false)
   const hasRows = history.items.length > 0
   useLayoutEffect(() => {
@@ -108,6 +103,8 @@ export function GitGraphView({ worktreeId }: { worktreeId: string }): React.JSX.
       ),
     [viewModels]
   )
+  // The graph column defaults to the widest row's lanes (plus its left padding) until dragged.
+  const { layout, setWidth, resetWidth } = useGitGraphColumns(listWidth, graphWidth + 8)
 
   const commitRows = useMemo(
     () =>
@@ -251,7 +248,7 @@ export function GitGraphView({ worktreeId }: { worktreeId: string }): React.JSX.
       )}
       <div className="flex min-h-0 flex-1">
         <div ref={columnRef} className="flex min-w-0 flex-1 flex-col">
-          <GitGraphHeaderRow graphWidth={graphWidth} columns={columns} />
+          <GitGraphHeaderRow layout={layout} onResize={setWidth} onReset={resetWidth} />
           <div
             ref={listRef}
             role="grid"
@@ -278,8 +275,7 @@ export function GitGraphView({ worktreeId }: { worktreeId: string }): React.JSX.
               const row = (
                 <GitGraphRow
                   viewModel={vm}
-                  graphWidth={graphWidth}
-                  columns={columns}
+                  layout={layout}
                   selected={item.id === selectedId}
                   currentRefId={result?.currentRef?.id}
                   onSelect={() => setSelectedId(item.id === selectedId ? null : item.id)}

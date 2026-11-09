@@ -148,13 +148,22 @@ function SessionList({
 export function NativeChatResumeButton(): React.JSX.Element | null {
   const scope = useNativeChatAccountScope()
   const [open, setOpen] = useState(false)
+  // Why controlled: closing the list handed focus back to the button, which opened its tooltip,
+  // and with the pointer elsewhere nothing closed it again (Paweł, 2026-11-09).
+  const [tooltipOpen, setTooltipOpen] = useState(false)
   if (!scope || scope.agent !== 'claude' || !scope.transcriptPath) {
     return null
   }
   const label = translate('components.native-chat.resumeButton', 'Resume a conversation')
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <Tooltip>
+    <Popover
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next)
+        setTooltipOpen(false)
+      }}
+    >
+      <Tooltip open={tooltipOpen && !open} onOpenChange={setTooltipOpen}>
         <TooltipTrigger asChild>
           <PopoverTrigger asChild>
             <Button
@@ -172,7 +181,12 @@ export function NativeChatResumeButton(): React.JSX.Element | null {
           {label}
         </TooltipContent>
       </Tooltip>
-      <PopoverContent side="top" align="start" className="w-auto p-0">
+      <PopoverContent
+        side="top"
+        align="start"
+        className="w-auto p-0"
+        onCloseAutoFocus={(event) => event.preventDefault()}
+      >
         {open ? (
           <SessionList
             transcriptPath={scope.transcriptPath}
