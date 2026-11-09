@@ -14,6 +14,7 @@ import {
 } from './activity-thread-presentation'
 import type { ActivityGroupBy } from '../../../../shared/agents-view-thread-filters'
 import type { ActivityThreadGroup, AgentPaneThread } from './activity-thread-types'
+import { byRecentPrompt } from './activity-thread-prompt-time'
 
 // Use exhaustive, unique attention ranks so new states fail typecheck and recency cannot reorder headers.
 const ACTIVITY_STATUS_GROUP_RANK: Record<ActivityThreadStatusId, number> = {
@@ -96,7 +97,7 @@ export const READ_AGENTS_GROUP_KEY = 'read-agents'
 
 /**
  * Standing by: the agents you are done with (cleared, idle, moved by the timer, or read under the
- * unread-only filter), as one last section, newest first (Paweł, 2026-11-05: every open agent stays
+ * unread-only filter), as one last section, by recent prompt (Paweł, 2026-11-05: every open agent stays
  * in the activity view; 2026-11-09: "other agents could be renamed to standing by").
  */
 export function withReadAgentsGroup(
@@ -106,7 +107,7 @@ export function withReadAgentsGroup(
   if (readOnly.length === 0) {
     return groups
   }
-  const threads = [...readOnly].sort((a, b) => b.latestTimestamp - a.latestTimestamp)
+  const threads = [...readOnly].sort(byRecentPrompt)
   return [
     ...groups,
     {

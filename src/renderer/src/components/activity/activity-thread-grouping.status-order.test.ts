@@ -400,4 +400,23 @@ describe('withReadAgentsGroup', () => {
     expect(groups[1]!.threads).toEqual([newer, older])
     expect(withReadAgentsGroup([], [])).toEqual([])
   })
+
+  it('orders Standing by by the latest prompt, not the latest activity', async () => {
+    const { withReadAgentsGroup } = await import('./activity-thread-grouping')
+    const promptedLately = {
+      paneKey: 'a',
+      latestTimestamp: 10,
+      currentAgentEntry: { turnStartedAt: 9 }
+    } as never
+    const busyLately = {
+      paneKey: 'b',
+      latestTimestamp: 20,
+      currentAgentEntry: { turnStartedAt: 5 }
+    } as never
+    const [, standingBy] = withReadAgentsGroup(
+      [{ key: 'working', label: 'Working', threads: [] }],
+      [busyLately, promptedLately]
+    )
+    expect(standingBy!.threads).toEqual([promptedLately, busyLately])
+  })
 })

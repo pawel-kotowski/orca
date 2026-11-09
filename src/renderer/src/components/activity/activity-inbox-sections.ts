@@ -1,6 +1,7 @@
 import { translate } from '@/i18n/i18n'
 import { isClearableActivityThread } from './activity-clear-completed'
 import { activityThreadStatusId } from './activity-thread-presentation'
+import { byRecentPrompt } from './activity-thread-prompt-time'
 import type { ActivityThreadGroup, AgentPaneThread } from './activity-thread-types'
 
 /**
@@ -69,7 +70,7 @@ export function isActivityThreadStandingBy(
   )
 }
 
-/** Inbox first (needs you, then failed, then the rest, newest first), then Working. */
+/** Inbox first (needs you, then failed, then the rest, newest first), then Working (by recent prompt). */
 export function buildActivityInboxGroups(threads: AgentPaneThread[]): ActivityThreadGroup[] {
   const inbox: AgentPaneThread[] = []
   const working: AgentPaneThread[] = []
@@ -77,12 +78,7 @@ export function buildActivityInboxGroups(threads: AgentPaneThread[]): ActivityTh
     ;(activityThreadSection(thread) === 'working' ? working : inbox).push(thread)
   }
   inbox.sort((a, b) => needsYouRank(a) - needsYouRank(b) || b.latestTimestamp - a.latestTimestamp)
-  // Why monitoring first: it is usually an orchestrator, the agent the others report to.
-  const monitoringFirst = (thread: AgentPaneThread): number =>
-    activityThreadStatusId(thread) === 'monitoring' ? 0 : 1
-  working.sort(
-    (a, b) => monitoringFirst(a) - monitoringFirst(b) || b.latestTimestamp - a.latestTimestamp
-  )
+  working.sort(byRecentPrompt)
   const groups: ActivityThreadGroup[] = [
     {
       key: INBOX_GROUP_KEY,
