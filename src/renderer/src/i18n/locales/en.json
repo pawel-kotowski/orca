@@ -21262,8 +21262,8 @@
       "markSeen": "Mark as seen",
       "standBy": "Done with it: move to Standing by",
       "autoStandBy": {
-        "title": "Seen, finished agents move here on their own after this many hours. Empty: only when you clear them.",
-        "label": "auto after",
+        "title": "Seen, finished agents move to Standing by on their own after this many hours. Empty: only when you clear them.",
+        "barLabel": "Stand by after",
         "off": "off"
       },
       "listWorkersAsCards": "Also list workers as their own cards",

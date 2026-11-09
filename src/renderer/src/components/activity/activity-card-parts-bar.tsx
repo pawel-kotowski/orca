@@ -6,6 +6,7 @@ import {
   useActivityCardHiddenParts,
   type ActivityCardPart
 } from './activity-card-parts'
+import { ActivityAutoStandByControl } from './activity-auto-stand-by-control'
 
 function partLabel(part: ActivityCardPart): string {
   switch (part) {
@@ -30,7 +31,11 @@ function partLabel(part: ActivityCardPart): string {
   }
 }
 
-/** One switch per card piece, each a single click; a pressed switch shows that piece. */
+/**
+ * One switch per card piece, each a single click; a pressed switch shows that piece. The
+ * auto-move hours sit at the end (Paweł, 2026-11-09: "move auto after option ui to card content
+ * switches menu"), out of the Standing by header.
+ */
 export function ActivityCardPartsBar(): React.JSX.Element {
   const hidden = useActivityCardHiddenParts()
   return (
@@ -58,6 +63,9 @@ export function ActivityCardPartsBar(): React.JSX.Element {
           </button>
         )
       })}
+      <span className="ml-auto">
+        <ActivityAutoStandByControl />
+      </span>
     </div>
   )
 }

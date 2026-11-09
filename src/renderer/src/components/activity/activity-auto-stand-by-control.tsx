@@ -25,7 +25,7 @@ export function ActivityAutoStandByControl(): React.JSX.Element {
   }
   const title = translate(
     'components.activity.autoStandBy.title',
-    'Seen, finished agents move here on their own after this many hours. Empty: only when you clear them.'
+    'Seen, finished agents move to Standing by on their own after this many hours. Empty: only when you clear them.'
   )
   return (
     // Why the stops: the header around it opens and closes the drawer on click and Enter.
@@ -35,7 +35,7 @@ export function ActivityAutoStandByControl(): React.JSX.Element {
       onKeyDown={(event) => event.stopPropagation()}
       className="flex shrink-0 items-center gap-1 text-[10.5px] font-medium normal-case tracking-normal text-muted-foreground"
     >
-      {translate('components.activity.autoStandBy.label', 'auto after')}
+      {translate('components.activity.autoStandBy.barLabel', 'Stand by after')}
       <input
         type="text"
         inputMode="decimal"

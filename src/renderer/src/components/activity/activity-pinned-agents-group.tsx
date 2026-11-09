@@ -2,7 +2,6 @@ import { useCallback, useMemo, useState, type ComponentProps } from 'react'
 import { ActivityStatusGroupHeader } from './activity-thread-controls'
 import { READ_AGENTS_GROUP_KEY } from './activity-thread-grouping'
 import { WORKING_GROUP_KEY } from './activity-inbox-sections'
-import { ActivityAutoStandByControl } from './activity-auto-stand-by-control'
 import { useActivityDrawerHeight, useActivityDrawerTakeover } from './activity-drawer-resize'
 import { translate } from '@/i18n/i18n'
 import { cn } from '@/lib/utils'
@@ -95,13 +94,7 @@ function ActivityPinnedAgentsGroup({
             className="absolute inset-x-0 -top-1 z-10 h-2 cursor-row-resize transition-colors hover:bg-ring/30 active:bg-ring/50"
           />
         ) : null}
-        <ActivityStatusGroupHeader
-          group={group}
-          collapsed={!open}
-          onToggle={toggle}
-          opensUp
-          extra={group.key === READ_AGENTS_GROUP_KEY ? <ActivityAutoStandByControl /> : null}
-        />
+        <ActivityStatusGroupHeader group={group} collapsed={!open} onToggle={toggle} opensUp />
       </div>
       {open ? (
         <div
