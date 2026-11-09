@@ -45,8 +45,10 @@ export type NativeChatAppearanceSettings = {
    * and hover to a live chat; absent = on.
    */
   activityFollowsConversation?: boolean
-  /** Whether hovering an activity card shows its live chat (or its details); absent = off. */
+  /** Whether hovering an activity card shows its details card (Orca's own, no live chat); absent = off. */
   activityHoverChat?: boolean
+  /** Whether hovering a workspace card in the Projects view shows its details card; absent = off. */
+  workspaceHoverDetails?: boolean
   /** Whether the message box is one line with only Attach, the option pickers and Stop; absent = on. */
   compactComposer?: boolean
   /**
@@ -102,6 +104,17 @@ export function nativeChatActivityHoverChat(
 ): boolean {
   // Why: in a bare store (settings not loaded) cards keep upstream's hover details.
   return settings == null || settings.nativeChatAppearance?.activityHoverChat === true
+}
+
+/**
+ * Hovering a workspace card in the Projects view shows its details card, only when turned on.
+ * Why off by default: Paweł, 2026-11-09: "disable hover card in projects view".
+ */
+export function nativeChatWorkspaceHoverDetails(
+  settings: { nativeChatAppearance?: NativeChatAppearanceSettings } | null | undefined
+): boolean {
+  // Why: in a bare store (settings not loaded) cards keep upstream's hover details.
+  return settings == null || settings.nativeChatAppearance?.workspaceHoverDetails === true
 }
 
 /** A run of one call is that call's line, one click from its detail, unless the user turned it off. */

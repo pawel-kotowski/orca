@@ -5,6 +5,7 @@ import {
   nativeChatSoleCallAsLine,
   nativeChatActivityFollowsConversation,
   nativeChatActivityHoverChat,
+  nativeChatWorkspaceHoverDetails,
   nativeChatColors,
   nativeChatCompactComposer,
   nativeChatCtrlEnterSendsNow,
@@ -179,15 +180,29 @@ export function AppearanceChatSection({
       />
       <SettingsSwitchRow
         label={translate(
-          'settings.chat.appearance.activityHoverChat',
-          'Show the chat when hovering an activity card'
+          'settings.chat.appearance.activityHoverDetails',
+          'Show details when hovering an activity card'
         )}
         description={translate(
-          'settings.chat.appearance.activityHoverChatDescription',
-          'Hovering a card opens its live chat beside the list. When off, a click anywhere on a card opens its workspace.'
+          'settings.chat.appearance.activityHoverDetailsDescription',
+          "Hovering a card opens Orca's details card for it. When off, a click anywhere on a card opens its workspace."
         )}
         checked={nativeChatActivityHoverChat(settings)}
         onChange={() => update({ activityHoverChat: !nativeChatActivityHoverChat(settings) })}
+      />
+      <SettingsSwitchRow
+        label={translate(
+          'settings.chat.appearance.workspaceHoverDetails',
+          'Show details when hovering a workspace card'
+        )}
+        description={translate(
+          'settings.chat.appearance.workspaceHoverDetailsDescription',
+          'In the Projects view, hovering a workspace card opens its details: branch, issue, review and notes.'
+        )}
+        checked={nativeChatWorkspaceHoverDetails(settings)}
+        onChange={() =>
+          update({ workspaceHoverDetails: !nativeChatWorkspaceHoverDetails(settings) })
+        }
       />
       <ChatFontFamilySetting
         settings={settings}

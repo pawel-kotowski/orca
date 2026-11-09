@@ -110,14 +110,6 @@ export const ActivityThreadRow = React.memo(function ActivityThreadRow({
           : 'px-1.5 py-1.5 worktree-sidebar-card-hover'
       )}
     >
-      {conversation && hoverChat ? (
-        // Why: only the card's left half opens its chat (activity-thread-hover-card-intent); a
-        // faint line marks where that half ends, a little clearer while the pointer is on the card.
-        <span
-          aria-hidden
-          className="pointer-events-none absolute inset-y-2 left-1/2 w-px bg-foreground/[0.06] transition-colors group-hover:bg-foreground/[0.14]"
-        />
-      ) : null}
       <div className="flex min-w-0 items-start gap-1.5">
         {/* Why: a conversation card shows the state on its top line, not in a column of its own. */}
         {conversation ? null : <span className="mt-0.5 inline-flex shrink-0">{corner(false)}</span>}
@@ -214,7 +206,8 @@ export const ActivityThreadRow = React.memo(function ActivityThreadRow({
     </div>
   )
   // Why: with hover off (the default) nothing opens on hover and a click anywhere opens the
-  // workspace; no hover card is mounted, so no chat card controls route a click to a chat.
+  // workspace. Turned on, hovering shows Orca's own details card, not the live chat (Paweł,
+  // 2026-11-09: "bring back main orca hover card behavior there", "keep it switched off").
   if (!hoverChat) {
     return card
   }
@@ -224,7 +217,6 @@ export const ActivityThreadRow = React.memo(function ActivityThreadRow({
       onJumpToWorkspace={onJump}
       canJumpToWorkspace={canJump}
       suppressed={previewSuppressed}
-      conversation={conversation}
     >
       {card}
     </ActivityThreadHoverCard>

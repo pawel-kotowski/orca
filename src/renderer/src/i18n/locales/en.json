@@ -540,7 +540,11 @@
         "activityHoverChat": "Show the chat when hovering an activity card",
         "activityHoverChatDescription": "Hovering a card opens its live chat beside the list. When off, a click anywhere on a card opens its workspace.",
         "chatColors": "Colour from the terminal theme",
-        "chatColorsDescription": "Step icons by kind, links, code, headings, list markers and your messages take colours from the terminal theme's palette. Off keeps the chat in its text colours."
+        "chatColorsDescription": "Step icons by kind, links, code, headings, list markers and your messages take colours from the terminal theme's palette. Off keeps the chat in its text colours.",
+        "activityHoverDetails": "Show details when hovering an activity card",
+        "activityHoverDetailsDescription": "Hovering a card opens Orca's details card for it. When off, a click anywhere on a card opens its workspace.",
+        "workspaceHoverDetails": "Show details when hovering a workspace card",
+        "workspaceHoverDetailsDescription": "In the Projects view, hovering a workspace card opens its details: branch, issue, review and notes."
       },
       "permissionsAgentsLink": "Settings → Agents",
       "permissionsTitle": "Permissions for new chats",

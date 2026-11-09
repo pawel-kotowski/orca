@@ -4,6 +4,8 @@ import { LinkActionPopover } from '@/components/link-actions/LinkActionPopover'
 import { getWorkspaceAttachments } from '../../../../../../shared/workspace-attachments/workspace-attachments'
 import { WorktreeCardLinkedItemsSection } from '../review/WorktreeCardLinkedItemsSection'
 import { HoverCard, HoverCardTrigger, HoverCardContent } from '@/components/ui/hover-card'
+import { useAppStore } from '@/store'
+import { nativeChatWorkspaceHoverDetails } from '../../../../../../shared/native-chat/native-chat-appearance-settings'
 import { Pencil, StickyNote } from 'lucide-react'
 import { SelectedTextCopyMenu } from '@/components/SelectedTextCopyMenu'
 import '../../workspace-actions/context-menu/WorktreeContextMenu'
@@ -65,6 +67,7 @@ export function WorktreeCardDetailsHover({
   onOpenAutomationRun,
   hoverControl
 }: WorktreeCardDetailsHoverProps): React.JSX.Element {
+  const hoverDetails = useAppStore((state) => nativeChatWorkspaceHoverDetails(state.settings))
   const internalHoverControl = useWorktreeCardDetailsHoverControl()
   const detailsHoverControl = hoverControl ?? internalHoverControl
   const {
@@ -121,19 +124,20 @@ export function WorktreeCardDetailsHover({
     (attachments.length === 1 && !issue && !linearIssue && !jiraIssue && !review)
 
   if (
-    !showIdentityHeader &&
-    attachments.length === 0 &&
-    !onManageLinks &&
-    !hasWorktreeCardDetails({
-      issue,
-      linearIssue,
-      jiraIssue,
-      review,
-      comment,
-      automationProvenance,
-      cliProvenance
-    }) &&
-    !detailsAfter
+    !hoverDetails ||
+    (!showIdentityHeader &&
+      attachments.length === 0 &&
+      !onManageLinks &&
+      !hasWorktreeCardDetails({
+        issue,
+        linearIssue,
+        jiraIssue,
+        review,
+        comment,
+        automationProvenance,
+        cliProvenance
+      }) &&
+      !detailsAfter)
   ) {
     return children
   }
