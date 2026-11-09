@@ -1,6 +1,7 @@
 import React, { useId } from 'react'
 import { toggleActivityView } from '@/lib/activity-workbench-visibility'
 import { useTranslation } from 'react-i18next'
+import { SidebarNavToggle } from './sidebar-nav-visibility'
 import { useAppStore } from '@/store'
 import { translate } from '@/i18n/i18n'
 import { SidebarHeaderActions } from './sidebar-header-actions'
@@ -65,6 +66,7 @@ const SidebarHeader = React.memo(function SidebarHeader({
         >
           {sidebarTitle}
         </span>
+        <SidebarNavToggle />
       </div>
       <div className="flex shrink-0 items-center gap-1">
         <Popover

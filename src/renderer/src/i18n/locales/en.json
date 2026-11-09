@@ -21270,7 +21270,9 @@
     },
     "sidebar": {
       "expandAll": "Expand all",
-      "collapseAll": "Collapse all projects"
+      "collapseAll": "Collapse all projects",
+      "showNav": "Show Search, Tasks and Skills",
+      "hideNav": "Hide Search, Tasks and Skills"
     }
   },
   "dashboardPopout": {
