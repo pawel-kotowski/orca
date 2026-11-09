@@ -6,7 +6,11 @@ import { ActivityThreadContextMenu } from './activity-thread-context-menu'
 import { floatingPanelShowsTab } from './activity-thread-actions'
 import { ActivityThreadRow } from './activity-thread-row'
 import { READ_AGENTS_GROUP_KEY } from './activity-thread-grouping'
-import { activityThreadSection, WORKING_GROUP_KEY } from './activity-inbox-sections'
+import {
+  activityThreadSection,
+  INBOX_GROUP_KEY,
+  WORKING_GROUP_KEY
+} from './activity-inbox-sections'
 import { useActivityHidesWorkbench } from '@/lib/activity-workbench-visibility'
 import { useAppStore } from '@/store'
 import { useActivityChatPreviewPaneKey } from './activity-chat-preview-host'
@@ -86,7 +90,14 @@ export function ActivityThreadVirtualRow({
         )}
         // Why: room above each section so the breaks read at a glance; more above Standing by
         // (when a grouping other than status lists it in the scrolled list).
-        className={item.group.key === READ_AGENTS_GROUP_KEY ? 'pb-1 pt-10' : 'pb-1 pt-4'}
+        className={
+          item.group.key === READ_AGENTS_GROUP_KEY
+            ? 'pb-1 pt-10'
+            : // Why: the Inbox heads the list; it needs no room above it (Paweł, 2026-11-09).
+              item.group.key === INBOX_GROUP_KEY
+              ? 'pb-1 pt-1'
+              : 'pb-1 pt-4'
+        }
       >
         <ActivityStatusGroupHeader
           group={item.group}

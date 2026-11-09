@@ -44,3 +44,28 @@ export function toggleActivityCardPart(part: ActivityCardPart): void {
     return next.length > 0 ? { ...rest, activityCardHidden: next } : rest
   })
 }
+
+function stripHidden(appearance: unknown): boolean {
+  return Boolean(
+    appearance &&
+    typeof appearance === 'object' &&
+    (appearance as { activityCardPartsBarHidden?: unknown }).activityCardPartsBarHidden === true
+  )
+}
+
+/**
+ * Whether the strip of card-part switches above the list is hidden (Paweł, 2026-11-09: "make this
+ * also hidable"). Saved as `nativeChatAppearance.activityCardPartsBarHidden`; absent = shown.
+ */
+export function useActivityCardPartsBarHidden(): boolean {
+  return useAppStore((state) => stripHidden(state.settings?.nativeChatAppearance))
+}
+
+export function toggleActivityCardPartsBar(): void {
+  void writeNativeChatAppearance((current) => {
+    const rest = { ...current } as Record<string, unknown>
+    const hidden = stripHidden(current)
+    delete rest.activityCardPartsBarHidden
+    return hidden ? rest : { ...rest, activityCardPartsBarHidden: true }
+  })
+}

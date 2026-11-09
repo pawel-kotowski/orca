@@ -2,7 +2,12 @@ import React, { useCallback, useEffect, useLayoutEffect, useRef } from 'react'
 
 import { getRepoExecutionHostId } from '../../../../../../shared/execution-host'
 import { recordRendererCrashBreadcrumb } from '@/lib/crash-diagnostics'
+import { useAppStore } from '@/store'
 import { activateWorktreeFromSidebar } from '@/lib/sidebar-worktree-activation'
+import {
+  projectsHidesWorkbench,
+  setProjectsHidesWorkbench
+} from '@/lib/activity-workbench-visibility'
 import { isEventTargetInsideCurrentTarget } from './worktree-card-dom-events'
 import {
   noteWorktreeRowHoverEnd,
@@ -81,6 +86,19 @@ export function useWorktreeCardActivationActions({
       if (isDeleting) {
         event.preventDefault()
         event.stopPropagation()
+        return
+      }
+      // Why: a plain click on the open workspace's card hides its tabs, a second one shows them,
+      // as in the activity view (lib/activity-workbench-visibility).
+      if (
+        isActive &&
+        useAppStore.getState().activeView === 'terminal' &&
+        !event.metaKey &&
+        !event.ctrlKey &&
+        !event.shiftKey &&
+        !event.altKey
+      ) {
+        setProjectsHidesWorkbench(!projectsHidesWorkbench())
         return
       }
       onWorktreeCardClick?.()

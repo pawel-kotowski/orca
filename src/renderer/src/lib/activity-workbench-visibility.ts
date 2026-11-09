@@ -36,10 +36,40 @@ export function showActivityTabsForLaunch(launches: unknown): void {
   }
 }
 
-/** Whether the activity view has the main area's tabs hidden right now. */
+// Why a flag of its own: in the Projects view a click on the open workspace's card steps its tabs
+// aside the same way (Paweł, 2026-11-09: "when i click on already selected ws it should close
+// just like in activity view"); opening any workspace or tab brings them back.
+let projectsHidden = false
+
+export function setProjectsHidesWorkbench(next: boolean): void {
+  if (projectsHidden === next) {
+    return
+  }
+  projectsHidden = next
+  for (const listener of listeners) {
+    listener()
+  }
+}
+
+export function projectsHidesWorkbench(): boolean {
+  return projectsHidden
+}
+
+useAppStore.subscribe((state, previous) => {
+  if (
+    state.activeWorktreeId !== previous.activeWorktreeId ||
+    state.activeTabId !== previous.activeTabId
+  ) {
+    setProjectsHidesWorkbench(false)
+  }
+})
+
+/** Whether the activity view, or the Projects view, has the main area's tabs hidden right now. */
 export function useActivityHidesWorkbench(): boolean {
   const agentsBody = useAppStore((state) => state.sidebarBody === 'agents')
-  return useSyncExternalStore(subscribe, () => hidden) && agentsBody
+  const activityHidden = useSyncExternalStore(subscribe, () => hidden)
+  const projectsHide = useSyncExternalStore(subscribe, () => projectsHidden)
+  return agentsBody ? activityHidden : projectsHide
 }
 
 /**

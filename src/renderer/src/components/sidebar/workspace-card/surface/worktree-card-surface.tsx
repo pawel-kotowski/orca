@@ -1,3 +1,4 @@
+import { useActivityHidesWorkbench } from '@/lib/activity-workbench-visibility'
 import React, { createContext, useContext } from 'react'
 import { LoaderCircle } from 'lucide-react'
 
@@ -23,7 +24,7 @@ export function WorktreeCardSurface({ card }: { card: WorktreeCardController }):
     selectedWorktrees,
     onAssignWorkspaceStatus,
     affiliateListMode,
-    isActiveSurface,
+    isActiveSurface: activeInStore,
     activeSurfaceVariant,
     isMultiSelected,
     revealHighlight,
@@ -51,6 +52,10 @@ export function WorktreeCardSurface({ card }: { card: WorktreeCardController }):
     setShowRenameErrorDialog,
     contentIndent
   } = card
+  // Why: with its tabs stepped aside (a second click on it) no card looks open, as in the activity
+  // view (lib/activity-workbench-visibility).
+  const workbenchHidden = useActivityHidesWorkbench()
+  const isActiveSurface = activeInStore && !workbenchHidden
   const isSleeping = useIsSleepingWorktree(worktree.id)
   // Why: the same project colour as its activity cards, so the two views match at a glance. A nested
   // workspace of the same project sits on its parent's wash already, so it paints none of its own.

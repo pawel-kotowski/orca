@@ -80,7 +80,8 @@ export function useActivityProjectColor(
 ): string | null {
   const repoId = repo?.id ?? null
   const project = useAppStore((state) => {
-    if (!repoId) {
+    // Why the repos check: a partial store (some upstream tests mock it) has no project data.
+    if (!repoId || !state.repos) {
       return null
     }
     // Every host's setups, as the sidebar's grouping reads them.

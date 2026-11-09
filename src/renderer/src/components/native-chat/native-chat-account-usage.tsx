@@ -295,30 +295,35 @@ function ClaudeAccountUsageChip({
       : null
   ].filter((line): line is string => line !== null)
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <span
-          data-native-chat-account-usage=""
-          className="flex items-center gap-2.5 whitespace-nowrap text-2xs tabular-nums text-chat-foreground-faint"
-        >
-          {name ? (
-            // Why: whose subscription this is reads at a glance, in the theme's blue; a click
-            // moves the chat to another one (native-chat-account-switch).
-            <NativeChatAccountSwitch
-              name={name}
-              currentAccountId={usage.accountId ?? null}
-              worktreeId={usage.worktreeId ?? null}
-              terminalTabId={scope.terminalTabId}
-            />
-          ) : null}
-          {session ? <UsageBar label={sessionLabel} window={session} now={now} /> : null}
-          {weekly ? <UsageBar label={weekLabel} window={weekly} now={now} /> : null}
-        </span>
-      </TooltipTrigger>
-      <TooltipContent side="top" sideOffset={4} className="whitespace-pre-line">
-        {detail.join('\n')}
-      </TooltipContent>
-    </Tooltip>
+    <span
+      data-native-chat-account-usage=""
+      className="flex items-center gap-2.5 whitespace-nowrap text-2xs tabular-nums text-chat-foreground-faint"
+    >
+      {name ? (
+        // Why: whose subscription this is reads at a glance, in the theme's blue; a click moves
+        // the chat to another one (native-chat-account-switch). Outside the tooltip, which would
+        // otherwise cover its open menu.
+        <NativeChatAccountSwitch
+          name={name}
+          currentAccountId={usage.accountId ?? null}
+          worktreeId={usage.worktreeId ?? null}
+          terminalTabId={scope.terminalTabId}
+        />
+      ) : null}
+      {session || weekly ? (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="flex items-center gap-2.5">
+              {session ? <UsageBar label={sessionLabel} window={session} now={now} /> : null}
+              {weekly ? <UsageBar label={weekLabel} window={weekly} now={now} /> : null}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="top" sideOffset={4} className="whitespace-pre-line">
+            {detail.join('\n')}
+          </TooltipContent>
+        </Tooltip>
+      ) : null}
+    </span>
   )
 }
 

@@ -20596,7 +20596,8 @@
         "switchingNext": "The next Claude in this workspace starts on it.",
         "switchLabel": "Claude subscription {{name}}: switch",
         "switchTitle": "Run this chat on"
-      }
+      },
+      "resumeButton": "Resume a conversation"
     },
     "tab": {
       "bar": {
@@ -21240,7 +21241,9 @@
         "conversation": "Agent",
         "output": "Output",
         "latestPrompt": "Prompt",
-        "firstPrompt": "First prompt"
+        "firstPrompt": "First prompt",
+        "show": "Show card contents switches",
+        "hide": "Hide card contents switches"
       },
       "machine": {
         "local": "This computer"

@@ -1,4 +1,9 @@
-import { ChevronDown, ChevronUp } from 'lucide-react'
+import { ChevronDown, ChevronUp, SlidersHorizontal } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import {
+  toggleActivityCardPartsBar,
+  useActivityCardPartsBarHidden
+} from '../activity/activity-card-parts'
 import { useAppStore } from '@/store'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -50,6 +55,37 @@ export function SidebarNavToggle(): React.JSX.Element {
           onClick={toggleSidebarNav}
         >
           {hidden ? <ChevronDown className="size-3" /> : <ChevronUp className="size-3" />}
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent side="bottom" sideOffset={6}>
+        {label}
+      </TooltipContent>
+    </Tooltip>
+  )
+}
+
+/** In the activity view, beside the section title: hides or shows the card-part switches. */
+export function ActivityCardPartsBarToggle(): React.JSX.Element {
+  const hidden = useActivityCardPartsBarHidden()
+  const label = hidden
+    ? translate('components.activity.cardParts.show', 'Show card contents switches')
+    : translate('components.activity.cardParts.hide', 'Hide card contents switches')
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-xs"
+          className={cn(
+            'size-5 text-muted-foreground/70 hover:text-foreground',
+            !hidden && 'bg-foreground/10 text-foreground'
+          )}
+          aria-label={label}
+          aria-pressed={!hidden}
+          onClick={toggleActivityCardPartsBar}
+        >
+          <SlidersHorizontal className="size-3" />
         </Button>
       </TooltipTrigger>
       <TooltipContent side="bottom" sideOffset={6}>
