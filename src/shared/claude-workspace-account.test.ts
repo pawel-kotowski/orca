@@ -35,6 +35,19 @@ describe('workspace Claude accounts', () => {
     expect(projectDefaultClaudeAccountId({}, 'mosRepo')).toBeNull()
   })
 
+  it("falls back to the project's default for a workspace with no account of its own", () => {
+    const withProject: ClaudeWorkspaceAccountSettings = {
+      ...settings,
+      claudeAccountByWorktreeId: { 'mosRepo::/w/own': 'personal', 'mosRepo::/w/gone': 'removed' }
+    }
+    expect(workspaceClaudeAccountId(withProject, 'mosRepo::/w/cli')).toBe('mos')
+    expect(workspaceClaudeAccountId(withProject, 'mosRepo::/w/own')).toBe('personal')
+    expect(workspaceClaudeAccountId(withProject, 'mosRepo::/w/gone')).toBe('mos')
+    expect(workspaceClaudeAccountId(withProject, 'oldRepo::/w/cli')).toBeNull()
+    expect(workspaceClaudeAccountId(withProject, 'otherRepo::/w/cli')).toBeNull()
+    expect(launchClaudeAccountId(withProject, null, 'mosRepo::/w/cli')).toBe('mos')
+  })
+
   it("puts a launch's own request ahead of its workspace's account", () => {
     expect(launchClaudeAccountId(settings, 'personal', 'wt1')).toBe('personal')
     expect(launchClaudeAccountId(settings, 'removed', 'wt1')).toBe('mos')

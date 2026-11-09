@@ -78,4 +78,6 @@ export type RuntimeClientSettingsUpdate = Pick<
   | 'machineName'
   | 'nativeChatPermissionMode'
   | 'nativeChatAutoContinueAfterUsageLimit'
+  | 'claudeAccountDefaultByRepoId'
+  | 'claudeAccountByWorktreeId'
 >

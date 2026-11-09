@@ -130,7 +130,10 @@ export const SettingsUpdate = z
       .transform((value) => normalizePRBotAuthorOverrides(value))
       .optional(),
     nativeChatAutoContinueAfterUsageLimit: z.boolean().optional(),
-    nativeChatPermissionMode: z.enum(AGENT_CHAT_PERMISSION_MODES).optional()
+    nativeChatPermissionMode: z.enum(AGENT_CHAT_PERMISSION_MODES).optional(),
+    /** Whole records (repo id → account id, worktree id → account id), as the composer writes them. */
+    claudeAccountDefaultByRepoId: z.record(z.string(), z.string()).optional(),
+    claudeAccountByWorktreeId: z.record(z.string(), z.string()).optional()
   })
   .strict()
   .default({})
