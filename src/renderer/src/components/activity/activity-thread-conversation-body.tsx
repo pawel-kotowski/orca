@@ -127,15 +127,30 @@ export function ActivityThreadConversationBody({
         )
       ) : (
         <div className="flex min-h-5 min-w-0 items-center gap-1.5">
-          {repoName ? (
+          {thread.worktree.id === FLOATING_TERMINAL_WORKTREE_ID ? (
+            // Why: the floating workspace has no repo; its own icon (the floating panel button's)
+            // stands where the repo tag would.
             <span
-              // Why: the tag reads at a glance: a clear fill (the project's colour when it has one)
-              // and full-strength text.
-              className="min-w-0 max-w-[45%] shrink-0 truncate rounded-full bg-foreground/[0.12] px-2 text-[10.5px] font-semibold leading-[18px] text-foreground"
+              className="flex size-[18px] shrink-0 items-center justify-center rounded bg-foreground/[0.08]"
+              title={translate('components.activity.floatingWorkspace', 'Floating workspace')}
+            >
+              <PanelsTopLeft className="size-3" />
+            </span>
+          ) : repoName && thread.repo ? (
+            <span
+              // Why one piece: the repo's logo and name said the same thing in two places (Paweł,
+              // 2026-11-09: "keep both but keep them in same piece"), and the workspace name below
+              // gets the full width. A clear fill (the project's colour when it has one).
+              className="inline-flex min-w-0 max-w-[45%] shrink-0 items-center gap-1 rounded-full bg-foreground/[0.12] py-px pl-0.5 pr-2 text-[10.5px] font-semibold leading-4 text-foreground"
               style={activityRepoTagStyle(projectColor)}
               title={repoName}
             >
-              {repoName}
+              <RepoIconGlyph
+                repoIcon={thread.repo.repoIcon}
+                className="size-3.5 shrink-0 rounded-full"
+                iconClassName="size-2.5"
+              />
+              <span className="min-w-0 truncate">{repoName}</span>
             </span>
           ) : null}
           {shows('machine') ? <ActivityMachineMark remoteName={remoteMachine} /> : null}
@@ -172,25 +187,9 @@ export function ActivityThreadConversationBody({
         </div>
       )}
 
-      {/* The workspace: the repo's logo, then its whole name, wrapping rather than cut. */}
+      {/* The workspace: its whole name, wrapping rather than cut; the repo's logo is in its tag. */}
       {shows('workspace') ? (
         <div className="flex min-w-0 items-start gap-2">
-          {thread.worktree.id === FLOATING_TERMINAL_WORKTREE_ID ? (
-            // Why: the floating workspace has no repo; its own icon (the floating panel button's)
-            // stands where the repo logo would.
-            <span
-              className="mt-px flex size-[18px] shrink-0 items-center justify-center rounded bg-foreground/[0.08]"
-              title={translate('components.activity.floatingWorkspace', 'Floating workspace')}
-            >
-              <PanelsTopLeft className="size-3" />
-            </span>
-          ) : thread.repo ? (
-            <RepoIconGlyph
-              repoIcon={thread.repo.repoIcon}
-              className="mt-px size-[18px] shrink-0 rounded"
-              iconClassName="size-3.5"
-            />
-          ) : null}
           <button
             type="button"
             aria-keyshortcuts="Enter Space"
