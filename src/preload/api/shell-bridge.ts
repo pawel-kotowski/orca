@@ -24,7 +24,10 @@ export const shellApi = {
   ): Promise<ShellOpenExternalEditorResult> =>
     ipcRenderer.invoke('shell:openInExternalEditor', request),
 
-  openUrl: (url: string): Promise<void> => ipcRenderer.invoke('shell:openUrl', url),
+  openUrl: (
+    url: string,
+    chromeAccount?: { email: string | null; name: string | null }
+  ): Promise<void> => ipcRenderer.invoke('shell:openUrl', url, chromeAccount),
 
   openFilePath: (path: string, ownerHostId: ExecutionHostId): Promise<boolean> =>
     ipcRenderer.invoke('shell:openFilePath', path, ownerHostId),

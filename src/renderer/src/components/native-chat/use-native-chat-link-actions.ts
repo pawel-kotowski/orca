@@ -1,4 +1,4 @@
-import { useCallback, useState, type RefObject } from 'react'
+import { useCallback, useRef, useState, type RefObject } from 'react'
 import {
   closeLinkActionRequest,
   type LinkActionRequest
@@ -11,6 +11,7 @@ import { resolveNativeChatHttpLinkRouting } from './native-chat-link-target-acti
 import { handleNativeChatWebLink } from './native-chat-web-link-actions'
 import { nativeChatPlainLinkClickBehavior } from './native-chat-link-click-behavior'
 import { useNativeChatFileLinkClick } from './use-native-chat-file-link-click'
+import { useNativeChatClaudeIdentity } from './native-chat-account-usage'
 
 export type NativeChatLinkActions = {
   onLinkClick: CommentMarkdownLinkClickHandler | undefined
@@ -36,6 +37,10 @@ export function useNativeChatLinkActions(
     setPreviousScopeKey(scopeKey)
     setLinkActionRequest(null)
   }
+  // Read at click time, like the settings below.
+  const identity = useNativeChatClaudeIdentity()
+  const identityRef = useRef(identity)
+  identityRef.current = identity
   const closeLinkActions = useCallback((dismissed?: LinkActionRequest) => {
     setLinkActionRequest((current) => closeLinkActionRequest(current, dismissed))
   }, [])
@@ -51,6 +56,19 @@ export function useNativeChatLinkActions(
         return
       }
       if (route.kind !== 'web' || !/^https?:/i.test(route.url)) {
+        return
+      }
+      // Why: a plain click opens the link in the Chrome profile of the chat's subscription owner
+      // (Paweł, 2026-11-09); a modifier click keeps Orca's own link actions.
+      const plain =
+        (event.button ?? 0) === 0 &&
+        !event.metaKey &&
+        !event.ctrlKey &&
+        !event.shiftKey &&
+        !event.altKey
+      if (plain && identityRef.current) {
+        event.preventDefault()
+        void window.api.shell.openUrl(route.url, identityRef.current)
         return
       }
       // Read at click time: settings and workspace ownership must not re-render the transcript.

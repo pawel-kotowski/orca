@@ -31,6 +31,17 @@ import {
   resolveOwnedPathTarget,
   validateLocalPathTarget
 } from './shell-owned-path-target'
+import { openUrlInChromeProfile, type ChromeProfileAccount } from '../chrome/chrome-profile-link'
+
+function parseChromeProfileAccount(value: unknown): ChromeProfileAccount | null {
+  if (!value || typeof value !== 'object') {
+    return null
+  }
+  const { email, name } = value as Record<string, unknown>
+  const text = (field: unknown): string | null =>
+    typeof field === 'string' && field.trim() ? field.trim().slice(0, 200) : null
+  return text(email) || text(name) ? { email: text(email), name: text(name) } : null
+}
 import { registerShellPathExistenceHandlers } from './shell-path-existence-handlers'
 
 export { EXTERNAL_EDITOR_CLI_COMMAND }
@@ -142,7 +153,7 @@ export function registerShellHandlers(
       openInExternalEditor(store, request, listRuntimeEnvironments)
   )
 
-  ipcMain.handle('shell:openUrl', (_event, rawUrl: string) => {
+  ipcMain.handle('shell:openUrl', async (_event, rawUrl: string, chromeAccount?: unknown) => {
     let parsed: URL
     try {
       parsed = new URL(rawUrl)
@@ -154,6 +165,11 @@ export function registerShellHandlers(
       return
     }
 
+    // Why: a chat's link opens in the Chrome profile of its subscription's owner when one matches.
+    const account = parseChromeProfileAccount(chromeAccount)
+    if (account && (await openUrlInChromeProfile(parsed.toString(), account))) {
+      return
+    }
     return shell.openExternal(parsed.toString())
   })
 

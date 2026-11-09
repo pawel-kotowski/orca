@@ -11,6 +11,7 @@ import type * as HttpLinkRoutingModule from '@/lib/http-link-routing'
 const mocks = vi.hoisted(() => ({
   openHttpLink: vi.fn(),
   openFileLink: vi.fn(),
+  identity: null as { email: string | null; name: string | null } | null,
   settings: { openLinksInApp: true, terminalLinkActionPopoverEnabled: true } as {
     openLinksInApp?: boolean
     terminalLinkActionPopoverEnabled?: boolean
@@ -25,6 +26,10 @@ vi.mock('@/lib/http-link-routing', async (importOriginal) => ({
 vi.mock('./native-chat-http-link-source-owner', () => ({
   resolveNativeChatHttpLinkSourceOwner: () => ({ kind: 'local' }),
   canNativeChatOpenOwnedBrowser: () => false
+}))
+
+vi.mock('./native-chat-account-usage', () => ({
+  useNativeChatClaudeIdentity: () => mocks.identity
 }))
 
 vi.mock('./use-native-chat-file-link-click', () => ({
@@ -128,6 +133,23 @@ describe('native chat transcript links', () => {
     expect(screen.getByText('Orca Browser')).toBeTruthy()
     expect(screen.getByText('System Browser')).toBeTruthy()
     expect(mocks.openHttpLink).not.toHaveBeenCalled()
+  })
+
+  it("opens a plain-clicked link in the chat's subscription Chrome profile", async () => {
+    const openUrl = vi.fn(async () => {})
+    Object.assign(window, { api: { shell: { openUrl } } })
+    mocks.identity = { email: 'pawel@example.com', name: 'example' }
+    try {
+      render(<Transcript markdown="See [the PR](https://github.com/o/r/pull/1)." />)
+      fireEvent.click(await screen.findByRole('link', { name: 'the PR' }))
+      expect(openUrl).toHaveBeenCalledWith('https://github.com/o/r/pull/1', {
+        email: 'pawel@example.com',
+        name: 'example'
+      })
+      expect(screen.queryByText('System Browser')).toBeNull()
+    } finally {
+      mocks.identity = null
+    }
   })
 
   it('keeps mailto links on the anchor default', async () => {

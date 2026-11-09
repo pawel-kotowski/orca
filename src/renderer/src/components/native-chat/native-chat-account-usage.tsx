@@ -238,6 +238,21 @@ function useChatClaudeUsage(scope: NativeChatAccountScope): ChatClaudeUsage | nu
  * The Claude subscription this chat runs on and how much of its session (5 h) and weekly limits
  * are used, as a short bar each with its reset time, on a quiet line under the message box.
  */
+const NO_SCOPE: NativeChatAccountScope = { agent: '', transcriptPath: null, terminalTabId: '' }
+
+/** The chat's subscription owner (what its footer names), for opening its links in their Chrome. */
+export function useNativeChatClaudeIdentity(): {
+  email: string | null
+  name: string | null
+} | null {
+  const scope = useContext(NativeChatAccountScopeContext)
+  const usage = useChatClaudeUsage(scope ?? NO_SCOPE)
+  if (!scope || scope.agent !== 'claude' || !usage || (!usage.email && !usage.name)) {
+    return null
+  }
+  return { email: usage.email, name: usage.name }
+}
+
 export function NativeChatAccountUsageChip(): React.JSX.Element | null {
   const scope = useContext(NativeChatAccountScopeContext)
   if (!scope || scope.agent !== 'claude') {
