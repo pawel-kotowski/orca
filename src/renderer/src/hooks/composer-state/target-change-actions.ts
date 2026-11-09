@@ -42,6 +42,7 @@ import {
   getLinearLinkedWorkItemBranchName
 } from '@/lib/linear-linked-work-item'
 import { shouldPreserveWorkspaceSourceOnRepoChange } from '../../../../shared/new-workspace/workspace-source'
+import { rememberComposerRunTarget } from './composer-recent-run-target'
 import {
   buildProjectHostSetupOptions,
   getProjectHostSetupSelectionKey,
@@ -258,6 +259,7 @@ export function useTargetChangeActions(input: TargetChangeActionsInput) {
       // Why: switching run host for the same project must not erase the task/PR source the user is starting from.
       setSelectedProjectHostSetupOverrideId(target.id)
       setSelectedProjectHostSetupOverrideHostId(target.hostId)
+      rememberComposerRunTarget(selectedRepoProjectId, target)
       handleRepoChange(target.repoId, {
         preserveStartFrom: true,
         forceResetStartFrom: true

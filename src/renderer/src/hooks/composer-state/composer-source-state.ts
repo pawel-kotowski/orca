@@ -4,6 +4,7 @@ import type { ComposerSourceState } from './composer-source-state-contract'
 import { useSourceIdentityActions } from './source-identity-actions'
 import { useComposerAttachmentDropState } from './composer-attachment-drop-state'
 import { useTargetChangeActions } from './target-change-actions'
+import { useRecentComposerRunTargetFor } from './composer-recent-run-target'
 import { useProjectTargetActions } from './project-target-actions'
 import { useBranchStartPointActions } from './branch-start-point-actions'
 import { useGitHubProviderSelection } from './github-provider-selection'
@@ -279,6 +280,7 @@ export function useComposerSourceState(
     smartNameJiraSourceContext: target.sourceContextState.smartNameJiraSourceContext,
     sourceIntentBlocksCreate: target.workspaceIdentityState.sourceIntentBlocksCreate
   })
+  useRecentComposerRunTargetFor(target, targetChangeActions.handleProjectHostSetupChange)
   return {
     sourceIdentityActions,
     attachmentDropState,
