@@ -17,6 +17,7 @@ import {
 import type { CreatedWorktreeResult } from '@/store/slices/worktrees/create/worktree-create-payload'
 import type { WorktreeCreationRequest } from '@/lib/pending-worktree-creation'
 import { resolveBackendDraftStartup } from '@/lib/worktree-draft-startup-view-mode'
+import { expectRemoteWorkspaceAgentView } from '@/lib/remote-agent-tab-default-view'
 import {
   hostPlannableAgentLaunch,
   windowStartupAfterCreate
@@ -154,6 +155,9 @@ export async function executeWorktreeCreation(
     await saveWorkspaceClaudeAccount(worktree.id, preparedRequest.claudeAccountId)
   }
 
+  if (!structuredLaunch) {
+    expectRemoteWorkspaceAgentView(worktree.id, preparedRequest.agent ?? null)
+  }
   const backendSpawned = result.startupTerminal?.spawned === true
   const windowStartup = windowStartupAfterCreate(creationId, preparedRequest, result)
   const startupOpt = windowStartup.startup

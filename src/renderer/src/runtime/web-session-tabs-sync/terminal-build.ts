@@ -11,6 +11,7 @@ import { toRemoteRuntimePtyId } from '../../../../shared/remote-runtime/remote-r
 import { toWebTerminalSurfaceTabId } from '../../../../shared/workspace-layout/terminal-surface-id'
 import type { MirroredTerminalTab, TerminalSurface, ReadyTerminalSurface } from './state'
 import { chooseRemoteTerminalLayout, isTerminalSurfaceTab } from './terminal-surfaces'
+import { claimExpectedAgentTabView } from './expected-agent-tab-view'
 
 function pendingBindingBelongsToEnvironment(
   ptyId: string,
@@ -170,7 +171,15 @@ export function buildMirroredTerminalTabs(
       : surfaces.some((surface) => surface.isPinned)
     // Why: viewMode echoes back through host snapshots, so prefer the client's record during the echo window and adopt the host value only without a prior tab.
     const hostViewModeSurface = surfaces.find((surface) => surface.viewMode)
-    const viewMode = existing ? existing.viewMode : hostViewModeSurface?.viewMode
+    const expectedView = claimExpectedAgentTabView(snapshot.worktree, localTabId, launchAgent)
+    if (expectedView?.tell) {
+      const worktreeId = snapshot.worktree
+      void import('../web-runtime-terminal-actions').then(({ setWebRuntimeTabProps }) =>
+        setWebRuntimeTabProps({ worktreeId, tabId: localTabId, viewMode: 'chat' })
+      )
+    }
+    const viewMode =
+      expectedView?.viewMode ?? (existing ? existing.viewMode : hostViewModeSurface?.viewMode)
     return {
       tab: {
         id: localTabId,

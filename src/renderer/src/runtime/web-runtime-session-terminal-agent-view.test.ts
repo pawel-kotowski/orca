@@ -28,7 +28,7 @@ const mocks = vi.hoisted(() => ({
   deliverLaunchPromptToAgentTab: vi.fn(),
   seedNativeChatLaunchDraftForAgentTab: vi.fn(),
   hasMaterializedWebRuntimeBrowserPage: vi.fn(),
-  defaultAgentTabViewMode: vi.fn()
+  resolveAgentTabViewMode: vi.fn()
 }))
 
 vi.mock('../store', () => ({
@@ -72,7 +72,7 @@ vi.mock('./web-runtime-browser-materialization', () => ({
 }))
 
 vi.mock('@/lib/agent-tab-default-view-mode', () => ({
-  defaultAgentTabViewMode: mocks.defaultAgentTabViewMode
+  resolveAgentTabViewMode: mocks.resolveAgentTabViewMode
 }))
 
 afterEach(() => resetWebSessionCloseIntentForTests())
@@ -96,11 +96,11 @@ describe('a remote agent tab opens in the view new agents open in', () => {
 
   afterEach(() => {
     resetTerminalCreateEnvironment()
-    mocks.defaultAgentTabViewMode.mockReset()
+    mocks.resolveAgentTabViewMode.mockReset()
   })
 
   it('asks the host for the Chat UI when the caller chose no view', async () => {
-    mocks.defaultAgentTabViewMode.mockReturnValue('chat')
+    mocks.resolveAgentTabViewMode.mockReturnValue('chat')
     const runtimeCall = vi.fn().mockRejectedValue(new Error('stop after the create call'))
     stubRuntimeEnvironmentBridge({ call: runtimeCall })
 
@@ -111,16 +111,18 @@ describe('a remote agent tab opens in the view new agents open in', () => {
       activate: true
     })
 
-    expect(mocks.defaultAgentTabViewMode).toHaveBeenCalledWith(
+    expect(mocks.resolveAgentTabViewMode).toHaveBeenCalledWith(
       expect.anything(),
       WORKTREE_ID,
-      'claude'
+      'claude',
+      undefined
     )
     expect(createParams(runtimeCall).viewMode).toBe('chat')
   })
 
-  it('keeps a view the caller chose', async () => {
-    mocks.defaultAgentTabViewMode.mockReturnValue('chat')
+  it("resolves a launch's terminal surface marker like a local launch", async () => {
+    // Why: launch-agent-in-new-tab marks every host launch 'terminal' (the surface, not a choice).
+    mocks.resolveAgentTabViewMode.mockReturnValue('chat')
     const runtimeCall = vi.fn().mockRejectedValue(new Error('stop after the create call'))
     stubRuntimeEnvironmentBridge({ call: runtimeCall })
 
@@ -132,6 +134,12 @@ describe('a remote agent tab opens in the view new agents open in', () => {
       activate: true
     })
 
-    expect(createParams(runtimeCall).viewMode).toBe('terminal')
+    expect(mocks.resolveAgentTabViewMode).toHaveBeenCalledWith(
+      expect.anything(),
+      WORKTREE_ID,
+      'claude',
+      'terminal'
+    )
+    expect(createParams(runtimeCall).viewMode).toBe('chat')
   })
 })
