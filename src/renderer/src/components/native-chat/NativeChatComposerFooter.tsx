@@ -1,6 +1,7 @@
 import { NativeChatAccountUsageChip } from './native-chat-account-usage'
 import { NativeChatViewSwitchButton } from './NativeChatViewSwitchButton'
 import { NativeChatPlaceLine } from './native-chat-place-line'
+import { NativeChatResumeButton } from './native-chat-resume-button'
 import { NativeChatContextUsageChip } from './native-chat-context-usage-chip'
 import type { NativeChatContextUsageSummary } from './native-chat-context-usage-summary'
 
@@ -30,6 +31,7 @@ export function NativeChatComposerFooter({
           className="text-chat-foreground-faint hover:text-chat-foreground"
         />
       ) : null}
+      <NativeChatResumeButton />
       <NativeChatPlaceLine />
     </div>
   )

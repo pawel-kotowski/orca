@@ -52,6 +52,46 @@ export type NativeChatResumeCommand = {
   ) => (item: TItem) => void
 }
 
+/**
+ * Open Session History for the chat in `terminalTabId`: what `/resume` and the chat's Resume button
+ * do. A structured chat's pick replaces it in place; a terminal chat's resumes in a terminal, never
+ * as an SDK chat. Returns why it could not open, or null.
+ */
+export function openNativeChatSessionHistory(args: {
+  terminalTabId: string
+  agent: AgentType
+  structuredWorktreeId?: string
+  resumesInPlace: boolean
+  search: string
+}): string | null {
+  const state = useAppStore.getState()
+  const worktreeId =
+    args.structuredWorktreeId ?? findNativeChatTabOwnerWorktreeId(state, args.terminalTabId)
+  // Use the active execution host when the on-screen workspace ID matches.
+  const executionHostId =
+    worktreeId === state.activeWorktreeId
+      ? (state.activeWorkspaceExecutionHostId ?? undefined)
+      : undefined
+  const workspace = worktreeId
+    ? { worktreeId, ...(executionHostId ? { executionHostId } : {}) }
+    : null
+  // Refuse unresolved ownership so Workspace cannot silently open another workspace’s history.
+  if (!workspace || !selectAiVaultPanelWorkspace(state, workspace).worktree) {
+    return translate(
+      'components.native-chat.resumeCommand.workspaceUnavailable',
+      "This chat's workspace isn't loaded yet. Try /resume again in a moment."
+    )
+  }
+  openAgentSessionHistoryModal({
+    workspace,
+    chatTabId: args.terminalTabId,
+    resumesInPlace: args.resumesInPlace,
+    initialQuery: args.search,
+    ...(isAiVaultAgent(args.agent) ? { agent: args.agent } : {})
+  })
+  return null
+}
+
 /** `/resume [search]` opens Session History and never reaches the agent, in a structured chat and in a terminal-backed Claude or Codex chat. */
 export function useNativeChatResumeCommand(args: {
   structuredTransport: Pick<NativeChatStructuredComposerTransport, 'worktreeId'> | undefined
@@ -76,38 +116,19 @@ export function useNativeChatResumeCommand(args: {
 
   const open = useCallback(
     (search: string): void => {
-      const state = useAppStore.getState()
-      const worktreeId =
-        structuredWorktreeId ?? findNativeChatTabOwnerWorktreeId(state, terminalTabId)
-      // Use the active execution host when the on-screen workspace ID matches.
-      const executionHostId =
-        worktreeId === state.activeWorktreeId
-          ? (state.activeWorkspaceExecutionHostId ?? undefined)
-          : undefined
-      const workspace = worktreeId
-        ? { worktreeId, ...(executionHostId ? { executionHostId } : {}) }
-        : null
-      // Refuse unresolved ownership so Workspace cannot silently open another workspace’s history.
-      if (!workspace || !selectAiVaultPanelWorkspace(state, workspace).worktree) {
-        setNotice(
-          translate(
-            'components.native-chat.resumeCommand.workspaceUnavailable',
-            "This chat's workspace isn't loaded yet. Try /resume again in a moment."
-          )
-        )
+      // Focus first so dialog restoration returns to the editor even after a Send click.
+      textareaRef.current?.focus()
+      const unavailable = openNativeChatSessionHistory({
+        terminalTabId,
+        agent,
+        structuredWorktreeId,
+        resumesInPlace: structured,
+        search
+      })
+      if (unavailable) {
+        setNotice(unavailable)
         return
       }
-      // Focus before opening so dialog restoration returns to the editor even after a Send click.
-      textareaRef.current?.focus()
-      openAgentSessionHistoryModal({
-        workspace,
-        chatTabId: terminalTabId,
-        // Why: only a structured chat is replaced in place; a terminal chat's pick resumes the
-        // way the history panel does (in a terminal), never as an SDK chat.
-        resumesInPlace: structured,
-        initialQuery: search,
-        ...(isAiVaultAgent(agent) ? { agent } : {})
-      })
       // Attachments stay armed for the next real prompt.
       setDraft('')
       setCaret(0)
