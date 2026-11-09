@@ -3,7 +3,7 @@ import { ActivityStatusGroupHeader } from './activity-thread-controls'
 import { READ_AGENTS_GROUP_KEY } from './activity-thread-grouping'
 import { WORKING_GROUP_KEY } from './activity-inbox-sections'
 import { ActivityAutoStandByControl } from './activity-auto-stand-by-control'
-import { useActivityDrawerHeight } from './activity-drawer-resize'
+import { useActivityDrawerHeight, useActivityDrawerTakeover } from './activity-drawer-resize'
 import { translate } from '@/i18n/i18n'
 import { cn } from '@/lib/utils'
 import type { ActivityThreadGroup } from './activity-thread-types'
@@ -74,6 +74,10 @@ function ActivityPinnedAgentsGroup({
     })
   }, [group.key])
   const { height, listRef, onResizePointerDown, resetHeight } = useActivityDrawerHeight(group.key)
+  useActivityDrawerTakeover(group.key, () => {
+    setOpen(false)
+    writeOpen(group.key, false)
+  })
   return (
     // Why `contents`: the header and the cards sit straight in the stack's column, so a header
     // never shrinks and only the card lists share the room (a shrinking drawer slid one header
@@ -136,7 +140,7 @@ export function ActivityPinnedAgentsGroups({
   }
   return (
     // Why the cap: the Inbox above always keeps room for a card or two.
-    <div className="flex max-h-[calc(100%-7rem)] min-h-0 shrink-0 flex-col">
+    <div className="flex max-h-[calc(100%-var(--activity-inbox-room,7rem))] min-h-0 shrink-0 flex-col">
       {groups.map((group) => (
         <ActivityPinnedAgentsGroup key={group.key} group={group} rowProps={rowProps} />
       ))}

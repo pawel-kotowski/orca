@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils'
 import { READ_AGENTS_GROUP_KEY } from './activity-thread-grouping'
 import { ActivityThreadListToolbar } from './activity-thread-list-toolbar'
 import { ActivityListEmptyState } from './activity-list-empty-state'
+import { useInboxFoldsOnDrawerTakeover } from './activity-drawer-resize'
 import {
   getActiveStickyHeaderIndex,
   getActiveStickyHeaderIndexForScroll,
@@ -147,6 +148,7 @@ export function ActivityThreadListPane({
         })
       }))
 
+  const inboxRoom = useInboxFoldsOnDrawerTakeover(effectiveCollapsedGroupKeys, handleToggleGroup)
   const scrollContainerRef = useRef<HTMLDivElement | null>(null)
   const hasRestoredScrollRef = useRef(false)
   const handleScroll = useCallback(
@@ -322,7 +324,7 @@ export function ActivityThreadListPane({
         'relative flex min-h-0 flex-col',
         resizable ? 'shrink-0 border-r border-border' : 'min-w-0 flex-1'
       )}
-      style={resizable ? { width: threadListWidth } : undefined}
+      style={{ ...(resizable ? { width: threadListWidth } : {}), ...inboxRoom }}
     >
       <ActivityThreadListToolbar
         activityFilterInputRef={activityFilterInputRef}
