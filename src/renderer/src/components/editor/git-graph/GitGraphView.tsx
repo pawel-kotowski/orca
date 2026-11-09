@@ -241,6 +241,14 @@ export function GitGraphView({ worktreeId }: { worktreeId: string }): React.JSX.
           </Button>
         </div>
       </div>
+      {allRefs && result && result.allRefs !== true && (
+        <div className="shrink-0 border-b border-border px-3 py-1 text-xs text-muted-foreground">
+          {translate(
+            'local.gitGraph.olderHost',
+            "This workspace's machine runs an older Orca, so only the current branch shows until it updates."
+          )}
+        </div>
+      )}
       <div className="flex min-h-0 flex-1">
         <div ref={columnRef} className="flex min-w-0 flex-1 flex-col">
           <GitGraphHeaderRow graphWidth={graphWidth} columns={columns} />

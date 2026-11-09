@@ -90,6 +90,8 @@ export type GitHistoryResult = {
   branch?: GitHistoryBranchRange
   /** Echoes a requested skip so clients can tell paging hosts from older ones. */
   skip?: number
+  /** True when the page walked every ref; a host older than the option leaves it out. */
+  allRefs?: boolean
 }
 
 export type GitHistoryExecutor = (

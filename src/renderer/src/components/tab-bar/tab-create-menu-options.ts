@@ -12,6 +12,7 @@ export type TabCreateMenuOptionKind =
   | 'new-terminal-shell'
   | 'open-markdown'
   | 'new-plugin-file'
+  | 'open-git-graph'
 
 /** A plugin's new-file type, as the + menu offers it. */
 export type TabCreateMenuPluginNewFile = {
@@ -37,6 +38,8 @@ export type TabCreateMenuOptionsContext = {
   hasNewBrowser: boolean
   hasNewMarkdown: boolean
   hasOpenMarkdown: boolean
+  /** Local (glass build): offer the workspace's Git Graph tab. */
+  hasGitGraph?: boolean
   hasSimulator: boolean
   simulatorIsGoTo: boolean
   terminalOnly: boolean
@@ -155,6 +158,15 @@ export function buildTabCreateMenuOptions(
         translate('auto.components.tab.bar.tab.create.menu.options.44caaf7b36', 'md'),
         translate('auto.components.tab.bar.tab.create.menu.options.164c394bab', 'open file')
       ]
+    })
+  }
+
+  if (context.hasGitGraph) {
+    options.push({
+      id: 'open-git-graph',
+      kind: 'open-git-graph',
+      label: translate('local.gitGraph.title', 'Git Graph'),
+      keywords: ['git graph', 'graph', 'git', 'commits', 'history', 'branches', 'log']
     })
   }
 

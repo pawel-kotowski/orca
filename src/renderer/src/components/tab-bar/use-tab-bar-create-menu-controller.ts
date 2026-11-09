@@ -14,6 +14,10 @@ import type { TabAgentLaunchOption } from './tab-agent-launch-options'
 import { buildTabCreateMenuOptions, type TabCreateMenuOption } from './tab-create-menu-options'
 import { resolveWindowsShellLaunchTarget } from './windows-shell-launch'
 import { buildWindowsShellMenuEntries } from './tab-bar-windows-shell-options'
+import {
+  openGitGraphTab,
+  useGitGraphAvailable
+} from '@/components/editor/git-graph/open-git-graph-tab'
 import type {
   getProjectRuntimeShellMenuMode,
   resolveWindowsPowerShellImplementationSetting
@@ -154,6 +158,7 @@ export function useTabBarCreateMenuController({
     windowsTerminalCapabilities.gitBashAvailable,
     windowsTerminalCapabilities.wslAvailable
   ])
+  const gitGraphAvailable = useGitGraphAvailable(worktreeId)
   const createMenuOptions = useMemo(
     () =>
       buildTabCreateMenuOptions({
@@ -162,6 +167,7 @@ export function useTabBarCreateMenuController({
         hasNewBrowser: !terminalOnly && managedBrowserCreationEnabled,
         hasNewMarkdown: !terminalOnly && Boolean(onNewFileTab),
         hasOpenMarkdown: !terminalOnly && Boolean(onOpenFileTab),
+        hasGitGraph: !terminalOnly && gitGraphAvailable,
         hasSimulator:
           !terminalOnly &&
           mobileEmulatorEnabled &&
@@ -176,6 +182,7 @@ export function useTabBarCreateMenuController({
       onNewFileTab,
       onNewSimulatorTab,
       onOpenFileTab,
+      gitGraphAvailable,
       terminalOnly,
       windowsShellEntries,
       workspaceHasSimulatorTab
@@ -208,6 +215,9 @@ export function useTabBarCreateMenuController({
         break
       case 'open-markdown':
         onOpenFileTab?.()
+        break
+      case 'open-git-graph':
+        openGitGraphTab(worktreeId, resolvedGroupId)
         break
       case 'new-simulator':
       case 'go-to-simulator':

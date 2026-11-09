@@ -59,7 +59,7 @@ export function GitHistoryGraphSvg({
       if (index !== circleIndex) {
         paths.push(
           <GraphPath
-            key={`base-${inputSwimlanes[index]!.id}`}
+            key={`base-${index}-${inputSwimlanes[index]!.id}`}
             color={color}
             d={[
               `M ${SWIMLANE_WIDTH * (index + 1)} 0`,
@@ -81,7 +81,7 @@ export function GitHistoryGraphSvg({
       if (index === outputSwimlaneIndex) {
         paths.push(
           <GraphPath
-            key={`vertical-${inputSwimlanes[index]!.id}`}
+            key={`vertical-${index}-${inputSwimlanes[index]!.id}`}
             color={color}
             d={`M ${SWIMLANE_WIDTH * (index + 1)} 0 V ${SWIMLANE_HEIGHT}`}
           />
@@ -89,7 +89,7 @@ export function GitHistoryGraphSvg({
       } else {
         paths.push(
           <GraphPath
-            key={`shift-${inputSwimlanes[index]!.id}-${outputSwimlanes[outputSwimlaneIndex]!.id}`}
+            key={`shift-${index}-${inputSwimlanes[index]!.id}-${outputSwimlanes[outputSwimlaneIndex]!.id}`}
             color={color}
             d={[
               `M ${SWIMLANE_WIDTH * (index + 1)} 0`,

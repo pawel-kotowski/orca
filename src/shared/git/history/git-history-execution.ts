@@ -236,7 +236,8 @@ export async function loadGitHistoryFromExecutor(
     hasMore: parsed.length > limit,
     limit,
     ...(branchBase ? { branch: branchBase.range } : {}),
-    ...(options.skip !== undefined ? { skip } : {})
+    ...(options.skip !== undefined ? { skip } : {}),
+    ...(options.allRefs && !branchBase ? { allRefs: true } : {})
   }
 }
 

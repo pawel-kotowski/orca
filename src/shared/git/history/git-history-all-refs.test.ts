@@ -63,8 +63,10 @@ describe('git history over every ref', () => {
     const { repo, git } = await createRepository()
     const head = await loadGitHistoryFromExecutor(git, repo)
     expect(head.items.map((item) => item.subject).sort()).toEqual(['base', 'on main'])
+    expect(head.allRefs).toBeUndefined()
 
     const all = await loadGitHistoryFromExecutor(git, repo, { allRefs: true })
+    expect(all.allRefs).toBe(true)
     expect(all.items.map((item) => item.subject).sort()).toEqual(['base', 'on feature', 'on main'])
     const feature = all.items.find((item) => item.subject === 'on feature')
     expect(feature?.references?.map((ref) => ref.name).sort()).toEqual(['feature', 'v1'])

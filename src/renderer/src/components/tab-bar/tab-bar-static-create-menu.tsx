@@ -15,6 +15,7 @@ import {
 } from './use-tab-bar-runtime-model'
 import type { TabBarProps } from './tab-bar-props'
 import { resolveWindowsShellLaunchTarget } from './windows-shell-launch'
+import { GitGraphCreateMenuItem } from '@/components/editor/git-graph/git-graph-open-button'
 
 export function TabBarStaticCreateMenu({
   groupId,
@@ -193,6 +194,9 @@ export function TabBarStaticCreateMenu({
         ) : null}
       </DropdownMenuItem>
     ) : null
+  const gitGraphMenuItem = !terminalOnly ? (
+    <GitGraphCreateMenuItem worktreeId={props.worktreeId} groupId={groupId} />
+  ) : null
   const mobileEmulatorIntroMenuBlock =
     showMobileEmulatorIntroCallout &&
     !terminalOnly &&
@@ -208,6 +212,7 @@ export function TabBarStaticCreateMenu({
       {newMarkdownMenuItem}
       {pluginNewFileMenuItems}
       {openMarkdownMenuItem}
+      {gitGraphMenuItem}
       {defaultTerminalMenuItems}
       {newBrowserMenuItem}
       {newSimulatorMenuItem}
@@ -220,6 +225,7 @@ export function TabBarStaticCreateMenu({
       {newMarkdownMenuItem}
       {pluginNewFileMenuItems}
       {openMarkdownMenuItem}
+      {gitGraphMenuItem}
       {newSimulatorMenuItem}
       {mobileEmulatorIntroMenuBlock}
     </>
