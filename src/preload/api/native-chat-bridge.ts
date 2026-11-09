@@ -1,3 +1,4 @@
+import type { ClaudeProjectSession } from '../../shared/native-chat/claude-project-session-types'
 import { ipcRenderer } from 'electron'
 import type {
   NativeChatAppendedPayload,
@@ -56,5 +57,7 @@ export const nativeChatApi = {
   getConversationNameFailureOutput: (sessionId: string): Promise<string | null> =>
     ipcRenderer.invoke('nativeChat:conversationNameFailureOutput', sessionId),
   getClaudeContextWindows: (transcriptPath: string): Promise<Record<string, number>> =>
-    ipcRenderer.invoke('nativeChat:claudeContextWindows', transcriptPath)
+    ipcRenderer.invoke('nativeChat:claudeContextWindows', transcriptPath),
+  listClaudeProjectSessions: (transcriptPath: string): Promise<ClaudeProjectSession[]> =>
+    ipcRenderer.invoke('nativeChat:claudeProjectSessions', transcriptPath)
 } satisfies PreloadApi['nativeChat']

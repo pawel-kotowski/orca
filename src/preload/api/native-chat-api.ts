@@ -1,3 +1,4 @@
+import type { ClaudeProjectSession } from '../../shared/native-chat/claude-project-session-types'
 import type { AgentType } from '../../shared/agent-status/contracts/agent-status-types'
 import type { NativeChatVisualTheme } from '../../shared/native-chat/native-chat-visual-shell'
 import type {
@@ -76,4 +77,5 @@ export type NativeChatApi = {
   getConversationNameFailureOutput: (sessionId: string) => Promise<string | null>
   /** Context window per model id from the Claude catalog cached beside a local transcript. */
   getClaudeContextWindows?: (transcriptPath: string) => Promise<Record<string, number>>
+  listClaudeProjectSessions?: (transcriptPath: string) => Promise<ClaudeProjectSession[]>
 }

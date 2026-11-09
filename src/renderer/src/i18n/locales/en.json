@@ -20597,7 +20597,14 @@
         "switchLabel": "Claude subscription {{name}}: switch",
         "switchTitle": "Run this chat on"
       },
-      "resumeButton": "Resume a conversation"
+      "resumeButton": "Resume a conversation",
+      "resumeList": {
+        "noTerminal": "This chat's terminal isn't running.",
+        "search": "Search conversations",
+        "loading": "Loading…",
+        "empty": "No conversations to resume.",
+        "current": "this chat"
+      }
     },
     "tab": {
       "bar": {
