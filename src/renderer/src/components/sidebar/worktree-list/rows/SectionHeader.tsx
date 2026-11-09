@@ -372,6 +372,7 @@ export function renderWorktreeSectionHeaderRow(args: {
                 groupId={projectGroupIdForHeader}
                 hostId={projectGroupHostIdForHeader}
                 label={label}
+                collapseKey={collapseKey}
                 onRename={ctx.onRenameProjectGroup}
                 onDelete={ctx.onDeleteProjectGroup}
               />

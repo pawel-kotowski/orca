@@ -19,7 +19,7 @@ import { getPinnedWorktreeDisplayPolicy } from '../../../../../../shared/sidebar
 import { selectWorktreeListReviewCacheInputs } from './review-cache-inputs'
 import type { VirtualizedScrollAnchor } from '@/hooks/useVirtualizedScrollAnchor'
 import { SidebarWorktreeListDialogs } from '../rows/ProjectGroupDialogs'
-import { publishSidebarProjectHeaderKeys } from '../../sidebar-collapse-all'
+import { publishSidebarGroupProjectKeys } from '../../sidebar-collapse-all'
 import { SidebarWorktreeListEmptyState } from './EmptyState'
 import { VirtualizedWorktreeViewport } from '../viewport/VirtualizedWorktreeViewport'
 import { markSidebarWorktreeActiveImmediately } from '../rows/option-dom'
@@ -149,15 +149,8 @@ const WorktreeList = React.memo(function WorktreeList({
     [rowModel.occurrencePlan]
   )
   const effectiveCollapsedGroups = rowModel.effectiveCollapsedGroups
-  // Why: the header's collapse-all button acts on the project headers this list shows.
-  useEffect(() => {
-    publishSidebarProjectHeaderKeys(
-      rowModel.rows.flatMap((row) =>
-        row.type === 'header' && row.repo ? [row.collapseKey ?? row.key] : []
-      )
-    )
-  }, [rowModel.rows])
-  useEffect(() => () => publishSidebarProjectHeaderKeys([]), [])
+  // Why: each project group's header collapses or expands that group's projects.
+  useEffect(() => publishSidebarGroupProjectKeys(rowModel.rows), [rowModel.rows])
   const selection = useSidebarWorktreeSelection({
     sectionRows: rowModel.sectionRows,
     pinnedDisplayPolicy

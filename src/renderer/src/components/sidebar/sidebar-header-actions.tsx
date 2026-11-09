@@ -7,7 +7,6 @@ import { formatOptionalPrimaryShortcutLabel } from '@/hooks/useShortcutLabel'
 import { translate } from '@/i18n/i18n'
 import { openWorkspaceCreationComposerWithTourHandoff } from '../contextual-tours/workspace-creation-tour-handoff'
 import SidebarWorkspaceOptionsMenu from './worktree-list/controls/SidebarWorkspaceOptionsMenu'
-import { SidebarCollapseAllButton } from './sidebar-collapse-all'
 
 function AddProjectButton({
   preserveWorkspaceBoardOpen
@@ -96,7 +95,6 @@ export function SidebarHeaderActions({
           />
         )}
       </div>
-      {agentsViewActive ? null : <SidebarCollapseAllButton />}
       <AddProjectButton preserveWorkspaceBoardOpen />
       <NewWorkspaceButton preserveWorkspaceBoardOpen />
     </div>

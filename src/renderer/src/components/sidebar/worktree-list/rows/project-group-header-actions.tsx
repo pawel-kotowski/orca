@@ -1,3 +1,4 @@
+import { ProjectGroupCollapseAllButton } from '../../sidebar-collapse-all'
 import React from 'react'
 import { Ellipsis, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -25,10 +26,13 @@ export function ProjectGroupHeaderMenu({
   groupId,
   hostId,
   label,
+  collapseKey,
   onRename,
   onDelete
 }: {
   groupId: string
+  /** The group header's own collapse key; with it the header gets collapse/expand all. */
+  collapseKey?: string
   /** Owner host of the group row, so rename/delete route to the host that holds it. */
   hostId?: ExecutionHostId
   label: string
@@ -36,46 +40,51 @@ export function ProjectGroupHeaderMenu({
   onDelete: (groupId: string, groupName: string, hostId?: ExecutionHostId) => void
 }): React.JSX.Element {
   return (
-    <DropdownMenu modal={false}>
-      <DropdownMenuTrigger asChild>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-xs"
-          className={REPO_HEADER_ACTION_BUTTON_CLASS}
-          data-repo-header-action=""
-          aria-label={translate(
-            'auto.components.sidebar.WorktreeList.79465e9034',
-            'Group actions for {{value0}}',
-            { value0: label }
-          )}
-          onClick={(event) => event.stopPropagation()}
-          onKeyDown={stopRepoHeaderKeyboardToggle}
-          onPointerDown={handleRepoHeaderActionPointerDown}
+    <>
+      {collapseKey ? (
+        <ProjectGroupCollapseAllButton groupId={groupId} groupCollapseKey={collapseKey} />
+      ) : null}
+      <DropdownMenu modal={false}>
+        <DropdownMenuTrigger asChild>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-xs"
+            className={REPO_HEADER_ACTION_BUTTON_CLASS}
+            data-repo-header-action=""
+            aria-label={translate(
+              'auto.components.sidebar.WorktreeList.79465e9034',
+              'Group actions for {{value0}}',
+              { value0: label }
+            )}
+            onClick={(event) => event.stopPropagation()}
+            onKeyDown={stopRepoHeaderKeyboardToggle}
+            onPointerDown={handleRepoHeaderActionPointerDown}
+          >
+            <Ellipsis className="size-3.5" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          align="end"
+          side="bottom"
+          sideOffset={6}
+          // Why: Radix portals keep React bubbling through the project header; block menu events from arming row drag/collapse.
+          onPointerDown={stopRepoHeaderMenuEvent}
+          onMouseDown={stopRepoHeaderMenuEvent}
+          onPointerUp={stopRepoHeaderMenuEvent}
+          onMouseUp={stopRepoHeaderMenuEvent}
+          onClick={stopRepoHeaderMenuEvent}
+          onKeyDown={stopRepoHeaderMenuEvent}
         >
-          <Ellipsis className="size-3.5" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent
-        align="end"
-        side="bottom"
-        sideOffset={6}
-        // Why: Radix portals keep React bubbling through the project header; block menu events from arming row drag/collapse.
-        onPointerDown={stopRepoHeaderMenuEvent}
-        onMouseDown={stopRepoHeaderMenuEvent}
-        onPointerUp={stopRepoHeaderMenuEvent}
-        onMouseUp={stopRepoHeaderMenuEvent}
-        onClick={stopRepoHeaderMenuEvent}
-        onKeyDown={stopRepoHeaderMenuEvent}
-      >
-        <DropdownMenuItem onSelect={() => onRename(groupId, label, hostId)}>
-          {translate('auto.components.sidebar.WorktreeList.4d7b73658c', 'Rename group')}
-        </DropdownMenuItem>
-        <DropdownMenuItem variant="destructive" onSelect={() => onDelete(groupId, label, hostId)}>
-          {translate('auto.components.sidebar.WorktreeList.902115cdbe', 'Delete group')}
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+          <DropdownMenuItem onSelect={() => onRename(groupId, label, hostId)}>
+            {translate('auto.components.sidebar.WorktreeList.4d7b73658c', 'Rename group')}
+          </DropdownMenuItem>
+          <DropdownMenuItem variant="destructive" onSelect={() => onDelete(groupId, label, hostId)}>
+            {translate('auto.components.sidebar.WorktreeList.902115cdbe', 'Delete group')}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </>
   )
 }
 
