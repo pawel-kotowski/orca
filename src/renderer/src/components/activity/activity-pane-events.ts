@@ -62,7 +62,7 @@ type PaneEventInputs = {
 export function buildPaneActivityEvents(args: PaneEventInputs): ActivityEvent[] {
   const events = buildUnclearedPaneEvents(args)
   // Why: Paweł wants every open agent listed. Clearing hides its past, not the open tab, so an
-  // open agent with nothing left after the cutoff keeps one stand-in event (under Other agents).
+  // open agent with nothing left after the cutoff keeps one stand-in event (under Standing by).
   if (events.length > 0 || !args.agentAlive || args.clearedAt <= 0) {
     return events
   }

@@ -95,9 +95,9 @@ export function buildActivityThreadGroups(
 export const READ_AGENTS_GROUP_KEY = 'read-agents'
 
 /**
- * Agents the unread-only filter would hide, as one last section, newest first (Paweł,
- * 2026-11-05: every open agent stays in the activity view, read or not, without repeating one
- * another section shows).
+ * Standing by: the agents you are done with (cleared, idle, moved by the timer, or read under the
+ * unread-only filter), as one last section, newest first (Paweł, 2026-11-05: every open agent stays
+ * in the activity view; 2026-11-09: "other agents could be renamed to standing by").
  */
 export function withReadAgentsGroup(
   groups: ActivityThreadGroup[],
@@ -111,7 +111,7 @@ export function withReadAgentsGroup(
     ...groups,
     {
       key: READ_AGENTS_GROUP_KEY,
-      label: translate('components.activity.readAgents', 'Other agents'),
+      label: translate('components.activity.standingBy', 'Standing by'),
       threads
     }
   ]

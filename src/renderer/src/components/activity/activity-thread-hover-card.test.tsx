@@ -5,7 +5,6 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { TooltipProvider } from '@/components/ui/tooltip'
-import { useAppStore } from '@/store'
 import type { Worktree } from '../../../../shared/worktree/types'
 import { ActivityThreadHoverCard } from './activity-thread-hover-card'
 import { _resetActivityHoverCardIntentForTest } from './activity-thread-hover-card-intent'
@@ -51,7 +50,6 @@ function Harness({
   onSelect = vi.fn(),
   onJump = vi.fn(),
   onMarkRead = vi.fn(),
-  onMarkUnread = vi.fn(),
   onClear
 }: {
   thread: AgentPaneThread
@@ -59,7 +57,6 @@ function Harness({
   onSelect?: () => void
   onJump?: () => void
   onMarkRead?: () => void
-  onMarkUnread?: () => void
   onClear?: (thread: AgentPaneThread) => void
 }): ReactElement {
   return (
@@ -70,8 +67,8 @@ function Harness({
         onSelect={onSelect}
         onJump={onJump}
         onMarkRead={onMarkRead}
-        onMarkUnread={onMarkUnread}
         onClear={onClear}
+        inInbox
         canJump={true}
         compactMode={false}
       />
@@ -127,7 +124,7 @@ describe('ActivityThreadHoverCard and ActivityThreadRow', () => {
     expect(card?.textContent).toContain('m4air-audit')
   })
 
-  it('marks an unread thread as read from its bell without selecting the row', async () => {
+  it('marks an unread Inbox card seen from its bell without selecting the row', async () => {
     const thread = createTestThread({ unread: true })
     const onMarkRead = vi.fn()
     const onSelect = vi.fn()
@@ -137,7 +134,7 @@ describe('ActivityThreadHoverCard and ActivityThreadRow', () => {
     })
 
     const markReadButton = container.querySelector<HTMLButtonElement>(
-      'button[aria-label="Mark thread as read"]'
+      'button[aria-label="Mark as seen"]'
     )
     expect(markReadButton).not.toBeNull()
 
@@ -149,7 +146,7 @@ describe('ActivityThreadHoverCard and ActivityThreadRow', () => {
     expect(onSelect).not.toHaveBeenCalled()
   })
 
-  it('clears from the row action without selecting the row', async () => {
+  it('clears a seen Inbox card from its corner X without selecting the row', async () => {
     const thread = createTestThread()
     const onClear = vi.fn()
     const onSelect = vi.fn()
@@ -159,41 +156,14 @@ describe('ActivityThreadHoverCard and ActivityThreadRow', () => {
     })
 
     const clearButton = container.querySelector<HTMLButtonElement>(
-      'button[aria-label="Clear notification"]'
+      'button[aria-label="Done with it: move to Standing by"]'
     )
     expect(clearButton).not.toBeNull()
-    // Why: the "Bell & clear" card part is on by default, so the button is always drawn.
-    expect(clearButton?.className).not.toContain('can-hover:opacity-0')
-    expect(clearButton?.className).not.toContain('invisible')
 
     act(() => clearButton?.click())
 
     expect(onClear).toHaveBeenCalledWith(thread)
     expect(onSelect).not.toHaveBeenCalled()
-  })
-
-  it('shows the clear button only on hover while the "Bell & clear" part is off', async () => {
-    const previousSettings = useAppStore.getState().settings
-    useAppStore.setState({
-      settings: {
-        ...previousSettings,
-        nativeChatAppearance: { activityCardHidden: ['buttons'] }
-      } as typeof previousSettings
-    })
-    try {
-      await act(async () => {
-        root.render(<Harness thread={createTestThread()} onClear={vi.fn()} onSelect={vi.fn()} />)
-      })
-      const clearButton = container.querySelector<HTMLButtonElement>(
-        'button[aria-label="Clear notification"]'
-      )
-      expect(clearButton?.className).toContain('focus-visible:opacity-100')
-      expect(clearButton?.className).toContain('can-hover:pointer-events-none')
-      expect(clearButton?.className).toContain('can-hover:group-hover:pointer-events-auto')
-      expect(clearButton?.className).not.toContain('invisible')
-    } finally {
-      useAppStore.setState({ settings: previousSettings })
-    }
   })
 
   it('renders hover card content with workspace info, host, task details, and notes', async () => {

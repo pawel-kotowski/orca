@@ -6,6 +6,7 @@ import { ActivityThreadContextMenu } from './activity-thread-context-menu'
 import { floatingPanelShowsTab } from './activity-thread-actions'
 import { ActivityThreadRow } from './activity-thread-row'
 import { READ_AGENTS_GROUP_KEY } from './activity-thread-grouping'
+import { activityThreadSection, WORKING_GROUP_KEY } from './activity-inbox-sections'
 import { useActivityHidesWorkbench } from '@/lib/activity-workbench-visibility'
 import { useAppStore } from '@/store'
 import { useActivityChatPreviewPaneKey } from './activity-chat-preview-host'
@@ -45,7 +46,7 @@ export function ActivityThreadVirtualRow({
   getContextMenuTargets: ContextMenuProps['getTargets']
   onJumpToWorkspace: Parameters<typeof ActivityThreadRow>[0]['onJump']
   onMarkThreadRead: Parameters<typeof ActivityThreadRow>[0]['onMarkRead']
-  onMarkThreadUnread: Parameters<typeof ActivityThreadRow>[0]['onMarkUnread']
+  onMarkThreadUnread: (thread: AgentPaneThread) => void
   onMarkThreadsRead: ContextMenuProps['onMarkManyRead']
   onMarkThreadsUnread: ContextMenuProps['onMarkManyUnread']
   canJumpToWorkspace: (thread: AgentPaneThread) => boolean
@@ -83,8 +84,8 @@ export function ActivityThreadVirtualRow({
           '{{value0}} activity',
           { value0: item.group.label }
         )}
-        // Why: room above each section (Working, Done…) so the breaks read at a glance; more
-        // above Other agents, which holds the read and cleared ones apart from the rest.
+        // Why: room above each section so the breaks read at a glance; more above Standing by
+        // (when a grouping other than status lists it in the scrolled list).
         className={item.group.key === READ_AGENTS_GROUP_KEY ? 'pb-1 pt-10' : 'pb-1 pt-4'}
       >
         <ActivityStatusGroupHeader
@@ -96,6 +97,11 @@ export function ActivityThreadVirtualRow({
     )
   }
   const canJump = canJumpToWorkspace(item.thread)
+  // Why by section: only the Inbox rings and clears; Working and Standing by show the state alone.
+  const inInbox =
+    item.groupKey !== READ_AGENTS_GROUP_KEY &&
+    item.groupKey !== WORKING_GROUP_KEY &&
+    activityThreadSection(item.thread) === 'inbox'
   const isActivePane = item.thread.paneKey === selectedPaneKey
   // Why: with the tabs hidden no workspace card is open (the floating panel is not one of the tabs).
   // Of several agents in one shown tab (split panes), the one last clicked is the open one.
@@ -130,11 +136,12 @@ export function ActivityThreadVirtualRow({
             onSelect={onSelectThread}
             onJump={onJumpToWorkspace}
             onMarkRead={onMarkThreadRead}
-            onMarkUnread={onMarkThreadUnread}
-            onClear={isClearableActivityThread(item.thread) ? clearActivityThread : undefined}
+            inInbox={inInbox}
+            onClear={
+              inInbox && isClearableActivityThread(item.thread) ? clearActivityThread : undefined
+            }
             canJump={canJump}
             compactMode={compactMode}
-            disableMarkUnread={!canMarkThreadUnread(item.thread)}
             showJumpAction={showJumpAction}
             previewSuppressed={menuOpen}
           />

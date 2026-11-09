@@ -32,7 +32,7 @@ export type ActivityEvent = {
   unread: boolean
   /**
    * Set on the one stand-in event of an open agent whose activity was cleared: it keeps the agent
-   * listed (under Other agents) instead of dropping an open tab from the view.
+   * listed (under Standing by) instead of dropping an open tab from the view.
    */
   cleared?: true
 }

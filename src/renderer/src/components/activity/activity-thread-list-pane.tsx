@@ -7,9 +7,9 @@ import {
   type Range
 } from '@tanstack/react-virtual'
 import { cn } from '@/lib/utils'
-import { translate } from '@/i18n/i18n'
 import { READ_AGENTS_GROUP_KEY } from './activity-thread-grouping'
 import { ActivityThreadListToolbar } from './activity-thread-list-toolbar'
+import { ActivityListEmptyState } from './activity-list-empty-state'
 import {
   getActiveStickyHeaderIndex,
   getActiveStickyHeaderIndexForScroll,
@@ -17,7 +17,7 @@ import {
 } from '../sidebar/worktree-list/viewport/virtual-rows'
 import { ActivityThreadVirtualRow } from './activity-thread-virtual-row'
 import {
-  ActivityPinnedAgentsGroup,
+  ActivityPinnedAgentsGroups,
   useActivityPinnedGroupSplit
 } from './activity-pinned-agents-group'
 import { ActivityThreadListResizeHandle } from './activity-thread-list-resize-handle'
@@ -166,7 +166,7 @@ export function ActivityThreadListPane({
     },
     [scrollTopRef]
   )
-  const { pinnedGroup, listGroups } = useActivityPinnedGroupSplit(visibleThreadGroups)
+  const { pinnedGroups, listGroups } = useActivityPinnedGroupSplit(visibleThreadGroups)
   const virtualItems = useMemo(
     () =>
       buildActivityVirtualItems({
@@ -296,7 +296,7 @@ export function ActivityThreadListPane({
         })
       : null
 
-  // The same row wiring serves the scrolled list and the pinned Other agents section.
+  // The same row wiring serves the scrolled list and the pinned Working and Standing by drawers.
   const rowProps = {
     onToggleGroup: handleToggleGroup,
     selectedPaneKey,
@@ -398,17 +398,13 @@ export function ActivityThreadListPane({
               )
             })}
           </div>
-          {visibleThreadCount === 0 ? (
-            <div className="px-3 py-8 text-center text-xs text-muted-foreground">
-              {translate(
-                'auto.components.activity.ActivityPrototypePage.7cd632006b',
-                'No agent activity matches these filters.'
-              )}
-            </div>
-          ) : null}
+          <ActivityListEmptyState
+            empty={visibleThreadCount === 0 && pinnedGroups.length === 0}
+            inboxEmpty={groupBy === 'status' && listGroups.every((g) => g.threads.length === 0)}
+          />
         </div>
       </div>
-      {pinnedGroup ? <ActivityPinnedAgentsGroup group={pinnedGroup} rowProps={rowProps} /> : null}
+      <ActivityPinnedAgentsGroups groups={pinnedGroups} rowProps={rowProps} />
       {resizable ? (
         <ActivityThreadListResizeHandle
           isResizing={isThreadListResizing}

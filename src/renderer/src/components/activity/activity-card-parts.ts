@@ -10,7 +10,6 @@ export const ACTIVITY_CARD_PARTS = [
   'repo',
   'machine',
   'time',
-  'buttons',
   'workspace',
   'conversation',
   'output',

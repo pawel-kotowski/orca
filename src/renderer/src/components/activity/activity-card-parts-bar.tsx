@@ -17,8 +17,6 @@ function partLabel(part: ActivityCardPart): string {
       return translate('components.activity.cardParts.machine', 'Machine')
     case 'time':
       return translate('components.activity.cardParts.time', 'Time')
-    case 'buttons':
-      return translate('components.activity.cardParts.buttons', 'Bell & clear')
     case 'workspace':
       return translate('components.activity.cardParts.workspace', 'Workspace')
     case 'conversation':

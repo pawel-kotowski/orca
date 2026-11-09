@@ -19,7 +19,8 @@ import { useActivityThreadConversation } from './use-activity-thread-conversatio
 import { ActivityThreadConversationBody } from './activity-thread-conversation-body'
 import { activityCardTintStyle, useActivityProjectColor } from './activity-project-color'
 import { routeActivityCardClick } from './activity-chat-card-controls'
-import { ActivityThreadRowActions } from './activity-thread-row-actions'
+import { ActivityThreadCornerSlot, ActivityThreadJumpAction } from './activity-thread-row-actions'
+import { useActivityCardHiddenParts } from './activity-card-parts'
 
 // Stable thread/callback identities let memoized rows skip query, selection and grouping updates.
 export const ActivityThreadRow = React.memo(function ActivityThreadRow({
@@ -30,11 +31,10 @@ export const ActivityThreadRow = React.memo(function ActivityThreadRow({
   onSelect,
   onJump,
   onMarkRead,
-  onMarkUnread,
   onClear,
+  inInbox = false,
   canJump,
   compactMode,
-  disableMarkUnread = false,
   showJumpAction = true,
   previewSuppressed = false
 }: {
@@ -47,11 +47,11 @@ export const ActivityThreadRow = React.memo(function ActivityThreadRow({
   onSelect: (thread: AgentPaneThread, event: ActivityThreadClickEvent) => void
   onJump: (thread: AgentPaneThread) => void
   onMarkRead: (thread: AgentPaneThread) => void
-  onMarkUnread: (thread: AgentPaneThread) => void
   onClear?: (thread: AgentPaneThread) => void
+  /** In the Inbox: it may ring its bell and be cleared to Standing by. */
+  inInbox?: boolean
   canJump: boolean
   compactMode: boolean
-  disableMarkUnread?: boolean
   showJumpAction?: boolean
   previewSuppressed?: boolean
 }): React.JSX.Element {
@@ -66,14 +66,17 @@ export const ActivityThreadRow = React.memo(function ActivityThreadRow({
   )
   const conversation = useActivityThreadConversation(thread, followsConversation)
   const hoverChat = useAppStore((state) => nativeChatActivityHoverChat(state.settings))
-  const actions = (
-    <ActivityThreadRowActions
+  const showsStatus = !useActivityCardHiddenParts().includes('status')
+  const actions =
+    canJump && showJumpAction ? <ActivityThreadJumpAction thread={thread} onJump={onJump} /> : null
+  const corner = (large: boolean): React.JSX.Element | null => (
+    <ActivityThreadCornerSlot
       thread={thread}
-      canJump={canJump && showJumpAction}
-      disableMarkUnread={disableMarkUnread}
-      onJump={onJump}
+      inInbox={inInbox}
+      statusIndicator={
+        showsStatus ? <ThreadAgentStateIndicator thread={thread} large={large} /> : null
+      }
       onMarkRead={onMarkRead}
-      onMarkUnread={onMarkUnread}
       onClear={onClear}
     />
   )
@@ -116,11 +119,7 @@ export const ActivityThreadRow = React.memo(function ActivityThreadRow({
       ) : null}
       <div className="flex min-w-0 items-start gap-1.5">
         {/* Why: a conversation card shows the state on its top line, not in a column of its own. */}
-        {conversation ? null : (
-          <span className="mt-0.5 inline-flex shrink-0">
-            <ThreadAgentStateIndicator thread={thread} />
-          </span>
-        )}
+        {conversation ? null : <span className="mt-0.5 inline-flex shrink-0">{corner(false)}</span>}
         {conversation ? (
           <ActivityThreadConversationBody
             thread={thread}
@@ -129,7 +128,7 @@ export const ActivityThreadRow = React.memo(function ActivityThreadRow({
             agentLabel={agentLabel}
             compactMode={compactMode}
             attentionLine={needsAttention ? statusLine : null}
-            statusIndicator={<ThreadAgentStateIndicator thread={thread} large />}
+            corner={corner(true)}
             actions={actions}
             onActivate={(event) => {
               event.stopPropagation()

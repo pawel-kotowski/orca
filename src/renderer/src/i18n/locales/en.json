@@ -21227,7 +21227,6 @@
         "repo": "Repo",
         "machine": "Machine",
         "time": "Time",
-        "buttons": "Bell & clear",
         "workspace": "Workspace",
         "conversation": "Agent",
         "output": "Output",
@@ -21236,6 +21235,17 @@
       },
       "machine": {
         "local": "This computer"
+      },
+      "inbox": "Inbox",
+      "working": "Working",
+      "standingBy": "Standing by",
+      "inboxEmpty": "Nothing needs you right now.",
+      "markSeen": "Mark as seen",
+      "standBy": "Done with it: move to Standing by",
+      "autoStandBy": {
+        "title": "Seen, finished agents move here on their own after this many hours. Empty: only when you clear them.",
+        "label": "auto after",
+        "off": "off"
       }
     }
   },

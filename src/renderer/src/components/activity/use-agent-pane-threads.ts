@@ -18,6 +18,10 @@ import {
   getPairedDeviceIdsByEnvironment
 } from '../../../../shared/workspace-creator-visibility'
 
+import { useNow } from '@/hooks/use-now'
+import { buildActivityInboxGroups, isActivityThreadStandingBy } from './activity-inbox-sections'
+import { useActivityAutoStandByHours } from './activity-auto-stand-by'
+
 const EMPTY_PANE_KEYS: ReadonlySet<string> = new Set()
 import { filterThreadsByActivityScope, resolveActivityScopeRepoIds } from './activity-scope-filter'
 import {
@@ -238,9 +242,13 @@ export function useAgentPaneThreads(args: {
 
   // Defer list filtering while typed input updates at full priority.
   const deferredQuery = useDeferredValue(query)
-  // Panes the last build listed under Other agents. Why: a clicked card stays where it was; one
-  // clicked in Other agents must not jump to its status section, nor a just-read one jump down.
+  // Panes the last build listed under Standing by. Why: a clicked card stays where it was; one
+  // clicked in Standing by must not jump to its status section, nor a just-read one jump down.
   const lastReadOnlyKeysRef = useRef<ReadonlySet<string>>(EMPTY_PANE_KEYS)
+  const autoStandByHours = useActivityAutoStandByHours()
+  // Why a minute clock only with the timer on: it only decides when a seen card stands by.
+  const now = useNow(60_000, autoStandByHours !== null)
+  const acknowledgedAgentsByPaneKey = storeData.acknowledgedAgentsByPaneKey
   const { visible: visibleThreads, readOnly: readOnlyThreads } = useMemo(() => {
     const normalizedQuery = isActivitySearchQueryTooLarge(deferredQuery)
       ? null
@@ -249,13 +257,14 @@ export function useAgentPaneThreads(args: {
     const readOnly: AgentPaneThread[] = []
     const visible = scopeVisibleThreads.filter((thread) => {
       // Why: keep the just-selected thread visible after auto-mark-read flips it to read, else unread-only mode makes the clicked row vanish from the list.
-      // Why: a cleared open agent stays listed, under Other agents, whatever the read filter.
-      const clearedOnly =
-        thread.events.length > 0 && thread.events.every((event) => event.cleared === true)
+      // Why the open card's exemption covers only the unread filter: an X or the timer on the open
+      // card must move it at once, or the click looks dead.
       const hiddenAsRead =
-        (clearedOnly || (readFilter === 'unread' && !thread.unread)) &&
-        (thread.paneKey !== effectiveSelectedPaneKey ||
-          lastReadOnlyKeysRef.current.has(thread.paneKey))
+        isActivityThreadStandingBy(thread, acknowledgedAgentsByPaneKey, autoStandByHours, now) ||
+        (readFilter === 'unread' &&
+          !thread.unread &&
+          (thread.paneKey !== effectiveSelectedPaneKey ||
+            lastReadOnlyKeysRef.current.has(thread.paneKey)))
       // Why: child agents (e.g. dispatched orchestration workers) are hidden by default to keep top-level agent views focused on root tasks; a live child always keeps its own row.
       if (
         !showChildAgents &&
@@ -285,7 +294,10 @@ export function useAgentPaneThreads(args: {
     deferredQuery,
     effectiveSelectedPaneKey,
     showChildAgents,
-    hiddenChildAgentPaneKeys
+    hiddenChildAgentPaneKeys,
+    acknowledgedAgentsByPaneKey,
+    autoStandByHours,
+    now
   ])
 
   const markAllReadThreads = useMemo(
@@ -300,7 +312,13 @@ export function useAgentPaneThreads(args: {
   )
 
   const visibleThreadGroups = useMemo(
-    () => withReadAgentsGroup(buildActivityThreadGroups(visibleThreads, groupBy), readOnlyThreads),
+    () =>
+      withReadAgentsGroup(
+        groupBy === 'status'
+          ? buildActivityInboxGroups(visibleThreads)
+          : buildActivityThreadGroups(visibleThreads, groupBy),
+        readOnlyThreads
+      ),
     [visibleThreads, readOnlyThreads, groupBy]
   )
 

@@ -54,7 +54,7 @@ export function ActivityThreadConversationBody({
   agentLabel,
   compactMode,
   attentionLine,
-  statusIndicator,
+  corner,
   actions,
   onActivate
 }: {
@@ -65,8 +65,8 @@ export function ActivityThreadConversationBody({
   compactMode: boolean
   /** What the agent waits on (a question, a permission); it replaces the output. */
   attentionLine: string | null
-  /** The agent's state icon; it leads the top line instead of taking a column of its own. */
-  statusIndicator: ReactNode
+  /** The top-right slot: the state, the unseen bell or the clear X (activity-thread-row-actions). */
+  corner: ReactNode
   actions: ReactNode
   onActivate: (event: React.MouseEvent<HTMLButtonElement>) => void
 }): React.JSX.Element {
@@ -106,9 +106,13 @@ export function ActivityThreadConversationBody({
   const showsConversation = shows('conversation')
   const topLineEmpty =
     !repoName && !shows('machine') && !showsConversation && !shows('time') && !shows('status')
-  // Why: the buttons ride on the top line, which is always drawn; each one decides whether it shows
-  // only on hover (activity-thread-row-actions).
-  const actionsSlot = <span className="flex shrink-0 items-center gap-0.5">{actions}</span>
+  // Why: the corner rides on the top line; with that line hidden it moves to the workspace row.
+  const actionsSlot = (
+    <span className="flex shrink-0 items-center gap-0.5">
+      {actions}
+      {corner}
+    </span>
+  )
 
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-1">
@@ -154,7 +158,7 @@ export function ActivityThreadConversationBody({
           ) : (
             <span className="flex-1" />
           )}
-          {actionsSlot}
+          {actions}
           {shows('time') ? (
             <EventTime
               timestamp={thread.latestTimestamp}
@@ -162,7 +166,7 @@ export function ActivityThreadConversationBody({
               className="shrink-0 whitespace-nowrap text-[11px] tabular-nums text-muted-foreground hover:text-muted-foreground"
             />
           ) : null}
-          {shows('status') ? <span className="inline-flex shrink-0">{statusIndicator}</span> : null}
+          {corner}
         </div>
       )}
 

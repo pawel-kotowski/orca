@@ -100,7 +100,8 @@ export function ActivityStatusGroupHeader({
   collapsed = false,
   onToggle,
   className,
-  opensUp = false
+  opensUp = false,
+  extra = null
 }: {
   group: ActivityThreadGroup
   collapsed?: boolean
@@ -108,6 +109,8 @@ export function ActivityStatusGroupHeader({
   className?: string
   /** A section pinned to the list's foot opens upward: its chevron points up while closed. */
   opensUp?: boolean
+  /** A control of the section's own, before its count (Standing by's auto-move hours). */
+  extra?: React.ReactNode
 }): React.JSX.Element {
   const isInteractive = Boolean(onToggle)
   return (
@@ -147,6 +150,7 @@ export function ActivityStatusGroupHeader({
       <span className="min-w-0 flex-1 truncate text-[11px] font-semibold uppercase tracking-[0.05em] text-foreground/90 transition-colors group-hover:text-foreground">
         {group.label}
       </span>
+      {extra}
       <span className="rounded-full border border-border/80 bg-muted/80 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums leading-none text-foreground/80 shadow-xs">
         {group.threads.length}
       </span>
