@@ -37,6 +37,7 @@ type Scan = {
   customTitle: string | null
   aiTitle: string | null
   summary: string | null
+  entrypoint: string | null
 }
 
 function scanLines(text: string, scan: Scan, fromStart: boolean): void {
@@ -55,6 +56,9 @@ function scanLines(text: string, scan: Scan, fromStart: boolean): void {
     }
     if (!isRecord(row)) {
       continue
+    }
+    if (scan.entrypoint === null && typeof row.entrypoint === 'string') {
+      scan.entrypoint = row.entrypoint
     }
     if (row.type === 'custom-title' && typeof row.customTitle === 'string') {
       scan.customTitle = row.customTitle
@@ -81,7 +85,13 @@ async function readSession(
 ): Promise<ClaudeProjectSession | null> {
   const handle = await open(path, 'r')
   try {
-    const scan: Scan = { firstPrompt: null, customTitle: null, aiTitle: null, summary: null }
+    const scan: Scan = {
+      firstPrompt: null,
+      customTitle: null,
+      aiTitle: null,
+      summary: null,
+      entrypoint: null
+    }
     const headLength = Math.min(size, HEAD_BYTES)
     const head = Buffer.alloc(headLength)
     await handle.read(head, 0, headLength, 0)
@@ -92,8 +102,9 @@ async function readSession(
       await handle.read(tail, 0, tailLength, size - tailLength)
       scanLines(tail.toString('utf8'), scan, false)
     }
-    // Why: Claude Code's own list leaves out conversations nobody typed in.
-    if (scan.firstPrompt === null) {
+    // Why: Claude Code's own list leaves out conversations nobody typed in and ones a script ran
+    // (`claude -p`, entrypoint sdk-cli); `/resume <id>` cannot open those either.
+    if (scan.firstPrompt === null || scan.entrypoint === 'sdk-cli') {
       return null
     }
     return {

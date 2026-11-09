@@ -33,6 +33,11 @@ it("lists a project's conversations newest first, titled as Claude Code names th
     3000
   )
   await write('empty', [{ type: 'mode', mode: 'normal' }], 2000)
+  await write(
+    'scripted',
+    [{ type: 'user', entrypoint: 'sdk-cli', message: { content: 'claude -p run' } }],
+    4000
+  )
   expect(await listClaudeProjectSessions(join(project, 'old.jsonl'))).toEqual([
     { sessionId: 'renamed', title: 'My name', firstPrompt: 'real prompt', updatedAt: 3_000_000 },
     { sessionId: 'old', title: 'Old work', firstPrompt: 'first question', updatedAt: 1_000_000 }
