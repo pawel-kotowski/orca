@@ -1,6 +1,7 @@
 import { NativeChatCrewFrame } from '../orchestration-crew/NativeChatCrewPanel'
 import { TerminalChatCrewPanel } from '../orchestration-crew/TerminalChatCrewPanel'
 import { cn } from '@/lib/utils'
+import { NativeChatTerminalShellsStatus } from './NativeChatTerminalShellsStatus'
 import { NATIVE_CHAT_APPEARANCE_ROOT_CLASS } from './native-chat-appearance-style'
 import { useNativeChatStoreAppearanceStyle } from './use-native-chat-store-appearance-style'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -390,6 +391,7 @@ export function NativeChatResolvedView({
       {collapsedCard ? (
         <NativeChatPromptStrip card={collapsedCard} onExpand={promptCardPresentation.expand} />
       ) : null}
+      <NativeChatTerminalShellsStatus {...{ session, paneKey, isVisible, turnActive }} />
       {/* Honor mobile PTY ownership; retain the hidden composer’s state but detach its ref from typing, paste and focus routes. */}
       <div hidden={shownPromptCard !== null} className="contents">
         <NativeChatComposer
