@@ -42,10 +42,8 @@ function firstReportedTerminalHandle(thread: ChildAgentClassifiableThread): stri
   return undefined
 }
 
-/** Reuse dashboard lineage classification: the newest still-resolving parent wins across history. Orphans and cycles remain top-level rather than disappearing behind child filters. A live child is never hidden, whatever its ancestors are doing: a row's visibility depends only on that chat's own state. */
-export function collectHiddenChildAgentPaneKeys(
-  threads: readonly ChildAgentClassifiableThread[]
-): Set<string> {
+/** Each thread as a lineage row, probing its history for the newest parent that still resolves. */
+function lineageRows(threads: readonly ChildAgentClassifiableThread[]): AgentLineageSourceRow[] {
   const baseRows: AgentLineageSourceRow[] = threads.map((thread) => ({
     paneKey: thread.paneKey,
     entry: { terminalHandle: firstReportedTerminalHandle(thread) }
@@ -62,8 +60,7 @@ export function collectHiddenChildAgentPaneKeys(
       paneKeyByTerminalHandle.set(row.entry.terminalHandle, row.paneKey)
     }
   }
-
-  const rows = threads.map((thread, index) => {
+  return threads.map((thread, index) => {
     const base = baseRows[index]
     for (const entry of candidateEntries(thread)) {
       if (!entry.orchestration) {
@@ -79,6 +76,42 @@ export function collectHiddenChildAgentPaneKeys(
     }
     return base
   })
+}
+
+/** Worker pane → the coordinator pane that dispatched it, wherever either runs. */
+export function resolveActivityWorkerParents(
+  threads: readonly ChildAgentClassifiableThread[]
+): Map<string, string> {
+  const parents = new Map<string, string>()
+  for (const [parent, children] of buildAgentRowLineageTree(lineageRows(threads))
+    .childrenByParentPaneKey) {
+    for (const child of children) {
+      parents.set(child.paneKey, parent)
+    }
+  }
+  return parents
+}
+
+/** Dispatched by another agent (an orchestration worker), even when that agent is gone. */
+export function isActivityWorkerThread(thread: ChildAgentClassifiableThread): boolean {
+  return candidateEntries(thread).some((entry) => hasWorkerParentPointer(entry.orchestration))
+}
+
+export function hasWorkerParentPointer(
+  orchestration: ChildAgentLineageEntry['orchestration'] | null | undefined
+): boolean {
+  return Boolean(
+    orchestration?.parentPaneKey ||
+    orchestration?.parentTerminalHandle ||
+    orchestration?.coordinatorHandle
+  )
+}
+
+/** Reuse dashboard lineage classification: the newest still-resolving parent wins across history. Orphans and cycles remain top-level rather than disappearing behind child filters. A live child is never hidden, whatever its ancestors are doing: a row's visibility depends only on that chat's own state. */
+export function collectHiddenChildAgentPaneKeys(
+  threads: readonly ChildAgentClassifiableThread[]
+): Set<string> {
+  const rows = lineageRows(threads)
 
   const livePaneKeys = new Set(
     threads.filter((thread) => thread.currentAgentState).map((thread) => thread.paneKey)

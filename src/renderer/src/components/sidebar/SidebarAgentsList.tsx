@@ -10,6 +10,7 @@ import { ActivityThreadListPane } from '@/components/activity/activity-thread-li
 import { useAgentPaneThreads } from '@/components/activity/use-agent-pane-threads'
 import { ActivityThreadOptionsMenu } from '@/components/activity/activity-thread-controls'
 import { ActivityCardPartsBar } from '@/components/activity/activity-card-parts-bar'
+import { ActivityWorkersContext } from '@/components/activity/activity-workers'
 import { nativeChatActivityFollowsConversation } from '../../../../shared/native-chat/native-chat-appearance-settings'
 import type {
   ActivityGroupBy,
@@ -75,7 +76,8 @@ export default function SidebarAgentsList({
     effectiveSelectedPaneKey,
     visibleThreads,
     markAllReadThreads,
-    visibleThreadGroups
+    visibleThreadGroups,
+    workers
   } = useAgentPaneThreads({ query, readFilter, groupBy, selectedPaneKey, showChildAgents })
 
   useEffect(() => {
@@ -151,39 +153,41 @@ export default function SidebarAgentsList({
         </div>
       ) : null}
       {followsConversation ? <ActivityCardPartsBar /> : null}
-      <ActivityThreadListPane
-        activityFilterInputRef={activityFilterInputRef}
-        query={query}
-        onQueryChange={setQuery}
-        groupBy={groupBy}
-        onGroupByChange={setGroupBy}
-        readFilter={readFilter}
-        onReadFilterChange={setReadFilter}
-        compactMode={compactMode}
-        showChildAgents={showChildAgents}
-        hasUnreadThreads={hasUnreadThreads}
-        onCompactModeChange={setCompactMode}
-        onShowChildAgentsChange={setShowChildAgents}
-        onMarkAllThreadsRead={markAllThreadsRead}
-        hasCompletedThreads={hasCompletedThreads}
-        onClearCompleted={handleClearCompleted}
-        visibleThreadGroups={visibleThreadGroups}
-        visibleThreadCount={visibleThreads.length}
-        selectedPaneKey={effectiveSelectedPaneKey}
-        onSelectThread={selectThread}
-        onJumpToWorkspace={jumpToWorkspace}
-        onMarkThreadRead={markThreadRead}
-        onMarkThreadUnread={markThreadUnread}
-        onMarkThreadsRead={markThreadsRead}
-        onMarkThreadsUnread={markThreadsUnread}
-        canJumpToWorkspace={canJumpToWorkspace}
-        allowMarkUnreadWhenSelected
-        showJumpAction={false}
-        showFilterControls={false}
-        showOptionsMenu={false}
-        showInlineActions={false}
-        scrollTopRef={scrollTopRef}
-      />
+      <ActivityWorkersContext.Provider value={workers}>
+        <ActivityThreadListPane
+          activityFilterInputRef={activityFilterInputRef}
+          query={query}
+          onQueryChange={setQuery}
+          groupBy={groupBy}
+          onGroupByChange={setGroupBy}
+          readFilter={readFilter}
+          onReadFilterChange={setReadFilter}
+          compactMode={compactMode}
+          showChildAgents={showChildAgents}
+          hasUnreadThreads={hasUnreadThreads}
+          onCompactModeChange={setCompactMode}
+          onShowChildAgentsChange={setShowChildAgents}
+          onMarkAllThreadsRead={markAllThreadsRead}
+          hasCompletedThreads={hasCompletedThreads}
+          onClearCompleted={handleClearCompleted}
+          visibleThreadGroups={visibleThreadGroups}
+          visibleThreadCount={visibleThreads.length}
+          selectedPaneKey={effectiveSelectedPaneKey}
+          onSelectThread={selectThread}
+          onJumpToWorkspace={jumpToWorkspace}
+          onMarkThreadRead={markThreadRead}
+          onMarkThreadUnread={markThreadUnread}
+          onMarkThreadsRead={markThreadsRead}
+          onMarkThreadsUnread={markThreadsUnread}
+          canJumpToWorkspace={canJumpToWorkspace}
+          allowMarkUnreadWhenSelected
+          showJumpAction={false}
+          showFilterControls={false}
+          showOptionsMenu={false}
+          showInlineActions={false}
+          scrollTopRef={scrollTopRef}
+        />
+      </ActivityWorkersContext.Provider>
       {optionsTarget
         ? createPortal(
             <ActivityThreadOptionsMenu

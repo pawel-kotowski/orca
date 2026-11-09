@@ -162,9 +162,11 @@ export function ActivityThreadOptionsMenu({
             onCheckedChange={(checked) => onShowChildAgentsChange(checked === true)}
             onSelect={(event) => event.preventDefault()}
           >
+            {/* Why: workers always fold into their coordinator's card (activity-workers); this
+                also lists them as cards, still never in the Inbox. */}
             {translate(
-              'auto.components.activity.ActivityPrototypePage.showChildAgents',
-              'Show child agents'
+              'components.activity.listWorkersAsCards',
+              'Also list workers as their own cards'
             )}
           </DropdownMenuCheckboxItem>
         ) : null}

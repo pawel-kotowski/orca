@@ -21,6 +21,7 @@ import { activityCardTintStyle, useActivityProjectColor } from './activity-proje
 import { routeActivityCardClick } from './activity-chat-card-controls'
 import { ActivityThreadCornerSlot, ActivityThreadJumpAction } from './activity-thread-row-actions'
 import { useActivityCardHiddenParts } from './activity-card-parts'
+import { ActivityThreadWorkers, ActivityWorkerOfTag } from './activity-thread-workers'
 
 // Stable thread/callback identities let memoized rows skip query, selection and grouping updates.
 export const ActivityThreadRow = React.memo(function ActivityThreadRow({
@@ -198,11 +199,13 @@ export const ActivityThreadRow = React.memo(function ActivityThreadRow({
               <span className="min-w-0 flex-1 truncate" title={workspaceLabel}>
                 {workspaceLabel}
               </span>
+              <ActivityWorkerOfTag thread={thread} />
               {actions}
             </div>
           </div>
         )}
       </div>
+      <ActivityThreadWorkers thread={thread} onOpenWorker={onSelect} />
       {/* Fills while the pointer rests; the hover card sets the attribute. Duration = rest minus progress delay. */}
       <span
         aria-hidden="true"

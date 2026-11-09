@@ -16,6 +16,7 @@ import { parseExecutionHostId } from '../../../../shared/execution-host'
 import { activityRepoTagStyle, useActivityProjectColor } from './activity-project-color'
 import { CornerDownRight, PanelsTopLeft } from 'lucide-react'
 import { ActivityMachineMark } from './activity-machine-mark'
+import { ActivityWorkerOfTag } from './activity-thread-workers'
 import { useActivityCardHiddenParts, type ActivityCardPart } from './activity-card-parts'
 import { FLOATING_TERMINAL_WORKTREE_ID } from '../../../../shared/constants'
 
@@ -138,6 +139,7 @@ export function ActivityThreadConversationBody({
             </span>
           ) : null}
           {shows('machine') ? <ActivityMachineMark remoteName={remoteMachine} /> : null}
+          <ActivityWorkerOfTag thread={thread} />
           {showsConversation ? (
             <span className="flex min-w-0 flex-1 items-center gap-1 text-[11.5px] leading-4 text-muted-foreground">
               <span className="inline-flex shrink-0" title={agentLabel}>

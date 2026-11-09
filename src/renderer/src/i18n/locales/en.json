@@ -21246,7 +21246,18 @@
         "title": "Seen, finished agents move here on their own after this many hours. Empty: only when you clear them.",
         "label": "auto after",
         "off": "off"
-      }
+      },
+      "listWorkersAsCards": "Also list workers as their own cards",
+      "workers": {
+        "count_one": "{{count}} worker",
+        "count_other": "{{count}} workers",
+        "working": "{{n}} working",
+        "needsYou": "{{n}} need you",
+        "failed": "{{n}} failed",
+        "done": "{{n}} done",
+        "of": "Worker of {{name}}"
+      },
+      "resizeSection": "Resize section"
     }
   },
   "dashboardPopout": {

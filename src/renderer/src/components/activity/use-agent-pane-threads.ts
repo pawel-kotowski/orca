@@ -12,7 +12,6 @@ import {
 import { buildActivityEvents, createActivityEventBuildCache } from './activity-event-builder'
 import { projectActivityTabs, type ActivityTabProjection } from './activity-tab-projection'
 import { buildAgentPaneThreads, createAgentPaneThreadReuseCache } from './activity-thread-builder'
-import { collectHiddenChildAgentPaneKeys } from './activity-thread-child-agent'
 import {
   EMPTY_PAIRED_DEVICE_IDS_BY_ENVIRONMENT,
   getPairedDeviceIdsByEnvironment
@@ -21,6 +20,11 @@ import {
 import { useNow } from '@/hooks/use-now'
 import { buildActivityInboxGroups, isActivityThreadStandingBy } from './activity-inbox-sections'
 import { useActivityAutoStandByHours } from './activity-auto-stand-by'
+import {
+  activityWorkerPlacement,
+  useActivityWorkers,
+  type ActivityWorkers
+} from './activity-workers'
 
 const EMPTY_PANE_KEYS: ReadonlySet<string> = new Set()
 import { filterThreadsByActivityScope, resolveActivityScopeRepoIds } from './activity-scope-filter'
@@ -85,6 +89,7 @@ export function useAgentPaneThreads(args: {
   /** Badge-coherent threads after child classification; ignore transient search/scope/read filters so Mark all read can clear the badge. */
   markAllReadThreads: AgentPaneThread[]
   visibleThreadGroups: ActivityThreadGroup[]
+  workers: ActivityWorkers
 } {
   const { query, readFilter, groupBy, selectedPaneKey, showChildAgents = false } = args
   const agentsVisibleHostIds = useAppStore((s) => s.agentsVisibleHostIds)
@@ -234,11 +239,8 @@ export function useAgentPaneThreads(args: {
     ]
   )
 
-  // Classify children over all threads so scoped-out parents do not orphan workers; skip when children are shown.
-  const hiddenChildAgentPaneKeys = useMemo(
-    () => (showChildAgents ? EMPTY_PANE_KEYS : collectHiddenChildAgentPaneKeys(allThreads)),
-    [allThreads, showChildAgents]
-  )
+  // Classify workers over all threads so scoped-out coordinators do not orphan them.
+  const workers = useActivityWorkers(allThreads)
 
   // Defer list filtering while typed input updates at full priority.
   const deferredQuery = useDeferredValue(query)
@@ -259,18 +261,16 @@ export function useAgentPaneThreads(args: {
       // Why: keep the just-selected thread visible after auto-mark-read flips it to read, else unread-only mode makes the clicked row vanish from the list.
       // Why the open card's exemption covers only the unread filter: an X or the timer on the open
       // card must move it at once, or the click looks dead.
+      const placement = activityWorkerPlacement(thread, workers, showChildAgents)
       const hiddenAsRead =
+        placement === 'standingBy' ||
         isActivityThreadStandingBy(thread, acknowledgedAgentsByPaneKey, autoStandByHours, now) ||
         (readFilter === 'unread' &&
           !thread.unread &&
           (thread.paneKey !== effectiveSelectedPaneKey ||
             lastReadOnlyKeysRef.current.has(thread.paneKey)))
-      // Why: child agents (e.g. dispatched orchestration workers) are hidden by default to keep top-level agent views focused on root tasks; a live child always keeps its own row.
-      if (
-        !showChildAgents &&
-        hiddenChildAgentPaneKeys.has(thread.paneKey) &&
-        thread.paneKey !== effectiveSelectedPaneKey
-      ) {
+      // Why: a worker lives folded inside its coordinator's card unless workers are listed too.
+      if (placement === 'nested') {
         return false
       }
       if (normalizedQuery === null) {
@@ -294,22 +294,14 @@ export function useAgentPaneThreads(args: {
     deferredQuery,
     effectiveSelectedPaneKey,
     showChildAgents,
-    hiddenChildAgentPaneKeys,
+    workers,
     acknowledgedAgentsByPaneKey,
     autoStandByHours,
     now
   ])
 
-  const markAllReadThreads = useMemo(
-    () =>
-      allThreads.filter(
-        (thread) =>
-          showChildAgents ||
-          !hiddenChildAgentPaneKeys.has(thread.paneKey) ||
-          thread.paneKey === effectiveSelectedPaneKey
-      ),
-    [allThreads, showChildAgents, hiddenChildAgentPaneKeys, effectiveSelectedPaneKey]
-  )
+  // Why every thread: workers never light the badge, so marking them read too costs nothing.
+  const markAllReadThreads = allThreads
 
   const visibleThreadGroups = useMemo(
     () =>
@@ -329,6 +321,7 @@ export function useAgentPaneThreads(args: {
     effectiveSelectedPaneKey,
     visibleThreads,
     markAllReadThreads,
-    visibleThreadGroups
+    visibleThreadGroups,
+    workers
   }
 }

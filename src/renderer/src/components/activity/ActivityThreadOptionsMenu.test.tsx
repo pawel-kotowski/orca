@@ -368,7 +368,7 @@ describe('ActivityThreadOptionsMenu', () => {
     expect(document.body.textContent).toContain('Show unread only')
   })
 
-  it('renders show child agents checkbox when onShowChildAgentsChange is provided', async () => {
+  it('renders the list-workers-as-cards checkbox when onShowChildAgentsChange is provided', async () => {
     const onShowChildAgentsChange = vi.fn()
     await act(async () => {
       root.render(
@@ -386,12 +386,12 @@ describe('ActivityThreadOptionsMenu', () => {
 
     const childAgentsItem = Array.from(
       document.querySelectorAll<HTMLElement>('[role="menuitemcheckbox"]')
-    ).find((item) => item.textContent === 'Show child agents')
+    ).find((item) => item.textContent === 'Also list workers as their own cards')
     await act(async () => {
       childAgentsItem?.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }))
     })
 
     expect(onShowChildAgentsChange).toHaveBeenCalledWith(true)
-    expect(document.body.textContent).toContain('Show child agents')
+    expect(document.body.textContent).toContain('Also list workers as their own cards')
   })
 })

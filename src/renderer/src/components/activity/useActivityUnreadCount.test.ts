@@ -205,3 +205,24 @@ describe('countActivityUnread reads the combined state, not the main agent fact'
     expect(countActivityUnread(source, NOW)).toBe(0)
   })
 })
+
+describe('countActivityUnread for orchestration workers', () => {
+  const worker = { taskId: 't', dispatchId: 'd', parentPaneKey: 'tab-0:coordinator' }
+
+  it('does not count a worker that finished', () => {
+    expect(countActivityUnread(makeSource(makeEntry({ orchestration: worker })))).toBe(0)
+  })
+
+  it('counts a worker waiting on you', () => {
+    const source = makeSource(makeEntry({ state: 'waiting', orchestration: worker }))
+    expect(countActivityUnread(source)).toBe(1)
+  })
+
+  it('reads lineage from the runtime orchestration map too', () => {
+    const source = {
+      ...makeSource(makeEntry({})),
+      runtimeAgentOrchestrationByPaneKey: { [PANE]: worker }
+    }
+    expect(countActivityUnread(source)).toBe(0)
+  })
+})

@@ -126,9 +126,12 @@ describe('Activity search query in the real hook', () => {
         selectedPaneKey: child
       }
     })
-    expect(activity.result.current.visibleThreads.map((thread) => thread.paneKey)).toEqual(panes)
+    // A worker stays folded inside its coordinator's card even while it is the open one.
+    expect(activity.result.current.visibleThreads.map((thread) => thread.paneKey)).toEqual(
+      panes.filter((pane) => pane !== child)
+    )
     act(() => useAppStore.setState({ agentsVisibleHostIds: [toSshExecutionHostId('other')] }))
-    expect(activity.result.current.visibleThreads.map((thread) => thread.paneKey)).toEqual([child])
+    expect(activity.result.current.visibleThreads).toEqual([])
     activity.rerender({
       ...options('NO MATCH'),
       readFilter: 'unread',
