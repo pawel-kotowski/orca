@@ -60,7 +60,8 @@ export function ActivityThreadConversationBody({
   onActivate
 }: {
   thread: AgentPaneThread
-  conversation: ActivityThreadConversation
+  /** Only its summary is read: a card without a readable transcript passes a fallback one. */
+  conversation: Pick<ActivityThreadConversation, 'summary'>
   workspaceLabel: string
   agentLabel: string
   compactMode: boolean

@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import { AgentTypeIcon } from '@/lib/agent-type-icon'
 import { formatAgentTypeLabel } from '../../../../shared/agent-status/presentation/agent-type-label'
 import { cn } from '@/lib/utils'
@@ -16,6 +16,7 @@ import {
   nativeChatActivityHoverChat
 } from '../../../../shared/native-chat/native-chat-appearance-settings'
 import { useActivityThreadConversation } from './use-activity-thread-conversation'
+import { activityThreadFallbackSummary } from './activity-thread-fallback-summary'
 import { ActivityThreadConversationBody } from './activity-thread-conversation-body'
 import { activityCardTintStyle, useActivityProjectColor } from './activity-project-color'
 import { routeActivityCardClick } from './activity-chat-card-controls'
@@ -65,7 +66,13 @@ export const ActivityThreadRow = React.memo(function ActivityThreadRow({
   const followsConversation = useAppStore((state) =>
     nativeChatActivityFollowsConversation(state.settings)
   )
-  const conversation = useActivityThreadConversation(thread, followsConversation)
+  const liveConversation = useActivityThreadConversation(thread, followsConversation)
+  // Why a fallback: every card follows the same layout, transcript or not.
+  const fallbackSummary = useMemo(
+    () => (followsConversation ? activityThreadFallbackSummary(thread) : null),
+    [followsConversation, thread]
+  )
+  const conversation = liveConversation ?? (fallbackSummary ? { summary: fallbackSummary } : null)
   const hoverChat = useAppStore((state) => nativeChatActivityHoverChat(state.settings))
   const showsStatus = !useActivityCardHiddenParts().includes('status')
   const actions =
