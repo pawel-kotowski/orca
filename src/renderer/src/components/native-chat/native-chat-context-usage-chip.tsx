@@ -42,7 +42,7 @@ export function NativeChatContextUsageChip({
         <span
           data-native-chat-context-chip={usage.percentage}
           className={cn(
-            'flex items-center gap-1 whitespace-nowrap text-xs tabular-nums text-chat-foreground-faint',
+            'flex items-center gap-1 whitespace-nowrap text-2xs tabular-nums text-chat-foreground-faint',
             usage.percentage >= CRITICAL_PERCENTAGE && 'text-destructive'
           )}
         >
@@ -52,6 +52,7 @@ export function NativeChatContextUsageChip({
             usedPercent={usage.percentage}
             warningPercent={70}
             urgentPercent={CRITICAL_PERCENTAGE}
+            percentWhenNarrow={false}
           />
           <span
             className={usage.percentage >= CRITICAL_PERCENTAGE ? undefined : 'text-chat-foreground'}

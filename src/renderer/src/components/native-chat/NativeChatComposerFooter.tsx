@@ -17,7 +17,8 @@ export function NativeChatComposerFooter({
   contextUsage?: NativeChatContextUsageSummary | null
 }): React.JSX.Element {
   return (
-    <div className="-mb-2 mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1 px-3">
+    // Why a container: the limit bars collapse to percentages when this line is narrow.
+    <div className="@container/chat-footer -mb-2 mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1 px-3">
       <NativeChatAccountUsageChip />
       <NativeChatContextUsageChip usage={contextUsage} />
       {onSwitchToTerminal ? (

@@ -287,7 +287,7 @@ function ClaudeAccountUsageChip({
       <TooltipTrigger asChild>
         <span
           data-native-chat-account-usage=""
-          className="flex items-center gap-2.5 whitespace-nowrap text-xs tabular-nums text-chat-foreground-faint"
+          className="flex items-center gap-2.5 whitespace-nowrap text-2xs tabular-nums text-chat-foreground-faint"
         >
           {name ? (
             // Why: whose subscription this is reads at a glance, in the theme's blue.

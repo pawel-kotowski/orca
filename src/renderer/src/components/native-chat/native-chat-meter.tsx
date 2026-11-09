@@ -22,35 +22,44 @@ export function nativeChatMeterColor(
   return 'var(--chat-hue-green, var(--chat-foreground-faint))'
 }
 
-/** A small square-cornered meter for the line under the message box (Paweł: "rectangular"). */
+/**
+ * A small square-cornered meter for the line under the message box (Paweł: "rectangular"). When
+ * that line is narrow it collapses to the percentage, in the meter's colour (Paweł, 2026-11-09:
+ * "when there is not enough width, the status bars should collapse to percentages"); a chip that
+ * already prints its percentage passes `percentWhenNarrow={false}`.
+ */
 export function NativeChatMeter({
   label,
   usedPercent,
   warningPercent,
-  urgentPercent
+  urgentPercent,
+  percentWhenNarrow = true
 }: {
   label: string
   usedPercent: number
   warningPercent?: number
   urgentPercent?: number
+  percentWhenNarrow?: boolean
 }): React.JSX.Element {
   const used = Math.max(0, Math.min(100, usedPercent))
+  const color = nativeChatMeterColor(used, warningPercent, urgentPercent)
   return (
-    <span
-      role="meter"
-      aria-label={label}
-      aria-valuemin={0}
-      aria-valuemax={100}
-      aria-valuenow={Math.round(used)}
-      className="h-1.5 w-9 overflow-hidden bg-chat-foreground-faint/20"
-    >
+    <>
       <span
-        className="block h-full"
-        style={{
-          width: `${used}%`,
-          backgroundColor: nativeChatMeterColor(used, warningPercent, urgentPercent)
-        }}
-      />
-    </span>
+        role="meter"
+        aria-label={label}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={Math.round(used)}
+        className="h-1.5 w-9 overflow-hidden bg-chat-foreground-faint/20 @max-[32rem]/chat-footer:hidden"
+      >
+        <span className="block h-full" style={{ width: `${used}%`, backgroundColor: color }} />
+      </span>
+      {percentWhenNarrow ? (
+        <span className="hidden font-medium @max-[32rem]/chat-footer:inline" style={{ color }}>
+          {Math.round(used)}%
+        </span>
+      ) : null}
+    </>
   )
 }

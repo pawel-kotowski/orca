@@ -71,7 +71,7 @@ function TerminalChatPlaceLine({
     // Why ml-auto and max-w-full: right-aligned beside the limits, or on a row of its own when
     // they leave no room (the footer wraps), cut only if even a whole row is too narrow.
     <span
-      className="ml-auto flex min-w-0 max-w-full items-center gap-1.5 text-xs text-chat-foreground-faint"
+      className="ml-auto flex min-w-0 max-w-full items-center gap-1.5 text-2xs text-chat-foreground-faint"
       title={title}
       data-native-chat-place=""
     >
