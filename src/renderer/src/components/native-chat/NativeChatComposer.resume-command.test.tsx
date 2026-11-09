@@ -1,7 +1,6 @@
 // @vitest-environment happy-dom
 
 // @vitest-environment happy-dom
-import { AGENT_TUI_CLEAR_INPUT_MAX } from '../../../../shared/agent-launch/startup/agent-tui-input-clear'
 import { act, cleanup, render } from '@testing-library/react'
 import type { RefObject } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -167,6 +166,7 @@ describe('/resume in the native chat composer', () => {
     expect(mocks.openHistory).toHaveBeenCalledWith({
       workspace: { worktreeId: 'wt-structured' },
       chatTabId: 'tab-1',
+      resumesInPlace: true,
       initialQuery: 'auth retry',
       agent: 'claude'
     })
@@ -343,7 +343,7 @@ describe('/resume in the native chat composer', () => {
   })
 
   // A terminal-backed chat (every SSH chat, for one) keeps the agent's own /resume.
-  it('leaves /resume to the agent in a terminal-backed chat', () => {
+  it('opens Session History in a terminal-backed chat too, where a pick does not replace it', () => {
     render(
       <NativeChatComposer
         terminalTabId="tab-1"
@@ -355,10 +355,10 @@ describe('/resume in the native chat composer', () => {
 
     act(() => mocks.fieldProps?.onSend?.())
 
-    expect(mocks.openHistory).not.toHaveBeenCalled()
-    expect(mocks.sendNativeChatTypedCommand).toHaveBeenCalledWith('pty-1', '/resume', {
-      clearInput: AGENT_TUI_CLEAR_INPUT_MAX
-    })
+    expect(mocks.sendNativeChatTypedCommand).not.toHaveBeenCalled()
+    expect(mocks.openHistory).toHaveBeenCalledWith(
+      expect.objectContaining({ chatTabId: 'tab-1', resumesInPlace: false, agent: 'codex' })
+    )
   })
 
   it('derives inline catalog from the same action boundary before resolving namesake skills', () => {

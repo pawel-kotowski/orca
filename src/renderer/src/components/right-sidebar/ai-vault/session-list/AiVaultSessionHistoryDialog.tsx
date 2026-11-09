@@ -91,18 +91,22 @@ export default function AiVaultSessionHistoryDialog(): React.JSX.Element | null 
             // An agent the filter doesn't list leaves every agent shown rather than none.
             initialAgents={request.agent ? aiVaultHistoryAgents(request.agent) : AI_VAULT_AGENTS}
             onSessionOpened={closeModal}
-            resumeHere={{
-              tabId: request.chatTabId,
-              workspaceId: request.workspace.worktreeId,
-              agent: request.agent,
-              // A refusal can settle after this opening closed and another modal took the slot.
-              dismiss: () => {
-                if (useAppStore.getState().modalData === modalData) {
-                  closeModal()
-                }
-              },
-              confirm
-            }}
+            resumeHere={
+              request.resumesInPlace === false
+                ? undefined
+                : {
+                    tabId: request.chatTabId,
+                    workspaceId: request.workspace.worktreeId,
+                    agent: request.agent,
+                    // A refusal can settle after this opening closed and another modal took the slot.
+                    dismiss: () => {
+                      if (useAppStore.getState().modalData === modalData) {
+                        closeModal()
+                      }
+                    },
+                    confirm
+                  }
+            }
             headerAction={
               <DialogClose asChild>
                 <Button

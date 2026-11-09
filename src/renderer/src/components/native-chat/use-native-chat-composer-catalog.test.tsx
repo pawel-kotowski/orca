@@ -27,9 +27,11 @@ function transport(sessionCommands?: NativeChatStructuredComposerTransport['sess
 }
 
 describe('composer catalog authority', () => {
-  it('keeps PTY and unsupported structured providers on their original catalogs', () => {
+  it("gives PTY chats Orca's /resume and keeps unsupported structured providers' catalogs", () => {
     const pty = renderHook(() => useNativeChatComposerCatalog('claude'))
-    expect(pty.result.current.agentCommands).toEqual(getVerifiedNativeChatCommands('claude'))
+    expect(pty.result.current.agentCommands).toEqual(
+      withNativeChatResumeCommand(getVerifiedNativeChatCommands('claude'))
+    )
     expect(pty.result.current.sessionSkills).toBeUndefined()
     const oldHost = renderHook(() => useNativeChatComposerCatalog('claude', transport()))
     expect(oldHost.result.current.agentCommands).toEqual(

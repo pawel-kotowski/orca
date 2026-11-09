@@ -52,7 +52,7 @@ export type NativeChatResumeCommand = {
   ) => (item: TItem) => void
 }
 
-/** In a structured chat, `/resume [search]` opens its Session History and never reaches the agent. */
+/** `/resume [search]` opens Session History and never reaches the agent, in a structured chat and in a terminal-backed Claude or Codex chat. */
 export function useNativeChatResumeCommand(args: {
   structuredTransport: Pick<NativeChatStructuredComposerTransport, 'worktreeId'> | undefined
   agent: AgentType
@@ -102,6 +102,9 @@ export function useNativeChatResumeCommand(args: {
       openAgentSessionHistoryModal({
         workspace,
         chatTabId: terminalTabId,
+        // Why: only a structured chat is replaced in place; a terminal chat's pick resumes the
+        // way the history panel does (in a terminal), never as an SDK chat.
+        resumesInPlace: structured,
         initialQuery: search,
         ...(isAiVaultAgent(agent) ? { agent } : {})
       })
@@ -117,6 +120,7 @@ export function useNativeChatResumeCommand(args: {
       setCaret,
       setDraft,
       setNotice,
+      structured,
       structuredWorktreeId,
       terminalTabId,
       textareaRef
@@ -125,8 +129,10 @@ export function useNativeChatResumeCommand(args: {
 
   const matchesDraft = useCallback(
     (draft: string): boolean =>
-      structured && !isPickedSkill(draft) && parseNativeChatResumeDraft(draft) !== null,
-    [isPickedSkill, structured]
+      (structured || isAiVaultAgent(agent)) &&
+      !isPickedSkill(draft) &&
+      parseNativeChatResumeDraft(draft) !== null,
+    [agent, isPickedSkill, structured]
   )
   const consume = useCallback(
     (draft: string): boolean => {

@@ -10,6 +10,8 @@ export type AgentSessionHistoryModalRequest = {
   workspace: AiVaultPanelWorkspace
   /** The chat `/resume` was typed in, which a picked conversation replaces. */
   chatTabId: string
+  /** False for a terminal-backed chat: a pick resumes as the panel's rows do, not in its place. */
+  resumesInPlace?: boolean
   initialQuery: string
   /** The chat's agent, which the panel's agent filter starts on. */
   agent?: AiVaultAgent
@@ -20,6 +22,7 @@ export function openAgentSessionHistoryModal(request: AgentSessionHistoryModalRe
     worktreeId: request.workspace.worktreeId,
     executionHostId: request.workspace.executionHostId,
     chatTabId: request.chatTabId,
+    resumesInPlace: request.resumesInPlace !== false,
     initialQuery: request.initialQuery,
     agent: request.agent
   })
@@ -39,6 +42,7 @@ export function readAgentSessionHistoryModalRequest(
       ...(executionHostId ? { executionHostId } : {})
     },
     chatTabId: data.chatTabId,
+    resumesInPlace: data.resumesInPlace !== false,
     initialQuery: typeof data.initialQuery === 'string' ? data.initialQuery : '',
     ...(isAiVaultAgent(data.agent) ? { agent: data.agent } : {})
   }
