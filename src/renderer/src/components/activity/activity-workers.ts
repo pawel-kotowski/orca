@@ -39,8 +39,8 @@ function terminalHandleOf(thread: AgentPaneThread): string | undefined {
 /**
  * Workers the agent status does not link (Paweł, 2026-11-09: a devbox worker listed on its own
  * while Projects nested it): its workspace's lineage names the workspace, and often the terminal,
- * that dispatched it, as the Projects list reads it. A workspace someone made by hand stays a
- * project of its own unless its lineage names the agent terminal that made it.
+ * that dispatched it, as the Projects list reads it. A workspace someone made by hand in the app
+ * (origin 'manual') stays a card of its own unless its lineage names the agent terminal that made it.
  */
 export function resolveLineageWorkerParents(
   threads: readonly AgentPaneThread[],
@@ -75,7 +75,9 @@ export function resolveLineageWorkerParents(
     const byHandle = handles
       .map((handle) => (handle ? paneKeyByHandle.get(handle) : undefined))
       .find((paneKey) => paneKey && paneKey !== thread.paneKey)
-    if (!byHandle && lineage.origin !== 'orchestration') {
+    // Why not only 'orchestration': coordinators make workers' workspaces with
+    // `orca worktree create --parent` (origin 'cli', no handle). 'manual' is a person in the app.
+    if (!byHandle && lineage.origin === 'manual') {
       continue
     }
     workers.add(thread.paneKey)

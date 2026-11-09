@@ -47,6 +47,16 @@ describe('activity workers from workspace lineage', () => {
     expect(activityWorkerPlacement(coordinator, workers, false)).toBe('card')
   })
 
+  it('nests a worker whose workspace an agent made with the CLI', () => {
+    const workers = buildActivityWorkers([coordinator, worker], {
+      'repo::prompt-tuning': lineage('repo::prompt-tuning', 'repo::wolfeel', {
+        origin: 'cli',
+        capture: { source: 'explicit-cli-flag', confidence: 'explicit' }
+      })
+    })
+    expect(workers.parentByWorker.get('worker')?.paneKey).toBe('coord')
+  })
+
   it('prefers the terminal the lineage names', () => {
     const workers = buildActivityWorkers([coordinator, other, worker], {
       'repo::prompt-tuning': lineage('repo::prompt-tuning', 'repo::wolfeel', {
