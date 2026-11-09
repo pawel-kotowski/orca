@@ -1,4 +1,5 @@
 import { GitHistoryPanel } from '../sync/git-history-panel'
+import { openGitGraphTab } from '@/components/editor/git-graph/open-git-graph-tab'
 import { shouldShowSourceControlCompareUnavailableCard } from './header-toolbar'
 import { shouldRenderCommitArea } from '../commit/component-gates'
 import { SourceControlBranchSection } from '../listing/branch-section'
@@ -234,6 +235,7 @@ export function SourceControlPanelContent(props: SourceControlPanelReadyProps) {
             onLoadCommitFiles={loadCommitFiles}
             onOpenCommitFile={openCommitFile}
             onCommitAction={handleCommitAction}
+            onOpenGraph={currentWorktreeId ? () => openGitGraphTab(currentWorktreeId) : undefined}
           />
         </div>
       )}

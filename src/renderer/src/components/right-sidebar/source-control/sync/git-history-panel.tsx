@@ -21,6 +21,7 @@ import {
 } from './git-history-commit-context-menu'
 import type { SourceControlRowOpenEvent } from '../listing/split-open'
 import { translate } from '@/i18n/i18n'
+import { GitGraphOpenButton } from '@/components/editor/git-graph/git-graph-open-button'
 
 export type GitHistoryPanelState =
   | { status: 'idle' | 'loading'; result?: GitHistoryResult; error?: string }
@@ -51,7 +52,8 @@ export function GitHistoryPanel({
   onOpenCommit,
   onLoadCommitFiles,
   onOpenCommitFile,
-  onCommitAction
+  onCommitAction,
+  onOpenGraph
 }: {
   state: GitHistoryPanelState
   collapsed: boolean
@@ -65,6 +67,8 @@ export function GitHistoryPanel({
     event?: SourceControlRowOpenEvent
   ) => void
   onCommitAction?: (action: GitHistoryCommitAction, item: GitHistoryItem) => void
+  /** Local (glass build): open the full-size Git Graph tab. */
+  onOpenGraph?: () => void
 }): React.JSX.Element | null {
   const result = state.result
   const viewModels = useMemo(() => {
@@ -286,6 +290,7 @@ export function GitHistoryPanel({
               )}
             </TooltipContent>
           </Tooltip>
+          {onOpenGraph && <GitGraphOpenButton onOpen={onOpenGraph} />}
           <Tooltip>
             <TooltipTrigger asChild>
               <Button

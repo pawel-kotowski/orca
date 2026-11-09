@@ -181,7 +181,9 @@ export async function loadGitHistoryFromExecutor(
   // Keep upstream/base as comparison metadata so old workspaces do not gain fetched commits outside their HEAD history.
   const historyRevisions = branchBase
     ? [headOid, `^${branchBase.range.baseRef.revision}`]
-    : [headOid]
+    : options.allRefs
+      ? ['--branches', '--remotes', '--tags', headOid]
+      : [headOid]
   const skip = clampHistorySkip(options.skip)
 
   let mergeBase: string | undefined

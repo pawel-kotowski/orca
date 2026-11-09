@@ -2,7 +2,15 @@ import type { EditorFileTabProps } from './editor-file-tab-props'
 import { ContextMenu, ContextMenuTrigger } from '@/components/ui/context-menu'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
-import { GitCompareArrows, Eye, ShieldAlert, Pin, ListChecks, Smartphone } from 'lucide-react'
+import {
+  GitCompareArrows,
+  Eye,
+  ShieldAlert,
+  Pin,
+  ListChecks,
+  Smartphone,
+  GitGraph
+} from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { TabHoverCard } from './TabHoverCard'
 import { basename } from '@/lib/path'
@@ -76,15 +84,17 @@ export default function EditorFileTab({
   // Why: simulator tabs reuse this chrome with a synthetic path an icon theme would map to its file icon.
   const ModeIcon = isConflictReview
     ? ShieldAlert
-    : isCheckDetails
-      ? ListChecks
-      : isDiff
-        ? GitCompareArrows
-        : isMarkdownPreviewTab
-          ? Eye
-          : file.language === 'simulator'
-            ? Smartphone
-            : null
+    : file.mode === 'git-graph'
+      ? GitGraph
+      : isCheckDetails
+        ? ListChecks
+        : isDiff
+          ? GitCompareArrows
+          : isMarkdownPreviewTab
+            ? Eye
+            : file.language === 'simulator'
+              ? Smartphone
+              : null
   const tabIcon = (className: string): React.ReactNode => (
     <PluginContributionIcon
       url={customEditor?.iconUrl}

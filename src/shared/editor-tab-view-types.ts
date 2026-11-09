@@ -107,3 +107,4 @@ export type EditorTabView =
     }
   | { mode: 'conflict-review'; conflictReview?: ConflictReviewState }
   | { mode: 'check-details'; checkRunDetails?: OpenCheckRunDetailsState }
+  | { mode: 'git-graph' }

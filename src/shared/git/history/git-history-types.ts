@@ -62,6 +62,8 @@ export type GitHistoryOptions = {
   /** List only commits on HEAD that baseRef lacks, with statistics and pushed state. */
   branchOnly?: boolean
   skip?: number
+  /** Walk every local branch, remote branch and tag with HEAD (Git Graph view), not HEAD alone. */
+  allRefs?: boolean
 }
 
 export type GitHistoryBranchRange = {
