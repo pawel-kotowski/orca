@@ -47,9 +47,11 @@ export function planClearCompletedActivity(
     }
     clearedThreadCount += 1
     const previousCutoff = state.activityClearedAtByPaneKey[thread.paneKey] ?? null
-    const latestCutoff = Math.max(previousCutoff ?? 0, thread.latestTimestamp)
-    // Hydration drops non-positive cutoffs; use now for unstamped threads so clears survive restart.
-    cutoffPatch[thread.paneKey] = latestCutoff > 0 ? latestCutoff : now
+    // Why now: a clear is "done with it until something new happens". Stamping only the card's
+    // latest event time could equal the saved cutoff, so the store saw no change, nothing was
+    // persisted, and the card came back at the next restart (Paweł, 2026-11-09: "this continues to
+    // appear in inbox").
+    cutoffPatch[thread.paneKey] = Math.max(previousCutoff ?? 0, thread.latestTimestamp, now)
     restorePatch[thread.paneKey] = previousCutoff
     const retained = state.retainedAgentsByPaneKey[thread.paneKey]
     if (retained) {

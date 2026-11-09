@@ -168,6 +168,8 @@ describe('isClearableActivityThread', () => {
 
 describe('clearCompletedActivity', () => {
   beforeEach(() => {
+    // Why: a clock before every fixture event, so a clear stamps the event's own time here.
+    vi.spyOn(Date, 'now').mockReturnValue(1)
     mockStore.activityClearedAtByPaneKey = {}
     mockStore.agentStatusByPaneKey = {}
     mockStore.retainedAgentsByPaneKey = { 't-done:1': makeRetained('t-done:1') }
@@ -181,6 +183,7 @@ describe('clearCompletedActivity', () => {
     // Drain any eviction left pending by a test that never closed its toast.
     flushPendingClearCompletedEvictions()
     vi.clearAllMocks()
+    vi.restoreAllMocks()
     vi.unstubAllGlobals()
   })
 
@@ -327,6 +330,12 @@ describe('clearCompletedActivity', () => {
 
     expect(mockStore.retainedAgentsByPaneKey['t-done:1']).toBe(newer)
     expect(mockStore.activityClearedAtByPaneKey['t-done:1']).toBeUndefined()
+  })
+
+  it('stamps the clear time, so clearing an already cleared card still records a change', () => {
+    mockStore.activityClearedAtByPaneKey = { 't-done:1': 5000 }
+    const plan = planClearCompletedActivity([doneThread], mockStore, 90_000)
+    expect(plan.cutoffPatch['t-done:1']).toBe(90_000)
   })
 
   it('stamps a real cutoff for a thread with no usable timestamp', () => {

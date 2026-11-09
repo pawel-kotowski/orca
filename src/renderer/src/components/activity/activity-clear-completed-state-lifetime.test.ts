@@ -92,6 +92,8 @@ async function collectRetiredState(): Promise<void> {
 
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+  // Why: a clock before every fixture event, so a clear stamps the event's own time here.
+  vi.spyOn(Date, 'now').mockReturnValue(1)
   useAppStore.setState(initialState, true)
   vi.stubGlobal('window', { api: { agentStatus: { dropPersistedBatch } } })
 })
@@ -101,6 +103,7 @@ afterEach(() => {
   flushPendingClearCompletedEvictions()
   useAppStore.setState(initialState, true)
   vi.clearAllMocks()
+  vi.restoreAllMocks()
   vi.useRealTimers()
   vi.unstubAllGlobals()
 })
