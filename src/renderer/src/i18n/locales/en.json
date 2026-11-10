@@ -21275,7 +21275,8 @@
         "needsYou": "{{n}} need you",
         "failed": "{{n}} failed",
         "done": "{{n}} done",
-        "of": "Worker of {{name}}"
+        "of": "Worker of {{name}}",
+        "workerOf": "Worker of"
       },
       "resizeSection": "Resize section"
     },

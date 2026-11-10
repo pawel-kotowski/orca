@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
-import { ChevronDown, Workflow } from 'lucide-react'
+import { ArrowLeft, ChevronDown, Workflow } from 'lucide-react'
+import { translate } from '@/i18n/i18n'
 import { useAppStore } from '@/store'
 import { createActivityThreadActions } from '@/components/activity/activity-thread-actions'
 import {
@@ -38,7 +39,8 @@ function writeClosed(paneKey: string, closed: boolean): void {
 }
 
 /**
- * The Orca workers this chat's agent dispatched (`orca orchestration worker-start`), above the
+ * A worker's chat names its coordinator first, one click back to it. Below it, the Orca workers
+ * this chat's agent dispatched (`orca orchestration worker-start`), above the
  * message box (Paweł, 2026-11-10: "I need to see both native harness subagents and orca
  * subagents in given chat"). The same rows as the activity card's worker fold: state, name and
  * the worker's latest line; a row opens that worker. Open by default; the fold is remembered.
@@ -48,7 +50,7 @@ export function NativeChatWorkersStrip({
 }: {
   paneKey: string | null
 }): React.JSX.Element | null {
-  const { coordinator, workers } = useCoordinatorWorkers(paneKey)
+  const { coordinator, workers, parent } = useCoordinatorWorkers(paneKey)
   const [closed, setClosed] = useState(() => (paneKey ? readClosed(paneKey) : false))
   const actions = useMemo(() => {
     const state = useAppStore.getState()
@@ -59,8 +61,36 @@ export function NativeChatWorkersStrip({
       setSelectedPaneKey: () => {}
     })
   }, [])
-  if (!paneKey || !coordinator || workers.length === 0) {
+  if (!paneKey || !coordinator || (workers.length === 0 && !parent)) {
     return null
+  }
+  // Why: a worker opened from its coordinator's chat needs the way back (Paweł, 2026-11-10: "i
+  // cant go back after click child in parent chat").
+  const parentRow = parent ? (
+    <div className="flex min-w-0 items-center gap-1.5 px-2 py-1">
+      <ArrowLeft aria-hidden="true" className="size-3.5 shrink-0" />
+      <span className="shrink-0">
+        {translate('components.activity.workers.workerOf', 'Worker of')}
+      </span>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <ActivityWorkerRow
+          worker={parent}
+          coordinator={coordinator}
+          onOpenWorker={(target) => actions.selectThread(target)}
+        />
+      </div>
+    </div>
+  ) : null
+  if (workers.length === 0) {
+    return (
+      <div data-native-chat-workers="" className="shrink-0 bg-chat-pane px-3 pt-2 sm:px-4">
+        <div className="mx-auto w-full max-w-(--chat-content-max-width)">
+          <div className="overflow-hidden rounded-lg border border-border bg-muted/50 text-xs text-muted-foreground shadow-xs">
+            {parentRow}
+          </div>
+        </div>
+      </div>
+    )
   }
   const live = workers.some((worker) => {
     const state = activityThreadStatusId(worker)
@@ -70,6 +100,7 @@ export function NativeChatWorkersStrip({
     <div data-native-chat-workers="" className="shrink-0 bg-chat-pane px-3 pt-2 sm:px-4">
       <div className="mx-auto w-full max-w-(--chat-content-max-width)">
         <div className="overflow-hidden rounded-lg border border-border bg-muted/50 text-xs text-muted-foreground shadow-xs">
+          {parentRow ? <div className="border-b border-border">{parentRow}</div> : null}
           <button
             type="button"
             aria-expanded={!closed}

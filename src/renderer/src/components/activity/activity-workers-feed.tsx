@@ -70,10 +70,12 @@ export function ActivityWorkersFeedPublisher(): React.JSX.Element | null {
   return active ? <ActiveWorkersFeed /> : null
 }
 
-/** The coordinator's own thread and the workers it dispatched, live ones first. */
+/** The chat's own thread, the workers it dispatched (live ones first), and, for a worker, the
+ *  coordinator that dispatched it. */
 export function useCoordinatorWorkers(paneKey: string | null): {
   coordinator: AgentPaneThread | null
   workers: readonly AgentPaneThread[]
+  parent: AgentPaneThread | null
 } {
   useEffect(() => {
     if (!paneKey) {
@@ -92,10 +94,11 @@ export function useCoordinatorWorkers(paneKey: string | null): {
     () => EMPTY_FEED
   )
   if (!paneKey) {
-    return { coordinator: null, workers: [] }
+    return { coordinator: null, workers: [], parent: null }
   }
   return {
     coordinator: current.threadsByPaneKey.get(paneKey) ?? null,
-    workers: current.workers?.workersByParent.get(paneKey) ?? []
+    workers: current.workers?.workersByParent.get(paneKey) ?? [],
+    parent: current.workers?.parentByWorker.get(paneKey) ?? null
   }
 }
