@@ -1,3 +1,4 @@
+import { NativeChatTerminalMessageList } from './NativeChatTerminalMessageList'
 import { NativeChatCrewFrame } from '../orchestration-crew/NativeChatCrewPanel'
 import { TerminalChatCrewPanel } from '../orchestration-crew/TerminalChatCrewPanel'
 import { cn } from '@/lib/utils'
@@ -9,7 +10,6 @@ import { useAppStore } from '../../store'
 import { useNativeChatLaunchDraftSignal } from './use-native-chat-launch-draft-adoption'
 import { useNativeChatRetainedSession } from './use-native-chat-retained-session'
 import { selectNativeChatViewState } from './native-chat-view-state'
-import { NativeChatMessageList } from './NativeChatMessageList'
 import {
   useNativeChatInteractiveSendReveal,
   useNativeChatRevealLatest
@@ -357,12 +357,12 @@ export function NativeChatResolvedView({
         ) : viewState.kind === 'empty' ? (
           <NativeChatEmptyState kind="empty" agent={agent} />
         ) : (
-          <NativeChatMessageList
+          <NativeChatTerminalMessageList
+            source={{ agent, sessionId, transcriptPath, paneKey, terminalTabId }}
             ref={messageListRef}
             session={sessionWithPending}
             isVisible={isVisible}
             isWorking={turnActive}
-            expandSignal={false}
             {...turnTiming}
             awaitingInput={awaitingInput}
             onLinkClick={onLinkClick}

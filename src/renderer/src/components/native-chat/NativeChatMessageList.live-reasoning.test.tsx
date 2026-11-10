@@ -825,7 +825,8 @@ import type { NativeChatLiveSession } from './use-native-chat-live-session'
       expect(screen.queryByText('resolved')).toBeNull()
     })
 
-    it('keeps rollups turn-local and leaves legacy message lists unchanged', () => {
+    // Local build: transcript-only (terminal) lists total their turns too (Paweł, 2026-11-10).
+    it('keeps rollups turn-local, with or without a journal', () => {
       const secondUser = item(
         'user-two',
         { kind: 'message', role: 'user', blocks: [{ type: 'text', text: 'Again' }] },
@@ -836,7 +837,7 @@ import type { NativeChatLiveSession } from './use-native-chat-live-session'
       const { rerender } = render(view(items))
       expect(screen.getAllByRole('button', { name: /1 changed file/ })).toHaveLength(2)
       rerender(view(items, false))
-      expect(screen.queryByRole('button', { name: /changed file/ })).toBeNull()
+      expect(screen.getAllByRole('button', { name: /1 changed file/ })).toHaveLength(2)
     })
   })
 }

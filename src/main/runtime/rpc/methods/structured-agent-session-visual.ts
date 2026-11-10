@@ -6,7 +6,11 @@ import {
   ReadVisualParams,
   type AgentSessionReadVisualResult
 } from '../../../../shared/rpc-contract/agent-session-visual-params'
-import { nativeChatScratchFolderFor } from '../../../native-chat/native-chat-scratch-folder'
+import {
+  nativeChatScratchFolderFor,
+  terminalChatsScratchFolderFor
+} from '../../../native-chat/native-chat-scratch-folder'
+import { TERMINAL_CHATS_VISUAL_SESSION_ID } from '../../../../shared/native-chat/native-chat-visual-directive'
 import { getProfileUserDataPath } from '../../../orca-profiles/profile-storage-paths'
 import { readNativeChatVisualFile } from '../../../native-chat/native-chat-visual-file-read'
 import { defineMethod } from '../core'
@@ -18,6 +22,14 @@ export const STRUCTURED_AGENT_SESSION_VISUAL_METHODS = [
     permission: 'workspace',
     params: ReadVisualParams,
     handler: async (params, ctx): Promise<AgentSessionReadVisualResult> => {
+      // Terminal-backed chats share one folder per host; no structured chat owns it.
+      if (params.sessionId === TERMINAL_CHATS_VISUAL_SESSION_ID) {
+        return readNativeChatVisualFile(
+          terminalChatsScratchFolderFor(getProfileUserDataPath()),
+          params.file,
+          params.knownRevision
+        )
+      }
       const host = await requireInstalledStructuredHost(ctx)
       const record = host.deps.store.getConversation(params.sessionId)
       if (!record) {

@@ -1,6 +1,7 @@
 import { memo, Suspense, useCallback, useRef } from 'react'
 import { ActivityInterruptPrompt } from '@/components/activity/ActivityInterruptPrompt'
 import { ActivityChatPreviewHost } from '@/components/activity/activity-chat-preview-host'
+import { ActivityWorkersFeedPublisher } from '@/components/activity/activity-workers-feed'
 import {
   useActivityEscapeHidesWorkbench,
   useActivityHidesWorkbench
@@ -255,6 +256,7 @@ export function AppWorkspaceShell(props: {
                 </div>
                 <ActivityInterruptPrompt />
                 <ActivityChatPreviewHost />
+                <ActivityWorkersFeedPublisher />
                 {floatingWorkspace.showToggleButton && !capturingPluginShot ? (
                   <MemoFloatingTerminalToggleButton
                     open={floatingWorkspace.open}

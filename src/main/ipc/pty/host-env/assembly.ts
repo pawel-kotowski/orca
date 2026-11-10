@@ -1,4 +1,5 @@
 import { applyClaudeAgentViewEnv } from './claude-agent-view'
+import { applyTerminalChatVisualsEnv } from './terminal-chat-visuals'
 import { resolveTerminalInlineImagesEnabled } from '../../../../shared/terminal/images/terminal-inline-images-settings'
 import { resolveSetupAgentSequenceLaunchCommand } from '../../../../shared/setup-agent-sequencing'
 import {
@@ -59,6 +60,7 @@ export function buildPtyHostEnv(
   const launchCommandHint = resolveSetupAgentSequenceLaunchCommand(baseEnv, opts.launchCommand)
   applyManagedDataAccountEnvironment(baseEnv, { ...opts, launchCommand: launchCommandHint })
   applyClaudeAgentViewEnv(baseEnv, opts)
+  applyTerminalChatVisualsEnv(baseEnv, opts)
   const explicitPiAgentKind = isPiCompatibleAgentType(opts.launchAgent)
     ? opts.launchAgent
     : opts.launchAgent === undefined

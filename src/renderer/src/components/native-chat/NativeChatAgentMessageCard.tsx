@@ -55,6 +55,8 @@ function heading(from: AgentMessageSource, message: NativeChatMessage): string {
       )
     case 'worker':
       return translate('components.native-chat.agentMessage.updateFromWorker', 'Update from worker')
+    case 'mail':
+      return translate('components.native-chat.agentMessage.orcaMail', 'Orca mail')
     case 'generic':
       return translate('components.native-chat.agentMessage.messageFrom', 'Message from')
   }

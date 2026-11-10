@@ -193,3 +193,9 @@ export function withoutNativeChatVisualDirectiveLines(text: string): string {
     .replace(/(?:\r?\n[ \t]*)+$/, '')
     .replace(/\r$/, '')
 }
+
+/**
+ * The visual owner id terminal-backed chats read with: pages from the host's shared terminal chats
+ * folder rather than a structured chat's own. A valid session id no structured chat can have.
+ */
+export const TERMINAL_CHATS_VISUAL_SESSION_ID = 'orca-terminal-chats'

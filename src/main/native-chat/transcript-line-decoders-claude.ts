@@ -1,3 +1,4 @@
+import { orchestrationMailPointerSource } from '../../shared/native-chat/transcript/native-chat-orchestration-mail-pointer'
 import { isClaudeNarrationThinking } from './claude-narration-thinking'
 import {
   NATIVE_CHAT_INTERRUPTED_STATUS_TEXT,
@@ -128,7 +129,12 @@ export function decodeClaudeTranscriptLine(
     return null
   }
   const messageId = extractString(record.uuid) ?? extractString(message?.id)
+  const mailFrom =
+    role === 'user' && blocks.length === 1 && blocks[0]!.type === 'text'
+      ? orchestrationMailPointerSource(blocks[0]!.text)
+      : null
   return {
+    ...(mailFrom ? { from: mailFrom } : {}),
     id: messageId ?? fallbackId,
     role: claudeMessageRole(role, blocks, message?.content),
     // Decode ! command echoes so harness filtering cannot hide them and strand the local echo.

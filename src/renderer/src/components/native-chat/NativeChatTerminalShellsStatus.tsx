@@ -5,6 +5,7 @@ import type { AgentSessionBackgroundTask } from '../../../../shared/agent-sessio
 import type { NativeChatMessage } from '../../../../shared/native-chat/native-chat-types'
 import { runningTranscriptBackgroundShells } from '../../../../shared/native-chat/transcript/native-chat-transcript-background-shells'
 import { NativeChatBackgroundTasksStatus } from './NativeChatBackgroundTasksStatus'
+import { NativeChatWorkersStrip } from './NativeChatWorkersStrip'
 
 const NO_TASKS: readonly AgentSessionBackgroundTask[] = []
 const NO_STOPS: ReadonlySet<string> = new Set()
@@ -35,22 +36,27 @@ export function NativeChatTerminalShellsStatus({
     [agentLive, messages, now]
   )
   const [expanded, setExpanded] = useState(false)
+  // The Orca workers this agent dispatched sit just above its own shells.
+  const workers = <NativeChatWorkersStrip paneKey={paneKey} />
   if (tasks.length === 0) {
-    return null
+    return workers
   }
   return (
-    <NativeChatBackgroundTasksStatus
-      tasks={tasks}
-      settledTasks={NO_TASKS}
-      supportsTaskStop={false}
-      offersStopAll={false}
-      stoppingTaskIds={NO_STOPS}
-      stoppingAll={false}
-      indicatorActive={!turnActive}
-      isVisible={isVisible}
-      expanded={expanded}
-      onExpandedChange={setExpanded}
-      onStop={() => {}}
-    />
+    <>
+      {workers}
+      <NativeChatBackgroundTasksStatus
+        tasks={tasks}
+        settledTasks={NO_TASKS}
+        supportsTaskStop={false}
+        offersStopAll={false}
+        stoppingTaskIds={NO_STOPS}
+        stoppingAll={false}
+        indicatorActive={!turnActive}
+        isVisible={isVisible}
+        expanded={expanded}
+        onExpandedChange={setExpanded}
+        onStop={() => {}}
+      />
+    </>
   )
 }

@@ -11,6 +11,7 @@ import {
   type SubscribeNativeChatTranscriptArgs
 } from '../../../native-chat/transcript-watch'
 import { nativeChatTranscriptPathOnExecutionHost } from '../../../native-chat/ssh-transcript-path'
+import { readNativeChatClaudeSubagents } from '../../../native-chat/native-chat-claude-subagents-read'
 import { defineMethod, defineStreamingMethod, type RpcContext } from '../core'
 import { sanitizeNativeChatRpcBlock } from './native-chat-rpc-block-sanitize'
 import {
@@ -19,6 +20,7 @@ import {
 } from './native-chat-rpc-page-bounds'
 import {
   MOBILE_NATIVE_CHAT_MAX_WINDOW,
+  NativeChatReadClaudeSubagents,
   NativeChatSession,
   NativeChatUnsubscribe,
   type NativeChatResumePoint
@@ -89,6 +91,19 @@ function resumeIndex(
 }
 
 export const NATIVE_CHAT_METHODS = [
+  defineMethod({
+    name: 'nativeChat.readClaudeSubagents',
+    permission: 'workspace',
+    params: NativeChatReadClaudeSubagents,
+    handler: async (params, { runtime }) =>
+      readNativeChatClaudeSubagents(params, (sessionId, requested) =>
+        nativeChatTranscriptPathOnExecutionHost(
+          runtime.getAgentProviderSessionRows(),
+          sessionId,
+          requested
+        )
+      )
+  }),
   defineMethod({
     name: 'nativeChat.readSession',
     permission: 'workspace',

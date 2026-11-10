@@ -22,6 +22,7 @@ export type AgentMessageHeading =
   | 'task'
   | 'coordinator'
   | 'worker'
+  | 'mail'
   | 'generic'
 export type AgentMessageSenderView = Readonly<{
   agentType?: AgentStatusEntry['agentType']
@@ -54,6 +55,10 @@ export function agentMessageHeading(
   }
   if (from.orchestration?.message === 'task') {
     return 'task'
+  }
+  // A terminal chat's mail pointer, read back from the transcript, names no sender.
+  if (from.orchestration?.message === 'mail-notice' && from.senders.length === 0) {
+    return 'mail'
   }
   if (from.orchestration?.message === 'mail-notice' && from.senders.length > 0) {
     if (from.senders.every((sender) => sender.relation === 'coordinator')) {

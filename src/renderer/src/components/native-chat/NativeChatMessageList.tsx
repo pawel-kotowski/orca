@@ -177,11 +177,9 @@ export function NativeChatMessageList({
   )
   const { messages: rows, turnKeys, liveTurnKey } = turnRows
   const expandedTurnIds = useNativeChatOpenTurnIds(turnKeys, toggledTurnIds)
-  const turnDiffs = useNativeChatTurnDiffs(
-    journalItems ? turnRows : null,
-    subagentRowsInOrder,
-    subagentSections.pathOf
-  )
+  // Terminal chats total their turns too: Claude's transcript keeps every edit's patch, and the
+  // reader loads whole recent turns (Paweł, 2026-11-10: terminal Chat UI parity).
+  const turnDiffs = useNativeChatTurnDiffs(turnRows, subagentRowsInOrder, subagentSections.pathOf)
   // Only real tail reasoning counts as thinking; an in-flight request with no output does not.
   const thinking = useMemo(
     () => isStructuredAgentSessionThinking({ items: journalItems ?? [], latestTurn }),

@@ -65,6 +65,7 @@ function CompactAgentMessageCard({
     task: t('chat.agentMessage.taskFromCoordinator', 'Task from coordinator'),
     coordinator: t('chat.agentMessage.messageFromCoordinator', 'Message from coordinator'),
     worker: t('chat.agentMessage.updateFromWorker', 'Update from worker'),
+    mail: t('chat.agentMessage.orcaMail', 'Orca mail'),
     generic: t('chat.agentMessage.messageFrom', 'Message from')
   }
   const heading = headings[agentMessageHeading(from, message)]
@@ -171,6 +172,7 @@ const PreviewAgentMessageCard = memo(function PreviewAgentMessageCard({
     task: t('chat.agentMessage.taskFromCoordinator', 'Task from coordinator'),
     coordinator: t('chat.agentMessage.messageFromCoordinator', 'Message from coordinator'),
     worker: t('chat.agentMessage.updateFromWorker', 'Update from worker'),
+    mail: t('chat.agentMessage.orcaMail', 'Orca mail'),
     generic: t('chat.agentMessage.messageFrom', 'Message from')
   }
   const heading = headings[agentMessageHeading(from, message)]

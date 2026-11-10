@@ -1,3 +1,7 @@
+import type {
+  NativeChatReadSubagentsArgs,
+  NativeChatReadSubagentsResult
+} from '../../shared/native-chat/native-chat-subagent-transcripts'
 import type { ClaudeProjectSession } from '../../shared/native-chat/claude-project-session-types'
 import type { AgentType } from '../../shared/agent-status/contracts/agent-status-types'
 import type { NativeChatVisualTheme } from '../../shared/native-chat/native-chat-visual-shell'
@@ -78,4 +82,8 @@ export type NativeChatApi = {
   /** Context window per model id from the Claude catalog cached beside a local transcript. */
   getClaudeContextWindows?: (transcriptPath: string) => Promise<Record<string, number>>
   listClaudeProjectSessions?: (transcriptPath: string) => Promise<ClaudeProjectSession[]>
+  /** A local Claude session's own subagents, read from the transcripts beside the session's. */
+  readClaudeSubagents?: (
+    args: NativeChatReadSubagentsArgs
+  ) => Promise<NativeChatReadSubagentsResult>
 }

@@ -1,5 +1,6 @@
 // Resolve on the execution host; a client’s install paths are meaningless remotely.
 
+import { existsSync } from 'node:fs'
 import { access } from 'node:fs/promises'
 import { join } from 'node:path'
 import { getAppEnvironment, hasAppEnvironment } from '../../shared/app-environment'
@@ -68,4 +69,23 @@ export async function resolveNativeChatVisualsSkillLocation(
 
 export function resetNativeChatVisualsSkillLocationForTests(): void {
   found = null
+}
+
+/** The same lookup for synchronous callers (terminal environments); caches only a found plugin. */
+export function resolveNativeChatVisualsSkillLocationSync(
+  candidates: readonly string[] = candidatePluginDirs()
+): NativeChatVisualsSkillLocation | null {
+  if (found) {
+    return found
+  }
+  for (const pluginDir of candidates) {
+    if (
+      existsSync(join(pluginDir, '.claude-plugin', 'plugin.json')) &&
+      existsSync(join(pluginDir, 'skills', NATIVE_CHAT_VISUALS_SKILL_NAME, 'SKILL.md'))
+    ) {
+      found = { pluginDir, skillsRoot: join(pluginDir, 'skills') }
+      return found
+    }
+  }
+  return null
 }

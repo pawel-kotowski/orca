@@ -73,7 +73,7 @@ function plainLine(text: string): string {
  * shows bash command instead step / output as activity cards do"): its answer once done, its
  * latest narration while it works, else the status line.
  */
-function WorkerRow({
+export function ActivityWorkerRow({
   worker,
   coordinator,
   onOpenWorker
@@ -110,7 +110,7 @@ function WorkerRow({
   )
 }
 
-function summary(workers: readonly AgentPaneThread[]): string {
+export function activityWorkersSummary(workers: readonly AgentPaneThread[]): string {
   let working = 0
   let needsYou = 0
   let failed = 0
@@ -184,12 +184,12 @@ export function ActivityThreadWorkers({
         className="flex min-w-0 cursor-pointer items-center gap-1 rounded text-left text-[11.5px] leading-[18px] text-muted-foreground outline-none hover:text-foreground focus-visible:ring-1 focus-visible:ring-ring"
       >
         <ChevronRight className={cn('size-3 shrink-0 transition-transform', open && 'rotate-90')} />
-        <span className="min-w-0 truncate">{summary(workers)}</span>
+        <span className="min-w-0 truncate">{activityWorkersSummary(workers)}</span>
       </button>
       {open ? (
         <div className="mt-0.5 flex min-w-0 flex-col">
           {workers.map((worker) => (
-            <WorkerRow
+            <ActivityWorkerRow
               key={worker.paneKey}
               worker={worker}
               coordinator={thread}

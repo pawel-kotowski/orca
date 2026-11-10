@@ -50,3 +50,10 @@ export const NativeChatUnsubscribe = z.object({
 })
 
 export const MOBILE_NATIVE_CHAT_MAX_WINDOW = 2000
+
+/** A terminal-backed Claude chat's own subagents, read on the host that runs the agent. */
+export const NativeChatReadClaudeSubagents = z.object({
+  agent: z.string().min(1),
+  sessionId: z.string().min(1),
+  transcriptPath: z.string().min(1).optional()
+})

@@ -23,3 +23,15 @@ export function isNativeChatScratchFolderName(name: string): boolean {
 export function nativeChatScratchFolderFor(stateDirectory: string, sessionId: string): string {
   return join(nativeChatScratchRootFor(stateDirectory), nativeChatScratchFolderName(sessionId))
 }
+
+/**
+ * Terminal-backed chats share one folder per host (Paweł, 2026-11-10: the terminal Chat UI should
+ * show HTML as structured chats do). A terminal agent starts before its session has an id, and a
+ * session resumes in other panes, so no per-chat folder can be named at launch; the visuals skill
+ * asks for a new file name each time. Not a 32-hex name, so the chat-folder sweep leaves it.
+ */
+export const TERMINAL_CHATS_SCRATCH_DIR_NAME = 'terminal-chats'
+
+export function terminalChatsScratchFolderFor(stateDirectory: string): string {
+  return join(nativeChatScratchRootFor(stateDirectory), TERMINAL_CHATS_SCRATCH_DIR_NAME)
+}

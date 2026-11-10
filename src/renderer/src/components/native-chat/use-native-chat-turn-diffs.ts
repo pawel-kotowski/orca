@@ -6,7 +6,7 @@ import type { NativeChatTurnRows } from './use-native-chat-turn-membership'
 
 const NO_TURN_DIFFS: ReadonlyMap<string, NativeChatTurnDiff> = new Map()
 
-/** Count subagent edits in their owning turn; omit totals without a journal or for partially loaded turns. */
+/** Count subagent edits in their owning turn; omit totals for partially loaded turns. */
 export function useNativeChatTurnDiffs(
   turns: NativeChatTurnRows | null,
   subagentRows: readonly NativeChatSubagentRow[],

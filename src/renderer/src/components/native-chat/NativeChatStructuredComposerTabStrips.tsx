@@ -4,8 +4,10 @@ import type { NativeChatStructuredComposerTransport } from './native-chat-compos
 import type { StructuredAgentSessionThreadGoal } from './use-structured-agent-session-thread-goal'
 import type { NativeChatImageRuntimeContext } from './native-chat-image-runtime-context'
 import { NativeChatTextAttachments } from './NativeChatTextAttachments'
+import { NativeChatWorkersStrip } from './NativeChatWorkersStrip'
+import { structuredAgentSessionPaneKey } from '../../../../shared/agent-session/view/structured-agent-session-projection'
 
-/** The strips on the composer's top edge: the thread goal, then a temporary worker's lifetime. */
+/** The strips on the composer's top edge: Orca workers, the thread goal, then a temporary worker's lifetime. */
 export function NativeChatStructuredComposerTabStrips(props: {
   tabId: string
   runtimeContext: NativeChatImageRuntimeContext
@@ -18,6 +20,9 @@ export function NativeChatStructuredComposerTabStrips(props: {
 }): React.JSX.Element {
   return (
     <>
+      <NativeChatWorkersStrip
+        paneKey={structuredAgentSessionPaneKey(props.tabId, props.transport.sessionId)}
+      />
       <NativeChatStructuredGoalStrip {...props} sessionId={props.transport.sessionId} />
       <NativeChatStructuredWorkerLifetimeStrip
         tabId={props.tabId}

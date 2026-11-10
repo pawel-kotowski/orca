@@ -1,3 +1,7 @@
+import type {
+  NativeChatReadSubagentsArgs,
+  NativeChatReadSubagentsResult
+} from '../../shared/native-chat/native-chat-subagent-transcripts'
 import type { ClaudeProjectSession } from '../../shared/native-chat/claude-project-session-types'
 import { ipcRenderer } from 'electron'
 import type {
@@ -58,6 +62,10 @@ export const nativeChatApi = {
     ipcRenderer.invoke('nativeChat:conversationNameFailureOutput', sessionId),
   getClaudeContextWindows: (transcriptPath: string): Promise<Record<string, number>> =>
     ipcRenderer.invoke('nativeChat:claudeContextWindows', transcriptPath),
+  readClaudeSubagents: (
+    args: NativeChatReadSubagentsArgs
+  ): Promise<NativeChatReadSubagentsResult> =>
+    ipcRenderer.invoke('nativeChat:claudeSubagents', args),
   listClaudeProjectSessions: (transcriptPath: string): Promise<ClaudeProjectSession[]> =>
     ipcRenderer.invoke('nativeChat:claudeProjectSessions', transcriptPath)
 } satisfies PreloadApi['nativeChat']
