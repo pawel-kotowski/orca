@@ -61,12 +61,16 @@ export function useNativeChatLinkActions(
       }
       // Why: a plain click opens the link in the Chrome profile of the project's default
       // subscription, whatever account this chat runs on (Paweł, 2026-11-10: "I always have to
-      // open chrome in profile that is default for given project"); the chat's own account only
-      // for a project without one. A modifier click keeps Orca's own link actions.
+      // open chrome in profile that is default for given project"). A project without one is the
+      // owner's own, so a Claude chat there opens Chrome's first profile, never the chat's account
+      // (Paweł, 2026-11-10: a personal project's link opened in a client's profile because its
+      // chat ran on that client's subscription). A modifier click keeps Orca's own link actions.
       const projectAccount = projectDefaultClaudeAccount(useAppStore.getState(), context.worktreeId)
       const chromeAccount = projectAccount
         ? { email: projectAccount.email, name: accountShortName(projectAccount.email) }
         : identityRef.current
+          ? { email: null, name: null, owner: true }
+          : null
       const plain =
         (event.button ?? 0) === 0 &&
         !event.metaKey &&

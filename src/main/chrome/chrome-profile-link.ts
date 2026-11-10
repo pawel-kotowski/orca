@@ -3,8 +3,14 @@ import { readFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 
-/** Whose Chrome profile a link should open in: the subscription owner of the chat it came from. */
-export type ChromeProfileAccount = { email: string | null; name: string | null }
+/**
+ * Whose Chrome profile a link should open in: the account's (by email, else short name), or with
+ * `owner` Chrome's own first profile, the one that belongs to whoever owns this Mac.
+ */
+export type ChromeProfileAccount = { email: string | null; name: string | null; owner?: boolean }
+
+/** Chrome's first profile keeps this directory name whatever it is renamed to. */
+const OWNER_PROFILE_DIR = 'Default'
 
 type InfoCache = Record<string, { name?: unknown; user_name?: unknown }>
 
@@ -20,6 +26,9 @@ export function pickChromeProfileDir(
   infoCache: InfoCache,
   account: ChromeProfileAccount
 ): string | null {
+  if (account.owner) {
+    return OWNER_PROFILE_DIR in infoCache ? OWNER_PROFILE_DIR : null
+  }
   const email = lower(account.email)
   const name = lower(account.name)
   const entries = Object.entries(infoCache)

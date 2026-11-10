@@ -17,10 +17,10 @@ export type ShellApi = {
   openInExternalEditor: (
     request: ShellOpenExternalEditorRequest
   ) => Promise<ShellOpenExternalEditorResult>
-  /** `chromeAccount`: open in that subscription owner's Chrome profile when one matches. */
+  /** `chromeAccount`: open in that account's Chrome profile, or `owner` Chrome's first one. */
   openUrl: (
     url: string,
-    chromeAccount?: { email: string | null; name: string | null }
+    chromeAccount?: { email: string | null; name: string | null; owner?: boolean }
   ) => Promise<void>
   openFilePath: (path: string, ownerHostId: ExecutionHostId) => Promise<boolean>
   openFileUri: (uri: string, ownerHostId: ExecutionHostId) => Promise<void>

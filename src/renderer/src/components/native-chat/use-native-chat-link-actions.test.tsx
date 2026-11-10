@@ -135,16 +135,17 @@ describe('native chat transcript links', () => {
     expect(mocks.openHttpLink).not.toHaveBeenCalled()
   })
 
-  it("opens a plain-clicked link in the chat's subscription Chrome profile", async () => {
+  it("opens a project-less Claude chat's link in Chrome's first profile", async () => {
     const openUrl = vi.fn(async () => {})
     Object.assign(window, { api: { shell: { openUrl } } })
-    mocks.identity = { email: 'pawel@example.com', name: 'example' }
+    mocks.identity = { email: 'pawel@client.example', name: 'client' }
     try {
       render(<Transcript markdown="See [the PR](https://github.com/o/r/pull/1)." />)
       fireEvent.click(await screen.findByRole('link', { name: 'the PR' }))
       expect(openUrl).toHaveBeenCalledWith('https://github.com/o/r/pull/1', {
-        email: 'pawel@example.com',
-        name: 'example'
+        email: null,
+        name: null,
+        owner: true
       })
       expect(screen.queryByText('System Browser')).toBeNull()
     } finally {

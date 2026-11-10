@@ -30,3 +30,14 @@ describe('the Chrome profile for a subscription', () => {
     expect(pickChromeProfileDir(cache, { email: null, name: null })).toBeNull()
   })
 })
+
+describe("the owner's Chrome profile", () => {
+  it("is Chrome's first profile, whatever it is called", () => {
+    expect(pickChromeProfileDir(cache, { email: null, name: null, owner: true })).toBe('Default')
+  })
+
+  it('is missing when Chrome has no first profile', () => {
+    const { Default: _owner, ...rest } = cache
+    expect(pickChromeProfileDir(rest, { email: null, name: null, owner: true })).toBeNull()
+  })
+})

@@ -26,7 +26,7 @@ export const shellApi = {
 
   openUrl: (
     url: string,
-    chromeAccount?: { email: string | null; name: string | null }
+    chromeAccount?: { email: string | null; name: string | null; owner?: boolean }
   ): Promise<void> => ipcRenderer.invoke('shell:openUrl', url, chromeAccount),
 
   openFilePath: (path: string, ownerHostId: ExecutionHostId): Promise<boolean> =>
