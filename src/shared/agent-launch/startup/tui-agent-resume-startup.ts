@@ -1,4 +1,4 @@
-import { getAgentForkArgv, getAgentResumeArgv } from './agent-resume-argv'
+import { getAgentForkArgv, getAgentResumeArgv, getClaudeNewSessionArgv } from './agent-resume-argv'
 import type {
   AgentProviderSessionMetadata,
   ResumableTuiAgent
@@ -40,10 +40,14 @@ export function buildAgentResumeStartupPlan(args: {
   agentHostPlatform?: NodeJS.Platform | null
   /** Relaunch on the currently selected Claude account instead of the one the session ran on. */
   moveClaudeAccount?: boolean
+  /** Claude: start the session's id as a new conversation; it never wrote a transcript. */
+  claudeNewSession?: boolean
 }): AgentStartupPlan | null {
   const resumeArgv = args.fork
     ? getAgentForkArgv(args.agent, args.providerSession)
-    : getAgentResumeArgv(args.agent, args.providerSession, args.ompResumeFilePath)
+    : args.claudeNewSession && args.agent === 'claude'
+      ? getClaudeNewSessionArgv(args.providerSession)
+      : getAgentResumeArgv(args.agent, args.providerSession, args.ompResumeFilePath)
   if (!resumeArgv) {
     return null
   }

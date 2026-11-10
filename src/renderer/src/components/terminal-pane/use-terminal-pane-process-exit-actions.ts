@@ -247,10 +247,25 @@ export function useTerminalPaneProcessExitActions(controller: TerminalPaneCloseC
       }
       const agent = consumePendingPaneAccountRestart(ptyId)
       const startup = agent ? buildAccountRestartStartup(agent, pane.leafId) : null
-      if (agent && startup) {
-        // Why: one Claude switch restarts many panes at once; none was the one the user clicked.
-        handleRestartPane(pane.id, startup, { focus: agent === 'codex' })
+      if (!agent || !startup) {
+        continue
       }
+      const { newSessionIfNoTranscript, ...resume } = startup
+      // Why: one Claude switch restarts many panes at once; none was the one the user clicked.
+      const restart = (chosen: typeof resume): void =>
+        handleRestartPane(pane.id, chosen, { focus: agent === 'codex' })
+      const pathExists = window.api?.shell?.pathExists
+      if (!newSessionIfNoTranscript || !pathExists) {
+        restart(resume)
+        continue
+      }
+      // Why: an empty chat has no transcript yet, so `--resume` fails with "No conversation found"
+      // (Paweł, 2026-11-10: "when chat is empty i cant switch subscription").
+      void pathExists(newSessionIfNoTranscript.transcriptPath)
+        .catch(() => true)
+        .then((exists) =>
+          restart(exists ? resume : { ...resume, command: newSessionIfNoTranscript.command })
+        )
     }
   }, [
     buildAccountRestartStartup,

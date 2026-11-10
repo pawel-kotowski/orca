@@ -3,6 +3,23 @@ import type {
   ResumableTuiAgent
 } from '../../agent-session/lifecycle/agent-session-resume'
 
+/**
+ * Claude writes a conversation's transcript only with its first message, so an empty chat cannot be
+ * resumed ("No conversation found"); `--session-id` starts it under the same id instead.
+ */
+export function getClaudeNewSessionArgv(
+  providerSession: AgentProviderSessionMetadata
+): string[] | null {
+  return providerSession.key === 'session_id'
+    ? [
+        'claude',
+        ...(providerSession.effort ? ['--effort', providerSession.effort] : []),
+        '--session-id',
+        providerSession.id
+      ]
+    : null
+}
+
 /** Keep per-agent resume argv separate from session metadata; type-only imports avoid runtime cycles. */
 export function getAgentResumeArgv(
   agent: ResumableTuiAgent,

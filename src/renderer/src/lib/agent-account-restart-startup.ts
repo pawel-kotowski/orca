@@ -27,6 +27,7 @@ import type { AccountRestartAgent } from '@/store/terminals/terminal-contracts'
 import type { ProjectExecutionRuntimeResolution } from '../../../shared/project-execution-runtime'
 import { resolveAgentLaunchCommand } from '../../../shared/agent-launch/startup/tui-agent-launch-command'
 import { resolveStartupShell } from '../../../shared/agent-launch/startup/tui-agent-startup-shell'
+import { LOCAL_EXECUTION_HOST_ID } from '../../../shared/execution-host'
 
 export type AgentAccountRestartStartup = {
   command: string
@@ -35,6 +36,11 @@ export type AgentAccountRestartStartup = {
   env?: Record<string, string>
   launchConfig?: SleepingAgentLaunchConfig
   resumeProviderSession?: AgentProviderSessionMetadata
+  /**
+   * A local Claude whose conversation may never have been written (an empty chat): the command
+   * that starts its id fresh, used when `transcriptPath` is missing at restart time.
+   */
+  newSessionIfNoTranscript?: { transcriptPath: string; command: string }
 }
 
 type AccountRestartPane = {
@@ -83,7 +89,7 @@ export function resolveAgentAccountRestartResumeStartup(
     (entry ? state.getAgentLaunchConfigForStatusEntry(entry) : undefined) ??
     (sleeping?.agent === agent ? sleeping.launchConfig : undefined)
   const resumeTarget = resolveAccountRestartLaunchTarget(state, args, projectRuntime)
-  const startupPlan = buildAgentResumeStartupPlan({
+  const planArgs = {
     agent,
     providerSession,
     // Why: this restart exists to move the session onto the newly selected account.
@@ -120,14 +126,30 @@ export function resolveAgentAccountRestartResumeStartup(
         args.worktreeId,
         getExecutionHostIdForWorktree(state, args.worktreeId)
       )?.path
-  })
+  }
+  const startupPlan = buildAgentResumeStartupPlan(planArgs)
   if (!startupPlan) {
     return null
   }
+  // Why local only: the transcript is checked on this machine's disk.
+  const newSessionPlan =
+    agent === 'claude' &&
+    providerSession.transcriptPath &&
+    isLocalAccountRestart(state, args, projectRuntime)
+      ? buildAgentResumeStartupPlan({ ...planArgs, claudeNewSession: true })
+      : null
   return {
     startupCommandDelivery: 'shell-ready',
     launchAgent: agent,
     command: startupPlan.launchCommand,
+    ...(newSessionPlan && providerSession.transcriptPath
+      ? {
+          newSessionIfNoTranscript: {
+            transcriptPath: providerSession.transcriptPath,
+            command: newSessionPlan.launchCommand
+          }
+        }
+      : {}),
     ...(startupPlan.env ? { env: startupPlan.env } : {}),
     launchConfig: startupPlan.launchConfig,
     // Main repins launch home only when the spawn names its resumed session; keep that identity with the account move.
@@ -181,6 +203,19 @@ export function buildCodexAccountRestartStartup(
     startupCommandDelivery: 'shell-ready',
     launchAgent: 'codex'
   }
+}
+
+function isLocalAccountRestart(
+  state: AppState,
+  args: AccountRestartTarget,
+  projectRuntime: ProjectExecutionRuntimeResolution | undefined
+): boolean {
+  const executionHostId = getExecutionHostIdForWorktree(state, args.worktreeId)
+  return (
+    (!executionHostId || executionHostId === LOCAL_EXECUTION_HOST_ID) &&
+    !getConnectionIdFromState(state, args.worktreeId) &&
+    !(projectRuntime?.status === 'resolved' && projectRuntime.runtime.kind === 'wsl')
+  )
 }
 
 function resolveAccountRestartLaunchTarget(
