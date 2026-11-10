@@ -56,13 +56,22 @@ function isAutoStandingBy(
   return isClearableActivityThread(thread) && now - acknowledgedAt >= hours * 3_600_000
 }
 
-/** Cleared (an open agent keeps a stand-in), idle, or moved by the timer: under Standing by. */
+/**
+ * Cleared (an open agent keeps a stand-in), idle, or moved by the timer: under Standing by. A
+ * running agent is always under Working, cleared or not. Why: a monitoring turn adds no event, so
+ * a coordinator cleared before it began watching its workers kept only cleared events and sat
+ * under Standing by while it worked (Paweł, 2026-11-10: "polish guitar is monitoring tasks and yet
+ * is in standing by, should be in working").
+ */
 export function isActivityThreadStandingBy(
   thread: AgentPaneThread,
   acknowledgedAgentsByPaneKey: Record<string, number>,
   autoStandByHours: number | null,
   now: number
 ): boolean {
+  if (activityThreadSection(thread) === 'working') {
+    return false
+  }
   return (
     (thread.events.length > 0 && thread.events.every((event) => event.cleared === true)) ||
     activityThreadSection(thread) === 'standingBy' ||
