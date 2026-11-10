@@ -33,7 +33,8 @@ export function NativeChatWorkersStrip({
   if (!paneKey || !coordinator) {
     return null
   }
-  const parentName = parent ? activityThreadRowCopy(parent).workspaceLabel : ''
+  // The coordinator's agent name (its conversation), as its own card titles it; not its workspace.
+  const parentName = parent ? activityThreadRowCopy(parent).taskTitle : ''
   return (
     <>
       {parent ? (

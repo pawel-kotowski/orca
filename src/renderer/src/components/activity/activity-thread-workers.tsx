@@ -219,7 +219,9 @@ export function ActivityWorkerOfTag({
   if (!parent) {
     return null
   }
-  const parentName = activityThreadRowCopy(parent).workspaceLabel
+  // Why the agent's name: a coordinator is known by its conversation, not its workspace
+  // (Paweł, 2026-11-10: "worker of shows workspace name instead of agent name").
+  const parentName = activityThreadRowCopy(parent).taskTitle
   return (
     <span
       className="min-w-0 max-w-[40%] shrink truncate rounded-full border border-border/70 px-1.5 text-[10.5px] leading-4 text-muted-foreground"
