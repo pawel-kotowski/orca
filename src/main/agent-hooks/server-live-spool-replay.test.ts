@@ -47,7 +47,7 @@ async function post(server: AgentHookServer, event: string): Promise<void> {
   expect(response.status).toBe(204)
 }
 
-function spoolStop(spoolDir: string, receivedAt: number): void {
+function spoolStop(spoolDir: string, receivedAt: number, event = 'Stop'): void {
   writeFileSync(
     join(spoolDir, 'pane-live.jsonl'),
     `\n${JSON.stringify({
@@ -58,7 +58,7 @@ function spoolStop(spoolDir: string, receivedAt: number): void {
       source: 'claude',
       receivedAt,
       agentProcess,
-      payload: { hook_event_name: 'Stop', session_id: 'session-a' }
+      payload: { hook_event_name: event, session_id: 'session-a' }
     })}\n`
   )
 }
@@ -80,5 +80,34 @@ describe('a hook spooled while Orca runs', () => {
     await post(server, 'UserPromptSubmit')
     await new Promise((resolve) => setTimeout(resolve, 6000))
     expect(state(server)).toBe('working')
+  }, 15_000)
+
+  it('replays a spooled prompt and the Stop after it, ending the turn', async () => {
+    const { server, spoolDir } = await startServer()
+    await post(server, 'UserPromptSubmit')
+    // 2026-11-10: replaying the prompt stamped the row "now", so the Stop spooled after it was
+    // taken for stale and a finished worker stayed "working".
+    const second = Math.floor(Date.now() / 1000) * 1000
+    writeFileSync(
+      join(spoolDir, 'pane-live.jsonl'),
+      `\n${[
+        ['UserPromptSubmit', second + 2000],
+        ['Stop', second + 3000]
+      ]
+        .map(([event, receivedAt]) =>
+          JSON.stringify({
+            paneKey: PANE,
+            tabId: 'tab-1',
+            worktreeId: 'wt-1',
+            env: 'production',
+            source: 'claude',
+            receivedAt,
+            agentProcess,
+            payload: { hook_event_name: event, session_id: 'session-a' }
+          })
+        )
+        .join('\n')}\n`
+    )
+    await vi.waitFor(() => expect(state(server)).toBe('done'), { timeout: 8000, interval: 200 })
   }, 15_000)
 })

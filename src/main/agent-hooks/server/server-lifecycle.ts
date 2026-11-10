@@ -179,6 +179,7 @@ export abstract class AgentHookServerLifecycle extends AgentHookServerStatusHook
           this.recordCurrentAuthorityObservation(event)
           toolCallOwner = event
           const enriched = this.applyObservedLocalHook(event, normalized.onAccepted)
+          this.noteLiveHook(event.paneKey)
           if (enriched) {
             this.checkAgentPresenceAfterHook(event, enriched)
             this.scheduleAssistantMessageRetry(source, aliasedBody, enriched)

@@ -176,6 +176,18 @@ export abstract class AgentHookServerIngestNormalization extends AgentHookServer
     }
   }
 
+  /**
+   * When each pane last had a hook delivered live (never a replay). The live spool drain skips
+   * spooled events older than it. It once compared the status row's time instead, which the
+   * drain's own replay stamps with "now": a spooled UserPromptSubmit then made the Stop spooled
+   * after it look stale, and a finished worker stayed "working" (2026-11-10).
+   */
+  protected readonly liveHookAtByPaneKey = new Map<string, number>()
+
+  protected noteLiveHook(paneKey: string): void {
+    this.liveHookAtByPaneKey.set(this.resolvePaneKeyAlias(paneKey), Date.now())
+  }
+
   // Spool records are durable replay evidence, not a live observation.
   protected ingestSpoolRecord(record: SpoolRecord, answerBy?: number): Promise<void> | void {
     if (!isAgentHookSource(record.source)) {

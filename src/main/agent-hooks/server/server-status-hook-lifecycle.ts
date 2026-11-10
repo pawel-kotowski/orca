@@ -130,9 +130,9 @@ export abstract class AgentHookServerStatusHookLifecycle extends AgentHookServer
           }
           // Why: a live hook that reached the pane after this one was spooled already says more;
           // replaying the older event would undo it. Spool stamps have whole-second precision.
-          const row = this.state.lastStatusByPaneKey.get(this.resolvePaneKeyAlias(record.paneKey))
-          const rowReceivedAt = row && 'receivedAt' in row ? Number(row.receivedAt) : 0
-          if (record.receivedAt + 1000 <= rowReceivedAt) {
+          // Only live hooks count: this drain's own replays stamp the row with the current time.
+          const liveAt = this.liveHookAtByPaneKey.get(this.resolvePaneKeyAlias(record.paneKey))
+          if (liveAt !== undefined && record.receivedAt + 1000 <= liveAt) {
             return
           }
           await this.ingestSpoolRecord(record, hookRootAnswerDeadline())
