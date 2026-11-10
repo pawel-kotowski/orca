@@ -183,7 +183,7 @@ function claudeRecapMessage(
   }
 }
 
-/** Mid-turn human prompts exist only as queued_command attachments; decode them to reconcile local echoes. */
+/** Mid-turn human prompts and task notices exist only as queued_command attachments; decode them as the user rows Claude never writes. */
 function claudeQueuedPromptAsUserRecord(
   record: Record<string, unknown>
 ): Record<string, unknown> | null {
@@ -191,7 +191,17 @@ function claudeQueuedPromptAsUserRecord(
     return null
   }
   const attachment = asRecord(record.attachment)
-  if (attachment?.type !== 'queued_command' || attachment.commandMode !== 'prompt') {
+  if (attachment?.type !== 'queued_command') {
+    return null
+  }
+  if (attachment.commandMode === 'task-notification') {
+    // Why: a background task that ends mid-turn is reported only here, never as a user row; the
+    // running-shells strip settles on it, and the view drops it as a harness notice.
+    return typeof attachment.prompt === 'string'
+      ? { ...record, type: 'user', message: { role: 'user', content: attachment.prompt } }
+      : null
+  }
+  if (attachment.commandMode !== 'prompt') {
     return null
   }
   // Legacy prompt-mode queue entries omit origin and are human-authored.
