@@ -89,6 +89,7 @@ export function NativeChatMessageList({
   settledTurns,
   deliveryNotices,
   awaitingInput = null,
+  awaitingInputRow,
   turnActivity,
   stopping = false,
   runtimeContext,
@@ -121,6 +122,8 @@ export function NativeChatMessageList({
   deliveryNotices?: ReadonlyMap<string, NativeChatDeliveryNotice>
   /** Set while the turn waits on the reader; the live activity line yields to it. */
   awaitingInput?: NativeChatAwaitingInput | null
+  /** Drawn for a wait only the terminal shows, in place of the bare label. */
+  awaitingInputRow?: React.ReactNode
   turnActivity?: NativeChatTurnActivity | null
   /** A person's Stop is ending the live turn: its tail line reads "Stopping…". */
   stopping?: boolean
@@ -405,7 +408,7 @@ export function NativeChatMessageList({
                     allowFileUriLinks={allowFileUriLinks}
                   />
                 ) : tailRow === 'awaiting-input' ? (
-                  <NativeChatAwaitingInputRow subject={null} pending />
+                  (awaitingInputRow ?? <NativeChatAwaitingInputRow subject={null} pending />)
                 ) : null}
                 <NativeChatWaitingTranscriptItems slots={waitingSlots} context={rowContext} />
               </div>

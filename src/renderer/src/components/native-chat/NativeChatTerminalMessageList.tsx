@@ -3,7 +3,11 @@ import { useAppStore } from '@/store'
 import { createNativeChatRuntimeSelector } from './native-chat-runtime-owner'
 import { NativeChatMessageList } from './NativeChatMessageList'
 import { NativeChatTerminalVisualOwner } from './NativeChatTerminalVisualOwner'
+import { NativeChatTerminalPromptRow } from './NativeChatTerminalPromptRow'
 import { useNativeChatClaudeSubagents } from './use-native-chat-claude-subagents'
+
+// One element for every render: the row reads its terminal through context.
+const TERMINAL_PROMPT_ROW = <NativeChatTerminalPromptRow />
 
 type Source = {
   agent: string
@@ -15,7 +19,8 @@ type Source = {
 
 /**
  * A terminal-backed chat's transcript with what structured chats draw beside the conversation:
- * Claude's own subagents in their sections, and inline HTML visuals.
+ * Claude's own subagents in their sections, inline HTML visuals, and a prompt only the terminal
+ * shows, read from its screen.
  */
 export function NativeChatTerminalMessageList({
   source,
@@ -41,7 +46,13 @@ export function NativeChatTerminalMessageList({
       runtimeEnvironmentId={runtimeEnvironmentId}
       terminalTabId={source.terminalTabId}
     >
-      <NativeChatMessageList session={listSession} expandSignal={expandSignal} {...listProps} />
+      <NativeChatMessageList
+        session={listSession}
+        expandSignal={expandSignal}
+        // Why: a wait with no card names nothing; show the terminal's own prompt instead.
+        awaitingInputRow={TERMINAL_PROMPT_ROW}
+        {...listProps}
+      />
     </NativeChatTerminalVisualOwner>
   )
 }

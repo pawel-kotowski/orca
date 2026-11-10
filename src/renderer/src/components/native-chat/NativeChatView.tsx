@@ -1,4 +1,5 @@
 import { NativeChatSessionGate } from './NativeChatSessionGate'
+import { NativeChatTerminalBridgeProvider } from './native-chat-terminal-bridge'
 import { NativeChatStructuredSession } from './NativeChatStructuredSession'
 import { NativeChatResolvedView } from './NativeChatResolvedView'
 import { useNativeChatStatusEntry } from './use-native-chat-status-entry'
@@ -78,21 +79,26 @@ function NativeChatBridgeView({
               transcriptPath={resolution.transcriptPath}
               terminalTabId={terminalTabId}
             >
-              <NativeChatResolvedView
-                paneKey={resolution.paneKey}
-                agent={resolution.agent}
-                sessionId={resolution.sessionId}
-                transcriptPath={resolution.transcriptPath}
-                isVisible={isVisible}
-                isFocusedGroup={isFocusedGroup}
-                targetPtyId={targetPtyId}
-                terminalTabId={terminalTabId}
-                ownsTabWideLaunchDraft={ownsTabWideLaunchDraft}
-                onSwitchToTerminal={onSwitchToTerminal}
-                readTerminalScreen={readTerminalScreen}
-                readTerminalDraft={readTerminalDraft}
-                contextMenuActions={contextMenuActions}
-              />
+              <NativeChatTerminalBridgeProvider
+                readScreen={readTerminalScreen}
+                show={onSwitchToTerminal}
+              >
+                <NativeChatResolvedView
+                  paneKey={resolution.paneKey}
+                  agent={resolution.agent}
+                  sessionId={resolution.sessionId}
+                  transcriptPath={resolution.transcriptPath}
+                  isVisible={isVisible}
+                  isFocusedGroup={isFocusedGroup}
+                  targetPtyId={targetPtyId}
+                  terminalTabId={terminalTabId}
+                  ownsTabWideLaunchDraft={ownsTabWideLaunchDraft}
+                  onSwitchToTerminal={onSwitchToTerminal}
+                  readTerminalScreen={readTerminalScreen}
+                  readTerminalDraft={readTerminalDraft}
+                  contextMenuActions={contextMenuActions}
+                />
+              </NativeChatTerminalBridgeProvider>
             </NativeChatAccountScopeProvider>
           </NativeChatMarkdownImageOwnerProvider>
         </NativeChatFileLinkExistenceProvider>
