@@ -2,8 +2,15 @@
 import React from 'react'
 import { Tag } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import type { GitHistoryItemRef } from '../../../../../shared/git/history/git-history-types'
-import type { GitHistoryItemViewModel } from '../../../../../shared/git/history/git-history-graph'
+import {
+  GIT_HISTORY_BASE_REF_COLOR,
+  type GitHistoryGraphColorId,
+  type GitHistoryItemRef
+} from '../../../../../shared/git/history/git-history-types'
+import {
+  getGitHistoryItemColor,
+  type GitHistoryItemViewModel
+} from '../../../../../shared/git/history/git-history-graph'
 import { dedupeRemoteTrackingRefs } from '../../../../../shared/git/history/git-history-ref-display'
 import {
   GitGraphColumnResizeHandle,
@@ -40,14 +47,44 @@ export function formatGitGraphRelativeTime(timestamp: number | undefined): strin
   return relativeTime.format(0, 'minute')
 }
 
+const MAIN_BRANCH_NAMES = new Set(['main', 'master'])
+
+function isMainBranchName(name: string): boolean {
+  return MAIN_BRANCH_NAMES.has(name.slice(name.lastIndexOf('/') + 1)) && name.split('/').length <= 2
+}
+
+/**
+ * A badge's colour (Paweł, 2026-11-10: "my branches and main branch tags should have some
+ * colors"): the ref's own colour when the graph gives it one (HEAD, its upstream), main or master
+ * (and its remote copy) in the base colour, any other branch in its commit's lane colour; tags stay plain.
+ */
+export function gitGraphRefColor(
+  itemRef: GitHistoryItemRef,
+  laneColor?: GitHistoryGraphColorId
+): GitHistoryGraphColorId | undefined {
+  if (itemRef.color) {
+    return itemRef.color
+  }
+  if (itemRef.category === 'tags') {
+    return undefined
+  }
+  if (isMainBranchName(itemRef.name)) {
+    return GIT_HISTORY_BASE_REF_COLOR
+  }
+  return laneColor
+}
+
 export function GitGraphRefBadge({
   itemRef,
-  isHead
+  isHead,
+  laneColor
 }: {
   itemRef: GitHistoryItemRef
   isHead?: boolean
+  laneColor?: GitHistoryGraphColorId
 }): React.JSX.Element {
-  const color = itemRef.color ? graphColor(itemRef.color) : undefined
+  const refColor = gitGraphRefColor(itemRef, laneColor)
+  const color = refColor ? graphColor(refColor) : undefined
   return (
     <span
       title={itemRef.category ? `${itemRef.name} (${itemRef.category})` : itemRef.name}
@@ -83,6 +120,7 @@ export const GitGraphRow = React.forwardRef<HTMLDivElement, GitGraphRowProps>(fu
   const item = viewModel.historyItem
   const isBoundary = viewModel.kind === 'incoming-changes' || viewModel.kind === 'outgoing-changes'
   const refs = dedupeRemoteTrackingRefs(item.references ?? [], {})
+  const laneColor = isBoundary ? undefined : getGitHistoryItemColor(viewModel)
   return (
     <div
       {...rootProps}
@@ -109,6 +147,7 @@ export const GitGraphRow = React.forwardRef<HTMLDivElement, GitGraphRowProps>(fu
             key={itemRef.id}
             itemRef={itemRef}
             isHead={itemRef.id === currentRefId}
+            laneColor={laneColor}
           />
         ))}
         <span className="min-w-0 truncate" title={item.message || item.subject}>

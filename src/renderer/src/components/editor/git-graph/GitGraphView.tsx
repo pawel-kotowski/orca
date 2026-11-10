@@ -13,7 +13,8 @@ import { useGitHistoryCommitActions } from '@/components/right-sidebar/source-co
 import { GitHistoryCommitContextMenu } from '@/components/right-sidebar/source-control/sync/git-history-commit-context-menu'
 import {
   buildDefaultGitHistoryColorMap,
-  buildGitHistoryViewModels
+  buildGitHistoryViewModels,
+  getGitHistoryItemColor
 } from '../../../../../shared/git/history/git-history-graph'
 import { useGitGraphHistory } from './use-git-graph-history'
 import { GIT_GRAPH_ROW_HEIGHT, GitGraphHeaderRow, GitGraphRow } from './git-graph-row'
@@ -385,6 +386,7 @@ export function GitGraphView({ worktreeId }: { worktreeId: string }): React.JSX.
                     item={item}
                     onSelectCommit={selectCommit}
                     onClose={() => setSelectedId(null)}
+                    laneColor={getGitHistoryItemColor(vm)}
                   />
                 </div>
               )

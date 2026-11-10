@@ -17,7 +17,10 @@ import { requireGitOwnerTarget } from '@/components/right-sidebar/source-control
 import { formatGitHistoryTimestamp } from '@/components/right-sidebar/source-control/sync/git-history-format'
 import { STATUS_LABELS } from '../../../../../shared/git/status/git-status-labels'
 import type { GitFileStatus } from '../../../../../shared/git/status/git-status-types'
-import type { GitHistoryItem } from '../../../../../shared/git/history/git-history-types'
+import type {
+  GitHistoryGraphColorId,
+  GitHistoryItem
+} from '../../../../../shared/git/history/git-history-types'
 import type { GitCommitCompareResult } from '../../../../../shared/git/diff/git-diff-compare-types'
 import type { RuntimeClientTarget } from '../../../../../shared/runtime-client-target'
 import { dedupeRemoteTrackingRefs } from '../../../../../shared/git/history/git-history-ref-display'
@@ -35,7 +38,8 @@ export function GitGraphCommitDetails({
   ownerTarget,
   item,
   onSelectCommit,
-  onClose
+  onClose,
+  laneColor
 }: {
   worktreeId: string
   worktreePath: string
@@ -43,6 +47,7 @@ export function GitGraphCommitDetails({
   item: GitHistoryItem
   onSelectCommit: (id: string) => void
   onClose: () => void
+  laneColor?: GitHistoryGraphColorId
 }): React.JSX.Element {
   const [compare, setCompare] = useState<CompareState>({ status: 'loading' })
   const openCommitDiff = useAppStore((s) => s.openCommitDiff)
@@ -198,7 +203,7 @@ export function GitGraphCommitDetails({
           {refs.length > 0 && (
             <div className="mt-1.5 flex flex-wrap gap-1">
               {refs.map((ref) => (
-                <GitGraphRefBadge key={ref.id} itemRef={ref} />
+                <GitGraphRefBadge key={ref.id} itemRef={ref} laneColor={laneColor} />
               ))}
             </div>
           )}
