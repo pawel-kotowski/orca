@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useLayoutEffect, useMemo, useRef, type RefObject } from 'react'
 import { Activity, SquareTerminal } from 'lucide-react'
 import { useAppStore } from '@/store'
 import { useNow } from '@/hooks/use-now'
@@ -37,13 +37,15 @@ export function NativeChatTerminalShellsStatus({
     [agentLive, messages, slowNow]
   )
   const now = useNow(1_000, isVisible && tasks.length > 0)
+  const linesRef = useRef<HTMLDivElement>(null)
+  usePublishActivityLinesHeight(linesRef)
   const cells = tasks.map((task) => {
     const Icon = task.kind === 'monitor' ? Activity : SquareTerminal
     const label = task.description ?? task.name ?? task.id
     return {
       key: task.id,
       node: (
-        <span title={label} className="flex h-4 min-w-0 items-center gap-1">
+        <span title={label} className="flex h-4 w-full min-w-0 items-center gap-1">
           <Icon
             aria-hidden="true"
             className={`size-3 shrink-0 ${task.kind === 'monitor' ? 'text-yellow-500' : ''}`}
@@ -59,9 +61,32 @@ export function NativeChatTerminalShellsStatus({
     }
   })
   return (
-    <>
+    <div ref={linesRef} data-native-chat-activity-lines="" className="flex shrink-0 flex-col">
       <NativeChatWorkersStrip paneKey={paneKey} />
       <NativeChatActivityLine kind="shells" cells={cells} />
-    </>
+    </div>
   )
+}
+
+/**
+ * Publish the lines' height on the chat root (`--native-chat-tasks-strip-height`), as the task
+ * strip does, so Jump to latest, when it sits above the message box, sits above the lines too.
+ */
+function usePublishActivityLinesHeight(ref: RefObject<HTMLDivElement | null>): void {
+  useLayoutEffect(() => {
+    const element = ref.current
+    const root = element?.closest<HTMLElement>('[data-native-chat-root="true"]')
+    if (!element || !root || typeof ResizeObserver === 'undefined') {
+      return
+    }
+    const publish = (): void =>
+      root.style.setProperty('--native-chat-tasks-strip-height', `${element.offsetHeight}px`)
+    publish()
+    const observer = new ResizeObserver(publish)
+    observer.observe(element)
+    return () => {
+      observer.disconnect()
+      root.style.removeProperty('--native-chat-tasks-strip-height')
+    }
+  }, [ref])
 }

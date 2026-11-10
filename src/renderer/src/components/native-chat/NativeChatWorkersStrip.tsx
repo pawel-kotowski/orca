@@ -49,7 +49,7 @@ export function NativeChatWorkersStrip({
                     name: parentName
                   })}
                   onClick={() => actions.selectThread(parent)}
-                  className="flex h-4 min-w-0 cursor-pointer items-center gap-1 rounded px-0.5 outline-none hover:bg-foreground/[0.06] hover:text-foreground focus-visible:ring-1 focus-visible:ring-ring"
+                  className="flex h-4 w-full min-w-0 cursor-pointer items-center gap-1 rounded px-0.5 outline-none hover:bg-foreground/[0.06] hover:text-foreground focus-visible:ring-1 focus-visible:ring-ring"
                 >
                   <ArrowLeft aria-hidden="true" className="size-3 shrink-0" />
                   <span className="shrink-0">

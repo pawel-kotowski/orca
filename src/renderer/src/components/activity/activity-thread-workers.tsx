@@ -101,7 +101,7 @@ export function ActivityWorkerRow({
         onOpenWorker(worker, event)
       }}
       className={`flex min-w-0 cursor-pointer items-center gap-1.5 rounded text-left outline-none hover:bg-foreground/[0.06] focus-visible:ring-1 focus-visible:ring-ring ${
-        compact ? 'h-4 px-0.5 text-2xs leading-4' : 'px-1 py-0.5 text-[12px] leading-[18px]'
+        compact ? 'h-4 w-full px-0.5 text-2xs leading-4' : 'px-1 py-0.5 text-[12px] leading-[18px]'
       }`}
     >
       <span className="inline-flex size-3.5 shrink-0 items-center justify-center">

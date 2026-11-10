@@ -6,7 +6,8 @@ export type NativeChatActivityCell = { key: string; node: ReactNode }
 /**
  * One thin line above the message box for one kind of live work (Paweł, 2026-11-10: "one row for
  * shells one for subagents ... many shells in one row until expanded"): its items side by side in
- * the footer's small type, no header and no box. What does not fit stays hidden behind a `+N`; that
+ * the footer's small type in a bordered strip, no header; items share the width (one fills the row:
+ * "always use as much as available"). What does not fit stays hidden behind a `+N`; that
  * or a click on the line's empty space wraps them onto as many rows as they need.
  */
 export function NativeChatActivityLine({
@@ -43,9 +44,14 @@ export function NativeChatActivityLine({
   }
   const toggles = expanded || hidden > 0
   return (
-    <div data-native-chat-activity-line={kind} className="shrink-0 bg-chat-pane px-3 pt-1 sm:px-4">
+    <div
+      data-native-chat-activity-line={kind}
+      className="shrink-0 bg-chat-pane px-3 pt-1.5 sm:px-4"
+    >
+      {/* Why the bordered surface: the line sits over the transcript's edge, and over a theme
+          image a bare line reads as part of the chat text (Paweł, 2026-11-10). */}
       <div
-        className="mx-auto flex w-full max-w-(--chat-content-max-width) items-start gap-2 px-1 text-2xs text-muted-foreground"
+        className="mx-auto flex w-full max-w-(--chat-content-max-width) items-start gap-2 rounded-lg border border-border bg-muted/50 px-2 py-1 text-2xs text-muted-foreground shadow-xs"
         onClick={(event) => {
           // Why only the line itself: a click on an item opens that item.
           if (toggles && event.target === event.currentTarget) {
@@ -66,7 +72,7 @@ export function NativeChatActivityLine({
           }}
         >
           {cells.map((cell) => (
-            <div key={cell.key} className="flex h-4 min-w-0 max-w-[20rem] items-center">
+            <div key={cell.key} className="flex h-4 min-w-0 grow basis-56 items-center">
               {cell.node}
             </div>
           ))}
