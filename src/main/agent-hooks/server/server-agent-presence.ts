@@ -6,6 +6,7 @@ import {
   resolvePaneClaudeContinuation
 } from '../../../shared/agent-hook-listener/claude-session-continuation'
 import type { AgentHookEventPayload } from '../../../shared/agent-hook-listener/listener-event'
+import type { EnrichedAgentHookEventPayload } from './server-types'
 import {
   isSameAgentProcess,
   type AgentProcessVerdict
@@ -244,9 +245,13 @@ export abstract class AgentHookServerAgentPresence extends AgentHookServerLifecy
 
   /** The last report of this pane's local agent, restored from disk or replayed from the offline
    *  spool. A report naming its process counts only while that process runs. */
-  async readRestoredAgentStatus(
-    paneKey: string
-  ): Promise<Pick<ParsedAgentStatusPayload, 'state' | 'mainAgent' | 'sessionBoundary'> | null> {
+  async readRestoredAgentStatus(paneKey: string): Promise<
+    | (Pick<ParsedAgentStatusPayload, 'state' | 'mainAgent' | 'sessionBoundary'> & {
+        /** When the report's state began, so a restore does not date it at the restart. */
+        stateStartedAt?: number
+      })
+    | null
+  > {
     if (!this.statusHooksEnabled) {
       return null
     }
@@ -269,7 +274,11 @@ export abstract class AgentHookServerAgentPresence extends AgentHookServerLifecy
     // Each await may have seen hooks turned off or a newer report replace this one.
     return this.statusHookGeneration === generation &&
       this.state.lastStatusByPaneKey.get(resolved) === row
-      ? row.payload
+      ? {
+          ...row.payload,
+          // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: Main admits enriched rows; the shared view declares their base event type.
+          stateStartedAt: (row as EnrichedAgentHookEventPayload).stateStartedAt
+        }
       : null
   }
 }

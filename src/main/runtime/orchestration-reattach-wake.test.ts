@@ -44,7 +44,17 @@ async function reattachQuietCoordinator(
   const woken = write.mock.calls.some(([, data]) =>
     String(data).includes('You have 1 orchestration message')
   )
-  return { woken, message }
+  return { woken, message, runtime }
+}
+
+function restoredStatusStartedAt(runtime: OrcaRuntimeService): number | null | undefined {
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: test reads the runtime's PTY record directly.
+  const records = (
+    runtime as unknown as {
+      ptysById: Map<string, { lastAgentStatusStartedAtEpochMs: number | null }>
+    }
+  ).ptysById
+  return records.get('pty-1')?.lastAgentStatusStartedAtEpochMs
 }
 
 describe('restart wake for a quiet coordinator', () => {
@@ -58,6 +68,30 @@ describe('restart wake for a quiet coordinator', () => {
     const { woken, message } = await reattachQuietCoordinator({ state: 'done' })
     expect(woken).toBe(true)
     expect(message.delivered_at).toEqual(expect.any(String))
+  })
+
+  // Why: dating the restored turn at the restart made clients treat an old finished turn as
+  // news, so cards cleared from the Inbox came back after every restart (2026-11-10).
+  it('dates a restored report at its own start, not at the restart', async () => {
+    vi.useFakeTimers()
+    const mainStartedAt = Date.now() - 3_600_000
+    const { runtime } = await reattachQuietCoordinator({
+      state: 'done',
+      stateStartedAt: mainStartedAt - 60_000,
+      mainAgent: { state: 'done', stateStartedAt: mainStartedAt }
+    })
+    expect(restoredStatusStartedAt(runtime)).toBe(mainStartedAt)
+  })
+
+  it('dates a restored permission wait at the row start', async () => {
+    vi.useFakeTimers()
+    const startedAt = Date.now() - 600_000
+    const { runtime } = await reattachQuietCoordinator({
+      state: 'waiting',
+      stateStartedAt: startedAt,
+      mainAgent: { state: 'working', stateStartedAt: startedAt - 1_000 }
+    })
+    expect(restoredStatusStartedAt(runtime)).toBe(startedAt)
   })
 
   it('waits out a slow foreground probe rather than giving up', async () => {

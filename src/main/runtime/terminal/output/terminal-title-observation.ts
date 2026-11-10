@@ -91,8 +91,13 @@ export abstract class OrcaRuntimeWithApplyTrackedPtyTitle extends OrcaRuntimeWit
     normalizedTitle: string,
     meta?: TerminalTitleFactMeta,
     /** `statusOnly`: no title was observed, so title evidence, clocks and display stay as they are.
-     *  `status`: the agent reported its status some other way, so the title is not classified. */
-    { statusOnly = false, status }: { statusOnly?: boolean; status?: AgentStatus } = {}
+     *  `status`: the agent reported its status some other way, so the title is not classified.
+     *  `statusStartedAtEpochMs`: when that reported status began, if it began before now. */
+    {
+      statusOnly = false,
+      status,
+      statusStartedAtEpochMs
+    }: { statusOnly?: boolean; status?: AgentStatus; statusStartedAtEpochMs?: number } = {}
   ): boolean {
     if (meta?.staleWorkingTitleClear) {
       return this.applyStaleWorkingTitleClear(ptyId, rawTitle, normalizedTitle)
@@ -138,7 +143,10 @@ export abstract class OrcaRuntimeWithApplyTrackedPtyTitle extends OrcaRuntimeWit
         this.confirmPtyAgentExit(ptyId, true)
       }
       if (prevStatus !== agentStatus) {
-        pty.lastAgentStatusStartedAtEpochMs = observedAtEpochMs
+        // Why the report's own start: a status restored after a restart is not a new turn, and
+        // dating it now made every client show an old finished turn as news again (Paweł,
+        // 2026-11-10: cleared Inbox cards came back after each devbox Orca restart).
+        pty.lastAgentStatusStartedAtEpochMs = statusStartedAtEpochMs ?? observedAtEpochMs
       }
       if (
         identityOnlyTitle ||

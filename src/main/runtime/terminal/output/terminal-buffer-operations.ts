@@ -13,7 +13,7 @@ import {
   restoredTerminalTailSeedAllowed
 } from '../../terminal-tail-restore-seed'
 
-import { hookLeadTurnState } from '../../tui-idle-hook-lane'
+import { hookLeadTurnStartedAt, hookLeadTurnState } from '../../tui-idle-hook-lane'
 import { agentHookServer } from '../../../agent-hooks/server'
 
 export abstract class OrcaRuntimeWithSerializeMainTerminalBuffer extends OrcaRuntimeWithNotifyRemoteTerminalViewPresenceChanged {
@@ -272,7 +272,8 @@ export abstract class OrcaRuntimeWithSerializeMainTerminalBuffer extends OrcaRun
       }
       this.applyTrackedPtyTitle(ptyId, pty.lastOscTitle ?? '', pty.lastOscTitle ?? '', undefined, {
         statusOnly: true,
-        status: turn === 'done' ? 'idle' : turn
+        status: turn === 'done' ? 'idle' : turn,
+        statusStartedAtEpochMs: report ? hookLeadTurnStartedAt(report) : undefined
       })
     })
   }

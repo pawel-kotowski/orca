@@ -38,6 +38,16 @@ export function retainedTailIncludes(
   return false
 }
 
+/** When the state `hookLeadTurnState` reads began, if the row dates it. */
+export function hookLeadTurnStartedAt(
+  row: Pick<AgentStatusIpcPayload, 'state' | 'mainAgent'> & { stateStartedAt?: number }
+): number | undefined {
+  if (row.state === 'waiting' || row.state === 'blocked') {
+    return row.stateStartedAt
+  }
+  return row.mainAgent?.stateStartedAt ?? row.stateStartedAt
+}
+
 /** Read the lead's own turn: child completion cannot end it, but child permission waits still block. An ended lead can accept input while children run. */
 export function hookLeadTurnState(
   row: Pick<AgentStatusIpcPayload, 'state' | 'mainAgent' | 'sessionBoundary'>
