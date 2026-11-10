@@ -1,5 +1,6 @@
-// Local (glass build): the Git Graph tab — every branch's history as a full-size graph, with a
-// details pane whose files open as diffs beside it. Reuses the sidebar's graph layout and drawing.
+// Local (glass build): the Git Graph tab — every branch's history as a full-size graph. A clicked
+// commit's details open under its row, and their files open as diffs beside the graph. Reuses the
+// sidebar's graph layout and drawing.
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Minus, Plus, RefreshCw, Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -18,9 +19,34 @@ import { useGitGraphHistory } from './use-git-graph-history'
 import { GIT_GRAPH_ROW_HEIGHT, GitGraphHeaderRow, GitGraphRow } from './git-graph-row'
 import { useGitGraphColumns } from './git-graph-columns'
 import { GitGraphCommitDetails } from './git-graph-commit-details'
+import type { GitHistoryItemViewModel } from '../../../../../shared/git/history/git-history-graph'
+import { graphColor } from '@/components/right-sidebar/source-control/sync/git-history-graph-svg'
 
 // Matches SWIMLANE_WIDTH in git-history-graph-svg.tsx: one lane's width in px.
 const LANE_WIDTH = 11
+
+// The lanes that run from the selected commit to the next row keep going through its details.
+function GitGraphLaneContinuation({
+  viewModel,
+  width
+}: {
+  viewModel: GitHistoryItemViewModel
+  width: number
+}): React.JSX.Element {
+  return (
+    <div className="relative shrink-0 self-stretch" style={{ width }}>
+      {viewModel.outputSwimlanes.map((lane, index) => (
+        <div
+          key={`${index}-${lane.id}`}
+          className="absolute inset-y-0 w-px"
+          // pl-2 (8px) of the row's graph cell, then the lane's centre as the row's SVG draws it.
+          style={{ left: 8 + LANE_WIDTH * (index + 1) - 0.5, background: graphColor(lane.color) }}
+        />
+      ))}
+    </div>
+  )
+}
+
 const ALL_REFS_STORAGE_KEY = 'orca.gitGraph.allRefs'
 // Text size of the graph, list and details (Paweł, 2026-11-09: "git graph font size is too small
 // add resize button"); CSS zoom keeps rows, lanes and text in proportion.
@@ -142,10 +168,12 @@ export function GitGraphView({ worktreeId }: { worktreeId: string }): React.JSX.
       viewModels.filter((vm) => vm.kind !== 'incoming-changes' && vm.kind !== 'outgoing-changes'),
     [viewModels]
   )
-  const selectedItem = commitRows.find((vm) => vm.historyItem.id === selectedId)?.historyItem
 
+  // Brings the commit and the details under it into view; the row wins when both don't fit.
   const scrollToCommit = useCallback((id: string) => {
-    listRef.current
+    const list = listRef.current
+    list?.querySelector('[data-git-graph-details]')?.scrollIntoView({ block: 'nearest' })
+    list
       ?.querySelector(`[data-git-graph-commit="${CSS.escape(id)}"]`)
       ?.scrollIntoView({ block: 'nearest' })
   }, [])
@@ -333,18 +361,41 @@ export function GitGraphView({ worktreeId }: { worktreeId: string }): React.JSX.
                   layout={layout}
                   selected={item.id === selectedId}
                   currentRefId={result?.currentRef?.id}
-                  onSelect={() => setSelectedId(item.id === selectedId ? null : item.id)}
-                  onOpen={() => setSelectedId(item.id)}
+                  onSelect={() =>
+                    item.id === selectedId ? setSelectedId(null) : selectCommit(item.id)
+                  }
+                  onOpen={() => selectCommit(item.id)}
                 />
               )
               const isBoundary = vm.kind === 'incoming-changes' || vm.kind === 'outgoing-changes'
-              return isBoundary ? (
-                <React.Fragment key={`${vm.kind}:${item.id}`}>{row}</React.Fragment>
-              ) : (
-                <ContextMenu key={`${vm.kind}:${item.id}`}>
-                  <ContextMenuTrigger asChild>{row}</ContextMenuTrigger>
-                  <GitHistoryCommitContextMenu item={item} onAction={handleCommitAction} />
-                </ContextMenu>
+              if (isBoundary) {
+                return <React.Fragment key={`${vm.kind}:${item.id}`}>{row}</React.Fragment>
+              }
+              const details = item.id === selectedId && history.worktreePath && (
+                <div
+                  data-git-graph-details
+                  className="flex bg-muted/30"
+                  aria-label="Commit details"
+                >
+                  <GitGraphLaneContinuation viewModel={vm} width={layout.graph} />
+                  <GitGraphCommitDetails
+                    worktreeId={worktreeId}
+                    worktreePath={history.worktreePath}
+                    ownerTarget={ownerTarget}
+                    item={item}
+                    onSelectCommit={selectCommit}
+                    onClose={() => setSelectedId(null)}
+                  />
+                </div>
+              )
+              return (
+                <React.Fragment key={`${vm.kind}:${item.id}`}>
+                  <ContextMenu>
+                    <ContextMenuTrigger asChild>{row}</ContextMenuTrigger>
+                    <GitHistoryCommitContextMenu item={item} onAction={handleCommitAction} />
+                  </ContextMenu>
+                  {details}
+                </React.Fragment>
               )
             })}
             {history.hasMore && (
@@ -361,18 +412,6 @@ export function GitGraphView({ worktreeId }: { worktreeId: string }): React.JSX.
             )}
           </div>
         </div>
-        {selectedItem && history.worktreePath && (
-          <div className="w-[min(30rem,40%)] min-w-[18rem] shrink-0">
-            <GitGraphCommitDetails
-              worktreeId={worktreeId}
-              worktreePath={history.worktreePath}
-              ownerTarget={ownerTarget}
-              item={selectedItem}
-              onSelectCommit={selectCommit}
-              onClose={() => setSelectedId(null)}
-            />
-          </div>
-        )}
       </div>
     </div>
   )

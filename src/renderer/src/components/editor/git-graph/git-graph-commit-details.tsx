@@ -1,4 +1,5 @@
-// Local (glass build): the Git Graph tab's details pane — message, metadata and the commit's files.
+// Local (glass build): the Git Graph tab's commit details, opened under the clicked row — message,
+// metadata and the commit's files.
 // A file click opens its diff beside the graph (a preview tab, so browsing replaces it); double click keeps it.
 import React, { useEffect, useState } from 'react'
 import { Copy, FileDiff, X } from 'lucide-react'
@@ -131,9 +132,66 @@ export function GitGraphCommitDetails({
     : item.message.trim()
   const refs = dedupeRemoteTrackingRefs(item.references ?? [], {})
 
+  const files = (
+    <>
+      <div className="flex items-center gap-2 px-4 py-1.5">
+        <span className="flex-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+          {compare.status === 'ready'
+            ? `${compare.result.entries.length} ${compare.result.entries.length === 1 ? 'file' : 'files'} changed`
+            : 'Files'}
+        </span>
+        <Button variant="ghost" size="xs" disabled={compare.status !== 'ready'} onClick={openAll}>
+          <FileDiff className="size-3.5" />
+          {translate('local.gitGraph.openAllChanges', 'Open all changes')}
+        </Button>
+      </div>
+      {compare.status === 'loading' && (
+        <div className="px-4 py-1 text-xs text-muted-foreground">Loading files…</div>
+      )}
+      {compare.status === 'error' && (
+        <div className="px-4 py-1 text-xs text-destructive">{compare.error}</div>
+      )}
+      {compare.status === 'ready' &&
+        compare.result.entries.map((entry, index) => {
+          const status = entry.status as GitFileStatus
+          const dir = dirname(entry.path)
+          return (
+            <button
+              key={`${entry.path}:${index}`}
+              type="button"
+              title={entry.path}
+              className="flex w-full min-w-0 items-center gap-1.5 px-4 py-1 text-left text-xs hover:bg-accent/40"
+              onClick={() => openFile(index, false)}
+              onDoubleClick={() => openFile(index, true)}
+            >
+              <FileTypeIcon
+                filePath={entry.path}
+                className="size-3.5 shrink-0"
+                style={{ color: STATUS_COLORS[status] }}
+              />
+              <span className="min-w-0 flex-1 truncate">
+                <span className="text-foreground">{basename(entry.path)}</span>
+                {dir && dir !== '.' && <span className="ml-1.5 text-muted-foreground">{dir}</span>}
+              </span>
+              <span
+                className="w-4 shrink-0 text-center text-[11px] font-bold"
+                style={{ color: STATUS_COLORS[status] }}
+              >
+                {STATUS_LABELS[status]}
+              </span>
+            </button>
+          )
+        })}
+    </>
+  )
+
+  // Opens under the clicked row (Paweł, 2026-11-10: "when i click commit it should open below
+  // clicked commit, not on the side"): message and metadata on the left, files on the right;
+  // stacked when the tab is narrow. Each property is set by one container variant only: a base
+  // class such as flex-col wins over its @2xl: override in this build's CSS order.
   return (
-    <div className="flex h-full min-h-0 flex-col border-l border-border bg-background">
-      <div className="flex shrink-0 items-start gap-2 border-b border-border px-4 py-3">
+    <div className="@container flex min-w-0 flex-1 flex-col border-y border-border">
+      <div className="flex shrink-0 items-start gap-2 px-4 pt-2.5 pb-1.5">
         <div className="min-w-0 flex-1">
           <div className="text-sm font-semibold break-words text-foreground">{item.subject}</div>
           {refs.length > 0 && (
@@ -148,104 +206,59 @@ export function GitGraphCommitDetails({
           <X className="size-3.5" />
         </Button>
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto scrollbar-sleek">
-        <dl className="grid grid-cols-[5rem_minmax(0,1fr)] gap-x-2 gap-y-1 px-4 py-3 text-xs">
-          <dt className="text-muted-foreground">Commit</dt>
-          <dd className="flex min-w-0 items-center gap-1 font-mono">
-            <span className="truncate">{item.id}</span>
-            <button
-              type="button"
-              className="shrink-0 text-muted-foreground hover:text-foreground"
-              onClick={() => copy(item.id, 'Commit hash')}
-              aria-label="Copy commit hash"
-            >
-              <Copy className="size-3" />
-            </button>
-          </dd>
-          {item.parentIds.length > 0 && (
-            <>
-              <dt className="text-muted-foreground">
-                {item.parentIds.length > 1 ? 'Parents' : 'Parent'}
-              </dt>
-              <dd className="flex flex-wrap gap-x-2 font-mono">
-                {item.parentIds.map((parent) => (
-                  <button
-                    key={parent}
-                    type="button"
-                    className="text-primary hover:underline"
-                    onClick={() => onSelectCommit(parent)}
-                  >
-                    {parent.slice(0, 8)}
-                  </button>
-                ))}
-              </dd>
-            </>
-          )}
-          <dt className="text-muted-foreground">Author</dt>
-          <dd className="truncate">
-            {item.author}
-            {item.authorEmail ? (
-              <span className="text-muted-foreground"> &lt;{item.authorEmail}&gt;</span>
-            ) : null}
-          </dd>
-          <dt className="text-muted-foreground">Date</dt>
-          <dd>{formatGitHistoryTimestamp(item.timestamp)}</dd>
-        </dl>
-        <div className="flex items-center gap-2 border-t border-border px-4 py-2">
-          <span className="flex-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-            {compare.status === 'ready'
-              ? `${compare.result.entries.length} ${compare.result.entries.length === 1 ? 'file' : 'files'} changed`
-              : 'Files'}
-          </span>
-          <Button variant="ghost" size="xs" disabled={compare.status !== 'ready'} onClick={openAll}>
-            <FileDiff className="size-3.5" />
-            {translate('local.gitGraph.openAllChanges', 'Open all changes')}
-          </Button>
-        </div>
-        {compare.status === 'loading' && (
-          <div className="px-4 py-2 text-xs text-muted-foreground">Loading files…</div>
-        )}
-        {compare.status === 'error' && (
-          <div className="px-4 py-2 text-xs text-destructive">{compare.error}</div>
-        )}
-        {compare.status === 'ready' &&
-          compare.result.entries.map((entry, index) => {
-            const status = entry.status as GitFileStatus
-            const dir = dirname(entry.path)
-            return (
+      <div className="flex max-h-[20rem] min-h-0 scrollbar-sleek @max-2xl:flex-col @max-2xl:overflow-y-auto">
+        <div className="min-w-0 scrollbar-sleek @2xl:flex-1 @2xl:overflow-y-auto">
+          <dl className="grid grid-cols-[5rem_minmax(0,1fr)] gap-x-2 gap-y-1 px-4 py-1.5 text-xs">
+            <dt className="text-muted-foreground">Commit</dt>
+            <dd className="flex min-w-0 items-center gap-1 font-mono">
+              <span className="truncate">{item.id}</span>
               <button
-                key={`${entry.path}:${index}`}
                 type="button"
-                title={entry.path}
-                className="flex w-full min-w-0 items-center gap-1.5 px-4 py-1 text-left text-xs hover:bg-accent/40"
-                onClick={() => openFile(index, false)}
-                onDoubleClick={() => openFile(index, true)}
+                className="shrink-0 text-muted-foreground hover:text-foreground"
+                onClick={() => copy(item.id, 'Commit hash')}
+                aria-label="Copy commit hash"
               >
-                <FileTypeIcon
-                  filePath={entry.path}
-                  className="size-3.5 shrink-0"
-                  style={{ color: STATUS_COLORS[status] }}
-                />
-                <span className="min-w-0 flex-1 truncate">
-                  <span className="text-foreground">{basename(entry.path)}</span>
-                  {dir && dir !== '.' && (
-                    <span className="ml-1.5 text-muted-foreground">{dir}</span>
-                  )}
-                </span>
-                <span
-                  className="w-4 shrink-0 text-center text-[11px] font-bold"
-                  style={{ color: STATUS_COLORS[status] }}
-                >
-                  {STATUS_LABELS[status]}
-                </span>
+                <Copy className="size-3" />
               </button>
-            )
-          })}
-        {body && (
-          <pre className="mx-4 mt-2 mb-3 border-t border-border pt-3 font-sans text-xs whitespace-pre-wrap break-words text-foreground/90">
-            {body}
-          </pre>
-        )}
+            </dd>
+            {item.parentIds.length > 0 && (
+              <>
+                <dt className="text-muted-foreground">
+                  {item.parentIds.length > 1 ? 'Parents' : 'Parent'}
+                </dt>
+                <dd className="flex flex-wrap gap-x-2 font-mono">
+                  {item.parentIds.map((parent) => (
+                    <button
+                      key={parent}
+                      type="button"
+                      className="text-primary hover:underline"
+                      onClick={() => onSelectCommit(parent)}
+                    >
+                      {parent.slice(0, 8)}
+                    </button>
+                  ))}
+                </dd>
+              </>
+            )}
+            <dt className="text-muted-foreground">Author</dt>
+            <dd className="truncate">
+              {item.author}
+              {item.authorEmail ? (
+                <span className="text-muted-foreground"> &lt;{item.authorEmail}&gt;</span>
+              ) : null}
+            </dd>
+            <dt className="text-muted-foreground">Date</dt>
+            <dd>{formatGitHistoryTimestamp(item.timestamp)}</dd>
+          </dl>
+          {body && (
+            <pre className="mx-4 mt-1 mb-3 border-t border-border pt-2 font-sans text-xs whitespace-pre-wrap break-words text-foreground/90">
+              {body}
+            </pre>
+          )}
+        </div>
+        <div className="min-w-0 border-border pb-2 scrollbar-sleek @max-2xl:border-t @2xl:w-[45%] @2xl:shrink-0 @2xl:overflow-y-auto @2xl:border-l">
+          {files}
+        </div>
       </div>
     </div>
   )
