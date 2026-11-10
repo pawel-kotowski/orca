@@ -97,7 +97,10 @@ function CompactAgentMessageCard({
     }
   }
   return (
-    <div className="group @container w-full rounded-xl border border-border bg-card text-sm text-card-foreground">
+    <div
+      data-native-chat-surface="agent-message"
+      className="group @container w-full rounded-2xl border text-sm text-card-foreground"
+    >
       <div
         className="relative flex min-w-0 items-center gap-2 px-3 py-1.5"
         data-state={disclosure.open ? 'open' : 'closed'}
@@ -231,7 +234,10 @@ function PreviewAgentMessageCard({
     return () => observer.disconnect()
   }, [text])
   return (
-    <div className="group flex w-full gap-3 rounded-xl border border-border bg-card p-3 text-sm text-card-foreground">
+    <div
+      data-native-chat-surface="agent-message"
+      className="group flex w-full gap-3 rounded-2xl border p-3 text-sm text-card-foreground"
+    >
       <AgentMessageAvatar
         sender={agentMessagePrimarySender(from)}
         dispatchId={message.agentStartDispatchId}

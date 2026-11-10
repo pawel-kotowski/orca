@@ -101,7 +101,10 @@ export function NativeChatQueuedMessageList({
     <div ref={regionRef} aria-live="polite">
       {cards.length > 0 ? (
         <div ref={queueRef} className="mx-auto w-full max-w-(--chat-content-max-width) px-4 py-1">
-          <div className="divide-y divide-border rounded-md border border-border bg-card text-card-foreground">
+          <div
+            data-native-chat-surface="card"
+            className="divide-y divide-border rounded-md border border-border bg-card text-card-foreground"
+          >
             <NativeChatQueueHeader
               count={cards.length}
               attentionCaption={attentionCaption}

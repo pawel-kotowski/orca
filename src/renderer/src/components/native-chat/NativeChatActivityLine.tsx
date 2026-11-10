@@ -51,7 +51,8 @@ export function NativeChatActivityLine({
       {/* Why the bordered surface: the line sits over the transcript's edge, and over a theme
           image a bare line reads as part of the chat text (Paweł, 2026-11-10). */}
       <div
-        className="mx-auto flex w-full max-w-(--chat-content-max-width) items-start gap-2 rounded-lg border border-border bg-muted/50 px-2 py-1 text-2xs text-muted-foreground shadow-xs"
+        data-native-chat-surface="activity-line"
+        className="mx-auto flex w-full max-w-(--chat-content-max-width) items-start gap-2 rounded-2xl border px-2.5 py-1 text-2xs text-muted-foreground"
         onClick={(event) => {
           // Why only the line itself: a click on an item opens that item.
           if (toggles && event.target === event.currentTarget) {

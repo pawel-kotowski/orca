@@ -22,6 +22,7 @@ export function NativeChatComposerNotices({
   return (
     <ul
       aria-live="polite"
+      data-native-chat-surface="card"
       className={cn(
         'divide-y divide-border overflow-hidden rounded-md border border-border bg-card text-xs text-card-foreground',
         ordered[0]?.kind === 'error' && 'border-destructive/30',

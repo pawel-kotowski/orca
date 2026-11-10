@@ -74,6 +74,7 @@ export function NativeChatApprovalCard({
                 escape()
               }
             }}
+            data-native-chat-surface="card"
             className="flex min-h-0 w-full flex-1 flex-col gap-2 overflow-hidden rounded-lg border border-input bg-card px-4 py-3 shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <div className="flex shrink-0 items-start gap-2">

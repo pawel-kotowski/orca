@@ -56,6 +56,7 @@ export function NativeChatPromptStrip({
       <div className="mx-auto w-full max-w-(--chat-content-max-width) px-3 pt-2 sm:px-4">
         <div
           data-native-chat-prompt-strip="true"
+          data-native-chat-surface="card"
           className="flex items-center gap-2 rounded-lg border border-input bg-card py-1 pr-1.5 pl-3.5 shadow-xs"
         >
           <p className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">{title}</p>

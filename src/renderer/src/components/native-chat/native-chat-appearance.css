@@ -237,13 +237,23 @@
   background-position: center, var(--activity-preview-bg-position, center);
 }
 
-/* Local build: a flat, modern message box (Paweł, 2026-11-05: "make input box look super modern and
-   glassy"; 2026-11-07: the gradient and lit edge "looks like 90s ... remove gradient and make it
-   actually modern"). One flat translucent fill with a quiet blur behind it, a hairline border, a
-   barely-there shadow, and focus only firms up the border: no gradient, no inner highlight, no halo
-   ring. Unlayered, so it overrides the box's Tailwind surface, border, radius and shadow. */
-[data-native-chat-composer-column] > .group\/composer {
-  border-radius: 1rem;
+/* Local build: one surface for every box in a chat (Paweł, 2026-11-05: "make input box look super
+   modern and glassy"; 2026-11-07: the gradient and lit edge "looks like 90s ... remove gradient and
+   make it actually modern"; 2026-11-10: the message box, the worker and shell lines and the Orca
+   mail cards were three different boxes, "it should all be consistent depending on used theme").
+   The message box, Jump to latest and every other box in the chat (`data-native-chat-surface`: the
+   worker / shell / background-task lines, Orca mail and agent message cards, question, approval,
+   queued-message and notice cards) share one flat translucent fill of the theme's composer
+   surface with a quiet blur behind it, a hairline border, a barely-there shadow and one radius;
+   focus or hover only firms up the border. Unlayered, so it overrides their Tailwind surface,
+   border, radius and shadow. */
+:is(
+  [data-native-chat-composer-column] > .group\/composer,
+  [data-native-chat-jump],
+  [data-native-chat-surface]
+) {
+  border-width: 1px;
+  border-style: solid;
   border-color: color-mix(in srgb, var(--chat-source-foreground, currentColor) 9%, transparent);
   background: color-mix(in srgb, var(--chat-composer-surface) 72%, transparent);
   -webkit-backdrop-filter: blur(16px);
@@ -252,31 +262,34 @@
   transition: border-color 150ms ease;
 }
 
-[data-native-chat-composer-column] > .group\/composer:focus-within {
+/* Why the jump button is left out: it stays round. */
+:is([data-native-chat-composer-column] > .group\/composer, [data-native-chat-surface]) {
+  border-radius: 1rem;
+}
+
+:is(
+  [data-native-chat-composer-column] > .group\/composer:focus-within,
+  [data-native-chat-jump]:hover,
+  [data-native-chat-surface]:focus-within
+) {
   border-color: color-mix(in srgb, var(--chat-source-foreground, currentColor) 18%, transparent);
 }
 
-/* Light themes: a slightly more solid fill and a lighter shadow, so the box stays clean on cream. */
-:root:not(.dark) [data-native-chat-composer-column] > .group\/composer {
+/* Light themes: a slightly more solid fill and a lighter shadow, so the boxes stay clean on cream. */
+:root:not(.dark)
+  :is(
+    [data-native-chat-composer-column] > .group\/composer,
+    [data-native-chat-jump],
+    [data-native-chat-surface]
+  ) {
   background: color-mix(in srgb, var(--chat-composer-surface) 85%, transparent);
   box-shadow: 0 1px 2px rgb(0 0 0 / 0.05);
 }
 
-/* Jump to latest: small, drawn like the message box beside it (2026-11-09). */
-[data-native-chat-jump] {
-  border: 1px solid color-mix(in srgb, var(--chat-source-foreground, currentColor) 9%, transparent);
-  background: color-mix(in srgb, var(--chat-composer-surface) 72%, transparent);
-  -webkit-backdrop-filter: blur(16px);
-  backdrop-filter: blur(16px);
-  box-shadow: 0 1px 2px rgb(0 0 0 / 0.12);
-  transition: border-color 150ms ease;
-}
-
-[data-native-chat-jump]:hover {
-  border-color: color-mix(in srgb, var(--chat-source-foreground, currentColor) 18%, transparent);
-}
-
-:root:not(.dark) [data-native-chat-jump] {
-  background: color-mix(in srgb, var(--chat-composer-surface) 85%, transparent);
-  box-shadow: 0 1px 2px rgb(0 0 0 / 0.05);
+/* The background-task strip joins the tab strip under it: square bottom, no shadow between them. */
+[data-native-chat-background-tasks]:has(+ [data-native-chat-composer-tab-strip])
+  [data-native-chat-surface] {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  box-shadow: none;
 }

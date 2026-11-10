@@ -61,7 +61,10 @@ export function NativeChatInteractiveCard({
       return (
         <div className="shrink-0 bg-chat-pane">
           <div className="mx-auto w-full max-w-(--chat-content-max-width) px-3 pt-2 pb-4 sm:px-4">
-            <div className="rounded-lg border border-input bg-card p-3 shadow-xs">
+            <div
+              data-native-chat-surface="card"
+              className="rounded-lg border border-input bg-card p-3 shadow-xs"
+            >
               <p className="text-sm text-foreground">
                 {translate(
                   'components.native-chat.question.terminalRequired',

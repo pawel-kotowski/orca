@@ -25,6 +25,7 @@ export function NativeChatInstallStrip(props: {
   return (
     <div
       data-native-chat-install="strip"
+      data-native-chat-surface="card"
       className="flex items-center gap-3 rounded-xl border border-input bg-card px-3.5 py-3 text-sm shadow-xs"
     >
       <NativeChatInstallTile

@@ -251,7 +251,10 @@ export function NativeChatQuestionCard({
           </div>
         ) : null}
 
-        <div className="overflow-hidden rounded-lg border border-input bg-card shadow-xs">
+        <div
+          data-native-chat-surface="card"
+          className="overflow-hidden rounded-lg border border-input bg-card shadow-xs"
+        >
           <div className="flex items-start gap-2 px-3.5 py-2.5">
             <NativeChatQuestionText
               data-testid="native-chat-question-card-title"
