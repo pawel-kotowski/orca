@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
   claudeTranscriptSessionValues,
-  withClaudeHookEffort
+  withClaudeHookEffort,
+  withClaudeStartingEffort
 } from './claude-terminal-session-options'
 
 describe('a Claude chat names its model from the transcript when the startup frame is gone', () => {
@@ -58,5 +59,28 @@ describe('a Claude chat names its model from the transcript when the startup fra
       model: 'opus',
       effort: 'xhigh'
     })
+  })
+})
+
+describe('a Claude chat shows an effort before Claude reports one', () => {
+  const starting = { flag: null, byModel: { 'claude-opus-5-5': 'xhigh' }, fallback: 'high' }
+
+  it('fills in the level Claude started the model at', () => {
+    expect(withClaudeStartingEffort({ model: 'claude-opus-5-5' }, starting)).toEqual({
+      model: 'claude-opus-5-5',
+      effort: 'xhigh'
+    })
+    expect(withClaudeStartingEffort({ model: 'opus' }, starting)).toEqual({
+      model: 'opus',
+      effort: 'high'
+    })
+  })
+
+  it('never overrides an effort Claude itself named', () => {
+    expect(withClaudeStartingEffort({ model: 'opus', effort: 'low' }, starting)).toEqual({
+      model: 'opus',
+      effort: 'low'
+    })
+    expect(withClaudeStartingEffort({ model: 'opus' }, null)).toEqual({ model: 'opus' })
   })
 })

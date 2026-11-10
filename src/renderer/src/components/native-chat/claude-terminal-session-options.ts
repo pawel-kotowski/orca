@@ -3,6 +3,10 @@ import type { CatalogModel } from '../../../../shared/agent-session/options/agen
 import type { SessionOptionValue } from '../../../../shared/native-chat/input/native-chat-session-options'
 import { stripScrollbackAnsi } from './native-chat-scrape-fallback'
 import { labelFromModelId } from '../../../../shared/model-id-label'
+import {
+  claudeStartingEffort,
+  type ClaudeSessionEffortSettings
+} from '../../../../shared/native-chat/claude-session-effort-types'
 
 const EFFORT_ID_BY_LABEL: Record<string, string> = {
   low: 'low',
@@ -247,6 +251,23 @@ export function withClaudeHookEffort(
 ): Record<string, SessionOptionValue> {
   const effort = hookEffort ? EFFORT_ID_BY_LABEL[hookEffort.toLowerCase()] : undefined
   return effort && 'model' in values ? { ...values, effort } : values
+}
+
+/**
+ * Until Claude names its effort (startup frame or hooks), the level it started with: its flag,
+ * else its config's saved level for the model. Paweł, 2026-11-10: "i should always see effort
+ * level, always".
+ */
+export function withClaudeStartingEffort(
+  values: Record<string, SessionOptionValue>,
+  starting: ClaudeSessionEffortSettings | null
+): Record<string, SessionOptionValue> {
+  if ('effort' in values || typeof values.model !== 'string') {
+    return values
+  }
+  const level = claudeStartingEffort(starting, values.model)
+  const effort = level ? EFFORT_ID_BY_LABEL[level.toLowerCase()] : undefined
+  return effort ? { ...values, effort } : values
 }
 
 /**

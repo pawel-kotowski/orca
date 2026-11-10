@@ -3,6 +3,7 @@ import type {
   NativeChatReadSubagentsResult
 } from '../../shared/native-chat/native-chat-subagent-transcripts'
 import type { ClaudeProjectSession } from '../../shared/native-chat/claude-project-session-types'
+import type { ClaudeSessionEffortSettings } from '../../shared/native-chat/claude-session-effort-types'
 import type { AgentType } from '../../shared/agent-status/contracts/agent-status-types'
 import type { NativeChatVisualTheme } from '../../shared/native-chat/native-chat-visual-shell'
 import type {
@@ -81,6 +82,8 @@ export type NativeChatApi = {
   getConversationNameFailureOutput: (sessionId: string) => Promise<string | null>
   /** Context window per model id from the Claude catalog cached beside a local transcript. */
   getClaudeContextWindows?: (transcriptPath: string) => Promise<Record<string, number>>
+  /** The effort a local Claude session started with: its flag, else its config's saved levels. */
+  getClaudeSessionEffort?: (sessionId: string) => Promise<ClaudeSessionEffortSettings>
   listClaudeProjectSessions?: (transcriptPath: string) => Promise<ClaudeProjectSession[]>
   /** A local Claude session's own subagents, read from the transcripts beside the session's. */
   readClaudeSubagents?: (

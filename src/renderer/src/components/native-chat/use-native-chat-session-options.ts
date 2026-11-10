@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useSyncExternalStore } from 'react'
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import type { AgentType } from '../../../../shared/agent-status/contracts/agent-status-types'
 import { getAgentSessionOptionCatalog } from '../../../../shared/agent-session/options/agent-session-option-catalog'
 import { matchNativeChatCatalogModelId } from '../../../../shared/native-chat/input/native-chat-session-option-state'
@@ -22,8 +22,10 @@ import {
 import {
   claudeTranscriptSessionValues,
   readClaudeSessionOptionsFromTerminalScreen,
-  withClaudeHookEffort
+  withClaudeHookEffort,
+  withClaudeStartingEffort
 } from './claude-terminal-session-options'
+import type { ClaudeSessionEffortSettings } from '../../../../shared/native-chat/claude-session-effort-types'
 
 import { enqueueSessionOptionSettingsWrite } from './native-chat-session-option-settings-write'
 
@@ -64,6 +66,35 @@ export function useNativeChatSessionOptions(args: {
       ? (state.agentStatusByPaneKey[paneKey]?.providerSession?.effort ?? null)
       : null
   )
+  // Until Claude reports an effort, the one it started with (its flag or its config's saved level).
+  const claudeSessionId = useAppStore((state) =>
+    paneKey && agent === 'claude'
+      ? (state.agentStatusByPaneKey[paneKey]?.providerSession?.id ?? null)
+      : null
+  )
+  const [startingEffort, setStartingEffort] = useState<{
+    sessionId: string
+    settings: ClaudeSessionEffortSettings
+  } | null>(null)
+  useEffect(() => {
+    const read = window.api?.nativeChat?.getClaudeSessionEffort
+    if (!claudeSessionId || !read) {
+      return
+    }
+    let cancelled = false
+    void read(claudeSessionId)
+      .then((settings) => {
+        if (!cancelled) {
+          setStartingEffort({ sessionId: claudeSessionId, settings })
+        }
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [claudeSessionId])
+  const startingEffortSettings =
+    startingEffort && startingEffort.sessionId === claudeSessionId ? startingEffort.settings : null
   const reportedModel = useAppStore((state) =>
     paneKey ? (state.agentStatusByPaneKey[paneKey]?.model ?? null) : null
   )
@@ -160,7 +191,12 @@ export function useNativeChatSessionOptions(args: {
           return
         }
         reportedScreenRef.current = screen
-        surface.reportSessionOptions(withClaudeHookEffort(reportedValues, hookEffort))
+        surface.reportSessionOptions(
+          withClaudeStartingEffort(
+            withClaudeHookEffort(reportedValues, hookEffort),
+            startingEffortSettings
+          )
+        )
         return
       }
       // Why: the startup frame scrolls away or a resumed session never draws it; the newest
@@ -171,7 +207,9 @@ export function useNativeChatSessionOptions(args: {
         hookEffort
       )
       if (transcriptValues && !cancelled) {
-        surface.reportSessionOptions(transcriptValues)
+        surface.reportSessionOptions(
+          withClaudeStartingEffort(transcriptValues, startingEffortSettings)
+        )
       }
     }
     void reportCurrentValues()
@@ -183,6 +221,7 @@ export function useNativeChatSessionOptions(args: {
     discoveryContext,
     hookEffort,
     readTerminalScreen,
+    startingEffortSettings,
     surface,
     targetPtyId,
     transcriptModel
