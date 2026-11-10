@@ -89,7 +89,7 @@ function kindIconTone(kind: AgentSessionBackgroundTask['kind'], dimmed: boolean)
   return dimmed ? `${tone}/40` : tone
 }
 
-function BackgroundTaskRow(props: {
+export function BackgroundTaskRow(props: {
   row: AgentChildRowModel
   now: number
   supportsTaskStop: boolean
