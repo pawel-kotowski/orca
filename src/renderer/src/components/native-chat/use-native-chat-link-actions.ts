@@ -11,7 +11,8 @@ import { resolveNativeChatHttpLinkRouting } from './native-chat-link-target-acti
 import { handleNativeChatWebLink } from './native-chat-web-link-actions'
 import { nativeChatPlainLinkClickBehavior } from './native-chat-link-click-behavior'
 import { useNativeChatFileLinkClick } from './use-native-chat-file-link-click'
-import { useNativeChatClaudeIdentity } from './native-chat-account-usage'
+import { accountShortName, useNativeChatClaudeIdentity } from './native-chat-account-usage'
+import { projectDefaultClaudeAccount } from '@/lib/project-default-claude-identity'
 
 export type NativeChatLinkActions = {
   onLinkClick: CommentMarkdownLinkClickHandler | undefined
@@ -58,17 +59,23 @@ export function useNativeChatLinkActions(
       if (route.kind !== 'web' || !/^https?:/i.test(route.url)) {
         return
       }
-      // Why: a plain click opens the link in the Chrome profile of the chat's subscription owner
-      // (Paweł, 2026-11-09); a modifier click keeps Orca's own link actions.
+      // Why: a plain click opens the link in the Chrome profile of the project's default
+      // subscription, whatever account this chat runs on (Paweł, 2026-11-10: "I always have to
+      // open chrome in profile that is default for given project"); the chat's own account only
+      // for a project without one. A modifier click keeps Orca's own link actions.
+      const projectAccount = projectDefaultClaudeAccount(useAppStore.getState(), context.worktreeId)
+      const chromeAccount = projectAccount
+        ? { email: projectAccount.email, name: accountShortName(projectAccount.email) }
+        : identityRef.current
       const plain =
         (event.button ?? 0) === 0 &&
         !event.metaKey &&
         !event.ctrlKey &&
         !event.shiftKey &&
         !event.altKey
-      if (plain && identityRef.current) {
+      if (plain && chromeAccount) {
         event.preventDefault()
-        void window.api.shell.openUrl(route.url, identityRef.current)
+        void window.api.shell.openUrl(route.url, chromeAccount)
         return
       }
       // Read at click time: settings and workspace ownership must not re-render the transcript.
