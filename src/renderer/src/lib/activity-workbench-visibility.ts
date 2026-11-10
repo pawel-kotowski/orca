@@ -1,5 +1,7 @@
 import { useEffect, useSyncExternalStore } from 'react'
 import { useAppStore } from '@/store'
+import { hideFloatingWorkspacePanel } from '@/lib/floating-workspace-panel-reveal'
+import { selectFloatingWorkspacePanelVisible } from '@/store/floating-workspace-panel-selector'
 
 // Why: in the activity view the main area can step aside, like the floating workspace hides:
 // the tabs stay mounted and their agents keep running; only the view is hidden.
@@ -106,6 +108,20 @@ function focusKeepsEscape(target: Element | null): boolean {
   return target.closest('input, textarea, select, [contenteditable="true"]') !== null
 }
 
+// Why: the floating workspace is the activity view's other way to show an agent; Escape in its chat
+// closes the panel, not the tabs behind it (Paweł, 2026-11-10: Escape there stopped the agent).
+function inFloatingPanel(target: Element | null): boolean {
+  return target?.closest('[data-floating-terminal-panel]') != null
+}
+
+function hideWorkspaceOf(target: Element | null): void {
+  if (inFloatingPanel(target)) {
+    hideFloatingWorkspacePanel(useAppStore.getState())
+    return
+  }
+  setActivityHidesWorkbench(true)
+}
+
 // A chat whose agent works would stop on Escape; in the activity view the person is asked first.
 let pendingInterrupt: Element | null = null
 let passingEscape = false
@@ -141,8 +157,9 @@ export function useActivityInterruptPrompt(): {
   return {
     open,
     hide: () => {
+      const target = pendingInterrupt
       setPendingInterrupt(null)
-      setActivityHidesWorkbench(true)
+      hideWorkspaceOf(target)
     },
     stop: () => {
       const target = pendingInterrupt
@@ -193,13 +210,21 @@ function chatEscapeIsSpokenFor(target: Element): boolean {
 export function useActivityEscapeHidesWorkbench(): void {
   useEffect(() => {
     const showsTabs = (): boolean => useAppStore.getState().sidebarBody === 'agents' && !hidden
+    // A floating chat shows on its own panel, whether or not the tabs behind it are hidden.
+    const showsChatOf = (target: Element): boolean => {
+      const state = useAppStore.getState()
+      if (!inFloatingPanel(target)) {
+        return showsTabs()
+      }
+      return state.sidebarBody === 'agents' && selectFloatingWorkspacePanelVisible(state)
+    }
     const onChatKeyDown = (event: KeyboardEvent): void => {
-      if (event.key !== 'Escape' || event.isComposing || passingEscape || !showsTabs()) {
+      if (event.key !== 'Escape' || event.isComposing || passingEscape) {
         return
       }
       const target = event.target instanceof Element ? event.target : null
       const chat = target?.closest('[data-native-chat-root]')
-      if (!target || !chat || chatEscapeIsSpokenFor(target)) {
+      if (!target || !chat || !showsChatOf(target) || chatEscapeIsSpokenFor(target)) {
         return
       }
       event.preventDefault()
@@ -208,7 +233,7 @@ export function useActivityEscapeHidesWorkbench(): void {
         setPendingInterrupt(target)
         return
       }
-      setActivityHidesWorkbench(true)
+      hideWorkspaceOf(target)
     }
     const onKeyDown = (event: KeyboardEvent): void => {
       if (event.key !== 'Escape' || event.isComposing || passingEscape) {
