@@ -76,11 +76,14 @@ function plainLine(text: string): string {
 export function ActivityWorkerRow({
   worker,
   coordinator,
-  onOpenWorker
+  onOpenWorker,
+  compact = false
 }: {
   worker: AgentPaneThread
   coordinator: AgentPaneThread
   onOpenWorker: (worker: AgentPaneThread, event: React.MouseEvent) => void
+  /** The chat's one-line cell: the footer's small type, the name not capped to a share. */
+  compact?: boolean
 }): React.JSX.Element {
   const conversation = useActivityThreadConversation(worker, true)
   const name = workerName(worker, coordinator)
@@ -97,12 +100,16 @@ export function ActivityWorkerRow({
         event.stopPropagation()
         onOpenWorker(worker, event)
       }}
-      className="flex min-w-0 cursor-pointer items-center gap-1.5 rounded px-1 py-0.5 text-left text-[12px] leading-[18px] outline-none hover:bg-foreground/[0.06] focus-visible:ring-1 focus-visible:ring-ring"
+      className={`flex min-w-0 cursor-pointer items-center gap-1.5 rounded text-left outline-none hover:bg-foreground/[0.06] focus-visible:ring-1 focus-visible:ring-ring ${
+        compact ? 'h-4 px-0.5 text-2xs leading-4' : 'px-1 py-0.5 text-[12px] leading-[18px]'
+      }`}
     >
       <span className="inline-flex size-3.5 shrink-0 items-center justify-center">
         <AgentStateDot state={activityThreadStatusId(worker)} size="sm" />
       </span>
-      <span className="min-w-0 max-w-[45%] shrink-0 truncate font-medium text-foreground/90">
+      <span
+        className={`min-w-0 shrink-0 truncate font-medium text-foreground/90 ${compact ? 'max-w-[60%]' : 'max-w-[45%]'}`}
+      >
         {name}
       </span>
       {line ? <span className="min-w-0 flex-1 truncate text-muted-foreground">{line}</span> : null}

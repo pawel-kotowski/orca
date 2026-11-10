@@ -1,30 +1,19 @@
-import { useMemo, useRef, useState } from 'react'
-import { ArrowLeft, Workflow } from 'lucide-react'
+import { useMemo } from 'react'
+import { ArrowLeft } from 'lucide-react'
 import { translate } from '@/i18n/i18n'
 import { useAppStore } from '@/store'
 import { createActivityThreadActions } from '@/components/activity/activity-thread-actions'
-import {
-  ActivityWorkerRow,
-  activityWorkersSummary
-} from '@/components/activity/activity-thread-workers'
+import { ActivityWorkerRow } from '@/components/activity/activity-thread-workers'
 import { useCoordinatorWorkers } from '@/components/activity/activity-workers-feed'
-import {
-  activityThreadRowCopy,
-  activityThreadStatusId
-} from '@/components/activity/activity-thread-presentation'
-import { NativeChatFooterChip } from './native-chat-footer-slot'
-
-function isLive(state: ReturnType<typeof activityThreadStatusId>): boolean {
-  return state === 'working' || state === 'monitoring'
-}
+import { activityThreadRowCopy } from '@/components/activity/activity-thread-presentation'
+import { NativeChatActivityLine } from './NativeChatActivityLine'
 
 /**
  * Orca workers in a chat (Paweł, 2026-11-10: "I need to see both native harness subagents and orca
- * subagents in given chat"), taking no space until asked ("they should take no space until i
- * click", "even if there are many running i dont need header row"). On the line under the message
- * box: a worker's chat gets a chip back to its coordinator ("i cant go back after click child in
- * parent chat"); a coordinator's chat gets a chip with its workers' count, which opens their rows
- * (the activity card's: state, name, latest line; a row opens the worker) above the box.
+ * subagents in given chat"), always shown above the message box, one thin line each: a worker's
+ * chat names its coordinator, one click back to it ("for child parent always visible over input
+ * box"); a coordinator's chat lists its workers side by side (the activity card's state, name and
+ * latest line; a click opens the worker), wrapping onto more rows only when asked.
  */
 export function NativeChatWorkersStrip({
   paneKey
@@ -32,8 +21,6 @@ export function NativeChatWorkersStrip({
   paneKey: string | null
 }): React.JSX.Element | null {
   const { coordinator, workers, parent } = useCoordinatorWorkers(paneKey)
-  const [open, setOpen] = useState(false)
-  const anchor = useRef<HTMLSpanElement>(null)
   const actions = useMemo(() => {
     const state = useAppStore.getState()
     return createActivityThreadActions({
@@ -43,63 +30,54 @@ export function NativeChatWorkersStrip({
       setSelectedPaneKey: () => {}
     })
   }, [])
-  if (!paneKey || !coordinator || (workers.length === 0 && !parent)) {
+  if (!paneKey || !coordinator) {
     return null
   }
-  const working = workers.filter((worker) => isLive(activityThreadStatusId(worker))).length
-  const summary = activityWorkersSummary(workers)
   const parentName = parent ? activityThreadRowCopy(parent).workspaceLabel : ''
   return (
     <>
-      {/* Why an anchor: it finds this chat's footer while the strip takes no space. */}
-      <span ref={anchor} hidden />
       {parent ? (
-        <NativeChatFooterChip
-          anchor={anchor}
-          pressed={null}
-          title={translate('components.activity.workers.of', 'Worker of {{name}}', {
-            name: parentName
-          })}
-          onClick={() => actions.selectThread(parent)}
-        >
-          <ArrowLeft aria-hidden="true" className="size-3 shrink-0" />
-          <span className="min-w-0 truncate">{parentName}</span>
-        </NativeChatFooterChip>
+        <NativeChatActivityLine
+          kind="coordinator"
+          cells={[
+            {
+              key: parent.paneKey,
+              node: (
+                <button
+                  type="button"
+                  title={translate('components.activity.workers.of', 'Worker of {{name}}', {
+                    name: parentName
+                  })}
+                  onClick={() => actions.selectThread(parent)}
+                  className="flex h-4 min-w-0 cursor-pointer items-center gap-1 rounded px-0.5 outline-none hover:bg-foreground/[0.06] hover:text-foreground focus-visible:ring-1 focus-visible:ring-ring"
+                >
+                  <ArrowLeft aria-hidden="true" className="size-3 shrink-0" />
+                  <span className="shrink-0">
+                    {translate('components.activity.workers.workerOf', 'Worker of')}
+                  </span>
+                  <span className="min-w-0 truncate font-medium text-chat-foreground">
+                    {parentName}
+                  </span>
+                </button>
+              )
+            }
+          ]}
+        />
       ) : null}
-      {workers.length > 0 ? (
-        <NativeChatFooterChip
-          anchor={anchor}
-          pressed={open}
-          title={summary}
-          onClick={() => setOpen(!open)}
-        >
-          <Workflow
-            aria-hidden="true"
-            className="size-3 shrink-0"
-            // Why inline: an arbitrary Tailwind colour class over a variable is not generated.
-            style={working > 0 ? { color: 'var(--chat-hue-blue, currentColor)' } : undefined}
-          />
-          <span className="tabular-nums">
-            {working > 0 ? `${working}/${workers.length}` : workers.length}
-          </span>
-        </NativeChatFooterChip>
-      ) : null}
-      {open && workers.length > 0 ? (
-        <div data-native-chat-workers="" className="shrink-0 bg-chat-pane px-3 pt-2 sm:px-4">
-          <div className="mx-auto w-full max-w-(--chat-content-max-width)">
-            <div className="scrollbar-sleek flex max-h-40 flex-col overflow-y-auto rounded-lg border border-border bg-muted/50 px-2 py-1 text-xs text-muted-foreground shadow-xs">
-              {workers.map((worker) => (
-                <ActivityWorkerRow
-                  key={worker.paneKey}
-                  worker={worker}
-                  coordinator={coordinator}
-                  onOpenWorker={(target) => actions.selectThread(target)}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <NativeChatActivityLine
+        kind="workers"
+        cells={workers.map((worker) => ({
+          key: worker.paneKey,
+          node: (
+            <ActivityWorkerRow
+              compact
+              worker={worker}
+              coordinator={coordinator}
+              onOpenWorker={(target) => actions.selectThread(target)}
+            />
+          )
+        }))}
+      />
     </>
   )
 }

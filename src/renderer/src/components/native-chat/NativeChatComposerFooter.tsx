@@ -1,5 +1,3 @@
-import { useLayoutEffect, useRef } from 'react'
-import { registerNativeChatFooterSlot } from './native-chat-footer-slot'
 import { NativeChatAccountUsageChip } from './native-chat-account-usage'
 import { NativeChatViewSwitchButton } from './NativeChatViewSwitchButton'
 import { NativeChatPlaceLine } from './native-chat-place-line'
@@ -19,11 +17,6 @@ export function NativeChatComposerFooter({
   onSwitchToTerminal?: () => void
   contextUsage?: NativeChatContextUsageSummary | null
 }): React.JSX.Element {
-  const footerSlotRef = useRef<HTMLSpanElement>(null)
-  useLayoutEffect(() => {
-    const slot = footerSlotRef.current
-    return slot ? registerNativeChatFooterSlot(slot) : undefined
-  }, [])
   return (
     // Why a container: the limit bars collapse to percentages when this line is narrow.
     // Why one line: the place takes what is left and truncates, instead of dropping to a second
@@ -32,12 +25,6 @@ export function NativeChatComposerFooter({
     <div className="@container/chat-footer -mb-2 mt-1 flex flex-nowrap items-center gap-x-2.5 gap-y-1 px-3">
       <NativeChatAccountUsageChip />
       <NativeChatContextUsageChip usage={contextUsage} />
-      {/* Workers and running shells put their chips here; their rows open above the box. */}
-      <span
-        ref={footerSlotRef}
-        data-native-chat-footer-chips=""
-        className="flex min-w-0 shrink-0 items-center gap-1 empty:hidden"
-      />
       {onSwitchToTerminal ? (
         <NativeChatViewSwitchButton
           to="terminal"
