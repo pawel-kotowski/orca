@@ -2,6 +2,7 @@ import { getAgentSessionOptionCatalog } from '../../../../shared/agent-session/o
 import type { CatalogModel } from '../../../../shared/agent-session/options/agent-session-option-catalog-types'
 import type { SessionOptionValue } from '../../../../shared/native-chat/input/native-chat-session-options'
 import { stripScrollbackAnsi } from './native-chat-scrape-fallback'
+import { labelFromModelId } from '../../../../shared/model-id-label'
 
 const EFFORT_ID_BY_LABEL: Record<string, string> = {
   low: 'low',
@@ -125,6 +126,18 @@ function modelNameTokens(value: string): string[] {
   return value.toLowerCase().match(/[a-z]+|\d+[a-z]*/g) ?? []
 }
 
+/** The plain numbers right after the family (`5`, `2` in `fable 5 2`), joined; '' when none. */
+function leadingVersion(tokens: readonly string[]): string {
+  const version: string[] = []
+  for (const token of tokens.slice(1)) {
+    if (!/^\d+$/.test(token)) {
+      break
+    }
+    version.push(token)
+  }
+  return version.join('.')
+}
+
 /** Match a whole leading family and ordered variant tokens, allowing inserted versions without claiming vendor slugs or other context sizes. */
 function labelNamesReportedModel(reportedModel: string, label: string): boolean {
   const labelTokens = modelNameTokens(label)
@@ -137,6 +150,11 @@ function labelNamesReportedModel(reportedModel: string, label: string): boolean 
     return false
   }
   const nameTokens = modelNameTokens(name)
+  // Why: a label's version must be the whole version, so `Fable 5` never claims `Fable 5.2`.
+  const labelVersion = leadingVersion(labelTokens)
+  if (labelVersion && labelVersion !== leadingVersion(nameTokens)) {
+    return false
+  }
   let cursor = 1
   for (const token of labelTokens.slice(1)) {
     const found = nameTokens.indexOf(token, cursor)
@@ -198,6 +216,30 @@ export function readClaudeSessionOptionsFromTerminalScreen(
   return result
 }
 
+/**
+ * Whether `id` contains `candidate` without extending its version: `claude-fable-5` is not
+ * `claude-fable-5-2` (Paweł, 2026-11-10: a Fable 5.2 chat read "Fable 5"), but a family seed
+ * (`opus`) or a dated or context-sized id (`-20251001`, `[1m]`) still matches.
+ */
+function namesSameVersion(id: string, candidate: string): boolean {
+  const at = id.indexOf(candidate)
+  if (at === -1) {
+    return false
+  }
+  const rest = id.slice(at + candidate.length)
+  return !/^\d/.test(candidate.slice(-1)) || rest === '' || /^(?:\[|-\d{8}\b)/.test(rest)
+}
+
+/** The picker shows the first listed row for an id, so a discovered label hides the seed's. */
+function shownLabel(listed: readonly CatalogModel[], id: string): string {
+  return (listed.find((entry) => entry.id === id)?.label ?? '').toLowerCase()
+}
+
+/** A label with a version (`Fable 5.1`) that is not the reply's own would misname it. */
+function namesOtherVersion(entryLabel: string, replyLabel: string): boolean {
+  return /\d/.test(entryLabel) && entryLabel !== replyLabel
+}
+
 /** The live effort Claude reported on its hooks replaces the startup frame's, when known. */
 export function withClaudeHookEffort(
   values: Record<string, SessionOptionValue>,
@@ -223,12 +265,21 @@ export function claudeTranscriptSessionValues(
   }
   const listed = [...(models ?? []), ...(getAgentSessionOptionCatalog('claude')?.models ?? [])]
   const lower = id.toLowerCase()
+  const label = labelFromModelId(id.replace(/-\d{8}(?=$|\[)/u, ''))
+    .replace(/^Claude /, '')
+    .toLowerCase()
   const model =
     listed.find((entry) => entry.id.toLowerCase() === lower) ??
+    // Why: an alias row (`fable`) names the version it runs in its label (`Fable 5.2`).
+    listed.find((entry) => entry.label.toLowerCase() === label) ??
     // Why longest first: a discovered `claude-opus-5-5` beats the seed family `opus`.
     [...listed]
       .sort((left, right) => right.id.length - left.id.length)
-      .find((entry) => lower.includes(entry.id.toLowerCase().replace(/\[[^\]]*\]$/u, '')))
+      .find(
+        (entry) =>
+          namesSameVersion(lower, entry.id.toLowerCase().replace(/\[[^\]]*\]$/u, '')) &&
+          !namesOtherVersion(shownLabel(listed, entry.id), label)
+      )
   if (!model) {
     return { model: id }
   }

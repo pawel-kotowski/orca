@@ -228,6 +228,19 @@ describe('Claude terminal session option detection', () => {
     ).toEqual({ model: 'sonnet', effort: 'medium' })
   })
 
+  it('never reads a newer point release as the shorter version it starts with', () => {
+    // Paweł, 2026-11-10: a Fable 5.2 chat read "Fable 5" from a host list holding `claude-fable-5`.
+    expect(
+      readClaudeSessionOptionsFromTerminalScreen(
+        frame('Fable 5.2 with high effort · API Usage Billing'),
+        [
+          { id: 'claude-fable-5', label: 'Fable 5', options: [EFFORT] },
+          { id: 'fable', label: 'Fable 5.2', options: [EFFORT] }
+        ]
+      )
+    ).toEqual({ model: 'fable', effort: 'high' })
+  })
+
   it('falls back to a seed family the host list no longer offers', () => {
     expect(
       readClaudeSessionOptionsFromTerminalScreen(
