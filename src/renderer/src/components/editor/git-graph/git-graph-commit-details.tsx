@@ -186,9 +186,10 @@ export function GitGraphCommitDetails({
   )
 
   // Opens under the clicked row (Paweł, 2026-11-10: "when i click commit it should open below
-  // clicked commit, not on the side"): message and metadata on the left, files on the right;
-  // stacked when the tab is narrow. Each property is set by one container variant only: a base
-  // class such as flex-col wins over its @2xl: override in this build's CSS order.
+  // clicked commit, not on the side"): files on the left, message and metadata on the right
+  // ("file changes on the left, descirption on right"); stacked, files first, when the tab is
+  // narrow. Each property is set by one container variant only: a base class such as flex-col
+  // wins over its @2xl: override in this build's CSS order.
   return (
     <div className="@container flex min-w-0 flex-1 flex-col border-y border-border">
       <div className="flex shrink-0 items-start gap-2 px-4 pt-2.5 pb-1.5">
@@ -207,6 +208,9 @@ export function GitGraphCommitDetails({
         </Button>
       </div>
       <div className="flex max-h-[20rem] min-h-0 scrollbar-sleek @max-2xl:flex-col @max-2xl:overflow-y-auto">
+        <div className="min-w-0 border-border pb-2 scrollbar-sleek @max-2xl:border-b @2xl:w-[45%] @2xl:shrink-0 @2xl:overflow-y-auto @2xl:border-r">
+          {files}
+        </div>
         <div className="min-w-0 scrollbar-sleek @2xl:flex-1 @2xl:overflow-y-auto">
           <dl className="grid grid-cols-[5rem_minmax(0,1fr)] gap-x-2 gap-y-1 px-4 py-1.5 text-xs">
             <dt className="text-muted-foreground">Commit</dt>
@@ -255,9 +259,6 @@ export function GitGraphCommitDetails({
               {body}
             </pre>
           )}
-        </div>
-        <div className="min-w-0 border-border pb-2 scrollbar-sleek @max-2xl:border-t @2xl:w-[45%] @2xl:shrink-0 @2xl:overflow-y-auto @2xl:border-l">
-          {files}
         </div>
       </div>
     </div>
