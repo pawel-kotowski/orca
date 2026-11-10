@@ -18,12 +18,6 @@
     var(--chat-hue-yellow) 7%,
     var(--chat-inline-code-surface)
   );
-  --chat-tint-user-border: color-mix(in oklab, var(--chat-hue-blue) 40%, var(--chat-user-border));
-  --chat-tint-answer-border: color-mix(
-    in oklab,
-    var(--chat-hue-green) 32%,
-    var(--chat-code-border)
-  );
   --chat-tint-quote: color-mix(in oklab, var(--chat-hue-cyan) 60%, transparent);
 }
 
@@ -82,11 +76,5 @@
   border-left-color: var(--chat-tint-quote, revert-layer);
 }
 
-/* The person's own messages lean blue; a finished answer's frame leans green. */
-[data-native-chat-root] [data-native-chat-user-bubble] {
-  /* Why border only: the bubble's fill is the person's own colour choice (Settings → Chat). */
-  border-color: var(--chat-tint-user-border, var(--chat-user-border));
-}
-[data-native-chat-root] [data-native-chat-turn-answer] {
-  border-color: var(--chat-tint-answer-border, var(--chat-code-border));
-}
+/* Message frames keep the theme's plain border (Paweł, 2026-11-10: no colour on message frames):
+   neither the person's bubble nor a finished answer's frame takes a hue. */
