@@ -130,11 +130,16 @@ export function decodeClaudeTranscriptLine(
     return { id: recordMessageId, timestamp, source: 'transcript', ...stopHookFeedback, ...parent }
   }
   // Keep image-source companions despite isMeta: prompt base64 has no path and cannot render attachments.
-  const blocks = isInjectedUserTurn
-    ? isImageSourceRecord(decodedBlocks)
-      ? decodedBlocks
-      : decodedBlocks.filter((block) => block.type === 'tool-result')
-    : decodedBlocks
+  // Local build: a background task's `<task-notification>` (origin task-notification, which upstream
+  // counts as injected) keeps its text: the terminal chat's shell and subagent strips read their
+  // ends from it, and the view's noise filter still hides it (Paweł, 2026-11-12: finished shells
+  // stayed listed for an hour).
+  const blocks =
+    isInjectedUserTurn && !isClaudeTaskNotificationRecord(record)
+      ? isImageSourceRecord(decodedBlocks)
+        ? decodedBlocks
+        : decodedBlocks.filter((block) => block.type === 'tool-result')
+      : decodedBlocks
   if (blocks.length === 0) {
     return null
   }
@@ -162,6 +167,10 @@ export function decodeClaudeTranscriptLine(
 }
 
 /** The model that answered and its token accounting, which say how full the context window is. */
+function isClaudeTaskNotificationRecord(record: Record<string, unknown>): boolean {
+  return asRecord(record.origin)?.kind === 'task-notification'
+}
+
 function claudeServing(
   record: Record<string, unknown>,
   message: Record<string, unknown> | null
