@@ -1,4 +1,5 @@
 import { resolveAgentSessionStartedAt } from '../../../../shared/agent-session/lifecycle/agent-session-start-time'
+import { carryAgentReachOut } from '../../../../shared/agent-status/contracts/agent-reach-out'
 import type { AgentStatusEntry } from '../../../../shared/agent-status/contracts/agent-status-types'
 import { withMirroredEvidenceReceipt } from '../../../../shared/agent-status/contracts/agent-status-freshness'
 import { agentEntryCompletionAt } from '../../../../shared/agent-status/lifecycle/agent-completion-time'
@@ -144,8 +145,11 @@ export function buildMirroredAgentStatusPatch(
             ...(entry.launchAttested !== undefined ? { launchAttested: entry.launchAttested } : {})
           }
     const retained = existing ? undefined : state.retainedAgentsByPaneKey?.[entry.paneKey]
+    // Only the host's hooks see a reach-out; it holds whichever writer wins presentation.
+    const reachOut = carryAgentReachOut(entry, existing)
     nextByPaneKey.set(entry.paneKey, {
       ...accepted,
+      ...(reachOut ? { reachOut } : {}),
       firstStateStartedAt: resolveAgentSessionStartedAt({
         entry: accepted,
         previous: existing ?? retained?.entry,

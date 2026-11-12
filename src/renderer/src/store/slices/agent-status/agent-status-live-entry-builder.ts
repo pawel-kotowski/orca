@@ -1,4 +1,5 @@
 import { canonicalOrchestrationForRow } from '@/runtime/agent-orchestration/visible-agent-orchestration'
+import { carryAgentReachOut } from '../../../../../shared/agent-status/contracts/agent-reach-out'
 import { resolveAgentSessionStartedAt } from '../../../../../shared/agent-session/lifecycle/agent-session-start-time'
 import { sameAgentStatusTerminalOwner } from '../../../../../shared/agent-status/identity/agent-status-terminal-owner'
 import { resolveAgentStatusLiveEntryTiming } from './agent-status-live-entry-timing'
@@ -197,6 +198,15 @@ export function buildAgentStatusLiveEntry(
   const mainAgent = resolveAgentStatusLiveEntryMainAgent(existing, payload, identity.agentType)
   const programStatus =
     payload.programStatus === undefined ? existing?.programStatus : payload.programStatus
+  const reachOut = carryAgentReachOut(
+    {
+      reachOut: payload.reachOut,
+      toolName: payload.toolName,
+      toolInput: payload.toolInput,
+      updatedAt
+    },
+    existing
+  )
   const entry: AgentStatusEntry = {
     state: payload.state,
     workingMode: payload.workingMode,
@@ -242,6 +252,8 @@ export function buildAgentStatusLiveEntry(
     ...(payload.subagentObservation ? { subagentObservation: payload.subagentObservation } : {}),
     ...liveEntryChildFields(existing, payload),
     ...(mainAgent ? { mainAgent } : {}),
+    // Why carry it: an OSC or launch write says nothing about a reach-out.
+    ...(reachOut ? { reachOut } : {}),
     ...(providerSession ? { providerSession } : {}),
     ...(launchAttested !== undefined ? { launchAttested } : {}),
     ...(metadata?.terminalResumeEligible === false

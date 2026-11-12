@@ -65,6 +65,7 @@ export function agentStatusEntryEqual(
     a.lastAssistantMessageIsToolOutput === b.lastAssistantMessageIsToolOutput &&
     a.interrupted === b.interrupted &&
     mainAgentStatusEqual(a.mainAgent, b.mainAgent) &&
+    a.reachOut?.at === b.reachOut?.at &&
     a.promptInteractionKey === b.promptInteractionKey &&
     a.restoredUnconfirmed === b.restoredUnconfirmed &&
     a.launchAttested === b.launchAttested &&

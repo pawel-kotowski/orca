@@ -3,6 +3,7 @@ import { isClearableActivityThread } from './activity-clear-completed'
 import { activityThreadStatusId } from './activity-thread-presentation'
 import { byRecentPrompt } from './activity-thread-prompt-time'
 import type { ActivityThreadGroup, AgentPaneThread } from './activity-thread-types'
+import { NO_ACTIVITY_INBOX_FACTS, type ActivityInboxFacts } from './activity-inbox-facts'
 
 /**
  * The activity view as an inbox (Paweł, 2026-11-09, after comparing it with T3 Code's sidebar):
@@ -15,7 +16,10 @@ export const WORKING_GROUP_KEY = 'section:working'
 
 export type ActivityInboxSection = 'inbox' | 'working' | 'standingBy'
 
-function needsYouRank(thread: AgentPaneThread): number {
+function needsYouRank(thread: AgentPaneThread, facts: ActivityInboxFacts): number {
+  if (facts.reachingOut.has(thread.paneKey)) {
+    return 0
+  }
   switch (activityThreadStatusId(thread)) {
     case 'waiting':
     case 'permission':
@@ -28,18 +32,37 @@ function needsYouRank(thread: AgentPaneThread): number {
   }
 }
 
-/** Where a card belongs by its state alone; a clear or the auto-move timer can still stand it by. */
-export function activityThreadSection(thread: AgentPaneThread): ActivityInboxSection {
+/**
+ * Where a card belongs by its state, its reach-out and its workers; a clear or the auto-move timer
+ * can still stand it by. A question or an approval always reaches the Inbox, and so does a
+ * reach-out (activity-inbox-facts.ts); a coordinator whose workers still run stays under Working.
+ */
+export function activityThreadSection(
+  thread: AgentPaneThread,
+  facts: ActivityInboxFacts = NO_ACTIVITY_INBOX_FACTS
+): ActivityInboxSection {
+  const status = activityThreadStatusId(thread)
+  if (
+    status === 'waiting' ||
+    status === 'permission' ||
+    status === 'blocked' ||
+    facts.reachingOut.has(thread.paneKey)
+  ) {
+    return 'inbox'
+  }
   // Why unverifiable here: "No recent update" is a running agent gone quiet, not news for the inbox.
-  switch (activityThreadStatusId(thread)) {
+  switch (status) {
     case 'working':
     case 'monitoring':
     case 'unverifiable':
       return 'working'
     case 'idle':
       return 'standingBy'
-    default:
+    case 'failed':
       return 'inbox'
+    default:
+      // Why: a coordinator's turn ends while its workers keep going; their end is its news.
+      return facts.busyCoordinators.has(thread.paneKey) ? 'working' : 'inbox'
   }
 }
 
@@ -67,26 +90,35 @@ export function isActivityThreadStandingBy(
   thread: AgentPaneThread,
   acknowledgedAgentsByPaneKey: Record<string, number>,
   autoStandByHours: number | null,
-  now: number
+  now: number,
+  facts: ActivityInboxFacts = NO_ACTIVITY_INBOX_FACTS
 ): boolean {
-  if (activityThreadSection(thread) === 'working') {
+  const section = activityThreadSection(thread, facts)
+  // Why a reach-out too: only its X (a clear newer than it) moves it on.
+  if (section === 'working' || facts.reachingOut.has(thread.paneKey)) {
     return false
   }
   return (
     (thread.events.length > 0 && thread.events.every((event) => event.cleared === true)) ||
-    activityThreadSection(thread) === 'standingBy' ||
+    section === 'standingBy' ||
     isAutoStandingBy(thread, acknowledgedAgentsByPaneKey[thread.paneKey], autoStandByHours, now)
   )
 }
 
 /** Inbox first (needs you, then failed, then the rest, newest first), then Working (by recent prompt). */
-export function buildActivityInboxGroups(threads: AgentPaneThread[]): ActivityThreadGroup[] {
+export function buildActivityInboxGroups(
+  threads: AgentPaneThread[],
+  facts: ActivityInboxFacts = NO_ACTIVITY_INBOX_FACTS
+): ActivityThreadGroup[] {
   const inbox: AgentPaneThread[] = []
   const working: AgentPaneThread[] = []
   for (const thread of threads) {
-    ;(activityThreadSection(thread) === 'working' ? working : inbox).push(thread)
+    ;(activityThreadSection(thread, facts) === 'working' ? working : inbox).push(thread)
   }
-  inbox.sort((a, b) => needsYouRank(a) - needsYouRank(b) || b.latestTimestamp - a.latestTimestamp)
+  inbox.sort(
+    (a, b) =>
+      needsYouRank(a, facts) - needsYouRank(b, facts) || b.latestTimestamp - a.latestTimestamp
+  )
   working.sort(byRecentPrompt)
   const groups: ActivityThreadGroup[] = [
     {

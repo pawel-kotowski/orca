@@ -7,6 +7,8 @@ import { observeOffscreenAnimation } from '@/lib/window-activity/offscreen-anima
 import { translate } from '@/i18n/i18n'
 import { FilledBellIcon } from '../sidebar/workspace-card/identity/worktree-card-glyphs'
 import { activityThreadStatusId } from './activity-thread-presentation'
+import { useActivityInboxFactsContext } from './activity-inbox-facts'
+import { isRunningActivityState } from './activity-event-state'
 import type { AgentPaneThread } from './activity-thread-types'
 
 function SlotButton({
@@ -86,7 +88,13 @@ export function ActivityThreadCornerSlot({
   /** Standing by only: the status, which turns into an Inbox button on hover, brings it back. */
   onRestore?: (thread: AgentPaneThread) => void
 }): React.JSX.Element | null {
-  if (inInbox && thread.unread) {
+  const facts = useActivityInboxFactsContext()
+  // Why: a reach-out rings until seen, though the agent's own events may all be read.
+  const unread = thread.unread || facts.unseenReachOuts.has(thread.paneKey)
+  // Why: clearing a running agent's reach-out sends its card back to Working, not Standing by.
+  const clearReturnsToWorking =
+    isRunningActivityState(thread.currentAgentState) || facts.busyCoordinators.has(thread.paneKey)
+  if (inInbox && unread) {
     return (
       <TooltipProvider delayDuration={800} skipDelayDuration={0}>
         <SlotButton
@@ -103,7 +111,9 @@ export function ActivityThreadCornerSlot({
   const action =
     inInbox && onClear !== undefined
       ? {
-          label: translate('components.activity.standBy', 'Done with it: move to Standing by'),
+          label: clearReturnsToWorking
+            ? translate('components.activity.backToWorking', 'Seen it: back to Working')
+            : translate('components.activity.standBy', 'Done with it: move to Standing by'),
           run: () => onClear(thread),
           icon: <X className="size-4" />
         }

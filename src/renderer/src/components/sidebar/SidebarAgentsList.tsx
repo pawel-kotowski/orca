@@ -14,6 +14,7 @@ import { ActivityThreadOptionsMenu } from '@/components/activity/activity-thread
 import { ActivityCardPartsBar } from '@/components/activity/activity-card-parts-bar'
 import { useActivityCardPartsBarHidden } from '@/components/activity/activity-card-parts'
 import { ActivityWorkersContext } from '@/components/activity/activity-workers'
+import { ActivityInboxFactsContext } from '@/components/activity/activity-inbox-facts'
 import { nativeChatActivityFollowsConversation } from '../../../../shared/native-chat/native-chat-appearance-settings'
 import type {
   ActivityGroupBy,
@@ -143,7 +144,8 @@ function SidebarAgentsListBody({
     visibleThreads,
     markAllReadThreads,
     visibleThreadGroups,
-    workers
+    workers,
+    inboxFacts
   } = threads
 
   const {
@@ -211,39 +213,41 @@ function SidebarAgentsListBody({
       ) : null}
       {followsConversation && !partsBarHidden ? <ActivityCardPartsBar /> : null}
       <ActivityWorkersContext.Provider value={workers}>
-        <ActivityThreadListPane
-          activityFilterInputRef={activityFilterInputRef}
-          query={query}
-          onQueryChange={setQuery}
-          groupBy={groupBy}
-          onGroupByChange={setGroupBy}
-          readFilter={readFilter}
-          onReadFilterChange={setReadFilter}
-          compactMode={compactMode}
-          showChildAgents={showChildAgents}
-          hasUnreadThreads={hasUnreadThreads}
-          onCompactModeChange={setCompactMode}
-          onShowChildAgentsChange={setShowChildAgents}
-          onMarkAllThreadsRead={markAllThreadsRead}
-          hasCompletedThreads={hasCompletedThreads}
-          onClearCompleted={handleClearCompleted}
-          visibleThreadGroups={visibleThreadGroups}
-          visibleThreadCount={visibleThreads.length}
-          selectedPaneKey={effectiveSelectedPaneKey}
-          onSelectThread={selectThread}
-          onJumpToWorkspace={jumpToWorkspace}
-          onMarkThreadRead={markThreadRead}
-          onMarkThreadUnread={markThreadUnread}
-          onMarkThreadsRead={markThreadsRead}
-          onMarkThreadsUnread={markThreadsUnread}
-          canJumpToWorkspace={canJumpToWorkspace}
-          allowMarkUnreadWhenSelected
-          showJumpAction={false}
-          showFilterControls={false}
-          showOptionsMenu={false}
-          showInlineActions={false}
-          scrollTopRef={scrollTopRef}
-        />
+        <ActivityInboxFactsContext.Provider value={inboxFacts}>
+          <ActivityThreadListPane
+            activityFilterInputRef={activityFilterInputRef}
+            query={query}
+            onQueryChange={setQuery}
+            groupBy={groupBy}
+            onGroupByChange={setGroupBy}
+            readFilter={readFilter}
+            onReadFilterChange={setReadFilter}
+            compactMode={compactMode}
+            showChildAgents={showChildAgents}
+            hasUnreadThreads={hasUnreadThreads}
+            onCompactModeChange={setCompactMode}
+            onShowChildAgentsChange={setShowChildAgents}
+            onMarkAllThreadsRead={markAllThreadsRead}
+            hasCompletedThreads={hasCompletedThreads}
+            onClearCompleted={handleClearCompleted}
+            visibleThreadGroups={visibleThreadGroups}
+            visibleThreadCount={visibleThreads.length}
+            selectedPaneKey={effectiveSelectedPaneKey}
+            onSelectThread={selectThread}
+            onJumpToWorkspace={jumpToWorkspace}
+            onMarkThreadRead={markThreadRead}
+            onMarkThreadUnread={markThreadUnread}
+            onMarkThreadsRead={markThreadsRead}
+            onMarkThreadsUnread={markThreadsUnread}
+            canJumpToWorkspace={canJumpToWorkspace}
+            allowMarkUnreadWhenSelected
+            showJumpAction={false}
+            showFilterControls={false}
+            showOptionsMenu={false}
+            showInlineActions={false}
+            scrollTopRef={scrollTopRef}
+          />
+        </ActivityInboxFactsContext.Provider>
       </ActivityWorkersContext.Provider>
       {optionsTarget
         ? createPortal(

@@ -2,9 +2,11 @@ import type React from 'react'
 import { useTranslate } from '@/i18n/use-translate'
 import {
   clearActivityThread,
+  dismissActivityReachOut,
   isClearableActivityThread,
   restoreActivityThreadToInbox
 } from './activity-clear-completed'
+import { useActivityInboxFactsContext } from './activity-inbox-facts'
 import { ActivityStatusGroupHeader } from './activity-thread-controls'
 import { ActivityThreadContextMenu } from './activity-thread-context-menu'
 import { floatingPanelShowsTab } from './activity-thread-actions'
@@ -84,6 +86,7 @@ export function ActivityThreadVirtualRow({
     return state.activeWorktreeId === thread.worktree.id && state.activeTabId === thread.tab.id
   })
   const previewedPaneKey = useActivityChatPreviewPaneKey()
+  const inboxFacts = useActivityInboxFactsContext()
   if (item.type === 'header') {
     return (
       <div
@@ -117,7 +120,7 @@ export function ActivityThreadVirtualRow({
   const inInbox =
     item.groupKey !== READ_AGENTS_GROUP_KEY &&
     item.groupKey !== WORKING_GROUP_KEY &&
-    activityThreadSection(item.thread) === 'inbox'
+    activityThreadSection(item.thread, inboxFacts) === 'inbox'
   const isActivePane = item.thread.paneKey === selectedPaneKey
   // Why: with the tabs hidden no workspace card is open (the floating panel is not one of the tabs).
   // Of several agents in one shown tab (split panes), the one last clicked is the open one.
@@ -154,12 +157,18 @@ export function ActivityThreadVirtualRow({
             onMarkRead={onMarkThreadRead}
             inInbox={inInbox}
             onClear={
-              inInbox && isClearableActivityThread(item.thread) ? clearActivityThread : undefined
+              !inInbox
+                ? undefined
+                : isClearableActivityThread(item.thread)
+                  ? clearActivityThread
+                  : inboxFacts.reachingOut.has(item.thread.paneKey)
+                    ? dismissActivityReachOut
+                    : undefined
             }
             // Why its state decides: an idle or working agent has no place in the Inbox to return to.
             onRestore={
               item.groupKey === READ_AGENTS_GROUP_KEY &&
-              activityThreadSection(item.thread) === 'inbox'
+              activityThreadSection(item.thread, inboxFacts) === 'inbox'
                 ? restoreActivityThreadToInbox
                 : undefined
             }

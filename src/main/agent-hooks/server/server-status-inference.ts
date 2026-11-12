@@ -1,3 +1,4 @@
+/* eslint-disable max-lines -- Why: upstream's file sits at its limit; the local reach-out carry adds an import. */
 import type { RemoteAgentInterruptDispatch } from '../../../shared/agent-hook-listener/transport/agent-hook-interrupt-reconciliation'
 import {
   markClaudeLeadTurnDone,
@@ -16,6 +17,7 @@ import {
 } from '../../../shared/agent-status/lifecycle/agent-question-answered-intent'
 import { AGENT_STATUS_STALE_AFTER_MS } from '../../../shared/agent-status/contracts/agent-status-freshness'
 import type { AgentType } from '../../../shared/agent-status/contracts/agent-status-types'
+import { carriedChildAndReachOutFields } from '../../../shared/agent-status/contracts/agent-reach-out'
 import type { EnrichedAgentHookEventPayload } from './server-types'
 import { equivalentInterruptAgentType, isValidPaneKey } from './server-status-identity'
 import { AgentHookServerRowOwnership } from './server-row-ownership'
@@ -241,7 +243,7 @@ export abstract class AgentHookServerStatusInference extends AgentHookServerRowO
         // Older readers use interrupted on done rows; monitoring rows keep cancellation on mainAgent.outcome.
         ...(state === 'done' && outcome ? { interrupted: true } : {}),
         // Idle children remain display state across inferred cancellation.
-        ...(payload.subagents ? { subagents: payload.subagents } : {}),
+        ...carriedChildAndReachOutFields(payload),
         mainAgent: local?.mainAgent ?? {
           state: 'done',
           ...(outcome ? { outcome } : {}),
@@ -310,7 +312,7 @@ export abstract class AgentHookServerStatusInference extends AgentHookServerRowO
         ...(restored.turnCompletedAt !== undefined
           ? { turnCompletedAt: restored.turnCompletedAt }
           : {}),
-        ...(payload.subagents ? { subagents: payload.subagents } : {}),
+        ...carriedChildAndReachOutFields(payload),
         mainAgent: restored.mainAgent
       }
     })

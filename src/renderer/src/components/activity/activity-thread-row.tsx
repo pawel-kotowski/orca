@@ -22,6 +22,7 @@ import { ActivityThreadConversationBody } from './activity-thread-conversation-b
 import { activityCardTintStyle, useActivityProjectColor } from './activity-project-color'
 import { routeActivityCardClick } from './activity-chat-card-controls'
 import { ActivityThreadCornerSlot, ActivityThreadJumpAction } from './activity-thread-row-actions'
+import { useActivityInboxFactsContext } from './activity-inbox-facts'
 import { useActivityCardHiddenParts } from './activity-card-parts'
 import { ActivityThreadWorkers, ActivityWorkerOfTag } from './activity-thread-workers'
 
@@ -63,8 +64,13 @@ export const ActivityThreadRow = React.memo(function ActivityThreadRow({
 }): React.JSX.Element {
   const t = useTranslate()
   useUiLanguageRevision()
-  const { taskTitle, statusLine, statusKind, needsAttention, workspaceLabel } =
-    activityThreadRowCopy(thread, t)
+  const rowCopy = activityThreadRowCopy(thread, t)
+  const { taskTitle, workspaceLabel } = rowCopy
+  // Why: a reach-out is the agent telling you something; it leads the card while it waits.
+  const reachOut = useActivityInboxFactsContext().reachingOut.get(thread.paneKey)
+  const statusLine = reachOut?.message ?? rowCopy.statusLine
+  const statusKind = reachOut ? 'state' : rowCopy.statusKind
+  const needsAttention = reachOut !== undefined || rowCopy.needsAttention
   const projectColor = useActivityProjectColor(thread.repo)
   const showMarkdownStatus = statusKind === 'message'
   const agentLabel = formatAgentTypeLabel(thread.agentType)

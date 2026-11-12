@@ -1,3 +1,4 @@
+import { normalizeAgentReachOutField, type AgentReachOut } from './agent-reach-out'
 // Normalize explicit hook/OSC status; a guarded interrupt fallback supplies done when the cancellation hook is missing.
 
 import type { ProgramStatusFacet } from '../../program-status/facet'
@@ -119,6 +120,8 @@ export type AgentStatusEntry = {
   /** The main agent's own state; absent from old hosts and from writers that carry no main agent fact
    *  (OSC, launch seeds), where readers fall back to `state`. */
   mainAgent?: AgentMainAgentStatus
+  /** The main agent's latest reach-out to the person; the Inbox lists it until cleared (agent-reach-out.ts). */
+  reachOut?: AgentReachOut
   /** The host's child-work views for this session, when it publishes them; child rows then read
    *  these instead of `subagents`. Absent from older hosts. */
   children?: AgentChildWorkView[]
@@ -171,6 +174,8 @@ export type AgentStatusPayload = {
   mainAgent?: AgentMainAgentStatus
   /** The execution host awaits a launched Claude task’s wake-up or its finishing turn. */
   claudeTaskWakeupPending?: 'notification' | 'finishing-turn'
+  /** The main agent's latest reach-out to the person (agent-reach-out.ts). */
+  reachOut?: AgentReachOut
 }
 
 /** Parsing always supplies prompt (empty if omitted); optional tool/assistant fields distinguish no update from explicit clearing. */
@@ -203,7 +208,8 @@ export function pickParsedAgentStatusPayload(
     ...(row.mainAgent !== undefined ? { mainAgent: row.mainAgent } : {}),
     ...(row.claudeTaskWakeupPending !== undefined
       ? { claudeTaskWakeupPending: row.claudeTaskWakeupPending }
-      : {})
+      : {}),
+    ...(row.reachOut !== undefined ? { reachOut: row.reachOut } : {})
   }
 }
 
@@ -282,6 +288,7 @@ function normalizeAgentStatusObject(parsed: unknown): ParsedAgentStatusPayload |
   if (!VALID_STATES.has(state)) {
     return null
   }
+  const reachOut = normalizeAgentReachOutField(obj.reachOut)
   return {
     state: state as AgentStatusState,
     workingMode: state === 'working' && obj.workingMode === 'monitoring' ? 'monitoring' : undefined,
@@ -311,6 +318,7 @@ function normalizeAgentStatusObject(parsed: unknown): ParsedAgentStatusPayload |
     turnCompletedAt: normalizeTurnCompletedAtField(obj.turnCompletedAt, state),
     subagents: normalizeAgentSubagentsField(obj.subagents),
     mainAgent: normalizeMainAgentStatusField(obj.mainAgent),
+    ...(reachOut ? { reachOut } : {}),
     ...(obj.agentType === 'claude' &&
     state !== 'done' &&
     (obj.claudeTaskWakeupPending === 'notification' ||

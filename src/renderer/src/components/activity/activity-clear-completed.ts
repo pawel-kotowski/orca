@@ -128,6 +128,16 @@ export function clearActivityThread(thread: AgentPaneThread): boolean {
 }
 
 /**
+ * A running agent's reach-out has been taken in: stamp a clear newer than it, so its card goes back
+ * to Working (activity-inbox-facts.ts). The agent's live status and resume identity stay untouched.
+ */
+export function dismissActivityReachOut(thread: AgentPaneThread): void {
+  const state = useAppStore.getState()
+  const previous = state.activityClearedAtByPaneKey[thread.paneKey] ?? 0
+  state.applyActivityClearedAt({ [thread.paneKey]: Math.max(previous, Date.now()) })
+}
+
+/**
  * Bring a card back from Standing by to the Inbox (Paweł, 2026-11-09: "add option to bring
  * session back to inbox from standing by, maybe by clicking status icon"): lift its clear and
  * mark it unread, so it rings again and the auto-move timer, which only moves seen cards, leaves

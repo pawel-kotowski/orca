@@ -10,6 +10,7 @@ import { extractToolFields, isNewTurnEvent } from '../provider-event-routing'
 import type { HookListenerState } from '../listener-state'
 import { mainAgentTurnInterrupted } from '../../agent-status/lifecycle/agent-lead-status-fold'
 import { claudeMainAgentStatusForPayload } from './claude-roster-state'
+import { readClaudeReachOut } from '../../agent-status/contracts/agent-reach-out'
 
 export function buildClaudeStatusPayload(
   state: HookListenerState,
@@ -32,6 +33,12 @@ export function buildClaudeStatusPayload(
       })
     : (state.lastToolByPaneKey.get(paneKey) ?? {})
 
+  // Why every later payload carries it: a mirror may coalesce events, and the one PushNotification
+  // event alone would be lost behind the next tool call.
+  const reachOut = readClaudeReachOut(eventName, hookPayload, Date.now())
+  if (reachOut) {
+    state.claudeReachOutByPaneKey.set(paneKey, reachOut)
+  }
   // Read mainAgent/verdict/turn stamp from one lead record; keep interruption there while child-held rows omit it.
   const mainAgentRecord = state.claudeLeadStateByPaneKey.get(paneKey)
   // Validate directly to avoid hot-path stringify/parse overhead.
@@ -54,6 +61,7 @@ export function buildClaudeStatusPayload(
     sessionBoundary: options.sessionBoundary,
     turnCompletedAt: mainAgentRecord?.turnCompletedAt,
     subagents: claudeRosterToSnapshots(state.claudeSubagentRosterByPaneKey.get(paneKey)),
-    mainAgent: mainAgentRecord ? claudeMainAgentStatusForPayload(mainAgentRecord) : undefined
+    mainAgent: mainAgentRecord ? claudeMainAgentStatusForPayload(mainAgentRecord) : undefined,
+    reachOut: state.claudeReachOutByPaneKey.get(paneKey)
   })
 }

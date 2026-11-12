@@ -17,6 +17,7 @@ import {
 } from '../../../../shared/workspace-creator-visibility'
 import { useNow } from '@/hooks/use-now'
 import { buildActivityInboxGroups, isActivityThreadStandingBy } from './activity-inbox-sections'
+import { useActivityInboxFacts, type ActivityInboxFacts } from './activity-inbox-facts'
 import { useActivityAutoStandByHours } from './activity-auto-stand-by'
 import {
   activityWorkerPlacement,
@@ -145,6 +146,7 @@ export function useAgentPaneThreads(args: {
   markAllReadThreads: AgentPaneThread[]
   visibleThreadGroups: ActivityThreadGroup[]
   workers: ActivityWorkers
+  inboxFacts: ActivityInboxFacts
 } {
   const {
     query,
@@ -219,6 +221,7 @@ export function useAgentPaneThreads(args: {
 
   // Classify workers over all threads so scoped-out coordinators do not orphan them.
   const workers = useActivityWorkers(allThreads)
+  const inboxFacts = useActivityInboxFacts(allThreads, workers)
 
   // Defer list filtering while typed input updates at full priority.
   const deferredQuery = useDeferredValue(query)
@@ -240,13 +243,21 @@ export function useAgentPaneThreads(args: {
       // Why the open card's exemption covers only the unread filter: an X or the timer on the open
       // card must move it at once, or the click looks dead.
       // Live agents stay listed after marking read too; migration blocks are unavailable.
-      const placement = activityWorkerPlacement(thread, workers, showChildAgents)
+      const placement = activityWorkerPlacement(thread, workers, showChildAgents, inboxFacts)
       const hiddenAsRead =
         placement === 'standingBy' ||
-        isActivityThreadStandingBy(thread, acknowledgedAgentsByPaneKey, autoStandByHours, now) ||
+        isActivityThreadStandingBy(
+          thread,
+          acknowledgedAgentsByPaneKey,
+          autoStandByHours,
+          now,
+          inboxFacts
+        ) ||
         (readFilter === 'unread' &&
           !thread.unread &&
-          (!isRunningActivityState(thread.currentAgentState) ||
+          !inboxFacts.unseenReachOuts.has(thread.paneKey) &&
+          ((!isRunningActivityState(thread.currentAgentState) &&
+            !inboxFacts.busyCoordinators.has(thread.paneKey)) ||
             thread.migrationUnsupportedPtyId !== undefined) &&
           (thread.paneKey !== effectiveSelectedPaneKey ||
             lastReadOnlyKeysRef.current.has(thread.paneKey)))
@@ -276,6 +287,7 @@ export function useAgentPaneThreads(args: {
     effectiveSelectedPaneKey,
     showChildAgents,
     workers,
+    inboxFacts,
     acknowledgedAgentsByPaneKey,
     autoStandByHours,
     now
@@ -290,11 +302,11 @@ export function useAgentPaneThreads(args: {
         ? EMPTY_GROUPS
         : withReadAgentsGroup(
             groupBy === 'status'
-              ? buildActivityInboxGroups(visibleThreads)
+              ? buildActivityInboxGroups(visibleThreads, inboxFacts)
               : buildActivityThreadGroups(visibleThreads, groupBy),
             readOnlyThreads
           ),
-    [visibleThreads, readOnlyThreads, groupBy, badgeOnly]
+    [visibleThreads, readOnlyThreads, groupBy, badgeOnly, inboxFacts]
   )
 
   return {
@@ -305,6 +317,7 @@ export function useAgentPaneThreads(args: {
     visibleThreads,
     markAllReadThreads,
     visibleThreadGroups,
-    workers
+    workers,
+    inboxFacts
   }
 }

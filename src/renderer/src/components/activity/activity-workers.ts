@@ -2,6 +2,7 @@ import { createContext, useContext, useMemo } from 'react'
 import { useAppStore } from '@/store'
 import type { WorktreeLineage } from '../../../../shared/worktree/lineage-types'
 import { activityThreadSection } from './activity-inbox-sections'
+import { NO_ACTIVITY_INBOX_FACTS, type ActivityInboxFacts } from './activity-inbox-facts'
 import { activityThreadStatusId } from './activity-thread-presentation'
 import { isActivityWorkerThread, resolveActivityWorkerParents } from './activity-thread-child-agent'
 import type { AgentPaneThread } from './activity-thread-types'
@@ -163,17 +164,19 @@ function needsYou(thread: AgentPaneThread): boolean {
 export function activityWorkerPlacement(
   thread: AgentPaneThread,
   workers: ActivityWorkers,
-  listWorkersAsCards: boolean
+  listWorkersAsCards: boolean,
+  facts: ActivityInboxFacts = NO_ACTIVITY_INBOX_FACTS
 ): 'card' | 'nested' | 'standingBy' {
   const nested = workers.parentByWorker.has(thread.paneKey)
   const worker = isActivityWorkerThread(thread) || workers.lineageWorkers.has(thread.paneKey)
-  if ((!nested && !worker) || needsYou(thread)) {
+  // Why a reach-out too: a worker that chose to tell you something is not its coordinator's news.
+  if ((!nested && !worker) || needsYou(thread) || facts.reachingOut.has(thread.paneKey)) {
     return 'card'
   }
   if (nested && !listWorkersAsCards) {
     return 'nested'
   }
-  return activityThreadSection(thread) === 'inbox' ? 'standingBy' : 'card'
+  return activityThreadSection(thread, facts) === 'inbox' ? 'standingBy' : 'card'
 }
 
 export const ActivityWorkersContext = createContext<ActivityWorkers>(EMPTY_WORKERS)
