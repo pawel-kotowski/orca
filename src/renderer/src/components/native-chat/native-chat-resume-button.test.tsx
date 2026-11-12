@@ -10,7 +10,7 @@ import { NativeChatResumeButton } from './native-chat-resume-button'
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
 const sent: [string, string][] = []
-vi.mock('./native-chat-runtime-send', () => ({
+vi.mock('./session/terminal/send/native-chat-runtime-send', () => ({
   sendNativeChatTypedCommand: (ptyId: string, command: string) => {
     sent.push([ptyId, command])
   }

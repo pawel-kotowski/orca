@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { useNativeChatComposerKeyDown } from './composer/editor/use-native-chat-composer-keydown'
 
 const platform = vi.hoisted(() => ({ mac: true }))
-vi.mock('./native-chat-shortcut', () => ({ isMacPlatform: () => platform.mac }))
+vi.mock('./pane/routing/native-chat-shortcut', () => ({ isMacPlatform: () => platform.mac }))
 
 function setup(ctrlEnterSendsNow: boolean, draft = 'hello') {
   const send = vi.fn()
