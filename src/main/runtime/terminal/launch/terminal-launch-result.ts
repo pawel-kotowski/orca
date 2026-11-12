@@ -5,6 +5,8 @@ import type { TerminalCreateOptions } from './terminal-create-options'
 import type { RuntimePtyWorktreeRecord } from '../records/runtime-terminal-state-records'
 import type { TuiAgent } from '../../../../shared/agent-launch/catalog/tui-agent'
 import { recordFreshLaunch } from './launch-evidence'
+import { recognizeAgentLaunchCommand } from '../../../../shared/agent-launch/startup/agent-command-line-intent'
+import { launchAgentFromCommand } from '../../../../shared/agent-launch/startup/command-launch-agent'
 import {
   copySleepingAgentLaunchConfig,
   resolveLaunchCommandPaneAgent,
@@ -81,6 +83,32 @@ export function recordTerminalLaunchMetadata(
   }
   pty.launchCommandAgent = resolveLaunchCommandPaneAgent(command)
   return resolveLaunchedAgent(command, pty.launchAgent)
+}
+
+/**
+ * The CLI agent a fresh terminal runs when nobody chose its view (an orchestration worker, `orca
+ * terminal create --command claude`), so the desktop that shows it applies its own "Open CLI agents
+ * in Chat UI". A wrapper such as `claude-as <account>` counts; a headless one-shot (`claude
+ * --print`) has no composer and does not.
+ */
+export function pendingViewAgentForLaunch(
+  launch: Pick<
+    ReturnType<typeof resolveTerminalLaunchResult>,
+    'adoptedStablePane' | 'effectiveViewMode'
+  >,
+  launchedAgent: TuiAgent | null,
+  command: string | undefined
+): TuiAgent | undefined {
+  if (launch.adoptedStablePane || launch.effectiveViewMode) {
+    return undefined
+  }
+  if (launchedAgent) {
+    return launchedAgent
+  }
+  if (!command || recognizeAgentLaunchCommand(command, { includeHeadlessOneShot: true })) {
+    return undefined
+  }
+  return launchAgentFromCommand(command)
 }
 
 export function terminalLaunchPublicFacts(

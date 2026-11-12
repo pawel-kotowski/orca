@@ -132,6 +132,7 @@ export function registerRuntimeWindowLifecycle(
           ...(opts.launchConfig ? { launchConfig: opts.launchConfig } : {}),
           ...(opts.launchToken ? { launchToken: opts.launchToken } : {}),
           ...(opts.launchAgent ? { launchAgent: opts.launchAgent } : {}),
+          ...(opts.commandAgent ? { commandAgent: opts.commandAgent } : {}),
           ...(opts.viewMode ? { viewMode: opts.viewMode } : {}),
           ...(opts.targetGroupId ? { targetGroupId: opts.targetGroupId } : {}),
           ...(opts.afterTabId ? { afterTabId: opts.afterTabId } : {}),

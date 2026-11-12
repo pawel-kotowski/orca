@@ -35,6 +35,12 @@ export type RuntimeMobileSessionTerminalTab = {
   color?: string | null
   isPinned?: boolean
   viewMode?: 'terminal' | 'chat'
+  /**
+   * The CLI agent a host started here with no view chosen (an orchestration worker, `orca terminal
+   * create --command claude`): the first desktop to mirror the tab opens it in the view its own
+   * "Open CLI agents in Chat UI" picks and sets that as the tab's `viewMode` on the host.
+   */
+  pendingViewAgent?: TuiAgent
   launchDraft?: string
   launchDraftCreatedAt?: number
   isActive: boolean

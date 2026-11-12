@@ -7,6 +7,7 @@ import { getLatestPtyTitle } from '../workspaces/process-listing/runtime-worktre
 import type { OrcaRuntimeWithBuildPtyTerminalSummary as PtyTerminalSummaryMethods } from '../terminal/query/pty-terminal-summary'
 import type { RuntimeMobileSessionTabsSnapshot } from '../../../shared/runtime-session-contracts'
 import type { RuntimeMobileSessionTerminalTab } from '../../../shared/runtime-mobile-session-tab-contracts'
+import type { TuiAgent } from '../../../shared/agent-launch/catalog/tui-agent'
 import {
   buildMaterializedHeadlessParentLayout,
   getHeadlessMobileSessionGroupId
@@ -49,6 +50,8 @@ export abstract class OrcaRuntimeWithPublishPtyBackedMobileSessionTerminal exten
       selectIfNoActiveTab?: boolean
       startupCwd?: string
       viewMode?: 'terminal' | 'chat'
+      /** A CLI agent started with no view chosen; the first mirroring desktop picks it. */
+      pendingViewAgent?: TuiAgent
       split?: { splitFromLeafId: string; direction: 'horizontal' | 'vertical' }
       notify?: boolean
     }
@@ -96,6 +99,10 @@ export abstract class OrcaRuntimeWithPublishPtyBackedMobileSessionTerminal exten
           candidate.parentTabId === args.tabId &&
           candidate.viewMode !== undefined
       )?.viewMode
+    // Until a client chooses the view, a republish keeps asking for that choice.
+    const pendingViewAgent = viewMode
+      ? undefined
+      : (args.pendingViewAgent ?? existingTab?.pendingViewAgent)
     // Republished tabs retain manual names, null included; new split leaves inherit them.
     const rowCustomTitle = (
       existingTab ??
@@ -123,6 +130,7 @@ export abstract class OrcaRuntimeWithPublishPtyBackedMobileSessionTerminal exten
       ...(pty.launchAgent ? { launchAgent: pty.launchAgent } : {}),
       ...(args.startupCwd ? { startupCwd: args.startupCwd } : {}),
       ...(viewMode ? { viewMode } : {}),
+      ...(pendingViewAgent ? { pendingViewAgent } : {}),
       parentLayout,
       isActive:
         args.activate ||

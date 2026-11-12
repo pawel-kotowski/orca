@@ -1,3 +1,4 @@
+/* eslint-disable max-lines -- Why: upstream's file sits at the limit and the local build (local/orca-glass) adds a line here; it never goes upstream. */
 import type {
   RuntimeEditorTabReveal,
   RuntimeFileOpenPosition
@@ -198,6 +199,7 @@ export type UiCommandEventApi = {
       resumeProviderSession?: AgentProviderSessionMetadata
       launchToken?: string
       launchAgent?: TuiAgent
+      commandAgent?: TuiAgent
       viewMode?: 'terminal' | 'chat'
       targetGroupId?: string
       afterTabId?: string

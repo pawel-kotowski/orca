@@ -40,6 +40,7 @@ export function registerTerminalPresentationIpcBridge(unsubs: (() => void)[]): v
         resumeProviderSession,
         launchToken,
         launchAgent,
+        commandAgent,
         viewMode,
         targetGroupId,
         afterTabId,
@@ -59,7 +60,12 @@ export function registerTerminalPresentationIpcBridge(unsubs: (() => void)[]): v
       }) => {
         try {
           const store = useAppStore.getState()
-          const resolvedViewMode = resolveAgentTabViewMode(store, worktreeId, launchAgent, viewMode)
+          const resolvedViewMode = resolveAgentTabViewMode(
+            store,
+            worktreeId,
+            launchAgent ?? commandAgent,
+            viewMode
+          )
           const terminalPresentation = resolveTerminalPresentation({
             presentation,
             activate,
@@ -128,7 +134,9 @@ export function registerTerminalPresentationIpcBridge(unsubs: (() => void)[]): v
                         // Why: a paired client resolved explicit mode before PTY materialization; only omitted mode uses host defaults.
                         ...(resolvedViewMode ? { viewMode: resolvedViewMode } : {})
                       }
-                    : {}),
+                    : commandAgent && resolvedViewMode
+                      ? { viewMode: resolvedViewMode }
+                      : {}),
                   ...(cwd ? { startupCwd: cwd } : {}),
                   // Why: CLI-spawned PTYs bake the pane key into env; adopt the same tab id so hook-event attribution keeps working.
                   ...(tabId !== undefined ? { id: tabId } : {}),

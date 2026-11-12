@@ -41,6 +41,7 @@ export const uiTerminalAndSessionTabsApi = {
       resumeProviderSession?: AgentProviderSessionMetadata
       launchToken?: string
       launchAgent?: TuiAgent
+      commandAgent?: TuiAgent
       viewMode?: 'terminal' | 'chat'
       targetGroupId?: string
       afterTabId?: string
@@ -71,6 +72,7 @@ export const uiTerminalAndSessionTabsApi = {
         resumeProviderSession?: AgentProviderSessionMetadata
         launchToken?: string
         launchAgent?: TuiAgent
+        commandAgent?: TuiAgent
         viewMode?: 'terminal' | 'chat'
         targetGroupId?: string
         afterTabId?: string

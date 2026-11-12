@@ -3,7 +3,10 @@ import { useAppStore } from '@/store'
 import { defaultAgentTabViewMode } from '@/lib/agent-tab-default-view-mode'
 import { runtimeEnvironmentIdOrLocalUnlessTwin } from '@/lib/workspace/ownership/worktree-runtime-owner'
 import { isWebRuntimeSessionActive } from '@/runtime/web-session-tabs-sync/identity/web-runtime-session-environment'
-import { expectAgentTabChatView } from '@/runtime/web-session-tabs-sync/expected-agent-tab-view'
+import {
+  expectAgentTabChatView,
+  setPendingAgentTabViewDefault
+} from '@/runtime/web-session-tabs-sync/expected-agent-tab-view'
 
 /**
  * A workspace just created on a remote host with an agent: its host makes the agent's tab, so
@@ -20,4 +23,21 @@ export function expectRemoteWorkspaceAgentView(worktreeId: string, agent: TuiAge
   if (defaultAgentTabViewMode(state, worktreeId, agent) === 'chat') {
     expectAgentTabChatView(worktreeId)
   }
+}
+
+/**
+ * Lets the mirror open a CLI agent its host started with no view chosen (an orchestration worker,
+ * `orca terminal create --command claude` on that host) the way new agents open here. Returns the
+ * uninstaller.
+ */
+export function installPendingAgentTabViewDefault(): () => void {
+  setPendingAgentTabViewDefault((worktreeId, agent) => {
+    const state = useAppStore.getState()
+    // Before settings load the choice is unknown; a later snapshot decides.
+    if (!state.settings) {
+      return null
+    }
+    return defaultAgentTabViewMode(state, worktreeId, agent) ?? 'terminal'
+  })
+  return () => setPendingAgentTabViewDefault(null)
 }

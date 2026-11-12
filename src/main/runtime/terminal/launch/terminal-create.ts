@@ -1,9 +1,12 @@
+/* eslint-disable max-lines -- Why: upstream's file sits at the limit and the local build (local/orca-glass) adds a few lines here; it never goes upstream. */
 import type { TerminalWorkspaceCreationEvidence } from './terminal-workspace-scope'
 import {
+  pendingViewAgentForLaunch,
   recordTerminalLaunchMetadata,
   resolveTerminalLaunchResult,
   terminalLaunchPublicFacts
 } from './terminal-launch-result'
+import type { TuiAgent } from '../../../../shared/agent-launch/catalog/tui-agent'
 import { revealCreatedTerminal } from './terminal-create-reveal'
 import type { PaneSpawnOperation } from '../../../ipc/pty/pane/pane-spawn-operation'
 import { OrcaRuntimeWithTerminalCreateDeduplication } from './terminal-create-deduplication'
@@ -236,6 +239,7 @@ export abstract class OrcaRuntimeWithCreateTerminal extends OrcaRuntimeWithTermi
           })
         }
         const pty = this.getOrCreatePtyWorktreeRecord(result.id)
+        let pendingViewAgent: TuiAgent | undefined
         if (pty) {
           pty.runtimeSessionOwned = true
           if (!launch.adoptedStablePane) {
@@ -243,10 +247,9 @@ export abstract class OrcaRuntimeWithCreateTerminal extends OrcaRuntimeWithTermi
               this.setPtyManagementTitleFromObservedTitle(pty, title, at)
             )
           }
-          this.watchLaunchedAgent(
-            pty,
-            recordTerminalLaunchMetadata(pty, result, launch, launchOpts.command)
-          )
+          const launched = recordTerminalLaunchMetadata(pty, result, launch, launchOpts.command)
+          this.watchLaunchedAgent(pty, launched)
+          pendingViewAgent = pendingViewAgentForLaunch(launch, launched, launchOpts.command)
           if (!launch.adoptedStablePane) {
             this.rememberSavedTerminalLaunchResult(result.id, result)
           }
@@ -262,6 +265,7 @@ export abstract class OrcaRuntimeWithCreateTerminal extends OrcaRuntimeWithTermi
             activate: presentation === 'focused',
             selectIfNoActiveTab: presentation !== 'background',
             ...(launch.effectiveViewMode ? { viewMode: launch.effectiveViewMode } : {}),
+            ...(pendingViewAgent ? { pendingViewAgent } : {}),
             ...(savedStartupCwd !== workspace.path ? { startupCwd: savedStartupCwd } : {})
           })
         }
@@ -277,6 +281,7 @@ export abstract class OrcaRuntimeWithCreateTerminal extends OrcaRuntimeWithTermi
             launchAgent: pty?.launchAgent ?? undefined,
             viewMode: launch.effectiveViewMode
           },
+          pendingViewAgent,
           effectiveLaunchConfig: pty?.launchConfig ?? undefined,
           launchToken: pty?.launchToken ?? undefined,
           adoptedStablePane: launch.adoptedStablePane,

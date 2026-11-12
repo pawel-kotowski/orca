@@ -4,6 +4,7 @@ import { createTerminalRevealWarning, ownerSurfacing } from './terminal-presenta
 import type { RuntimeNotifier } from '../../client/events/runtime-notifier-contract'
 import type { TerminalWorkspaceLaunchScope } from '../../orchestration/terminal-authority/structured-sessions/runtime-legacy-worker-terminal-recovery-types'
 import type { RuntimeTerminalPresentation } from '../../../../shared/runtime-terminal-contracts'
+import type { TuiAgent } from '../../../../shared/agent-launch/catalog/tui-agent'
 
 function terminalRevealViewerOptions(
   opts: Pick<TerminalCreateOptions, 'surfaceOwner' | 'agentLaunchViewer'>
@@ -21,6 +22,8 @@ export function revealCreatedTerminal(args: {
   handle: string
   cwd: string
   launchOpts: TerminalCreateOptions
+  /** The CLI agent the terminal runs with no view chosen (`pendingViewAgentForLaunch`). */
+  pendingViewAgent?: TuiAgent
   effectiveLaunchConfig: TerminalCreateOptions['launchConfig']
   launchToken: string | undefined
   /** An adopted pane already ran; its recipe and spent launch token must not be re-registered. */
@@ -39,6 +42,7 @@ export function revealCreatedTerminal(args: {
     handle,
     cwd,
     launchOpts,
+    pendingViewAgent,
     effectiveLaunchConfig,
     launchToken,
     adoptedStablePane,
@@ -69,6 +73,10 @@ export function revealCreatedTerminal(args: {
           ...(effectiveLaunchConfig ? { launchConfig: effectiveLaunchConfig } : {}),
           ...(launchToken ? { launchToken } : {}),
           ...(launchOpts.launchAgent ? { launchAgent: launchOpts.launchAgent } : {}),
+          // A launch agent already tells the window; a bare `claude …` command needs naming.
+          ...(!launchOpts.launchAgent && pendingViewAgent
+            ? { commandAgent: pendingViewAgent }
+            : {}),
           ...(launchOpts.viewMode ? { viewMode: launchOpts.viewMode } : {}),
           activate: presentation === 'focused',
           ...(presentation ? { presentation } : {}),

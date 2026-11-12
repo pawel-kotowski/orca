@@ -82,6 +82,8 @@ export type RuntimeNotifier = {
       launchConfig?: SleepingAgentLaunchConfig
       launchToken?: string
       launchAgent?: TuiAgent
+      /** The CLI agent a startup command runs when no launch agent names it; the window picks its view. */
+      commandAgent?: TuiAgent
       viewMode?: 'terminal' | 'chat'
       targetGroupId?: string
       afterTabId?: string

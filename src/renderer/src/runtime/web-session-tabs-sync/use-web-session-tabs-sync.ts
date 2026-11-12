@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef } from 'react'
 import { lastVerifiedRuntimeStatus } from '../../../../shared/remote-runtime/host-status/runtime-host-status'
 import { useAppStore } from '../../store'
+import { installPendingAgentTabViewDefault } from '@/lib/remote-agent-tab-default-view'
 import { useRuntimeSessionMirrorEnvironmentKeys } from './subscriptions/use-runtime-session-mirror-environment-key'
 import { sessionTabsFreshnessKey } from './state'
 import { clearWebSessionTabsTrackingForEnvironment } from './tracking-lifecycle'
@@ -72,6 +73,9 @@ export function useWebSessionTabsSync(): void {
     )
     return environment ? (environment.pairingRevision ?? environment.createdAt) : undefined
   })
+
+  // Host-started CLI agents with no view yet open the way new agents open here.
+  useLayoutEffect(() => installPendingAgentTabViewDefault(), [])
 
   useLayoutEffect(() => {
     const environmentId = activeWorktreeRuntimeEnvironmentId?.trim() || null

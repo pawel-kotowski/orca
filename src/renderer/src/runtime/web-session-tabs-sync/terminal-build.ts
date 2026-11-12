@@ -12,7 +12,7 @@ import { toWebTerminalSurfaceTabId } from '../../../../shared/workspace-layout/t
 import type { MirroredTerminalTab, ReadyTerminalSurface } from './state'
 import type { RuntimeMobileSessionTerminalClientTab } from '../../../../shared/runtime-mobile-session-tab-contracts'
 import { chooseRemoteTerminalLayout, isTerminalSurfaceTab } from './terminal-surfaces'
-import { claimExpectedAgentTabView } from './expected-agent-tab-view'
+import { choosePendingAgentTabView, claimExpectedAgentTabView } from './expected-agent-tab-view'
 
 function pendingBindingBelongsToEnvironment(
   ptyId: string,
@@ -186,15 +186,27 @@ export function buildMirroredTerminalTabs(
     // Why: viewMode echoes back through host snapshots, so prefer the client's record during the echo window and adopt the host value only without a prior tab.
     const hostViewModeSurface = surfaces.find((surface) => surface.viewMode)
     const expectedView = claimExpectedAgentTabView(snapshot.worktree, localTabId, launchAgent)
-    if (expectedView?.tell) {
+    // A host-started CLI agent (a worker, `orca terminal create --command claude`) with no view yet
+    // takes this desktop's "Open CLI agents in Chat UI"; a view the tab already has never changes.
+    const pendingViewAgent = hostViewModeSurface
+      ? undefined
+      : surfaces.find((surface) => surface.pendingViewAgent)?.pendingViewAgent
+    const pendingView =
+      !expectedView && pendingViewAgent && !existing?.viewMode
+        ? choosePendingAgentTabView(snapshot.worktree, localTabId, pendingViewAgent)
+        : null
+    const tellHost = expectedView?.tell ? 'chat' : pendingView?.tell ? pendingView.viewMode : null
+    if (tellHost) {
       const worktreeId = snapshot.worktree
       void import('../hosted-terminals/actions/web-runtime-tab-properties').then(
         ({ setWebRuntimeTabProps }) =>
-          setWebRuntimeTabProps({ worktreeId, tabId: localTabId, viewMode: 'chat' })
+          setWebRuntimeTabProps({ worktreeId, tabId: localTabId, viewMode: tellHost })
       )
     }
     const viewMode =
-      expectedView?.viewMode ?? (existing ? existing.viewMode : hostViewModeSurface?.viewMode)
+      expectedView?.viewMode ??
+      pendingView?.viewMode ??
+      (existing ? existing.viewMode : hostViewModeSurface?.viewMode)
     return {
       tab: {
         id: localTabId,
