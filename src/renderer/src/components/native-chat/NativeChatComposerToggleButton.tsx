@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState } from 'react'
-import { cn } from '@/lib/utils'
+import { cn } from '@/lib/class-names'
 import { floatingLauncherShift } from './native-chat-corner-buttons-layout'
 import { registerNativeChatCornerSlot } from './native-chat-corner-slot'
 

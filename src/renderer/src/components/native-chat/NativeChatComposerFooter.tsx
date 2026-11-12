@@ -3,7 +3,7 @@ import { NativeChatViewSwitchButton } from './NativeChatViewSwitchButton'
 import { NativeChatPlaceLine } from './native-chat-place-line'
 import { NativeChatResumeButton } from './native-chat-resume-button'
 import { NativeChatContextUsageChip } from './native-chat-context-usage-chip'
-import type { NativeChatContextUsageSummary } from './native-chat-context-usage-summary'
+import type { NativeChatContextUsageSummary } from '../../../../shared/native-chat/native-chat-context-usage-summary'
 
 /**
  * The quiet line under the message box: the Claude subscription and its limits, how full the

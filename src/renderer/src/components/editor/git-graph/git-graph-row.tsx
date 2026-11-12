@@ -1,7 +1,8 @@
 // Local (glass build): one commit row of the Git Graph tab — graph, subject with refs, author, date, hash.
 import React from 'react'
 import { Tag } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn } from '@/lib/class-names'
+import { getIntlLocale } from '@/i18n/i18n'
 import {
   GIT_HISTORY_BASE_REF_COLOR,
   type GitHistoryGraphColorId,
@@ -24,7 +25,8 @@ import {
 
 export const GIT_GRAPH_ROW_HEIGHT = 24
 
-const relativeTime = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' })
+const relativeTime = (): Intl.RelativeTimeFormat =>
+  new Intl.RelativeTimeFormat(getIntlLocale(), { numeric: 'auto' })
 const RELATIVE_STEPS: [Intl.RelativeTimeFormatUnit, number][] = [
   ['year', 365 * 24 * 3600],
   ['month', 30 * 24 * 3600],
@@ -41,10 +43,10 @@ export function formatGitGraphRelativeTime(timestamp: number | undefined): strin
   const seconds = (timestamp - Date.now()) / 1000
   for (const [unit, size] of RELATIVE_STEPS) {
     if (Math.abs(seconds) >= size) {
-      return relativeTime.format(Math.round(seconds / size), unit)
+      return relativeTime().format(Math.round(seconds / size), unit)
     }
   }
-  return relativeTime.format(0, 'minute')
+  return relativeTime().format(0, 'minute')
 }
 
 const MAIN_BRANCH_NAMES = new Set(['main', 'master'])
@@ -162,7 +164,9 @@ export const GitGraphRow = React.forwardRef<HTMLDivElement, GitGraphRowProps>(fu
       {layout.date && (
         <span
           className="truncate text-muted-foreground"
-          title={item.timestamp ? new Date(item.timestamp).toLocaleString() : undefined}
+          title={
+            item.timestamp ? new Date(item.timestamp).toLocaleString(getIntlLocale()) : undefined
+          }
         >
           {formatGitGraphRelativeTime(item.timestamp)}
         </span>

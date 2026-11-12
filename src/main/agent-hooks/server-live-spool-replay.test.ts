@@ -2,8 +2,8 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { AgentHookServer } from './server'
-import { buildBody, PANE, postHookEvent } from './server.test-fixtures'
+import { AgentHookServer } from './server/agent-hook-server'
+import { buildBody, PANE, postHookEvent } from './server/testing/server.test-fixtures'
 
 vi.mock('../telemetry/client', () => ({ track: vi.fn() }))
 vi.mock('../telemetry/cohort-classifier', () => ({ getCohortAtEmit: () => ({}) }))

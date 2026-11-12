@@ -6,6 +6,7 @@ import { expandWindowsEnvironmentVariables } from '../../../shared/windows-envir
 import { resolveSafePtyDefaultCwd } from '../pty-default-cwd'
 import { REMOTE_VIEWER_CLIPBOARD_ENV } from '../../../shared/remote-viewer-clipboard-env'
 import { ORCAD_SERVER_LAUNCH_ENV_KEYS } from '../../../shared/orcad-server-launch-env'
+import { isLocalCounterPtyId } from '../../../shared/terminal/pty/lifecycle/pty-session-id-format'
 
 const PANE_IDENTITY_ENV_KEYS = [
   'ORCA_PANE_KEY',
@@ -84,7 +85,7 @@ export function normalizeLocalCallerSessionId(
   // Why: this provider's own ids (legacy numeric, now `local-…`) are never reused except by an
   // explicit attach; after a restart they would name some other terminal.
   const ownId =
-    !!requested && (/^\d+$/.test(requested) || requested.startsWith(LOCAL_PTY_ID_PREFIX))
+    !!requested && (isLocalCounterPtyId(requested) || requested.startsWith(LOCAL_PTY_ID_PREFIX))
   return !requested || (!allowNumeric && ownId) ? null : requested
 }
 

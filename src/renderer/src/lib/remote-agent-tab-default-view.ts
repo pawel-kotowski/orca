@@ -1,8 +1,8 @@
 import type { TuiAgent } from '../../../shared/agent-launch/catalog/tui-agent'
 import { useAppStore } from '@/store'
 import { defaultAgentTabViewMode } from '@/lib/agent-tab-default-view-mode'
-import { runtimeEnvironmentIdOrLocalUnlessTwin } from '@/lib/worktree-runtime-owner'
-import { isWebRuntimeSessionActive } from '@/runtime/web-runtime-session-environment'
+import { runtimeEnvironmentIdOrLocalUnlessTwin } from '@/lib/workspace/ownership/worktree-runtime-owner'
+import { isWebRuntimeSessionActive } from '@/runtime/web-session-tabs-sync/identity/web-runtime-session-environment'
 import { expectAgentTabChatView } from '@/runtime/web-session-tabs-sync/expected-agent-tab-view'
 
 /**

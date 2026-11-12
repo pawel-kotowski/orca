@@ -4,15 +4,15 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { cn } from '@/lib/utils'
-import { formatShortTimeAgo } from '@/lib/short-time-ago'
+import { cn } from '@/lib/class-names'
+import { formatShortTimeAgo } from '@/lib/time-format/short-time-ago'
 import { useNow } from '@/hooks/use-now'
 import { translate } from '@/i18n/i18n'
 import { useAppStore } from '@/store'
 import { makePaneKey } from '../../../../shared/workspace-layout/stable-pane-id'
 import type { ClaudeProjectSession } from '../../../../shared/native-chat/claude-project-session-types'
 import { useNativeChatAccountScope } from './native-chat-account-usage'
-import { sendNativeChatTypedCommand } from './native-chat-runtime-send'
+import { sendNativeChatTypedCommand } from './session/terminal/send/native-chat-runtime-send'
 
 function sessionIdFromTranscript(transcriptPath: string | null): string | null {
   const name = transcriptPath?.split(/[\\/]/).pop() ?? null

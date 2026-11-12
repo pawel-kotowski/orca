@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react'
 import { useAppStore } from '@/store'
-import type { ProspectiveWorkspace } from '@/lib/agent-launch-route-input'
+import type { ProspectiveWorkspace } from '@/lib/agent-session/launch/routing/agent-launch-route-input'
 import { saveProjectDefaultClaudeAccount } from '@/lib/workspace-claude-account'
 import {
   isHostClaudeAccount,

@@ -1,5 +1,5 @@
 import { useAppStore } from '@/store'
-import { writeNativeChatAppearance } from '../native-chat/native-chat-appearance-write'
+import { writeNativeChatAppearance } from '../native-chat/appearance/native-chat-appearance-write'
 
 /**
  * The pieces of an activity card read from its conversation, each of which can be hidden with one

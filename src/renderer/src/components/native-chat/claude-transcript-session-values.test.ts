@@ -3,7 +3,7 @@ import {
   claudeTranscriptSessionValues,
   withClaudeHookEffort,
   withClaudeStartingEffort
-} from './claude-terminal-session-options'
+} from './session/options/terminal/claude-terminal-session-options'
 
 describe('a Claude chat names its model from the transcript when the startup frame is gone', () => {
   it('matches a reply model id to the seed family, with the hook effort', () => {

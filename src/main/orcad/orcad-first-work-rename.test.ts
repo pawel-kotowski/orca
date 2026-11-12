@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const rename = vi.hoisted(() => vi.fn(async () => {}))
-vi.mock('../agent-hooks/first-work-branch-rename', () => ({
+vi.mock('../agent-hooks/first-work/first-work-branch-rename', () => ({
   maybeAutoRenameBranchOnFirstWork: rename
 }))
-vi.mock('../agent-hooks/first-work-rename-runtime', () => ({
+vi.mock('../agent-hooks/first-work/first-work-rename-runtime', () => ({
   firstWorkRenameDeps: () => ({ marker: 'deps' })
 }))
 

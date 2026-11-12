@@ -1,5 +1,5 @@
 import { ipcMain } from 'electron'
-import { agentHookServer } from '../agent-hooks/server'
+import { agentHookServer } from '../agent-hooks/server/agent-hook-server'
 import { nativeChatTranscriptPathOnExecutionHost } from '../native-chat/ssh-transcript-path'
 import { readClaudeModelContextWindows } from '../claude/claude-model-catalog-context-windows'
 import { listClaudeProjectSessions } from '../claude/claude-project-sessions'

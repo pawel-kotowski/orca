@@ -1,6 +1,6 @@
 import { useEffect, useSyncExternalStore } from 'react'
-import { callRuntimeRpc } from '@/runtime/runtime-rpc-client'
-import type { ProviderAccountsSnapshot } from '@/runtime/runtime-provider-accounts-client'
+import { callRuntimeRpc } from '@/runtime/rpc/calls/runtime-rpc-call'
+import type { ProviderAccountsSnapshot } from '@/runtime/provider-accounts/observations/runtime-provider-accounts-client'
 
 /**
  * A remote workspace's agents run on its host, under that host's Claude login, so the chat's

@@ -1,7 +1,7 @@
 import { useMemo, type ReactNode } from 'react'
 import { TERMINAL_CHATS_VISUAL_SESSION_ID } from '../../../../shared/native-chat/native-chat-visual-directive'
 import type { RuntimeClientTarget } from '../../../../shared/runtime-client-target'
-import { NativeChatVisualOwnerProvider } from './native-chat-visual-owner'
+import { NativeChatVisualOwnerProvider } from './media/visuals/native-chat-visual-owner'
 
 /**
  * Inline HTML visuals in a terminal-backed chat (Paweł, 2026-11-10: the terminal Chat UI should

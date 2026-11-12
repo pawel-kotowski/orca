@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { AgentType } from '../../../../shared/agent-status/contracts/agent-status-types'
 import type { NativeChatMessage } from '../../../../shared/native-chat/native-chat-types'
 import { deriveNativeChatContextUsage } from '../../../../shared/native-chat/native-chat-context-usage'
-import type { NativeChatContextUsageSummary } from './native-chat-context-usage-summary'
+import type { NativeChatContextUsageSummary } from '../../../../shared/native-chat/native-chat-context-usage-summary'
 
 type ContextWindows = Readonly<Record<string, number>>
 

@@ -1,4 +1,4 @@
-import { stripScrollbackAnsi } from './native-chat-scrape-fallback'
+import { stripScrollbackAnsi } from './session/terminal/assembly/native-chat-scrape-fallback'
 
 // Why: xterm's serializer writes a run of empty cells as a cursor move, not as spaces; stripping it
 // as an escape would glue the words on either side together.

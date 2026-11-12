@@ -6,7 +6,7 @@ import {
   useVirtualizer,
   type Range
 } from '@tanstack/react-virtual'
-import { cn } from '@/lib/utils'
+import { cn } from '@/lib/class-names'
 import { READ_AGENTS_GROUP_KEY } from './activity-thread-grouping'
 import { ActivityThreadListToolbar } from './activity-thread-list-toolbar'
 import { ActivityListEmptyState } from './activity-list-empty-state'

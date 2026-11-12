@@ -3,8 +3,8 @@
 // sidebar's graph layout and drawing.
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Minus, Plus, RefreshCw, Search } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { isImeOwnedKeyboardEvent } from '@/lib/ime-composition-keyboard-event'
+import { cn } from '@/lib/class-names'
+import { isImeOwnedKeyboardEvent } from '@/lib/text-input/ime/ime-composition-keyboard-event'
 import { Button } from '@/components/ui/button'
 import { ContextMenu, ContextMenuTrigger } from '@/components/ui/context-menu'
 import { translate } from '@/i18n/i18n'
@@ -16,7 +16,7 @@ import {
   buildGitHistoryViewModels,
   getGitHistoryItemColor
 } from '../../../../../shared/git/history/git-history-graph'
-import { useGitGraphHistory } from './use-git-graph-history'
+import { useClassicGitGraphHistory } from './use-git-graph-history-local'
 import { GIT_GRAPH_ROW_HEIGHT, GitGraphHeaderRow, GitGraphRow } from './git-graph-row'
 import { useGitGraphColumns } from './git-graph-columns'
 import { GitGraphCommitDetails } from './git-graph-commit-details'
@@ -93,7 +93,7 @@ function readAllRefsPreference(): boolean {
 
 export function GitGraphView({ worktreeId }: { worktreeId: string }): React.JSX.Element {
   const [allRefs, setAllRefs] = useState(readAllRefsPreference)
-  const history = useGitGraphHistory(worktreeId, allRefs)
+  const history = useClassicGitGraphHistory(worktreeId, allRefs)
   const ownerTarget = useWorktreeGitOwnerTarget(worktreeId)
   const [selectedId, setSelectedId] = useState<string | null>(
     () => viewByWorktree.get(worktreeId)?.selectedId ?? null
@@ -322,7 +322,7 @@ export function GitGraphView({ worktreeId }: { worktreeId: string }): React.JSX.
           </Button>
         </div>
       </div>
-      {allRefs && result && result.allRefs !== true && (
+      {allRefs && result && result.refs !== 'all' && (
         <div className="shrink-0 border-b border-border px-3 py-1 text-xs text-muted-foreground">
           {translate(
             'local.gitGraph.olderHost',

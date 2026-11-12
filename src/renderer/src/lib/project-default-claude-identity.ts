@@ -4,7 +4,7 @@ import { projectDefaultClaudeAccountId } from '../../../shared/claude-workspace-
 import { getRepoIdFromWorktreeId } from '../../../shared/worktree/id'
 import { projectMatchesRepo } from '../../../shared/project-repo-match'
 import { getProjectIdentityKey } from '../../../shared/project-host-setup-projection'
-import { getProjectHostSetupProjectionFromState } from '@/store/selectors'
+import { getProjectHostSetupProjectionFromState } from '@/store/projects/project-host-setup-selector'
 
 type State = Pick<AppState, 'repos' | 'settings'> &
   Partial<Pick<AppState, 'projects' | 'projectHostSetups'>>

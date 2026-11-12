@@ -1,8 +1,12 @@
-import type { ClaudeRuntimeAuthPreparation } from '../claude-accounts/runtime-auth-service'
-import { applyClaudeEnvPatch } from '../claude-accounts/environment'
+import type { ClaudeRuntimeAuthPreparation } from '../claude-accounts/runtime-auth/runtime-auth-types'
+import { applyClaudeEnvPatch } from '../claude-accounts/runtime-auth/environment'
 import { withoutRejectedClaudeApiKey } from './claude-rejected-api-key'
 import { readShellStartupEnvVar } from '../pty/shell-startup/shell-startup-env'
 import { parseWslUncPath } from '../../shared/wsl-paths'
+import {
+  processEnvWithoutAgentSession,
+  stripInheritedAgentSessionEnv
+} from '../../shared/agent-launch/startup/parent-agent-session-env'
 
 export type CommitMessageAgentEnvironmentResolvers = {
   prepareForCodexLaunch?: (
@@ -22,7 +26,7 @@ export type CommitMessageAgentRuntimeTarget = {
 
 function cloneProcessEnv(): Record<string, string> {
   const env: Record<string, string> = {}
-  for (const [key, value] of Object.entries(process.env)) {
+  for (const [key, value] of Object.entries(processEnvWithoutAgentSession())) {
     if (value !== undefined) {
       env[key] = value
     }
@@ -115,10 +119,15 @@ export async function prepareLocalCommitMessageAgentEnv(
   if (shellConfigEnv) {
     return shellConfigEnv
   }
-  if (!resolvers) {
+  if (!resolvers && agentId !== 'claude') {
     return { ok: true }
   }
   const base = hostBase ?? cloneProcessEnv()
+  stripInheritedAgentSessionEnv(base)
+  if (!resolvers) {
+    // Why: only Claude gets here; it runs on the shell env, so honour its rejected-key answer.
+    return { ok: true, env: withoutRejectedClaudeApiKey(base) }
+  }
 
   try {
     if (agentId === 'codex' && resolvers.prepareForCodexLaunch) {
@@ -163,7 +172,7 @@ export async function prepareLocalCommitMessageAgentEnv(
 
   if (agentId === 'claude') {
     // Why: with no account resolver Claude still runs on the shell env; honour its key answer too.
-    return { ok: true, env: withoutRejectedClaudeApiKey(hostBase ?? cloneProcessEnv()) }
+    return { ok: true, env: withoutRejectedClaudeApiKey(base) }
   }
-  return hostBase ? { ok: true, env: hostBase } : { ok: true }
+  return hostBase ? { ok: true, env: base } : { ok: true }
 }

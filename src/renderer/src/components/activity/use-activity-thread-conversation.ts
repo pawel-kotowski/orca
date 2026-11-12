@@ -6,10 +6,10 @@ import {
   summarizeNativeChatConversation,
   type NativeChatConversationSummary
 } from '../../../../shared/native-chat/transcript/native-chat-conversation-summary'
-import { resolveNativeChatSession } from '../native-chat/native-chat-pane-resolution'
-import { createNativeChatRuntimeSelector } from '../native-chat/native-chat-runtime-owner'
-import { useNativeChatRetainedSession } from '../native-chat/use-native-chat-retained-session'
-import type { NativeChatLiveSession } from '../native-chat/use-native-chat-live-session'
+import { resolveNativeChatSession } from '../native-chat/pane/routing/native-chat-pane-resolution'
+import { createNativeChatRuntimeSelector } from '../native-chat/pane/ownership/native-chat-runtime-owner'
+import { useNativeChatRetainedSession } from '../native-chat/session/terminal/read/use-native-chat-retained-session'
+import type { NativeChatLiveSession } from '../native-chat/session/terminal/read/native-chat-live-session-contract'
 import type { AgentPaneThread } from './activity-thread-types'
 
 export type ActivityThreadConversation = {

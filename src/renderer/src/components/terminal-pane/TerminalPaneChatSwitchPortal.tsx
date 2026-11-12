@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { NativeChatViewSwitchButton } from '../native-chat/NativeChatViewSwitchButton'
 import { floatingLauncherShift } from '../native-chat/native-chat-corner-buttons-layout'
-import type { TerminalPaneController } from './use-terminal-pane-controller'
+import type { TerminalPaneController } from './controller/use-terminal-pane-controller'
 
 /** The agent terminal's corner switch to its own terminal-backed Chat UI (not an SDK chat). */
 export function TerminalPaneChatSwitchPortal({

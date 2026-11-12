@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { nativeChatOpenTurnKeys } from './native-chat-expanded-keys'
+import { nativeChatOpenTurnKeys } from './messages/disclosure/native-chat-expanded-keys'
 
 describe('nativeChatOpenTurnKeys', () => {
   const turnKeys = [undefined, 't1', 't1', 't2', 't3']

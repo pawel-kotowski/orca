@@ -1,5 +1,5 @@
-import type { firstWorkRenameDeps as FirstWorkRenameDeps } from '../agent-hooks/first-work-rename-runtime'
-import type { AgentHookServer } from '../agent-hooks/server'
+import type { firstWorkRenameDeps as FirstWorkRenameDeps } from '../agent-hooks/first-work/first-work-rename-runtime'
+import type { AgentHookServer } from '../agent-hooks/server/agent-hook-server'
 import type { OrcaRuntimeService } from '../runtime/orca-runtime'
 
 type RenameStore = Parameters<typeof FirstWorkRenameDeps>[0]
@@ -21,8 +21,8 @@ export function installOrcadFirstWorkRename(
   > | null = null
   const load = () =>
     (loaded ??= Promise.all([
-      import('../agent-hooks/first-work-branch-rename'),
-      import('../agent-hooks/first-work-rename-runtime')
+      import('../agent-hooks/first-work/first-work-branch-rename'),
+      import('../agent-hooks/first-work/first-work-rename-runtime')
     ]).then(([{ maybeAutoRenameBranchOnFirstWork }, { firstWorkRenameDeps }]) => {
       const deps = firstWorkRenameDeps(store, runtime)
       return (event) =>
@@ -60,7 +60,7 @@ export async function attachOrcadAgentStatusFollowers(
   runtime: OrcaRuntimeService
 ): Promise<() => void> {
   const { installHookStatusSessionTabsRepublish } =
-    await import('../agent-hooks/hook-status-session-tabs-republish')
+    await import('../agent-hooks/runtime/hook-status-session-tabs-republish')
   const uninstallRepublish = installHookStatusSessionTabsRepublish(server, () => runtime)
   const detachStatusStore = runtime.attachAgentStatusStore(server)
   const uninstallRename = installOrcadFirstWorkRename(server, store, runtime)

@@ -1,14 +1,14 @@
-import { useMemo } from 'react'
-import { useShallow } from 'zustand/react/shallow'
+import { useState } from 'react'
 
 import { migrationUnsupportedToAgentStatusEntry } from '../../../../shared/migration-unsupported-agent-entry'
 import { useAppStore } from '@/store'
+import { createAgentStatusEpochSelector } from '@/lib/agent-status/evidence/agent-status-epoch-selector'
 import type { AppState } from '@/store/types'
 import type {
   AgentStatusEntry,
   AgentStatusOrchestrationContext
 } from '../../../../shared/agent-status/contracts/agent-status-types'
-import { selectVisibleAgentOrchestration } from '@/runtime/visible-agent-orchestration'
+import { selectVisibleAgentOrchestration } from '@/runtime/agent-orchestration/visible-agent-orchestration'
 import { hasWorkerParentPointer } from './activity-thread-child-agent'
 
 import { freshActivityLiveAgentState, isHistoricalActivityState } from './activity-event-state'
@@ -86,42 +86,37 @@ export function countActivityUnread(source: ActivityUnreadCountSource, now = Dat
   return count
 }
 
-export function useActivityUnreadCount(): number {
-  const {
-    agentStatusEpoch,
-    migrationUnsupportedByPtyId,
-    retainedAgentsByPaneKey,
-    acknowledgedAgentsByPaneKey,
-    activityClearedAtByPaneKey,
-    runtimeAgentOrchestrationByPaneKey
-  } = useAppStore(
-    useShallow((state) => ({
-      // Same-turn heartbeats preserve receipts; reducer/freshness epoch changes cover turn/state changes, stale revival and expiry.
-      agentStatusEpoch: state.agentStatusEpoch,
-      migrationUnsupportedByPtyId: state.migrationUnsupportedByPtyId,
-      retainedAgentsByPaneKey: state.retainedAgentsByPaneKey,
-      acknowledgedAgentsByPaneKey: state.acknowledgedAgentsByPaneKey,
-      activityClearedAtByPaneKey: state.activityClearedAtByPaneKey,
-      runtimeAgentOrchestrationByPaneKey: selectVisibleAgentOrchestration(state)
-    }))
+// Same-turn heartbeats preserve receipts; reducer/freshness epoch changes cover turn/state changes, stale revival and expiry.
+const createActivityUnreadCountSelector = () =>
+  createAgentStatusEpochSelector(
+    (
+      state: AppState,
+      migrationUnsupportedByPtyId: AppState['migrationUnsupportedByPtyId'],
+      retainedAgentsByPaneKey: AppState['retainedAgentsByPaneKey'],
+      acknowledgedAgentsByPaneKey: AppState['acknowledgedAgentsByPaneKey'],
+      activityClearedAtByPaneKey: AppState['activityClearedAtByPaneKey'],
+      runtimeAgentOrchestrationByPaneKey: Record<string, AgentStatusOrchestrationContext>
+    ) =>
+      countActivityUnread({
+        agentStatusByPaneKey: state.agentStatusByPaneKey,
+        migrationUnsupportedByPtyId,
+        retainedAgentsByPaneKey,
+        acknowledgedAgentsByPaneKey,
+        activityClearedAtByPaneKey,
+        runtimeAgentOrchestrationByPaneKey
+      })
   )
 
-  return useMemo(() => {
-    void agentStatusEpoch
-    return countActivityUnread({
-      agentStatusByPaneKey: useAppStore.getState().agentStatusByPaneKey,
-      migrationUnsupportedByPtyId,
-      retainedAgentsByPaneKey,
-      acknowledgedAgentsByPaneKey,
-      activityClearedAtByPaneKey,
-      runtimeAgentOrchestrationByPaneKey
-    })
-  }, [
-    runtimeAgentOrchestrationByPaneKey,
-    acknowledgedAgentsByPaneKey,
-    activityClearedAtByPaneKey,
-    migrationUnsupportedByPtyId,
-    retainedAgentsByPaneKey,
-    agentStatusEpoch
-  ])
+export function useActivityUnreadCount(): number {
+  const [selectActivityUnreadCount] = useState(createActivityUnreadCountSelector)
+  return useAppStore((state) =>
+    selectActivityUnreadCount(
+      state,
+      state.migrationUnsupportedByPtyId,
+      state.retainedAgentsByPaneKey,
+      state.acknowledgedAgentsByPaneKey,
+      state.activityClearedAtByPaneKey,
+      selectVisibleAgentOrchestration(state)
+    )
+  )
 }

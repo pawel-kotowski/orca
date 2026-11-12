@@ -1,5 +1,5 @@
 import type React from 'react'
-import { translate } from '@/i18n/i18n'
+import { useTranslate } from '@/i18n/use-translate'
 import {
   clearActivityThread,
   isClearableActivityThread,
@@ -21,7 +21,7 @@ import { useActivityChatPreviewPaneKey } from './activity-chat-preview-host'
 import type { AgentPaneThread } from './activity-thread-types'
 import type { ActivityVirtualItemDescriptor } from './activity-thread-virtual-items'
 import { FLOATING_TERMINAL_WORKTREE_ID } from '../../../../shared/constants'
-import { selectFloatingWorkspacePanelVisible } from '@/store/floating-workspace-panel-selector'
+import { selectFloatingWorkspacePanelVisible } from '@/store/workspaces/floating/floating-workspace-panel-selector'
 
 type ContextMenuProps = Parameters<typeof ActivityThreadContextMenu>[0]
 
@@ -62,6 +62,7 @@ export function ActivityThreadVirtualRow({
   compactMode: boolean
   showJumpAction: boolean
 }): React.JSX.Element {
+  const t = useTranslate()
   const hidesTabs = useActivityHidesWorkbench()
   const thread = item.type === 'header' ? null : item.thread
   // Why the store, not the last clicked card: the workspace can change another way (the sidebar,
@@ -87,7 +88,7 @@ export function ActivityThreadVirtualRow({
     return (
       <div
         role="group"
-        aria-label={translate(
+        aria-label={t(
           'auto.components.activity.ActivityPrototypePage.a2b4437bfb',
           '{{value0}} activity',
           { value0: item.group.label }

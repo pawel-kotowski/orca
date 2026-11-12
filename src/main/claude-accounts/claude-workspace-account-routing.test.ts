@@ -4,14 +4,20 @@ import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ClaudeManagedAccount } from '../../shared/managed-account-types'
 import { CLAUDE_WORKSPACE_ACCOUNT_ENV } from '../../shared/claude-workspace-account'
-import type { ClaudeProfileSetupReport } from './claude-profile-setup'
-import { claudeProfileMarkerPath, type ClaudeProfileDescriptor } from './claude-profile-paths'
-import { ClaudeProfileRouter, type ClaudeProfileRouterSettings } from './claude-profile-router'
+import type { ClaudeProfileSetupReport } from './profiles/setup/claude-profile-setup'
+import {
+  claudeProfileMarkerPath,
+  type ClaudeProfileDescriptor
+} from './profiles/claude-profile-paths'
+import {
+  ClaudeProfileRouter,
+  type ClaudeProfileRouterSettings
+} from './profiles/routing/claude-profile-router'
 import {
   claudeSpawnSelectionTarget,
   installClaudeProfileRouter,
   withClaudeProfileTerminalEnv
-} from './claude-profile-installed-router'
+} from './profiles/routing/claude-profile-installed-router'
 
 vi.mock('../startup/login-shell-environment', () => ({
   resolveLoginShellEnvironment: () => Promise.resolve({})

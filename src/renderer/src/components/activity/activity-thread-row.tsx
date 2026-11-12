@@ -1,7 +1,8 @@
 import React, { useMemo } from 'react'
-import { AgentTypeIcon } from '@/lib/agent-type-icon'
+import { AgentTypeIcon } from '@/components/agent/icons/agent-type-icon'
 import { formatAgentTypeLabel } from '../../../../shared/agent-status/presentation/agent-type-label'
-import { cn } from '@/lib/utils'
+import { cn } from '@/lib/class-names'
+import { useTranslate } from '@/i18n/use-translate'
 import { useUiLanguageRevision } from '@/i18n/use-ui-language-revision'
 import '../sidebar/workspace-card/activity/worktree-card-empty-inputs'
 import CommentMarkdown from '../sidebar/CommentMarkdown'
@@ -60,9 +61,10 @@ export const ActivityThreadRow = React.memo(function ActivityThreadRow({
   showJumpAction?: boolean
   previewSuppressed?: boolean
 }): React.JSX.Element {
+  const t = useTranslate()
   useUiLanguageRevision()
   const { taskTitle, statusLine, statusKind, needsAttention, workspaceLabel } =
-    activityThreadRowCopy(thread)
+    activityThreadRowCopy(thread, t)
   const projectColor = useActivityProjectColor(thread.repo)
   const showMarkdownStatus = statusKind === 'message'
   const agentLabel = formatAgentTypeLabel(thread.agentType)

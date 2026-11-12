@@ -250,7 +250,7 @@ export async function runPtySpawn<State extends PtySpawnOperationState>(
       return inherit(early)
     }
     if (adapter.adoption?.().completed?.materialized) {
-      return acquire(resolveEarlyPaneKey(args)!, fresh)
+      return await acquire(resolveEarlyPaneKey(args)!, fresh)
     }
     const paneKey = resolveEarlyPaneKey(args)
     return await (paneKey && !ctx.paneSpawnOperation

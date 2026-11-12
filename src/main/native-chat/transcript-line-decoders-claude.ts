@@ -7,20 +7,23 @@ import {
   type NativeChatEditPatchHunk,
   type NativeChatMessage
 } from '../../shared/native-chat/native-chat-types'
-import {
-  asRecord,
-  extractString,
-  parseJsonObject,
-  timestampMs
-} from '../ai-vault/session-scanner-values'
+import { asRecord } from '../ai-vault/parsing/session-record-fields'
+import { extractString } from '../../shared/trimmed-string'
+import { parseJsonObject } from '../ai-vault/parsing/session-json-object'
+import { timestampMs } from '../ai-vault/parsing/session-record-time'
 import { imageSourcePathFromText } from '../../shared/native-chat/transcript/native-chat-image-transcript-markers'
 import { claudeContentBlocks } from './transcript-record-blocks'
+import { isKnownRasterImageMimeType } from '../../shared/file-preview/raster-image-preview-limits'
 import { unwrapClaudePastedContentBlock } from '../../shared/claude-pasted-content'
 import { unwrapClaudeBashInputBlock } from '../../shared/claude-bash-input'
 import { claudeInterruptedMessageId } from './transcript-turn-markers'
-import { claudeStopHookFeedbackRow } from '../claude/claude-stop-hook-feedback'
+import { claudeStopHookFeedbackRow } from '../claude/structured/journal/claude-stop-hook-feedback'
 import { structuredAgentSessionStatusBlock } from '../../shared/agent-session/view/structured-agent-session-status-block'
-import { claudeTokenUsage } from '../claude/claude-context-usage'
+import { claudeTokenUsage } from '../claude/context-usage/claude-context-usage'
+import {
+  claudeMessageWithoutSyntheticText,
+  isClaudeInjectedUserMessage
+} from '../claude/structured/journal/claude-internal-message-content'
 
 const MAX_EDIT_PATCH_HUNKS = 40
 const MAX_EDIT_PATCH_HUNK_LINES = 400
@@ -83,7 +86,10 @@ export function decodeClaudeTranscriptLine(
   if (recap) {
     return recap
   }
-  const record = claudeQueuedPromptAsUserRecord(parsed) ?? parsed
+  const record = claudeMessageWithoutSyntheticText(claudeQueuedPromptAsUserRecord(parsed) ?? parsed)
+  if (!record) {
+    return null
+  }
   const role = record.type
   if (role !== 'user' && role !== 'assistant') {
     return null
@@ -112,9 +118,7 @@ export function decodeClaudeTranscriptLine(
     return null
   }
   // Meta user turns may still contain genuine tool output.
-  const isInjectedUserTurn =
-    role === 'user' &&
-    (record.isMeta === true || record.isSynthetic === true || record.isCompactSummary === true)
+  const isInjectedUserTurn = isClaudeInjectedUserMessage(record)
   const stopHookFeedback = isInjectedUserTurn ? claudeStopHookFeedbackMessage(decodedBlocks) : null
   if (stopHookFeedback) {
     return { id: recordMessageId, timestamp, source: 'transcript', ...stopHookFeedback, ...parent }
@@ -219,33 +223,25 @@ function claudeQueuedPromptAsUserRecord(
   if (typeof prompt !== 'string' && !Array.isArray(prompt)) {
     return null
   }
-  return {
-    ...record,
-    type: 'user',
-    message: {
-      role: 'user',
-      content: Array.isArray(prompt) ? prompt.map(queuedImageAsDataUrl) : prompt
-    }
-  }
+  const content = Array.isArray(prompt) ? prompt.map(queuedPromptImageAsDataUrl) : prompt
+  return { ...record, type: 'user', message: { role: 'user', content } }
 }
 
-/**
- * A queued (mid-turn) prompt carries its pasted image only as base64, with no path record after
- * it as an idle prompt has. Keep it as a data URL so the bubble shows the image where it was sent
- * and the window can retire its local echo of that send.
- */
-function queuedImageAsDataUrl(part: unknown): unknown {
-  const record = asRecord(part)
+// Queued prompts get no image-source companion row; their inline base64 is the only image record.
+function queuedPromptImageAsDataUrl(item: unknown): unknown {
+  const record = asRecord(item)
   const source = asRecord(record?.source)
-  if (record?.type !== 'image' || source?.type !== 'base64') {
-    return part
+  const mediaType = extractString(source?.media_type) ?? undefined
+  const data = extractString(source?.data)
+  if (
+    record?.type !== 'image' ||
+    source?.type !== 'base64' ||
+    !data ||
+    !isKnownRasterImageMimeType(mediaType)
+  ) {
+    return item
   }
-  const mediaType = extractString(source.media_type)
-  const data = extractString(source.data)
-  if (!mediaType?.startsWith('image/') || !data) {
-    return part
-  }
-  return { type: 'image', url: `data:${mediaType};base64,${data}`, alt: 'Pasted image' }
+  return { ...record, source: { url: `data:${mediaType};base64,${data}` } }
 }
 
 function claudeStopHookFeedbackMessage(
@@ -296,4 +292,27 @@ function isThinkingOnlyContent(content: unknown): boolean {
 function parseTimestamp(value: unknown): number | null {
   const parsed = timestampMs(value)
   return Number.isFinite(parsed) ? parsed : null
+}
+
+/** Anything but a typed record with no message, or a user record Claude flags as meta, may be a
+ *  turn: what a transcript nothing was sent in lacks. */
+export function mayBeClaudeConversationRecord(line: string): boolean {
+  let record: unknown
+  try {
+    record = JSON.parse(line)
+  } catch {
+    return true
+  }
+  if (!record || typeof record !== 'object' || Array.isArray(record)) {
+    return true
+  }
+  // A local command's caveat or output; the decoder still keeps any meta record it can show.
+  if ('isMeta' in record && record.isMeta === true && 'type' in record && record.type === 'user') {
+    return false
+  }
+  if ('message' in record) {
+    return true
+  }
+  const type = 'type' in record ? record.type : undefined
+  return typeof type !== 'string' || !type.trim() || type === 'user' || type === 'assistant'
 }

@@ -6,7 +6,7 @@ import type { AgentSessionBackgroundTask } from '../../../../shared/agent-sessio
 import type { NativeChatMessage } from '../../../../shared/native-chat/native-chat-types'
 import { runningTranscriptBackgroundShells } from '../../../../shared/native-chat/transcript/native-chat-transcript-background-shells'
 import { NativeChatActivityLine } from './NativeChatActivityLine'
-import { formatNativeChatDuration } from './NativeChatWorkingStatus'
+import { formatNativeChatDuration } from '../../../../shared/native-chat/transcript/native-chat-turn-status'
 import { NativeChatWorkersStrip } from './NativeChatWorkersStrip'
 
 const NO_TASKS: readonly AgentSessionBackgroundTask[] = []

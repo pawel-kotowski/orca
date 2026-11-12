@@ -1,5 +1,5 @@
 import { ChevronDown, ChevronUp, SlidersHorizontal } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn } from '@/lib/class-names'
 import {
   toggleActivityCardPartsBar,
   useActivityCardPartsBarHidden
@@ -7,7 +7,7 @@ import {
 import { useAppStore } from '@/store'
 import { Button } from '@/components/ui/button'
 import { translate } from '@/i18n/i18n'
-import { writeNativeChatAppearance } from '../native-chat/native-chat-appearance-write'
+import { writeNativeChatAppearance } from '../native-chat/appearance/native-chat-appearance-write'
 
 function navHidden(appearance: unknown): boolean {
   return Boolean(

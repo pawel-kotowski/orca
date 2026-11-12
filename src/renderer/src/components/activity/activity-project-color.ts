@@ -2,7 +2,7 @@ import type React from 'react'
 import { useAppStore } from '@/store'
 import { projectMatchesRepo } from '../../../../shared/project-repo-match'
 import { getProjectIdentityKey } from '../../../../shared/project-host-setup-projection'
-import { getProjectHostSetupProjectionFromState } from '@/store/selectors'
+import { getProjectHostSetupProjectionFromState } from '@/store/projects/project-host-setup-selector'
 import {
   DEFAULT_REPO_BADGE_COLOR,
   normalizeRepoBadgeColor,

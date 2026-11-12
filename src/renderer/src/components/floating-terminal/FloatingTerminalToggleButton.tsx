@@ -6,8 +6,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { FloatingTerminalIconContextMenu } from './FloatingTerminalIconContextMenu'
 import { useShortcutLabel } from '@/hooks/useShortcutLabel'
 import { useAppStore } from '@/store'
-import { selectFloatingWorkspaceHasUnread } from '@/store/selectors'
-import { translate } from '@/i18n/i18n'
+import { selectFloatingWorkspaceHasUnread } from '@/store/workspaces/floating/floating-workspace-unread-selector'
+import { useTranslate } from '@/i18n/use-translate'
 
 // Paweł, 2026-11-05: the launcher sits in the bottom-right corner, always, the same small gap from
 // the right edge and from the status bar. It no longer drags or remembers a dropped position.
@@ -58,6 +58,7 @@ export function FloatingTerminalToggleButton({
   open: boolean
   onToggle: () => void
 }): React.JSX.Element {
+  const t = useTranslate()
   // Memoized: subscribe so a language change still repaints its labels.
   useTranslation()
   const shortcutLabel = useShortcutLabel('floatingTerminal.toggle')
@@ -84,16 +85,16 @@ export function FloatingTerminalToggleButton({
             data-floating-terminal-toggle
             aria-label={
               open
-                ? translate(
+                ? t(
                     'auto.components.floating.terminal.FloatingTerminalToggleButton.5785dd9148',
                     'Minimize floating workspace'
                   )
                 : showAttentionDot
-                  ? translate(
+                  ? t(
                       'auto.components.floating.terminal.FloatingTerminalToggleButton.4cb418b991',
                       'Show floating workspace, new activity'
                     )
-                  : translate(
+                  : t(
                       'auto.components.floating.terminal.FloatingTerminalToggleButton.3b04b065b5',
                       'Show floating workspace'
                     )
@@ -113,7 +114,7 @@ export function FloatingTerminalToggleButton({
           </Button>
         </TooltipTrigger>
         <TooltipContent side="left" sideOffset={6}>
-          {translate(
+          {t(
             'auto.components.floating.terminal.FloatingTerminalToggleButton.bfe7809a70',
             '{{value0}} floating workspace ({{value1}})',
             { value0: open ? 'Minimize' : 'Show', value1: shortcutLabel }

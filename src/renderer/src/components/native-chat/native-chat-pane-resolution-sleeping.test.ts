@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { AgentStatusEntry } from '../../../../shared/agent-status/contracts/agent-status-types'
-import { resolveNativeChatSession } from './native-chat-pane-resolution'
+import { resolveNativeChatSession } from './pane/routing/native-chat-pane-resolution'
 
 const sleepingSession = {
   agent: 'claude' as const,

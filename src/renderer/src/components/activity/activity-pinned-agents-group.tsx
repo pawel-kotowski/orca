@@ -4,7 +4,7 @@ import { READ_AGENTS_GROUP_KEY } from './activity-thread-grouping'
 import { WORKING_GROUP_KEY } from './activity-inbox-sections'
 import { useActivityDrawerHeight, useActivityDrawerTakeover } from './activity-drawer-resize'
 import { translate } from '@/i18n/i18n'
-import { cn } from '@/lib/utils'
+import { cn } from '@/lib/class-names'
 import type { ActivityThreadGroup } from './activity-thread-types'
 import { ActivityThreadVirtualRow } from './activity-thread-virtual-row'
 

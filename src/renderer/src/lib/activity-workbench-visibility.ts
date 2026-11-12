@@ -1,7 +1,7 @@
 import { useEffect, useSyncExternalStore } from 'react'
 import { useAppStore } from '@/store'
-import { hideFloatingWorkspacePanel } from '@/lib/floating-workspace-panel-reveal'
-import { selectFloatingWorkspacePanelVisible } from '@/store/floating-workspace-panel-selector'
+import { hideFloatingWorkspacePanel } from '@/components/floating-terminal/floating-workspace-panel-reveal'
+import { selectFloatingWorkspacePanelVisible } from '@/store/workspaces/floating/floating-workspace-panel-selector'
 
 // Why: in the activity view the main area can step aside, like the floating workspace hides:
 // the tabs stay mounted and their agents keep running; only the view is hidden.

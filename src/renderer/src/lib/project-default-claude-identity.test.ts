@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { ClaudeManagedAccount } from '../../../shared/managed-account-types'
 
-vi.mock('@/store/selectors', () => ({
+vi.mock('@/store/projects/project-host-setup-selector', () => ({
   getProjectHostSetupProjectionFromState: (state: {
     projects: unknown
     projectHostSetups: unknown

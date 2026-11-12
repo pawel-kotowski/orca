@@ -14,7 +14,7 @@ import { READ_AGENTS_GROUP_KEY } from './activity-thread-grouping'
 import { useAgentPaneThreads } from './use-agent-pane-threads'
 
 vi.mock('@/store', async () => {
-  const { createTestStore } = await import('@/store/slices/store-test-helpers')
+  const { createTestStore } = await import('@/store/testing/app-store-test-fixture')
   return { useAppStore: createTestStore() }
 })
 

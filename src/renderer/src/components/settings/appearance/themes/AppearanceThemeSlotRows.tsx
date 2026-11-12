@@ -1,5 +1,5 @@
 import type { GlobalSettings } from '../../../../../../shared/global-settings-types'
-import { translate } from '@/i18n/i18n'
+import { useTranslate } from '@/i18n/use-translate'
 import { SettingsRow } from '../../form-controls/SettingsFormControls'
 import { SearchableSetting } from '../../section-layout/SearchableSetting'
 import { translateSearchKeyword } from '../../search/settings-search-keywords'
@@ -16,20 +16,15 @@ export function AppearanceThemeSlotRows({
   updateSettings: (updates: Partial<GlobalSettings>) => void
   forceVisible: boolean
 }): React.JSX.Element {
+  const t = useTranslate()
   const themeSlots = [
     {
       base: 'light' as const,
-      title: translate(
-        'auto.components.settings.AppearanceInterfaceSection.lightTheme',
-        'Light theme'
-      )
+      title: t('auto.components.settings.AppearanceInterfaceSection.lightTheme', 'Light theme')
     },
     {
       base: 'dark' as const,
-      title: translate(
-        'auto.components.settings.AppearanceInterfaceSection.darkTheme',
-        'Dark theme'
-      )
+      title: t('auto.components.settings.AppearanceInterfaceSection.darkTheme', 'Dark theme')
     }
   ]
   return (
@@ -38,7 +33,7 @@ export function AppearanceThemeSlotRows({
         <SearchableSetting
           key={slot.base}
           title={slot.title}
-          description={translate(
+          description={t(
             'auto.components.settings.AppearanceInterfaceSection.themeSlot.description',
             'App colors for this mode.'
           )}
@@ -49,7 +44,9 @@ export function AppearanceThemeSlotRows({
             slot.base,
             ...translateSearchKeyword(
               'auto.components.settings.appearance.search.matchTerminal',
-              'match terminal'
+              'match terminal',
+              undefined,
+              t
             )
           ]}
           forceVisible={forceVisible}

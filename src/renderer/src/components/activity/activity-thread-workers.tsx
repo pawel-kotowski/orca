@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react'
 import { ChevronRight } from 'lucide-react'
 import { AgentStateDot } from '@/components/AgentStateDot'
-import { cn } from '@/lib/utils'
+import { cn } from '@/lib/class-names'
 import { translate } from '@/i18n/i18n'
 import { activityThreadRowCopy, activityThreadStatusId } from './activity-thread-presentation'
 import type { AgentPaneThread } from './activity-thread-types'

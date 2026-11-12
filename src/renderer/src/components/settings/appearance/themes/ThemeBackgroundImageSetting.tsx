@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ImageOff, ImagePlus, X } from 'lucide-react'
 import { toast } from 'sonner'
-import { cn } from '@/lib/utils'
+import { cn } from '@/lib/class-names'
 import { translate } from '@/i18n/i18n'
 import { useAppStore } from '@/store'
 import { Slider } from '../../../ui/slider'
 import { SettingsRow, SettingsSegmentedControl } from '../../form-controls/SettingsFormControls'
 import { SearchableSetting } from '../../section-layout/SearchableSetting'
-import { writeNativeChatAppearance } from '../../../native-chat/native-chat-appearance-write'
+import { writeNativeChatAppearance } from '../../../native-chat/appearance/native-chat-appearance-write'
 import {
   forgetUserThemeBackgroundUrl,
   useUserThemeBackgroundChoice,

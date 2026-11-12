@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { nativeChatAppearanceStyle } from './native-chat-appearance-style'
+import { nativeChatAppearanceStyle } from './appearance/native-chat-appearance-style'
 
 // Why: local-only chat appearance settings (image overlay, custom text and bubble colours) keep
 // their tests in a file of their own, so upstream's test pruning never conflicts with them.

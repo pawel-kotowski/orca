@@ -2,6 +2,7 @@ import type {
   AgentProviderSessionMetadata,
   ResumableTuiAgent
 } from '../../agent-session/lifecycle/agent-session-resume'
+import { ompTranscriptProfileArgs } from '../../omp-profile'
 
 /**
  * Claude writes a conversation's transcript only with its first message, so an empty chat cannot be
@@ -74,14 +75,13 @@ export function getAgentResumeArgv(
       return providerSession.key === 'session_id' ? ['grok', '--resume', id] : null
     case 'devin':
       return providerSession.key === 'session_id' ? ['devin', '--resume', id] : null
-    case 'omp':
-      return providerSession.key === 'session_id'
-        ? [
-            'omp',
-            '--resume',
-            ompResumeFilePath?.trim() || providerSession.transcriptPath?.trim() || id
-          ]
-        : null
+    case 'omp': {
+      if (providerSession.key !== 'session_id') {
+        return null
+      }
+      const target = ompResumeFilePath?.trim() || providerSession.transcriptPath?.trim() || id
+      return ['omp', ...ompTranscriptProfileArgs(target), '--resume', target]
+    }
     // Use Copilot's documented joined spelling, matching persisted AI Vault commands across local/remote resumes.
     case 'copilot':
       return providerSession.key === 'session_id' ? ['copilot', `--resume=${id}`] : null

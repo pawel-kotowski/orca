@@ -21,7 +21,7 @@ import {
 } from '../../../../../../shared/native-chat/native-chat-appearance-settings'
 import { useAppStore } from '../../../../store/index'
 import { formatPrimaryShortcutLabel } from '@/hooks/useShortcutLabel'
-import { translate } from '@/i18n/i18n'
+import { useTranslate } from '@/i18n/use-translate'
 import { AppearanceChatContrastControls } from './AppearanceChatContrastControls'
 import { AppearanceChatImageOverlaySetting } from './AppearanceChatImageOverlaySetting'
 import { ChatFontFamilySetting } from './ChatFontFamilySetting'
@@ -39,7 +39,7 @@ import {
   getChatAppearanceEntriesByKey,
   getChatWidthOptions
 } from './chat-appearance-search'
-import { writeNativeChatAppearance } from '../../../native-chat/native-chat-appearance-write'
+import { writeNativeChatAppearance } from '../../../native-chat/appearance/native-chat-appearance-write'
 import type { GlobalSettings } from '../../../../../../shared/global-settings-types'
 
 // Why: approximate the themes' chat colors so a picker opens near the current color.
@@ -65,12 +65,13 @@ export function AppearanceChatSection({
   onRequestFontSuggestions,
   forceVisiblePrimary = false
 }: AppearanceChatSectionProps): React.JSX.Element {
+  const t = useTranslate()
   const appearance = resolveNativeChatAppearanceSettings(settings.nativeChatAppearance)
   const matching = appearance.matchTerminalInterface
   const keybindings = useAppStore((state) => state.keybindings)
   const increase = formatPrimaryShortcutLabel('zoom.in', keybindings)
   const decrease = formatPrimaryShortcutLabel('zoom.out', keybindings)
-  const entries = getChatAppearanceEntriesByKey({ increase, decrease })
+  const entries = getChatAppearanceEntriesByKey({ increase, decrease }, t)
   const update = (updates: NativeChatAppearanceSettings): void => {
     void writeNativeChatAppearance(
       (current) => normalizeNativeChatAppearanceSettings({ ...current, ...updates }),
@@ -90,8 +91,8 @@ export function AppearanceChatSection({
         forceVisible={forceVisiblePrimary}
       />
       <SettingsSwitchRow
-        label={translate('settings.chat.appearance.chatColors', 'Colour from the terminal theme')}
-        description={translate(
+        label={t('settings.chat.appearance.chatColors', 'Colour from the terminal theme')}
+        description={t(
           'settings.chat.appearance.chatColorsDescription',
           "Step icons by kind, links, code, headings, list markers and your messages take colours from the terminal theme's palette. Off keeps the chat in its text colours."
         )}
@@ -99,8 +100,8 @@ export function AppearanceChatSection({
         onChange={() => update({ chatColors: !nativeChatColors(settings) })}
       />
       <SettingsSwitchRow
-        label={translate('settings.chat.appearance.toolStepsOpen', 'Show every tool step')}
-        description={translate(
+        label={t('settings.chat.appearance.toolStepsOpen', 'Show every tool step')}
+        description={t(
           'settings.chat.appearance.toolStepsOpenDescription',
           'Runs of commands and tools list each step, headed by what the agent said it does. Off folds each run into one line.'
         )}
@@ -108,11 +109,8 @@ export function AppearanceChatSection({
         onChange={() => update({ toolStepsOpen: !nativeChatToolStepsOpen(settings) })}
       />
       <SettingsSwitchRow
-        label={translate(
-          'settings.chat.appearance.finishedTurnsOpen',
-          'Keep everything the agent said'
-        )}
-        description={translate(
+        label={t('settings.chat.appearance.finishedTurnsOpen', 'Keep everything the agent said')}
+        description={t(
           'settings.chat.appearance.finishedTurnsOpenDescription',
           'A finished turn stays open with every message the agent wrote while working, as the terminal shows it. Off folds the turn behind its answer.'
         )}
@@ -120,11 +118,8 @@ export function AppearanceChatSection({
         onChange={() => update({ finishedTurnsOpen: !nativeChatFinishedTurnsOpen(settings) })}
       />
       <SettingsSwitchRow
-        label={translate(
-          'settings.chat.appearance.bareWorkingLine',
-          'Show Working… under the last step'
-        )}
-        description={translate(
+        label={t('settings.chat.appearance.bareWorkingLine', 'Show Working… under the last step')}
+        description={t(
           'settings.chat.appearance.bareWorkingLineDescription',
           'The turn bar already counts the time; this adds a line saying the agent is working when nothing more specific is known.'
         )}
@@ -132,11 +127,11 @@ export function AppearanceChatSection({
         onChange={() => update({ bareWorkingLine: !nativeChatShowsBareWorkingLine(settings) })}
       />
       <SettingsSwitchRow
-        label={translate(
+        label={t(
           'settings.chat.appearance.soleCallAsLine',
           'Show a single command as its own step'
         )}
-        description={translate(
+        description={t(
           'settings.chat.appearance.soleCallAsLineDescription',
           'A run of one command opens straight to its code and output, without a run header above it.'
         )}
@@ -144,8 +139,8 @@ export function AppearanceChatSection({
         onChange={() => update({ soleCallAsLine: !nativeChatSoleCallAsLine(settings) })}
       />
       <SettingsSwitchRow
-        label={translate('settings.chat.appearance.compactComposer', 'Compact message box')}
-        description={translate(
+        label={t('settings.chat.appearance.compactComposer', 'Compact message box')}
+        description={t(
           'settings.chat.appearance.compactComposerDescription',
           'One line with only Attach, the model and option pickers, and Stop while the agent works. Enter sends.'
         )}
@@ -153,11 +148,11 @@ export function AppearanceChatSection({
         onChange={() => update({ compactComposer: !nativeChatCompactComposer(settings) })}
       />
       <SettingsSwitchRow
-        label={translate(
+        label={t(
           'settings.chat.appearance.ctrlEnterSendsNow',
           'Ctrl+Enter sends now while Claude works'
         )}
-        description={translate(
+        description={t(
           'settings.chat.appearance.ctrlEnterSendsNowDescription',
           "In a Claude chat that runs in its terminal, Ctrl+Enter gives Claude the message right away, as Ctrl+Enter does in Claude's terminal. Enter waits until Claude finishes what it is doing."
         )}
@@ -165,11 +160,11 @@ export function AppearanceChatSection({
         onChange={() => update({ ctrlEnterSendsNow: !nativeChatCtrlEnterSendsNow(settings) })}
       />
       <SettingsSwitchRow
-        label={translate(
+        label={t(
           'settings.chat.appearance.activityFollowsConversation',
           'Activity view follows the conversation'
         )}
-        description={translate(
+        description={t(
           'settings.chat.appearance.activityFollowsConversationDescription',
           'Each card shows the first and latest prompt, the latest steps and the answer.'
         )}
@@ -179,11 +174,11 @@ export function AppearanceChatSection({
         }
       />
       <SettingsSwitchRow
-        label={translate(
+        label={t(
           'settings.chat.appearance.activityHoverDetails',
           'Show details when hovering an activity card'
         )}
-        description={translate(
+        description={t(
           'settings.chat.appearance.activityHoverDetailsDescription',
           "Hovering a card opens Orca's details card for it. When off, a click anywhere on a card opens its workspace."
         )}
@@ -191,11 +186,11 @@ export function AppearanceChatSection({
         onChange={() => update({ activityHoverChat: !nativeChatActivityHoverChat(settings) })}
       />
       <SettingsSwitchRow
-        label={translate(
+        label={t(
           'settings.chat.appearance.workspaceHoverDetails',
           'Show details when hovering a workspace card'
         )}
-        description={translate(
+        description={t(
           'settings.chat.appearance.workspaceHoverDetailsDescription',
           'In the Projects view, hovering a workspace card opens its details: branch, issue, review and notes.'
         )}
@@ -218,15 +213,15 @@ export function AppearanceChatSection({
       >
         <NumberField
           label={entries.textSize.title}
-          description={matching ? chatTerminalControlledHint() : entries.textSize.description}
+          description={matching ? chatTerminalControlledHint(t) : entries.textSize.description}
           value={appearance.fontSize}
           defaultValue={matching ? undefined : 14}
           disabled={matching}
-          disabledReason={chatTerminalControlledTooltip()}
+          disabledReason={chatTerminalControlledTooltip(t)}
           min={12}
           max={20}
           integer
-          suffix={translate('settings.appearance.chat.pixels', 'px')}
+          suffix={t('settings.appearance.chat.pixels', 'px')}
           onChange={(fontSize) => update({ fontSize })}
         />
       </SearchableSetting>
@@ -237,15 +232,15 @@ export function AppearanceChatSection({
       >
         <NumberField
           label={entries.codeTextSize.title}
-          description={matching ? chatTerminalControlledHint() : entries.codeTextSize.description}
+          description={matching ? chatTerminalControlledHint(t) : entries.codeTextSize.description}
           value={appearance.codeFontSize}
           defaultValue={matching ? undefined : 12}
           disabled={matching}
-          disabledReason={chatTerminalControlledTooltip()}
+          disabledReason={chatTerminalControlledTooltip(t)}
           min={10}
           max={18}
           integer
-          suffix={translate('settings.appearance.chat.pixels', 'px')}
+          suffix={t('settings.appearance.chat.pixels', 'px')}
           onChange={(codeFontSize) => update({ codeFontSize })}
         />
       </SearchableSetting>
@@ -261,7 +256,7 @@ export function AppearanceChatSection({
             <SettingsSegmentedControl
               value={appearance.width}
               onChange={(width) => update({ width })}
-              options={getChatWidthOptions()}
+              options={getChatWidthOptions(t)}
               ariaLabel={entries.width.title}
             />
           }
@@ -299,7 +294,7 @@ export function AppearanceChatSection({
                 void writeNativeChatAppearance(resetNativeChatAppearanceSettings, updateSettings)
               }
             >
-              {translate('settings.appearance.chat.reset', 'Reset')}
+              {t('settings.appearance.chat.reset', 'Reset')}
             </Button>
           }
         />

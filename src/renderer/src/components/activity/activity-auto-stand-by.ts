@@ -1,5 +1,5 @@
 import { useAppStore } from '@/store'
-import { writeNativeChatAppearance } from '../native-chat/native-chat-appearance-write'
+import { writeNativeChatAppearance } from '../native-chat/appearance/native-chat-appearance-write'
 
 /** Hours a seen, finished card stays in the Inbox before it stands by on its own; null = never. */
 export function activityAutoStandByHours(appearance: unknown): number | null {

@@ -3,7 +3,7 @@ import type { TuiAgent } from '../../../shared/agent-launch/catalog/tui-agent'
 import { cliAgentsOpenInChat } from '../../../shared/native-chat/native-chat-appearance-settings'
 import { isNativeChatAgentAvailable } from '../../../shared/native-chat/native-chat-availability'
 import { isNativeChatTranscriptLocalReadable } from '../../../shared/native-chat/transcript/native-chat-transcript-readability'
-import { getConnectionIdFromState } from '@/lib/connection-owner-resolution'
+import { getConnectionIdFromState } from '@/lib/workspace/ownership/connection-owner-resolution'
 import type { AppState } from '@/store/types'
 
 /**

@@ -1,14 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { createWebRuntimeSessionTerminal } from './web-runtime-terminal-creation'
-import { resetWebSessionCloseIntentForTests } from './web-session-close-intent'
+import { createWebRuntimeSessionTerminal } from './hosted-terminals/creation/web-runtime-terminal-creation'
+import { resetWebSessionCloseIntentForTests } from './web-session-tabs-sync/closing/web-session-close-intent'
 import {
   ENVIRONMENT_ID,
   WORKTREE_ID,
   resetTerminalCreateEnvironment,
   stubTerminalCreateEnvironment
-} from './web-runtime-session-test-harness'
+} from './hosted-terminals/creation/testing/web-runtime-terminal-create.test-fixture'
 
-import { stubRuntimeEnvironmentBridge } from './runtime-environment-bridge-fixture'
+import { stubRuntimeEnvironmentBridge } from './rpc/testing/runtime-environment-bridge-fixture'
 
 const mocks = vi.hoisted(() => ({
   getState: vi.fn(),

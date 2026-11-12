@@ -6,7 +6,7 @@ import {
   resolveChatClaudeAccount,
   resolveRemoteChatClaudeUsage
 } from './native-chat-account-usage'
-import type { ProviderAccountsSnapshot } from '@/runtime/runtime-provider-accounts-client'
+import type { ProviderAccountsSnapshot } from '@/runtime/provider-accounts/observations/runtime-provider-accounts-client'
 
 const MOS = '4ea0da2c-7860-4172-bd43-9d2a1177c907'
 const ROBO = 'e6945bb8-13b2-463f-abda-c22153bef8ff'

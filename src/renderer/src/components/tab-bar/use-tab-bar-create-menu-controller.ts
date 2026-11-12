@@ -1,13 +1,14 @@
+/* eslint-disable max-lines -- Why: upstream's file sits at the limit and the local build (local/orca-glass) adds a line or two here; it never goes upstream. */
 import type { TabBarCreateMenuController } from './tab-bar-create-menu-contract'
 export type { TabBarCreateMenuController } from './tab-bar-create-menu-contract'
 import { useAgentLaunchPickerInventorySource } from '../agent/use-agent-launch-picker-inventory'
 import type { AgentPickerEntry } from '../../../../shared/agent-launch/picker/agent-launch-picker'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { focusTerminalTabSurface } from '@/lib/focus-terminal-tab-surface'
-import type { WindowsTerminalCapabilities } from '@/lib/windows-terminal-capabilities'
+import { focusTerminalTabSurface } from '@/components/terminal-pane/input/focus/focus-terminal-tab-surface'
+import type { WindowsTerminalCapabilities } from '@/runtime/hosts/capabilities/windows-terminal-capabilities'
 import { useAppStore } from '../../store'
 import { useTabAgentMenuLaunch } from './QuickLaunchButton'
-import { requestNativeChatComposerFocus } from '@/components/native-chat/use-native-chat-composer-reveal-focus'
+import { requestNativeChatComposerFocus } from '@/components/native-chat/composer/focus/native-chat-composer-focus-intent'
 import { useNewTabAgentMenuRows } from './use-new-tab-agent-menu-rows'
 import type { AgentDetectionTarget } from '@/hooks/useDetectedAgents'
 import type { TabAgentLaunchOption } from './tab-agent-launch-options'
@@ -277,11 +278,13 @@ export function useTabBarCreateMenuController({
     window.addEventListener('blur', dismiss)
     return () => window.removeEventListener('blur', dismiss)
   }, [newTabMenuOpen])
-  useEffect(() => {
+  const [prevNewTabMenuOpen, setPrevNewTabMenuOpen] = useState(newTabMenuOpen)
+  if (prevNewTabMenuOpen !== newTabMenuOpen) {
+    setPrevNewTabMenuOpen(newTabMenuOpen)
     if (!newTabMenuOpen) {
       setCreateMenuQuery('')
     }
-  }, [newTabMenuOpen])
+  }
   return {
     agentMenu,
     agentPickerInventory,

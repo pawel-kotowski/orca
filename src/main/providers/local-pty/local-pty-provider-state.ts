@@ -4,7 +4,7 @@ import type { PhysicalExitTracker } from '../../../shared/physical-exit-tracker'
 import type { PtyStartupIngress } from '../../../shared/terminal/pty/ingress/pty-startup-ingress'
 import type { IPtyProvider } from '../pty-provider-contract'
 import type { PtyDataEvent } from '../pty-provider-events'
-import { mintPtySessionId } from '../../daemon/pty-session-id'
+import { mintPtySessionId } from '../../daemon/sessions/pty-session-id'
 import {
   getSpawnedShellName,
   LOCAL_PTY_ID_PREFIX,

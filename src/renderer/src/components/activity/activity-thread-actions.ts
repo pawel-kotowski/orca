@@ -1,4 +1,4 @@
-import { activateTabAndFocusPane } from '@/lib/activate-tab-and-focus-pane'
+import { activateTabAndFocusPane } from '@/lib/workspace/tabs/activate-tab-and-focus-pane'
 import {
   activityHidesWorkbench,
   setActivityHidesWorkbench
@@ -6,11 +6,11 @@ import {
 import {
   hideFloatingWorkspacePanel,
   revealFloatingWorkspacePanel
-} from '@/lib/floating-workspace-panel-reveal'
-import { selectFloatingWorkspacePanelVisible } from '@/store/floating-workspace-panel-selector'
+} from '@/components/floating-terminal/floating-workspace-panel-reveal'
+import { selectFloatingWorkspacePanelVisible } from '@/store/workspaces/floating/floating-workspace-panel-selector'
 import { activateStructuredAgentSessionTab } from '@/lib/agent-session/structured-agent-session-tab-activation'
-import { activateAndRevealWorkspace } from '@/lib/worktree-activation'
-import { jumpToWorktreeFromSidebar } from '@/lib/worktree-jump-navigation'
+import { activateAndRevealWorkspace } from '@/lib/workspace/activation/worktree-activation'
+import { jumpToWorktreeFromSidebar } from '@/lib/workspace/activation/worktree-jump-navigation'
 import { useAppStore } from '@/store'
 import { FLOATING_TERMINAL_WORKTREE_ID } from '../../../../shared/constants'
 import {

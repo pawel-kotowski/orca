@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { translate } from '@/i18n/i18n'
-import { NativeChatAwaitingInputRow } from './NativeChatAwaitingInputRow'
+import { NativeChatAwaitingInputRow } from './prompts/NativeChatAwaitingInputRow'
 import { useNativeChatTerminalBridge } from './native-chat-terminal-bridge'
 import { terminalPromptExcerpt } from './native-chat-terminal-prompt-excerpt'
 

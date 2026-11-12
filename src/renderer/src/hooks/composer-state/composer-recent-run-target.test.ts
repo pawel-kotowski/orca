@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { ProjectHostSetupOption } from '@/lib/project-host-setup-options'
+import type { ProjectHostSetupOption } from '@/lib/workspace/creation/project-host-setup-options'
 import { recentComposerRunTarget } from './composer-recent-run-target'
 
 const option = (id: string, hostId: string, kind = 'ready'): ProjectHostSetupOption =>

@@ -1,11 +1,11 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { translate } from '@/i18n/i18n'
-import { cn } from '@/lib/utils'
+import { cn } from '@/lib/class-names'
 import { NativeChatMeter } from './native-chat-meter'
 import {
   formatContextTokenCount,
   type NativeChatContextUsageSummary
-} from './native-chat-context-usage-summary'
+} from '../../../../shared/native-chat/native-chat-context-usage-summary'
 
 /** Past this the window is nearly spent, as the composer's ring marks it. */
 const CRITICAL_PERCENTAGE = 90

@@ -65,20 +65,17 @@ describe('Claude queued_command attachment', () => {
     expect(decodeClaudeTranscriptLine(line, 'fallback')).toBeNull()
   })
 
-  it('keeps a mid-turn pasted image as a data URL, since no path record follows it', () => {
+  it('keeps inline images from a prompt absorbed mid-turn, which have no source row', () => {
     const line = queuedCommand({
       prompt: [
-        { type: 'text', text: '[Image #1]' },
-        { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: 'AAAA' } }
+        { type: 'image', source: { type: 'base64', media_type: 'image/png', data: 'iVBORw0K' } },
+        { type: 'text', text: '[Image #3]' }
       ],
-      imagePasteIds: [1],
-      commandMode: 'prompt',
-      origin: { kind: 'human' },
-      humanTurn: true
+      commandMode: 'prompt'
     })
     expect(decodeClaudeTranscriptLine(line, 'fallback')?.blocks).toEqual([
-      { type: 'text', text: '[Image #1]' },
-      { type: 'image-ref', url: 'data:image/jpeg;base64,AAAA', alt: 'Pasted image' }
+      { type: 'image-ref', url: 'data:image/png;base64,iVBORw0K' },
+      { type: 'text', text: '[Image #3]' }
     ])
   })
 })

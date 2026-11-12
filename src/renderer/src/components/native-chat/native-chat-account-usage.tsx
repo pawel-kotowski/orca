@@ -10,9 +10,9 @@ import { clampUsedPercent } from '../../../../shared/usage-percentage-display'
 import { NativeChatMeter } from './native-chat-meter'
 import { NativeChatAccountSwitch } from './native-chat-account-switch'
 import { workspaceClaudeAccountId } from '../../../../shared/claude-workspace-account'
-import { getExecutionHostIdForWorktree } from '@/lib/worktree-runtime-owner'
-import { runtimeRpcTargetForAuthorityKey } from '@/runtime/runtime-client-target'
-import type { ProviderAccountsSnapshot } from '@/runtime/runtime-provider-accounts-client'
+import { getExecutionHostIdForWorktree } from '@/lib/workspace/ownership/worktree-runtime-owner'
+import { runtimeRpcTargetForAuthorityKey } from '@/runtime/rpc/targets/runtime-client-target'
+import type { ProviderAccountsSnapshot } from '@/runtime/provider-accounts/observations/runtime-provider-accounts-client'
 import { useRemoteProviderAccounts } from './native-chat-remote-claude-usage'
 
 /** Which chat the message box belongs to, so its controls can show that chat's Claude account. */

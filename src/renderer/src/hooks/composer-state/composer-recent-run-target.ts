@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import {
   getProjectHostSetupSelectionKey,
   type ProjectHostSetupOption
-} from '@/lib/project-host-setup-options'
+} from '@/lib/workspace/creation/project-host-setup-options'
 
 /**
  * The machine a new workspace last ran on, per project, with the last machine overall as the

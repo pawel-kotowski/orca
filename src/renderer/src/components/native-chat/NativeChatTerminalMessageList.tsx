@@ -1,6 +1,6 @@
 import { useMemo, type ComponentProps } from 'react'
 import { useAppStore } from '@/store'
-import { createNativeChatRuntimeSelector } from './native-chat-runtime-owner'
+import { createNativeChatRuntimeSelector } from './pane/ownership/native-chat-runtime-owner'
 import { NativeChatMessageList } from './NativeChatMessageList'
 import { NativeChatTerminalVisualOwner } from './NativeChatTerminalVisualOwner'
 import { NativeChatTerminalPromptRow } from './NativeChatTerminalPromptRow'

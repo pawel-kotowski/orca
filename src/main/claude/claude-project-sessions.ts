@@ -1,6 +1,7 @@
 import { open, readdir, stat } from 'node:fs/promises'
 import { basename, dirname, join } from 'node:path'
 import { claudeConfigDirForTranscript } from './claude-model-catalog-context-windows'
+import { CLAUDE_PRINT_MODE_ENTRYPOINT } from '../../shared/agent-launch/startup/claude-chat-entrypoint'
 import type { ClaudeProjectSession } from '../../shared/native-chat/claude-project-session-types'
 
 export type { ClaudeProjectSession }
@@ -104,7 +105,7 @@ async function readSession(
     }
     // Why: Claude Code's own list leaves out conversations nobody typed in and ones a script ran
     // (`claude -p`, entrypoint sdk-cli); `/resume <id>` cannot open those either.
-    if (scan.firstPrompt === null || scan.entrypoint === 'sdk-cli') {
+    if (scan.firstPrompt === null || scan.entrypoint === CLAUDE_PRINT_MODE_ENTRYPOINT) {
       return null
     }
     return {

@@ -1,16 +1,17 @@
-import type { PRRefreshOutcome } from '../../../../shared/github/pull-request-refresh-types'
-import type { ghRepoExecOptions, OwnerRepo } from '../../gh-utils'
-import {
-  isCommitPartOfMergedPR,
-  type MergedPRCommitMembership
-} from '../../merged-pr-commit-membership'
+import type { PRRefreshOutcome } from '../../../../shared/github/pull-requests/refresh/pull-request-refresh-types'
+import type { ghRepoExecOptions } from '../../repositories/github-repository-identity'
+import type { GitHubRepositoryIdentity as OwnerRepo } from '../../../../shared/github/repositories/repository-identity'
+import { isCommitPartOfMergedPR } from '../../pull-requests/refresh/merged-pr-commit-membership'
+import type { MergedReviewCommitMembership as MergedPRCommitMembership } from '../../../source-control/merged-review-membership-memo'
 import { shouldHideNonOpenReviewOnDefaultBranch } from '../../../source-control/repo-default-branch'
+import { getGitHubApiRepositoryForRemote } from '../../repositories/github-api-repository-remote-probe'
+import { resolveGitHubApiRepositoryCandidates } from '../../repositories/github-api-repository'
+import { exactRepositoryCandidates } from '../pull-request-lookup-candidates'
+import { mapPRState } from '../../api/github-read-response'
 import {
-  getGitHubApiRepositoryForRemote,
-  resolveGitHubApiRepositoryCandidates
-} from '../../github-api-repository'
-import { mapPRState } from '../../mappers'
-import { ownerRepoFromPullRequestUrl } from './../github-exec-scope'
+  ownerRepoFromPullRequestUrl,
+  type HostedReviewLocalGitOptions
+} from './../github-exec-scope'
 import { prRefreshUpstreamError } from './../gh-error-predicates'
 import {
   isMergedImplicitPR,
@@ -31,7 +32,7 @@ import {
   createImplicitDefaultBranchPRPolicy,
   type ImplicitDefaultBranchPRContext
 } from './implicit-default-branch-pr'
-import type { HostedReviewLocalGitOptions } from './../github-exec-scope'
+
 export async function resolvePRForBranchOutcome(input: {
   repoPath: string
   branchName: string
@@ -54,11 +55,14 @@ export async function resolvePRForBranchOutcome(input: {
     ghOptions,
     executionScope
   } = input
-  const { candidates, headRepo } = await resolveGitHubApiRepositoryCandidates(
+  const resolved = await resolveGitHubApiRepositoryCandidates(
     repoPath,
     connectionId,
     localGitOptions
   )
+  const { headRepo } = resolved
+  const candidates = exactRepositoryCandidates(resolved.candidates, options.exactRepository)
+  const reads = { checkPageLimit: options.checkPageLimit, userRefresh: options.userRefresh }
   // Without local cwd, unresolved connection-backed lookups could follow ambient GH_REPO/GH_HOST.
   if (connectionId && candidates.length === 0) {
     return { kind: 'no-pr', fetchedAt: Date.now() }
@@ -134,7 +138,8 @@ export async function resolvePRForBranchOutcome(input: {
       candidates,
       number: linkedPRNumber,
       ghOptions,
-      executionScope
+      executionScope,
+      reads
     })
     data = exactLookup.data
     dataRepo = exactLookup.dataRepo
@@ -146,7 +151,8 @@ export async function resolvePRForBranchOutcome(input: {
       branchName,
       ghOptions,
       executionScope,
-      policy: implicitPRPolicy
+      policy: implicitPRPolicy,
+      reads
     })
     data = branchLookup.data
     dataRepo = branchLookup.dataRepo
@@ -184,7 +190,8 @@ export async function resolvePRForBranchOutcome(input: {
             branchName: upstreamBranch.branchName,
             ghOptions,
             executionScope,
-            policy: implicitPRPolicy
+            policy: implicitPRPolicy,
+            reads
           })
           data = upstreamLookup.data
           dataRepo = upstreamLookup.dataRepo
@@ -213,7 +220,8 @@ export async function resolvePRForBranchOutcome(input: {
       number: fallbackPRNumber,
       ghOptions,
       executionScope,
-      policy: implicitPRPolicy
+      policy: implicitPRPolicy,
+      reads
     })
     data = fallbackLookup.data
     dataRepo = fallbackLookup.dataRepo
@@ -281,7 +289,8 @@ export async function resolvePRForBranchOutcome(input: {
     localGitOptions,
     ghOptions,
     executionScope,
-    usedExactNumberLookup
+    usedExactNumberLookup,
+    includeDerivedData: options.includeDerivedData
   })
 
   return assemblePRRefreshFoundOutcome({

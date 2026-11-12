@@ -2,7 +2,7 @@
 
 import { cleanup, fireEvent, render, renderHook, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { useNativeChatComposerKeyDown } from './use-native-chat-composer-keydown'
+import { useNativeChatComposerKeyDown } from './composer/editor/use-native-chat-composer-keydown'
 
 const platform = vi.hoisted(() => ({ mac: true }))
 vi.mock('./native-chat-shortcut', () => ({ isMacPlatform: () => platform.mac }))

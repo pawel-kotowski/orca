@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { translate } from '@/i18n/i18n'
-import { isImeOwnedKeyboardEvent } from '@/lib/ime-composition-keyboard-event'
+import { isImeOwnedKeyboardEvent } from '@/lib/text-input/ime/ime-composition-keyboard-event'
 import { setActivityAutoStandByHours, useActivityAutoStandByHours } from './activity-auto-stand-by'
 
 function parseHours(text: string): number | null {

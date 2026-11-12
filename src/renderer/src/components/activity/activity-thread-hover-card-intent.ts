@@ -201,6 +201,10 @@ export function useActivityThreadHoverCardIntent({
       if (event.pointerType === 'touch') {
         return
       }
+      if (event.buttons !== 0) {
+        dismissForControl()
+        return
+      }
       const moved = recordPointerMove(event.clientX, event.clientY)
       if (isRowControl(event.target)) {
         dismissForControl()
@@ -283,7 +287,7 @@ export function useActivityThreadHoverCardIntent({
       onPointerOver,
       onPointerMove,
       onPointerLeave: cancelIntent,
-      onPointerDown: cancelIntent,
+      onPointerDown: dismissForControl,
       onFocus,
       onBlur: cancelIntent
     }

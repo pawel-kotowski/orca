@@ -9,6 +9,20 @@ import { join } from 'node:path'
  */
 export type ChromeProfileAccount = { email: string | null; name: string | null; owner?: boolean }
 
+/** The renderer's `chromeAccount` argument, validated; null when it names nobody. */
+export function parseChromeProfileAccount(value: unknown): ChromeProfileAccount | null {
+  if (!value || typeof value !== 'object') {
+    return null
+  }
+  const { email, name, owner } = value as Record<string, unknown>
+  if (owner === true) {
+    return { email: null, name: null, owner: true }
+  }
+  const text = (field: unknown): string | null =>
+    typeof field === 'string' && field.trim() ? field.trim().slice(0, 200) : null
+  return text(email) || text(name) ? { email: text(email), name: text(name) } : null
+}
+
 /** Chrome's first profile keeps this directory name whatever it is renamed to. */
 const OWNER_PROFILE_DIR = 'Default'
 

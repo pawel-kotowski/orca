@@ -4,7 +4,7 @@ import type {
   NativeChatToolArgument
 } from '../../../../shared/native-chat/tools/native-chat-tool-code-parts'
 import { nativeChatReadableShellParts } from '../../../../shared/native-chat/tools/native-chat-tool-code-parts'
-import { NativeChatHighlightedCode } from './NativeChatHighlightedCode'
+import { NativeChatHighlightedCode } from './markdown/code/NativeChatHighlightedCode'
 
 const CODE_BLOCK_CLASS =
   'max-h-64 overflow-auto whitespace-pre-wrap break-words rounded-lg border border-chat-code-border bg-chat-code-surface p-2 font-mono text-chat-code text-chat-foreground scrollbar-sleek'

@@ -3,7 +3,7 @@ import type { OpenFile } from '../types/open-file'
 
 export type EditorTabContentType = Extract<
   Tab['contentType'],
-  'editor' | 'diff' | 'conflict-review' | 'check-details'
+  'editor' | 'diff' | 'conflict-review' | 'check-details' | 'git-graph'
 >
 
 export function isEditorTabContentType(
@@ -13,7 +13,8 @@ export function isEditorTabContentType(
     contentType === 'editor' ||
     contentType === 'diff' ||
     contentType === 'conflict-review' ||
-    contentType === 'check-details'
+    contentType === 'check-details' ||
+    contentType === 'git-graph'
   )
 }
 
@@ -23,9 +24,10 @@ export function isVirtualEditorFile(file: Pick<OpenFile, 'mode'>): boolean {
 }
 
 export function editorTabContentTypeForMode(mode: OpenFile['mode']): EditorTabContentType {
-  // A Git Graph tab is a virtual, in-memory tab like check details, so it rides that content type.
-  if (mode === 'git-graph') {
-    return 'check-details'
-  }
-  return mode === 'conflict-review' || mode === 'check-details' || mode === 'diff' ? mode : 'editor'
+  return mode === 'conflict-review' ||
+    mode === 'check-details' ||
+    mode === 'git-graph' ||
+    mode === 'diff'
+    ? mode
+    : 'editor'
 }

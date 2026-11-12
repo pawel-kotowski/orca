@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { useAppStore } from '@/store'
 import { nativeChatFinishedTurnsOpen } from '../../../../shared/native-chat/native-chat-appearance-settings'
-import { nativeChatOpenTurnKeys } from './native-chat-expanded-keys'
+import { nativeChatOpenTurnKeys } from './messages/disclosure/native-chat-expanded-keys'
 
 /**
  * The turns drawn open. A finished turn keeps all the agent said in it (as the terminal does)
