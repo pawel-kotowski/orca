@@ -90,7 +90,7 @@ function SessionList({
         value={query}
         onChange={(event) => setQuery(event.target.value)}
         placeholder={translate('components.native-chat.resumeList.search', 'Search conversations')}
-        className="mx-2 mt-2 mb-1 h-7 rounded-md border border-border/70 bg-background/60 px-2 text-xs outline-none focus:border-ring"
+        className="mx-2 mt-2 mb-1 rounded-md border border-border/70 bg-background/60 px-2 py-1.5 text-xs leading-normal outline-none focus:border-ring"
       />
       <div className="min-h-0 flex-1 overflow-y-auto p-1 scrollbar-sleek" role="listbox">
         {sessions === null ? (
