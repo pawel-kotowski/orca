@@ -5,7 +5,7 @@ vi.mock('@/store', () => ({ useAppStore: vi.fn() }))
 import { carryAgentReachOut } from '../../../../shared/agent-status/contracts/agent-reach-out'
 import { buildActivityInboxFacts } from './activity-inbox-facts'
 import { activityThreadSection, isActivityThreadStandingBy } from './activity-inbox-sections'
-import type { ActivityWorkers } from './activity-workers'
+import { activityWorkerPlacement, type ActivityWorkers } from './activity-workers'
 import type { AgentPaneThread } from './activity-thread-types'
 
 const NO_WORKERS: ActivityWorkers = {
@@ -71,6 +71,20 @@ describe('activity inbox facts (Paweł, 2026-11-12: busy agents stay out of the 
     expect(
       activityThreadSection(coordinator, buildActivityInboxFacts([coordinator], idle, {}, {}))
     ).toBe('inbox')
+  })
+})
+
+describe('a worker you send back to the Inbox (Paweł, 2026-11-12: the Inbox button did nothing on remote cards)', () => {
+  // A box's Slack-task workspaces are children of a workspace with no agent: workers with no coordinator.
+  const orphans: ActivityWorkers = { ...NO_WORKERS, lineageWorkers: new Set(['w:1']) }
+  const finished = thread('w:1', null)
+
+  it('stands a finished coordinator-less worker by, until you send it back', () => {
+    const plain = buildActivityInboxFacts([finished], orphans, {}, {})
+    expect(activityWorkerPlacement(finished, orphans, false, plain)).toBe('standingBy')
+    const sentBack = buildActivityInboxFacts([finished], orphans, {}, {}, { 'w:1': 100 })
+    expect(activityWorkerPlacement(finished, orphans, false, sentBack)).toBe('card')
+    expect(isActivityThreadStandingBy(finished, {}, null, 1_000, sentBack)).toBe(false)
   })
 })
 

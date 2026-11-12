@@ -18,12 +18,19 @@ export type ActivityInboxFacts = {
   unseenReachOuts: ReadonlySet<string>
   /** Coordinators with a worker still running. */
   busyCoordinators: ReadonlySet<string>
+  /**
+   * Cards you sent back to the Inbox (Standing by's Inbox button) or marked unread, until you read
+   * them: a worker's card then stands on its own (Paweł, 2026-11-12: the button did nothing on a
+   * box's Slack-task cards, workers of a workspace with no agent, which placement kept standing by).
+   */
+  sentBack: ReadonlySet<string>
 }
 
 export const NO_ACTIVITY_INBOX_FACTS: ActivityInboxFacts = {
   reachingOut: new Map(),
   unseenReachOuts: new Set(),
-  busyCoordinators: new Set()
+  busyCoordinators: new Set(),
+  sentBack: new Set()
 }
 
 /** The agent's latest reach-out, live row first. */
@@ -39,7 +46,8 @@ export function buildActivityInboxFacts(
   threads: readonly AgentPaneThread[],
   workers: ActivityWorkers,
   clearedAtByPaneKey: Readonly<Record<string, number>>,
-  acknowledgedAtByPaneKey: Readonly<Record<string, number>>
+  acknowledgedAtByPaneKey: Readonly<Record<string, number>>,
+  manuallyUnreadTurnsByPaneKey: Readonly<Record<string, number>> = {}
 ): ActivityInboxFacts {
   const reachingOut = new Map<string, AgentReachOut>()
   const unseenReachOuts = new Set<string>()
@@ -61,10 +69,16 @@ export function buildActivityInboxFacts(
       busyCoordinators.add(parent)
     }
   }
-  if (reachingOut.size === 0 && busyCoordinators.size === 0) {
+  const sentBack = new Set<string>()
+  for (const thread of threads) {
+    if (manuallyUnreadTurnsByPaneKey[thread.paneKey] !== undefined) {
+      sentBack.add(thread.paneKey)
+    }
+  }
+  if (reachingOut.size === 0 && busyCoordinators.size === 0 && sentBack.size === 0) {
     return NO_ACTIVITY_INBOX_FACTS
   }
-  return { reachingOut, unseenReachOuts, busyCoordinators }
+  return { reachingOut, unseenReachOuts, busyCoordinators, sentBack }
 }
 
 export function useActivityInboxFacts(
@@ -73,9 +87,10 @@ export function useActivityInboxFacts(
 ): ActivityInboxFacts {
   const clearedAt = useAppStore((state) => state.activityClearedAtByPaneKey)
   const acknowledgedAt = useAppStore((state) => state.acknowledgedAgentsByPaneKey)
+  const manuallyUnread = useAppStore((state) => state.manuallyUnreadTurnsByPaneKey)
   return useMemo(
-    () => buildActivityInboxFacts(threads, workers, clearedAt, acknowledgedAt),
-    [threads, workers, clearedAt, acknowledgedAt]
+    () => buildActivityInboxFacts(threads, workers, clearedAt, acknowledgedAt, manuallyUnread),
+    [threads, workers, clearedAt, acknowledgedAt, manuallyUnread]
   )
 }
 
