@@ -31,6 +31,7 @@ import { useNativeChatComposerSubmit } from './submit/use-native-chat-composer-s
 import { useNativeChatComposerCommandPicker } from './pickers/use-native-chat-composer-command-picker'
 import { newestModel } from '../native-chat-transcript-context-usage'
 import { useNativeChatCtrlEnterSendsNow } from '../use-native-chat-ctrl-enter-sends-now'
+import { useNativeChatShowsWorkspaceLine } from '../use-native-chat-shows-workspace-line'
 import type * as C from './native-chat-composer-types'
 
 type ComposerHandle = C.NativeChatComposerHandle
@@ -353,6 +354,7 @@ export const NativeChatComposerPane = forwardRef<ComposerHandle, C.NativeChatCom
     })
 
     const pickerOpen = autocomplete.mode !== 'none'
+    const showsWorkspaceLine = useNativeChatShowsWorkspaceLine()
     const steerChord = useNativeChatSteerChordPreview(root, sendButton, steerHead, send, pickerOpen)
 
     const draftEvents = useNativeChatDraftEvents({
@@ -417,7 +419,7 @@ export const NativeChatComposerPane = forwardRef<ComposerHandle, C.NativeChatCom
           agent={agent}
           launchPrompt={launchPrompt}
           workspaceFooter={
-            !editSession && !launchPrompt ? (
+            showsWorkspaceLine && !editSession && !launchPrompt ? (
               <NativeChatComposerWorkspace
                 terminalTabId={terminalTabId}
                 structuredTransport={structuredTransport}

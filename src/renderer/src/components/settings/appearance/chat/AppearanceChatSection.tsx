@@ -8,6 +8,7 @@ import {
   nativeChatWorkspaceHoverDetails,
   nativeChatColors,
   nativeChatCompactComposer,
+  nativeChatShowsComposerWorkspaceLine,
   nativeChatCtrlEnterSendsNow,
   nativeChatToolStepsOpen
 } from '../../../../../../shared/native-chat/native-chat-appearance-settings'
@@ -146,6 +147,20 @@ export function AppearanceChatSection({
         )}
         checked={nativeChatCompactComposer(settings)}
         onChange={() => update({ compactComposer: !nativeChatCompactComposer(settings) })}
+      />
+      <SettingsSwitchRow
+        label={t(
+          'settings.chat.appearance.composerWorkspaceLine',
+          "Show Orca's workspace line under the message box"
+        )}
+        description={t(
+          'settings.chat.appearance.composerWorkspaceLineDescription',
+          'The machine, folder, worktree and branch under the box. Off leaves only the limits and place line.'
+        )}
+        checked={nativeChatShowsComposerWorkspaceLine(settings)}
+        onChange={() =>
+          update({ composerWorkspaceLine: !nativeChatShowsComposerWorkspaceLine(settings) })
+        }
       />
       <SettingsSwitchRow
         label={t(

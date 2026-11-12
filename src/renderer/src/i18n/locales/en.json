@@ -596,6 +596,8 @@
         "soleCallAsLineDescription": "A run of one command opens straight to its code and output, without a run header above it.",
         "compactComposer": "Compact message box",
         "compactComposerDescription": "One line with only Attach, the model and option pickers, and Stop while the agent works. Enter sends.",
+        "composerWorkspaceLine": "Show Orca's workspace line under the message box",
+        "composerWorkspaceLineDescription": "The machine, folder, worktree and branch under the box. Off leaves only the limits and place line.",
         "ctrlEnterSendsNow": "Ctrl+Enter sends now while Claude works",
         "ctrlEnterSendsNowDescription": "In a Claude chat that runs in its terminal, Ctrl+Enter gives Claude the message right away, as Ctrl+Enter does in Claude's terminal. Enter waits until Claude finishes what it is doing.",
         "activityFollowsConversation": "Activity view follows the conversation",

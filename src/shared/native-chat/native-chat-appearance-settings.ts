@@ -61,6 +61,22 @@ export type NativeChatAppearanceSettings = {
    * code, headings, list markers, the person's bubbles; absent = on.
    */
   chatColors?: boolean
+  /**
+   * Whether upstream's line under the message box (machine, folder, Worktree, branch) shows; absent =
+   * off. The local footer already names the machine, project and workspace.
+   */
+  composerWorkspaceLine?: boolean
+}
+
+/**
+ * Upstream's machine / folder / branch line under the message box, only when turned on. Why off by
+ * default: Paweł, 2026-11-12: "i dont need it I implemented better version myself".
+ */
+export function nativeChatShowsComposerWorkspaceLine(
+  settings: { nativeChatAppearance?: NativeChatAppearanceSettings } | null | undefined
+): boolean {
+  // Why: until settings load (and in a bare store) the line shows, as upstream draws it.
+  return settings == null || settings.nativeChatAppearance?.composerWorkspaceLine === true
 }
 
 /** Colour from the terminal palette in the chat, unless the user turned it off. */
