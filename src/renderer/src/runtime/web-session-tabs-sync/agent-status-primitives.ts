@@ -17,6 +17,7 @@ import {
 } from '../../store/terminals/retired-terminal-tab-state-sweep'
 import { isMirroredTerminalSurfaceId } from './terminal-surfaces'
 import { isAgentStatusFresh } from './state-equality-core'
+import { isAgentStatusHeldOpenByChildWork } from '../../../../shared/agent-status/lifecycle/agent-lead-status-fold'
 
 export function isMirroredAgentStatusOwnedBy(
   entry: AgentStatusEntry,
@@ -89,6 +90,24 @@ export function hostAgentStatusPiercesClientAuthority(entry: AgentStatusEntry): 
   )
 }
 
+/**
+ * The host's hooks see a lead turn held open by a background shell, a monitor or a subagent; PTY
+ * bytes see only the lead's own `done`. So a client `done` never fences a held-open host row: both
+ * agree the lead finished, and only the host knows the work it left running (Paweł, 2026-11-12: a
+ * remote agent waiting on `gh run watch` sat under Standing by while the host said monitoring).
+ */
+export function hostChildWorkOutranksClientDone(
+  existing: Pick<AgentStatusEntry, 'state'> | undefined,
+  hostEntry: AgentStatusEntry | null | undefined
+): boolean {
+  return (
+    existing?.state === 'done' &&
+    hostEntry != null &&
+    hostEntry.restoredUnconfirmed !== true &&
+    isAgentStatusHeldOpenByChildWork(hostEntry)
+  )
+}
+
 /** Only the current byte-derived row can fence host snapshots; adopting a host row yields authority. */
 export function isClientOwnedAgentStatus(
   paneKey: string,
@@ -119,7 +138,8 @@ export function clientAgentStatusFencesHost(
 ): boolean {
   return (
     isFencedClientAgentStatus(paneKey, existing, now) &&
-    !(hostEntry && hostAgentStatusPiercesClientAuthority(hostEntry))
+    !(hostEntry && hostAgentStatusPiercesClientAuthority(hostEntry)) &&
+    !hostChildWorkOutranksClientDone(existing, hostEntry)
   )
 }
 

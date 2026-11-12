@@ -10,6 +10,7 @@ import {
   resolveRendererOwnedAgentStatusTiming
 } from '../../agent-status/renderer-owned-agent-status-registry'
 import { rendererAgentStatusObservations } from '@/lib/agent-status/evidence/renderer-agent-status-observations'
+import { isAgentStatusHeldOpenByChildWork } from '../../../../../../shared/agent-status/lifecycle/agent-lead-status-fold'
 import type { ConnectPanePtySession } from '../connect-pane-pty-session'
 
 export function installRendererOwnedPaneStatus(session: ConnectPanePtySession): void {
@@ -44,30 +45,36 @@ export function installRendererOwnedPaneStatus(session: ConnectPanePtySession): 
           agentType ?? authoritativePaneAgent
         )
       : resolvedStatusTitle
-    // Only actual byte-derived status proves authority to fence out host mirroring.
-    markRendererOwnedAgentStatusWrite(session.cacheKey)
-    const timing = resolveRendererOwnedAgentStatusTiming(
-      currentState.agentStatusByPaneKey[session.cacheKey]
-    )
-    if (session.launchToken) {
-      currentState.setAgentStatus(
-        session.cacheKey,
-        observedStatusPayload,
-        statusTitle,
-        timing,
-        routing,
-        {
-          launchToken: session.launchToken
-        }
-      )
-    } else {
-      currentState.setAgentStatus(
-        session.cacheKey,
-        observedStatusPayload,
-        statusTitle,
-        timing,
-        routing
-      )
+    const existing = currentState.agentStatusByPaneKey[session.cacheKey]
+    // Why: the adopted host row already says the lead finished and names the work it left
+    // running; a byte `done` carries no news and would hide that work (hostChildWorkOutranksClientDone).
+    const hostRowAlreadySaysDone =
+      payload.state === 'done' &&
+      existing?.mirroredEvidenceReceivedAt !== undefined &&
+      isAgentStatusHeldOpenByChildWork(existing)
+    // Skip the row write only; the completion side effects below still see the turn end.
+    if (!hostRowAlreadySaysDone) {
+      // Only actual byte-derived status proves authority to fence out host mirroring.
+      markRendererOwnedAgentStatusWrite(session.cacheKey)
+      const timing = resolveRendererOwnedAgentStatusTiming(existing)
+      if (session.launchToken) {
+        currentState.setAgentStatus(
+          session.cacheKey,
+          observedStatusPayload,
+          statusTitle,
+          timing,
+          routing,
+          { launchToken: session.launchToken }
+        )
+      } else {
+        currentState.setAgentStatus(
+          session.cacheKey,
+          observedStatusPayload,
+          statusTitle,
+          timing,
+          routing
+        )
+      }
     }
     if (payload.state === 'working' && session.syncAgentTaskCompleteTrackingEnabled()) {
       session.requiresFreshWorkingForAgentTaskCompleteNotification = false

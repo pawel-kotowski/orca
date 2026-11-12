@@ -21,6 +21,7 @@ import {
   isMirroredAgentStatusOwnedBy,
   clientAgentStatusFencesHost,
   hostAgentStatusPiercesClientAuthority,
+  hostChildWorkOutranksClientDone,
   isMirroredAgentPaneKeyForTabs,
   batchAgentPaneKeysForTabs,
   remapHostAgentStatus,
@@ -107,7 +108,9 @@ export function buildMirroredAgentStatusPatch(
       existing.state !== 'done' &&
       existing.stateStartedAt > entry.stateStartedAt
     // Cross-machine clocks cannot arbitrate live byte ownership; keep client state except host-only classes, adopting host identity below.
-    const hostPiercesAuthority = hostAgentStatusPiercesClientAuthority(entry)
+    const hostPiercesAuthority =
+      hostAgentStatusPiercesClientAuthority(entry) ||
+      hostChildWorkOutranksClientDone(existing, entry)
     const clientOwnsEntry = clientAgentStatusFencesHost(entry.paneKey, existing, entry, now)
     const nextEntry =
       existing &&
