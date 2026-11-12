@@ -221,7 +221,10 @@ export function useNativeChatComposerSubmit(args: {
           setGoal(intent)
         }
       } else if (!structuredTransport) {
-        sendPty(undefined, intent?.sendNow ? { sendNow: true } : undefined)
+        sendPty(
+          undefined,
+          intent?.sendNow ? { sendNow: true } : intent?.alternate ? { alternate: true } : undefined
+        )
       } else if (!disabled && draft.trim() === '' && imageAttachments.length === 0) {
         submitEmpty?.()
       } else if (!disabled) {

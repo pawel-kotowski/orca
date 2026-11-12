@@ -39,6 +39,8 @@ import {
 export type NativeChatPtySendDelivery = {
   sendNow?: boolean
   held?: { text: string; imagePaths: string[] }
+  /** Local: Cmd/Ctrl+Enter's "the other thing than the follow-up setting" (see terminalFollowUpDelivery). */
+  alternate?: boolean
 }
 
 /**
@@ -146,7 +148,9 @@ export function useNativeChatPtyComposerSend(args: {
       if (
         !retry &&
         !held &&
-        !sendNow &&
+        // Why the delivery, not `sendNow`: a Codex send told to go now types with Enter (it has
+        // no send-now key) instead of being held.
+        delivery?.sendNow !== true &&
         classification === 'chat' &&
         args.holdWhileWorking?.({ text, images: args.imageAttachments })
       ) {

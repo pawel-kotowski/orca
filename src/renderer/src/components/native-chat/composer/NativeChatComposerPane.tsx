@@ -35,6 +35,7 @@ import { useNativeChatComposerSubmit } from './submit/use-native-chat-composer-s
 import { useNativeChatComposerCommandPicker } from './pickers/use-native-chat-composer-command-picker'
 import { newestModel } from '../native-chat-transcript-context-usage'
 import { useNativeChatCtrlEnterSendsNow } from '../use-native-chat-ctrl-enter-sends-now'
+import { useNativeChatTerminalFollowUpSend } from './submit/use-native-chat-terminal-follow-up'
 import { useNativeChatShowsWorkspaceLine } from '../use-native-chat-shows-workspace-line'
 import { withNativeChatTerminalSendNow } from './submit/native-chat-terminal-send-now-state'
 import {
@@ -299,6 +300,7 @@ export const NativeChatComposerPane = forwardRef<ComposerHandle, C.NativeChatCom
       paneKey,
       terminalBox ? (held, sendNow) => sendPty(undefined, { held, sendNow }) : undefined
     )
+    const followUp = useNativeChatTerminalFollowUpSend(sendPty, terminalBox && isWorking)
     const submission = useNativeChatComposerSubmit({
       agent,
       textareaRef,
@@ -308,7 +310,7 @@ export const NativeChatComposerPane = forwardRef<ComposerHandle, C.NativeChatCom
       caret,
       imageAttachments,
       disabled,
-      sendPty,
+      sendPty: followUp.send,
       sendStructured,
       submitEmpty: launchPrompt?.onEmptySubmit,
       consumeOrcaCommand: pending || launchPrompt ? undefined : orcaCommands.consume,
@@ -333,7 +335,8 @@ export const NativeChatComposerPane = forwardRef<ComposerHandle, C.NativeChatCom
         orcaCommand: !pending && !launchPrompt && orcaCommands.matchesDraft(draft),
         goalMode: goalMode.active
       }),
-      ctrlEnterSendsNow && isWorking && submission.messageDelivery
+      ctrlEnterSendsNow && isWorking && submission.messageDelivery,
+      followUp.queueFollowUps
     )
 
     const { send, chooseEditItem, fieldOverrides, dispatchPickerCommand } =
