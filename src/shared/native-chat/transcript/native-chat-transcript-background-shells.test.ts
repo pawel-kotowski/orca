@@ -48,6 +48,7 @@ describe('running shells from a Claude transcript', () => {
         id: 'b1',
         kind: 'command',
         description: 'Start dev server',
+        command: 'pnpm dev',
         state: 'working',
         startedAt: 1_000,
         stoppable: false

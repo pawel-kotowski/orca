@@ -161,6 +161,7 @@ export function NativeChatSubagentRun({
     return null
   }
   const { working, headline, verdictState, verdict, alertState, alert, clockStartedAt } = header
+  const names = agents.map((agent) => agent.label).join(' · ')
 
   return (
     <div>
@@ -176,6 +177,13 @@ export function NativeChatSubagentRun({
         <span className={cn('min-w-0 truncate', working && 'text-chat-foreground')}>
           {headline}
         </span>
+        {/* Local build: a closed group names its subagents, so the row says what runs without a
+            click (Paweł, 2026-11-12: "who knows what command is running until i click it"). */}
+        {open ? null : (
+          <span className="min-w-0 flex-1 truncate" title={names}>
+            {names}
+          </span>
+        )}
         <span className="ml-auto shrink-0 font-sans text-xs tabular-nums text-chat-foreground-faint">
           {verdict}
           {alert === null ? null : ` +${alert}`}

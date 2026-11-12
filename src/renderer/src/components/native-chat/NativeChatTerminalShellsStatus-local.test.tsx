@@ -9,11 +9,7 @@ import type { NativeChatMessage } from '../../../../shared/native-chat/native-ch
 import type { NativeChatSubagentTranscript } from '../../../../shared/native-chat/native-chat-subagent-transcripts'
 import { NativeChatTerminalShellsStatus } from './NativeChatTerminalShellsStatus'
 import { publishNativeChatClaudeSubagents } from './native-chat-claude-subagents-store'
-import {
-  NO_SETTLED_BACKGROUND_TASKS,
-  settleTerminalChatBackgroundTasks,
-  terminalChatBackgroundTasks
-} from './native-chat-terminal-background-tasks'
+import { terminalChatBackgroundTasks } from './native-chat-terminal-background-tasks'
 import type { NativeChatMessageListHandle } from './messages/actions/use-native-chat-reveal-latest'
 
 vi.mock('./NativeChatWorkersStrip', () => ({ NativeChatWorkersStrip: () => null }))
@@ -74,21 +70,18 @@ describe('terminalChatBackgroundTasks', () => {
     expect(tasks).toEqual([
       expect.objectContaining({ id: 'ag1', kind: 'agent', description: 'Rewind survey' }),
       expect.objectContaining({ id: 'ag2', kind: 'agent', description: 'Queue survey' }),
-      expect.objectContaining({ id: 'b1', kind: 'command', description: 'Dev server' })
+      expect.objectContaining({
+        id: 'b1',
+        kind: 'command',
+        description: 'Dev server',
+        command: 'pnpm dev'
+      })
     ])
     expect(tasks.every((task) => task.stoppable === false)).toBe(true)
   })
 
   it('lists nothing once Claude no longer runs in the pane', () => {
     expect(terminalChatBackgroundTasks(messages, subagents, false, 2_000)).toEqual([])
-  })
-
-  it('keeps work that ended as done while other work runs, and drops it when all is done', () => {
-    const running = terminalChatBackgroundTasks(messages, subagents, true, 2_000)
-    const first = settleTerminalChatBackgroundTasks(NO_SETTLED_BACKGROUND_TASKS, running)
-    const later = settleTerminalChatBackgroundTasks(first, running.slice(1))
-    expect(later.settled).toEqual([expect.objectContaining({ id: 'ag1', state: 'done' })])
-    expect(settleTerminalChatBackgroundTasks(later, []).settled).toEqual([])
   })
 })
 
@@ -103,13 +96,13 @@ describe('NativeChatTerminalShellsStatus', () => {
     act(() => publishNativeChatClaudeSubagents(PANE, []))
   })
 
-  it('shows the task strip with Show agent for each running subagent and no Stop', () => {
+  it('names every running subagent and shell on its own line, no click needed, no Stop', () => {
     const revealSubagent = vi.fn()
     const messageListRef = {
       current: { revealSubagent } as unknown as NativeChatMessageListHandle
     }
     act(() => publishNativeChatClaudeSubagents(PANE, subagents))
-    render(
+    const { container } = render(
       <NativeChatTerminalShellsStatus
         session={{ messages }}
         paneKey={PANE}
@@ -117,10 +110,14 @@ describe('NativeChatTerminalShellsStatus', () => {
         messageListRef={messageListRef}
       />
     )
-    fireEvent.click(screen.getByRole('button', { expanded: false }))
-    fireEvent.click(screen.getByRole('button', { name: 'Show Queue survey in the conversation' }))
+    const agentsLine = container.querySelector('[data-native-chat-activity-line="subagents"]')
+    const shellsLine = container.querySelector('[data-native-chat-activity-line="shells"]')
+    expect(agentsLine).toHaveTextContent('Rewind survey')
+    expect(agentsLine).toHaveTextContent('Queue survey')
+    expect(shellsLine).toHaveTextContent('Dev server')
+    expect(shellsLine?.querySelector('[title]')?.getAttribute('title')).toBe('Dev server\npnpm dev')
+    fireEvent.click(screen.getByRole('button', { name: /Queue survey/ }))
     expect(revealSubagent).toHaveBeenCalledWith('ag2')
-    expect(screen.getByText('Dev server')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /^Stop/ })).toBeNull()
   })
 
@@ -129,6 +126,6 @@ describe('NativeChatTerminalShellsStatus', () => {
     const { container } = render(
       <NativeChatTerminalShellsStatus session={{ messages }} paneKey={PANE} isVisible />
     )
-    expect(container.querySelector('[data-native-chat-background-tasks]')).toBeNull()
+    expect(container.querySelector('[data-native-chat-activity-line]')).toBeNull()
   })
 })

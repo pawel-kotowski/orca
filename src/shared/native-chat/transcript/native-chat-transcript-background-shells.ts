@@ -12,10 +12,15 @@ type StartedShell = {
   taskId: string | null
   kind: 'command' | 'monitor'
   label: string
+  /** The full command (a Bash shell) or the watched command (a Monitor), for the strip's hover. */
+  command?: string
   startedAt?: number
   /** A Monitor stops at its timeout unless it is persistent. */
   expiresAt?: number
 }
+
+/** A running shell or watch, with its full command so the strip can show it on hover. */
+export type TranscriptBackgroundShell = AgentSessionBackgroundTask & { command?: string }
 
 const BACKGROUND_ID = /with ID: ([A-Za-z0-9_-]+)/
 const MONITOR_ID = /\(task ([A-Za-z0-9_-]+)/
@@ -45,9 +50,18 @@ function started(
   callId: string,
   at: number | null
 ): StartedShell | null {
-  const label = text(input.description) ?? firstLine(text(input.command))
+  const fullCommand = text(input.command)
+  const label = text(input.description) ?? firstLine(fullCommand)
+  const command = fullCommand ? { command: fullCommand } : {}
   if (name === 'Bash' && input.run_in_background === true) {
-    return { callId, taskId: null, kind: 'command', label, ...(at ? { startedAt: at } : {}) }
+    return {
+      callId,
+      taskId: null,
+      kind: 'command',
+      label,
+      ...command,
+      ...(at ? { startedAt: at } : {})
+    }
   }
   if (name === 'Monitor') {
     const timeout = typeof input.timeout_ms === 'number' ? input.timeout_ms : null
@@ -58,6 +72,7 @@ function started(
       taskId: null,
       kind: 'monitor',
       label,
+      ...command,
       ...(at ? { startedAt: at } : {}),
       ...(expiresAt ? { expiresAt } : {})
     }
@@ -75,7 +90,7 @@ function started(
 export function runningTranscriptBackgroundShells(
   messages: readonly NativeChatMessage[],
   now: number
-): AgentSessionBackgroundTask[] {
+): TranscriptBackgroundShell[] {
   const byCallId = new Map<string, StartedShell>()
   const settle = (match: (shell: StartedShell) => boolean): void => {
     for (const [callId, shell] of byCallId) {
@@ -120,7 +135,7 @@ export function runningTranscriptBackgroundShells(
       }
     }
   }
-  const running: AgentSessionBackgroundTask[] = []
+  const running: TranscriptBackgroundShell[] = []
   for (const shell of byCallId.values()) {
     if (shell.taskId === null || (shell.expiresAt !== undefined && shell.expiresAt <= now)) {
       continue
@@ -129,6 +144,7 @@ export function runningTranscriptBackgroundShells(
       id: shell.taskId,
       kind: shell.kind,
       ...(shell.label ? { description: shell.label } : {}),
+      ...(shell.command ? { command: shell.command } : {}),
       state: shell.kind === 'monitor' ? 'monitoring' : 'working',
       ...(shell.startedAt ? { startedAt: shell.startedAt } : {}),
       stoppable: false
