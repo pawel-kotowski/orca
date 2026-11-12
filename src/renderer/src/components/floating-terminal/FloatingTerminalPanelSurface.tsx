@@ -115,6 +115,7 @@ export function renderFloatingTerminalPanelSurface(
         {({ isTabDragActive, hoveredTabInsertion, setDragRootNode }) => (
           <div
             ref={setDragRootNode}
+            data-floating-terminal-frame
             className="relative flex h-full w-full min-h-0 flex-col overflow-hidden rounded-lg border border-black/14 bg-card dark:border-white/14"
           >
             <div
@@ -199,6 +200,7 @@ export function renderFloatingTerminalPanelSurface(
             </div>
 
             <div
+              data-floating-terminal-body
               className="relative min-h-0 flex-1 overflow-hidden bg-background"
               data-contextual-tour-target={
                 hasVisibleFloatingTabs ? 'floating-workspace-surface' : undefined
