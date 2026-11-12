@@ -468,6 +468,7 @@ import {
   ManagedServerUpdate
 } from './managed-server-params'
 import {
+  NativeChatForkClaudeTranscript,
   NativeChatReadClaudeSubagents,
   NativeChatSession,
   NativeChatUnsubscribe
@@ -1342,6 +1343,7 @@ export const RPC_PARAMS_BY_METHOD = {
   'mobileWeb.bundle.localeCatalog': MobileWebBundleLocaleCatalogParamsSchema,
   'mobileWeb.bundle.manifest': null,
   'mobileWeb.bundle.range': MobileWebBundleChunkParamsSchema,
+  'nativeChat.forkClaudeTranscript': NativeChatForkClaudeTranscript,
   'nativeChat.readClaudeSubagents': NativeChatReadClaudeSubagents,
   'nativeChat.readSession': NativeChatSession,
   'nativeChat.subscribe': NativeChatSession,

@@ -20,7 +20,7 @@ import { accountShortName } from './native-chat-account-usage'
  * by clicking current sub"). The chat's workspace takes the account, so its next agents start on
  * it too, and the chat's Claude restarts on it, resuming the same conversation once its turn ends.
  */
-function switchChatAccount(args: {
+export function switchChatAccount(args: {
   worktreeId: string
   terminalTabId: string
   account: ClaudeManagedAccount

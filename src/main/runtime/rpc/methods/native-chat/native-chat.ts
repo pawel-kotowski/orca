@@ -1,3 +1,5 @@
+/* eslint-disable max-lines -- Why: upstream's native-chat RPC table sits at its limit; the local
+   terminal-chat fork method (nativeChat.forkClaudeTranscript) adds one entry beside its siblings. */
 import type { NativeChatMessage } from '../../../../../shared/native-chat/native-chat-types'
 import { recordMobileViewOpened } from '../../../../telemetry/mobile-client-telemetry'
 import type {
@@ -13,6 +15,7 @@ import type {
 } from '../../../../native-chat/transcript-watch-contract'
 import { nativeChatTranscriptPathOnExecutionHost } from '../../../../native-chat/ssh-transcript-path'
 import { readNativeChatClaudeSubagents } from '../../../../native-chat/native-chat-claude-subagents-read'
+import { forkNativeChatClaudeTranscript } from '../../../../native-chat/native-chat-claude-terminal-fork'
 import { defineMethod, defineStreamingMethod, type RpcContext } from '../../core'
 import { sanitizeNativeChatRpcBlock } from './native-chat-rpc-block-sanitize'
 import {
@@ -22,6 +25,7 @@ import {
 import {
   MOBILE_NATIVE_CHAT_MAX_WINDOW,
   NativeChatReadClaudeSubagents,
+  NativeChatForkClaudeTranscript,
   NativeChatSession,
   NativeChatUnsubscribe,
   type NativeChatResumePoint
@@ -98,6 +102,19 @@ export const NATIVE_CHAT_METHODS = [
     params: NativeChatReadClaudeSubagents,
     handler: async (params, { runtime }) =>
       readNativeChatClaudeSubagents(params, (sessionId, requested) =>
+        nativeChatTranscriptPathOnExecutionHost(
+          runtime.getAgentProviderSessionRows(),
+          sessionId,
+          requested
+        )
+      )
+  }),
+  defineMethod({
+    name: 'nativeChat.forkClaudeTranscript',
+    permission: 'workspace',
+    params: NativeChatForkClaudeTranscript,
+    handler: async (params, { runtime }) =>
+      forkNativeChatClaudeTranscript(params, (sessionId, requested) =>
         nativeChatTranscriptPathOnExecutionHost(
           runtime.getAgentProviderSessionRows(),
           sessionId,

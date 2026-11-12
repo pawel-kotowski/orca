@@ -49,6 +49,8 @@ import {
   nativeChatTextHasUnkernedRun
 } from '@/components/native-chat/composer/editor/native-chat-unkerned-runs'
 
+export type QueuedMessageSteerShortcut = { inline: string; keys: string[] }
+
 /** The visible caption under the text; the default waiting hold needs none. */
 export function queuedMessageCardCaption(
   card: QueuedMessageCard,
@@ -133,8 +135,14 @@ export function NativeChatQueuedMessageCard({
   editor,
   editAttachTo,
   editDisabled = false,
-  drag
+  drag,
+  steerShortcut,
+  hint
 }: {
+  /** Local: the head card's own chord where it is not Cmd/Ctrl+Shift+Enter (a terminal Claude's Ctrl+Enter). */
+  steerShortcut?: QueuedMessageSteerShortcut
+  /** Local: a quiet line for a plainly waiting card, saying when it goes and how to send it now. */
+  hint?: string | null
   card: QueuedMessageCard
   /** The chat's worktree, whose host its sender is found on; null shows the sender unlinked. */
   chatWorktreeId: string | null
@@ -161,7 +169,7 @@ export function NativeChatQueuedMessageCard({
   drag?: QueuedMessageDragPresentation
 }): React.JSX.Element {
   const t = useTranslate()
-  const caption = queuedMessageCardCaption(card, agentName, statedFailures, t)
+  const caption = queuedMessageCardCaption(card, agentName, statedFailures, t) ?? hint ?? null
   const line = queuedMessageCardLine(card, nativeChatImageLabelCopy(t))
   const returned = card.state === 'returned'
   const attention = queuedMessageCardNeedsAttention(card)
@@ -284,7 +292,7 @@ export function NativeChatQueuedMessageCard({
                     {/* Why visible: the chord that steers the head card must be seen, not hovered for. */}
                     {showsSteerShortcut && sendNow.steers ? (
                       <span aria-hidden className="font-sans text-3xs opacity-70">
-                        {isMac ? '⌘⇧↵' : 'Ctrl+Shift+Enter'}
+                        {steerShortcut?.inline ?? (isMac ? '⌘⇧↵' : 'Ctrl+Shift+Enter')}
                       </span>
                     ) : null}
                   </Button>
@@ -294,7 +302,10 @@ export function NativeChatQueuedMessageCard({
                     <span>{sendNow.hint}</span>
                     {showsSteerShortcut ? (
                       <ShortcutKeyCombo
-                        keys={isMac ? ['⌘', '⇧', '⏎'] : ['Ctrl', 'Shift', 'Enter']}
+                        keys={
+                          steerShortcut?.keys ??
+                          (isMac ? ['⌘', '⇧', '⏎'] : ['Ctrl', 'Shift', 'Enter'])
+                        }
                       />
                     ) : null}
                   </span>

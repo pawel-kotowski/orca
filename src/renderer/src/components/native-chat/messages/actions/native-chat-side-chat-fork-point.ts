@@ -9,7 +9,9 @@ export type NativeChatSideChatForkPoint =
 
 /** What the transcript needs to find that response while it lays out its rows. */
 export type NativeChatSideChatForkOffer = {
-  chat: Parameters<typeof nativeChatRowOffersFork>[1]
+  chat: Parameters<typeof nativeChatRowOffersFork>[1] & {
+    offersRow?: (row: Parameters<typeof nativeChatRowOffersFork>[0]) => boolean
+  }
   latestTurnKey: string | undefined
 }
 
@@ -18,15 +20,13 @@ export function nativeChatSlotOffersFork(
   slot: NativeChatMessageSlot,
   offer: NativeChatSideChatForkOffer
 ): boolean {
-  return nativeChatRowOffersFork(
-    {
-      message: slot.message,
-      inSubagentSection: slot.depth > 0,
-      turnWorking: slot.activeTurnIsWorking,
-      inLatestTurn: slot.turnKey !== undefined && slot.turnKey === offer.latestTurnKey
-    },
-    offer.chat
-  )
+  const row = {
+    message: slot.message,
+    inSubagentSection: slot.depth > 0,
+    turnWorking: slot.activeTurnIsWorking,
+    inLatestTurn: slot.turnKey !== undefined && slot.turnKey === offer.latestTurnKey
+  }
+  return offer.chat.offersRow ? offer.chat.offersRow(row) : nativeChatRowOffersFork(row, offer.chat)
 }
 
 export function nativeChatSideChatForkPoint(

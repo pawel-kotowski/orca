@@ -12,9 +12,9 @@ import {
   RETIRED_PANE_FENCES_MAX
 } from './server-constants'
 import type { RetiredPaneAlias, RetiredPaneFence } from './server-types'
-import { AgentHookServerCodexQuestionSkip } from './server-codex-question-skip'
+import { AgentHookServerMoveToInbox } from './server-move-to-inbox'
 
-export abstract class AgentHookServerStatusDisposition extends AgentHookServerCodexQuestionSkip {
+export abstract class AgentHookServerStatusDisposition extends AgentHookServerMoveToInbox {
   protected markTabClosedForAgentStatus(tabId: string): void {
     // Refresh insertion order so only the oldest closed tabs are evicted.
     this.closedAgentStatusTabIds.delete(tabId)

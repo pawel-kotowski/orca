@@ -1,3 +1,6 @@
+/* eslint-disable max-lines -- Why: upstream's view sits at the limit; local features (the terminal
+   chat's held-message queue among them) add a few wiring lines and keep their logic in their own
+   files, and moving upstream's own code out would fork the view from upstream on every merge. */
 import { useNativeChatDeliveryProjection } from './session/terminal/delivery/use-native-chat-delivery-projection'
 import { NativeChatCrewFrame } from '../orchestration-crew/NativeChatCrewPanel'
 import { TerminalChatCrewPanel } from '../orchestration-crew/TerminalChatCrewPanel'
@@ -11,6 +14,7 @@ import { useNativeChatRetainedSession } from './session/terminal/read/use-native
 import { selectNativeChatViewState } from './session/status/native-chat-view-state'
 import { NativeChatTerminalMessageList } from './NativeChatTerminalMessageList'
 import { NativeChatTerminalShellsStatus } from './NativeChatTerminalShellsStatus'
+import { NativeChatTerminalComposerStrips } from './NativeChatTerminalComposerStrips'
 import {
   useNativeChatInteractiveSendReveal,
   useNativeChatRevealLatest
@@ -64,6 +68,8 @@ import { useNativeChatLocalCommandAnswer } from './session/options/terminal/use-
 import { useNativeChatImageRuntimeContext } from './media/images/native-chat-image-runtime-context'
 import { handleNativeChatPaneShortcut } from './pane/routing/native-chat-pane-shortcut'
 import { formatShortcutLabel } from '@/hooks/useShortcutLabel'
+import { NativeChatTerminalQueuedMessageList } from './queue/NativeChatTerminalQueuedMessageList'
+import { NativeChatTerminalPromptSlotNotices } from './composer/controls/NativeChatTerminalPromptSlotNotices'
 
 export function NativeChatResolvedView({
   paneKey,
@@ -355,6 +361,13 @@ export function NativeChatResolvedView({
             session={sessionWithPending}
             isVisible={isVisible}
             isWorking={turnActive}
+            stopRequested={workingInterrupted}
+            composerRef={composerRef}
+            handOff={
+              contextMenuActions?.canContinueAgentSessionInNewSession
+                ? contextMenuActions.onContinueAgentSessionInNewSession
+                : undefined
+            }
             {...turnTiming}
             awaitingInput={awaitingInput}
             deliveryNotices={deliveryNotices}
@@ -362,6 +375,7 @@ export function NativeChatResolvedView({
           />
         )}
       </NativeChatCrewFrame>
+      <NativeChatTerminalPromptSlotNotices paneKey={paneKey} />
       {/* A collapsed card stays mounted but hidden, so a partly answered question survives. */}
       {mountedPromptCard ? (
         <div hidden={collapsedCard !== null} inert={collapsedCard !== null} className="contents">
@@ -385,7 +399,14 @@ export function NativeChatResolvedView({
       {collapsedCard ? (
         <NativeChatPromptStrip card={collapsedCard} onExpand={promptCardPresentation.expand} />
       ) : null}
-      <NativeChatTerminalShellsStatus {...{ session, paneKey, isVisible, turnActive }} />
+      <NativeChatTerminalQueuedMessageList
+        {...{ paneKey, agent, turnActive, composerRef, composerReady, workingInterrupted }}
+      />
+      <NativeChatTerminalShellsStatus {...{ session, paneKey, isVisible, messageListRef }} />
+      <NativeChatTerminalComposerStrips
+        {...{ terminalTabId, paneKey, isVisible, isWorking, canSend, composerRef }}
+        {...{ messages: session.messages, promptShown: shownPromptCard !== null }}
+      />
       {/* Honor mobile PTY ownership; retain the hidden composer’s state but detach its ref from typing, paste and focus routes. */}
       <div hidden={shownPromptCard !== null} className="contents">
         <NativeChatComposer

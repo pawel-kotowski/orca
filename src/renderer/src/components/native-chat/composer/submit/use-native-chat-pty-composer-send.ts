@@ -23,6 +23,7 @@ import {
   type NativeChatResolvedTarget
 } from './native-chat-composer-target'
 import { isSlashCommandDraft } from '../../../../../../shared/native-chat/input/native-chat-slash-commands'
+import type { NativeChatTerminalHold } from '../../queue/use-native-chat-terminal-queued-messages'
 import { CLAUDE_SEND_NOW_SUBMIT } from '../../../../../../shared/native-chat/input/native-chat-paste-bytes'
 import type { NativeChatPickerState } from '../pickers/use-native-chat-picker-state'
 import type { NativeChatSendLifecycle } from '../../session/terminal/send/use-native-chat-send-lifecycle'
@@ -33,8 +34,12 @@ import {
   type NativeChatLocalCommandAnswer
 } from '../../session/options/terminal/use-native-chat-local-command-answer'
 
-/** How one terminal send goes: `sendNow` reaches a working Claude at once instead of queueing. */
-export type NativeChatPtySendDelivery = { sendNow?: boolean }
+/** How one terminal send goes: `sendNow` reaches a working Claude at once instead of queueing.
+ *  `held` (local) types a message Orca held while the agent worked, leaving the draft alone. */
+export type NativeChatPtySendDelivery = {
+  sendNow?: boolean
+  held?: { text: string; imagePaths: string[] }
+}
 
 /**
  * Claude's send-now key on an empty box, as in its terminal: the messages Claude holds for the
@@ -51,6 +56,22 @@ function sendClaudeHeldMessagesNow(args: {
   }
   submitNativeChatPrompt(target.ptyId, CLAUDE_SEND_NOW_SUBMIT)
   return true
+}
+
+function clearSentComposer(args: {
+  terminalTabId: string
+  setDraft: (value: string) => void
+  setCaret: Dispatch<SetStateAction<number>>
+  clearSkillOrigin: () => void
+  clearImageAttachments: () => void
+  setNotice: (notice: string | null) => void
+}): void {
+  args.setDraft('')
+  args.setCaret(0)
+  args.clearSkillOrigin()
+  args.clearImageAttachments()
+  args.setNotice(null)
+  useAppStore.getState().clearNativeChatLaunchDraft(args.terminalTabId)
 }
 
 export function useNativeChatPtyComposerSend(args: {
@@ -78,19 +99,23 @@ export function useNativeChatPtyComposerSend(args: {
   clearSkillOrigin: () => void
   clearImageAttachments: () => void
   setNotice: (notice: string | null) => void
+  /** Local: while the agent works Orca holds a message instead of typing it; true when held. */
+  holdWhileWorking?: NativeChatTerminalHold
 }): (
   retry?: { text: string; imagePaths?: string[] },
   delivery?: NativeChatPtySendDelivery
 ) => boolean {
   return useCallback(
     (retry, delivery) => {
-      let text = retry?.text ?? args.draft
+      const held = retry ? undefined : delivery?.held
+      let text = retry?.text ?? held?.text ?? args.draft
       const imagePaths =
         retry?.imagePaths ??
+        held?.imagePaths ??
         (retry ? [] : args.imageAttachments.map((attachment) => attachment.path))
       // Only Claude Code has a send-now key; other agents' messages go as plain Enter sends them.
       const sendNow = delivery?.sendNow === true && args.agent === 'claude'
-      if (text.trim() === '' && imagePaths.length === 0 && sendNow && !retry) {
+      if (text.trim() === '' && imagePaths.length === 0 && sendNow && !retry && !held) {
         return sendClaudeHeldMessagesNow(args)
       }
       if ((text.trim() === '' && imagePaths.length === 0) || args.disabled) {
@@ -104,17 +129,30 @@ export function useNativeChatPtyComposerSend(args: {
       if (!target) {
         return false
       }
-      const classification = retry ? 'chat' : args.classifySend(text)
+      const classification = retry || held ? 'chat' : args.classifySend(text)
       if (classification === 'command' && answerNativeChatCommandInComposer(args)) {
         return false
       }
-      if (!admitNativeChatPastedText(args.draftScopeKey, text, args.setNotice)) {
+      // A held message was admitted and written out when it was held.
+      if (!held && !admitNativeChatPastedText(args.draftScopeKey, text, args.setNotice)) {
         return false
       }
       const submitted = readNativeChatComposerDraft(args.draftScopeKey)
-      text = retry
-        ? resolveNativeChatPastedText(args.draftScopeKey, text)
-        : serializeNativeChatAgentReferences(text, submitted.document, submitted.pastedTextFiles)
+      text = held
+        ? text
+        : retry
+          ? resolveNativeChatPastedText(args.draftScopeKey, text)
+          : serializeNativeChatAgentReferences(text, submitted.document, submitted.pastedTextFiles)
+      if (
+        !retry &&
+        !held &&
+        !sendNow &&
+        classification === 'chat' &&
+        args.holdWhileWorking?.({ text, images: args.imageAttachments })
+      ) {
+        clearSentComposer(args)
+        return true
+      }
       const { sendOptions: launchSendOptions } = resolveNativeChatLaunchDraftSend({
         launchDraft: args.launchDraft,
         launchDraftResolved: args.launchDraftResolved,
@@ -192,13 +230,8 @@ export function useNativeChatPtyComposerSend(args: {
         runtime: nativeChatComposerTargetIsRemote(target.ptyId) ? 'remote' : 'local'
       })
       args.onSubmitted?.()
-      if (!retry) {
-        args.setDraft('')
-        args.setCaret(0)
-        args.clearSkillOrigin()
-        args.clearImageAttachments()
-        args.setNotice(null)
-        useAppStore.getState().clearNativeChatLaunchDraft(args.terminalTabId)
+      if (!retry && !held) {
+        clearSentComposer(args)
       }
       return true
     },

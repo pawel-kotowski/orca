@@ -225,8 +225,15 @@ export function NativeChatWorkerApprovalTimeline({
   party: string | null
   children: (timedRows: readonly NativeChatTimedRow[]) => React.ReactNode
 }): React.ReactNode {
+  return children(useNativeChatWorkerApprovalTimedRows(party))
+}
+
+/** A coordinator chat's closed worker prompts as transcript rows, each at the time its worker asked. */
+export function useNativeChatWorkerApprovalTimedRows(
+  party: string | null
+): readonly NativeChatTimedRow[] {
   const receipts = useNativeChatWorkerApprovalReceipts(party)
-  const timedRows = useMemo(
+  return useMemo(
     () =>
       receipts.map((entry) => ({
         key: `worker-approval:${entry.approval.approvalId}`,
@@ -235,5 +242,4 @@ export function NativeChatWorkerApprovalTimeline({
       })),
     [receipts]
   )
-  return children(timedRows)
 }

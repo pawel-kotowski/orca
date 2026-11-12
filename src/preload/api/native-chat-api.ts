@@ -1,4 +1,8 @@
 import type {
+  NativeChatForkClaudeTranscriptArgs,
+  NativeChatForkClaudeTranscriptResult
+} from '../../shared/native-chat/native-chat-terminal-fork-contract'
+import type {
   NativeChatReadSubagentsArgs,
   NativeChatReadSubagentsResult
 } from '../../shared/native-chat/native-chat-subagent-transcripts'
@@ -89,4 +93,8 @@ export type NativeChatApi = {
   readClaudeSubagents?: (
     args: NativeChatReadSubagentsArgs
   ) => Promise<NativeChatReadSubagentsResult>
+  /** A local Claude session's shortened copy, for a terminal chat's Fork and Restart from here. */
+  forkClaudeTranscript?: (
+    args: NativeChatForkClaudeTranscriptArgs
+  ) => Promise<NativeChatForkClaudeTranscriptResult>
 }

@@ -30,12 +30,12 @@ import type { NativeChatMessage } from '../../../../../shared/native-chat/native
 import type { NativeChatStructuredViewProps } from '@/components/native-chat/native-chat-view-types'
 import type { NativeChatFileLinkContext } from '@/components/native-chat/links/actions/native-chat-file-link-context'
 
-type UsageLimitActions = {
+export type UsageLimitActions = {
   account: ReactNode
   handOff?: () => void
   disabled: boolean
 }
-const UsageLimitActionsContext = createContext<UsageLimitActions | null>(null)
+export const UsageLimitActionsContext = createContext<UsageLimitActions | null>(null)
 
 export function NativeChatUsageLimitActionsProvider({
   pane,

@@ -7,7 +7,8 @@ import { isMacPlatform } from '../../pane/routing/native-chat-shortcut'
 
 const useSteerChordPreview = createNativeChatSteerChordPreviewHook({ useEffect, useState })
 
-/** Desktop's chord: Cmd+Enter on a Mac, Ctrl+Enter elsewhere. */
+/** Desktop's chord: Cmd+Enter on a Mac, Ctrl+Enter elsewhere; local: a terminal Claude's
+ *  Ctrl+Enter, which sends now, on every platform. */
 export function useNativeChatSteerChordPreview(
   root: RefObject<HTMLElement | null>,
   sendState: {
@@ -17,14 +18,15 @@ export function useNativeChatSteerChordPreview(
   },
   steerHead: (() => boolean) | undefined,
   send: (intent?: NativeChatComposerSendIntent) => void,
-  pickerOpen: boolean
+  pickerOpen: boolean,
+  ctrlEnterSendsNow = false
 ) {
   return useSteerChordPreview(
     root,
     sendState,
     steerHead,
-    () => send({ alternate: true }),
+    () => send(ctrlEnterSendsNow ? { sendNow: true } : { alternate: true }),
     pickerOpen,
-    isMacPlatform() ? 'Meta' : 'Control'
+    isMacPlatform() && !ctrlEnterSendsNow ? 'Meta' : 'Control'
   )
 }

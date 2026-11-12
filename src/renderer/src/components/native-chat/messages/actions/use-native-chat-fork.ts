@@ -20,6 +20,7 @@ import type { AgentType } from '../../../../../../shared/agent-status/contracts/
 import { isTuiAgent } from '../../../../../../shared/agent-launch/catalog/tui-agent-config'
 import type { RuntimeClientTarget } from '../../../../../../shared/runtime-client-target'
 import {
+  type nativeChatRowOffersFork,
   nativeChatForkInventory,
   nativeChatForkRequiresInheritedOriginal,
   nativeChatForkSupport,
@@ -60,7 +61,14 @@ export type NativeChatForkSurface = NativeChatForkRowAction & {
   inheritedThroughSequence?: number
   /** Handed to offered rows, so a change in which rows offer it re-renders only those rows. */
   rowAction: NativeChatForkRowAction
+  /** A chat whose rows have no journal positions (a terminal chat) decides which rows offer it. */
+  offersRow?: NativeChatForkOfferRule
 }
+
+/** Whether a drawn response row offers Fork. */
+export type NativeChatForkOfferRule = (
+  row: Parameters<typeof nativeChatRowOffersFork>[0]
+) => boolean
 
 /** The rows' surface plus `/fork`: the same request, through the newest response still in context. */
 export type NativeChatPaneFork = NativeChatForkSurface & {

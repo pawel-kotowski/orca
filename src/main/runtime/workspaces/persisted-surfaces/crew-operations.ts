@@ -11,7 +11,7 @@ import { CrewChanges } from '../../orchestration/crew/crew-changes'
 import { OrcaRuntimeWithOrchestrationDatabaseBinding } from './orchestration-database-binding'
 import { subscribeWorkerApprovals } from '../../orchestration/crew/worker-approval-stream'
 import { readCrewApprovals } from '../../orchestration/crew/crew-query'
-import { parseOrcaSessionAddress } from '../../../../shared/orca-session-address'
+import { workerApprovalMailboxes } from '../../orchestration/crew/worker-approval-mailboxes'
 import type { OrchestrationWorkerApprovalsFrame } from '../../../../shared/orchestration/orchestration-crew'
 
 export abstract class OrcaRuntimeWithCrewOperations extends OrcaRuntimeWithOrchestrationDatabaseBinding {
@@ -62,23 +62,21 @@ export abstract class OrcaRuntimeWithCrewOperations extends OrcaRuntimeWithOrche
 
   watchOrchestrationCrew = (wake: () => void) => this.crewReadModel.subscribe(wake)
 
-  /** A chat coordinator's worker approvals: its own mailbox and its Runs', read only on their changes. */
+  /** A chat coordinator's worker approvals (structured by Orca session, terminal by handle): its own
+   *  mailbox and its Runs', read only on their changes. */
   subscribeOrchestrationWorkerApprovals(
     party: string,
     emit: (frame: OrchestrationWorkerApprovalsFrame) => void
   ): () => void {
-    const orcaSessionId = parseOrcaSessionAddress(party)
     return subscribeWorkerApprovals(
       {
         mailboxes: () => {
           const db = this._orchestrationDb
-          return db && orcaSessionId
-            ? [
-                party,
-                ...db
-                  .runsBoundToCoordinator({ orcaSessionId, paneKey: null, terminalHandle: null })
-                  .map((run) => `run:${run.id}`)
-              ]
+          const readers = this.crewRuntimeReaders()
+          return db
+            ? workerApprovalMailboxes(db, party, (handle) =>
+                readers.getPaneKeyForTerminalHandle(handle)
+              )
             : []
         },
         approvals: (mailboxes) => {

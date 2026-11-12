@@ -1,3 +1,5 @@
+/* eslint-disable max-lines -- Why: upstream's actions sit at the limit; the local terminal chat's
+   Ctrl+Enter label adds one prop, and moving upstream's own code out would fork it on every merge. */
 import { NativeChatComposerDraftNotSavedIcon } from '../../drafts/NativeChatComposerDraftNotSavedIcon'
 import { memo } from 'react'
 import { ArrowUp, CornerDownRight, ListEnd, Mic, Plus, Save, Square } from 'lucide-react'
@@ -44,6 +46,8 @@ export type NativeChatComposerActionsProps = {
   hasDraft?: boolean
   /** While the agent works: what Cmd/Ctrl+Enter would do instead of a plain send, when it differs. */
   alternateSend?: NativeChatFollowUpBehavior
+  /** Local: the chord that does `alternateSend` where it is not Cmd/Ctrl+Enter. */
+  alternateSendShortcut?: string
   /** This client's Stop request is in flight: the Stop control is disabled and says so. */
   isStopping?: boolean
   isDictating: boolean
@@ -85,6 +89,7 @@ export const NativeChatComposerActions = memo(function NativeChatComposerActions
   isWorking,
   hasDraft = false,
   alternateSend,
+  alternateSendShortcut,
   isStopping = false,
   isDictating,
   isDictationHoldMode,
@@ -134,10 +139,10 @@ export const NativeChatComposerActions = memo(function NativeChatComposerActions
     (!stops && alternateSend
       ? alternateSend === 'steer'
         ? t('components.native-chat.composer.alternateSteerHint', '{{shortcut}} to steer', {
-            shortcut: getScreenSubmitShortcutLabel()
+            shortcut: alternateSendShortcut ?? getScreenSubmitShortcutLabel()
           })
         : t('components.native-chat.composer.alternateQueueHint', '{{shortcut}} to queue', {
-            shortcut: getScreenSubmitShortcutLabel()
+            shortcut: alternateSendShortcut ?? getScreenSubmitShortcutLabel()
           })
       : null)
   const steerPreviewLabel =
@@ -268,7 +273,7 @@ export const NativeChatComposerActions = memo(function NativeChatComposerActions
   )
   const alternateSendChip =
     !stops && alternateSend && !sendReason && hasDraft ? (
-      <NativeChatAlternateSendChip alternateSend={alternateSend} />
+      <NativeChatAlternateSendChip alternateSend={alternateSend} shortcut={alternateSendShortcut} />
     ) : null
   if (compact) {
     return (

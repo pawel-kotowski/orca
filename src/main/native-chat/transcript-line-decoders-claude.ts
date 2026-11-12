@@ -20,6 +20,8 @@ import { claudeInterruptedMessageId } from './transcript-turn-markers'
 import { claudeStopHookFeedbackRow } from '../claude/structured/journal/claude-stop-hook-feedback'
 import { structuredAgentSessionStatusBlock } from '../../shared/agent-session/view/structured-agent-session-status-block'
 import { claudeTokenUsage } from '../claude/context-usage/claude-context-usage'
+import { claudeTerminalGoalOnUserRow, claudeTerminalGoalRow } from './claude-terminal-goal-rows'
+import { claudeApiErrorStatusMessage } from './claude-api-error-row'
 import {
   claudeMessageWithoutSyntheticText,
   isClaudeInjectedUserMessage
@@ -82,7 +84,7 @@ export function decodeClaudeTranscriptLine(
   if (!parsed) {
     return null
   }
-  const recap = claudeRecapMessage(parsed, fallbackId)
+  const recap = claudeRecapMessage(parsed, fallbackId) ?? claudeTerminalGoalRow(parsed, fallbackId)
   if (recap) {
     return recap
   }
@@ -109,6 +111,10 @@ export function decodeClaudeTranscriptLine(
       source: 'transcript',
       ...parent
     }
+  }
+  const apiErrorRow = claudeApiErrorStatusMessage(record, timestamp)
+  if (apiErrorRow) {
+    return { id: recordMessageId, timestamp, source: 'transcript', ...apiErrorRow, ...parent }
   }
   const message = asRecord(record.message)
   const editPatch = claudeEditPatch(record)
@@ -148,7 +154,9 @@ export function decodeClaudeTranscriptLine(
         : blocks,
     timestamp,
     source: 'transcript',
-    ...(role === 'assistant' ? claudeServing(record, message) : {}),
+    ...(role === 'assistant'
+      ? claudeServing(record, message)
+      : claudeTerminalGoalOnUserRow(blocks, timestamp)),
     ...parent
   }
 }

@@ -197,7 +197,8 @@ function isLocalAccountRestart(
   )
 }
 
-function resolveAccountRestartLaunchTarget(
+/** Where a resume for this workspace runs: its platform, agent host and shell. */
+export function resolveAccountRestartLaunchTarget(
   state: AppState,
   args: AccountRestartTarget,
   projectRuntime: ProjectExecutionRuntimeResolution | undefined

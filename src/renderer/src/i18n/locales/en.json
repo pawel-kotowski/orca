@@ -21214,7 +21214,8 @@
         "paused": "Paused goal",
         "blocked": "Goal blocked",
         "limited": "Goal limited",
-        "attachmentsUnsupported": "Remove attachments before setting a goal."
+        "attachmentsUnsupported": "Remove attachments before setting a goal.",
+        "clearNotSent": "Could not type /goal clear into the terminal"
       },
       "fileLinks": {
         "notFound": "File not found: {{value0}}",
@@ -21249,6 +21250,10 @@
       "visualLoading": "Loading visualization",
       "visualOpenInNewTab": "Open in new tab",
       "queuedMessages": {
+        "terminalHeadHint": "Goes when the turn ends · {{shortcut}} on an empty box sends it now",
+        "terminalHeadNowHint": "Goes when the turn ends · Send sends it now",
+        "terminalHeadSendHint": "Goes when the turn ends · Send types it now",
+        "terminalWaitingHint": "Goes after the ones above · Send sends it now",
         "steer": "Steer",
         "send": "Send",
         "steerHint": "Submit without interrupting the model",
@@ -21485,7 +21490,9 @@
         "leadIn": "Continue this chat without waiting:",
         "switchAccount": "Switch Account",
         "addAccount": "Add Account…",
-        "accountUnavailable": "This chat cannot move to another account. Hand it off to another agent instead."
+        "accountUnavailable": "This chat cannot move to another account. Hand it off to another agent instead.",
+        "continueOn": "Continue this chat on",
+        "continuingOn": "Moving to {{name}}"
       },
       "usageLimitAutoContinue": {
         "cancelFailed": "Couldn't cancel automatic continuation. Try again.",
@@ -21595,6 +21602,19 @@
         "questionNotSentDetail": "Your question is still in this chat. Send /btw again to retry.",
         "questionUnconfirmed": "{{agent}} couldn't confirm the side chat got your question",
         "questionUnconfirmedDetail": "Check the side chat before asking again. Your question is still in this chat."
+      },
+      "terminalFork": {
+        "failed": "Orca couldn't copy this chat into a new tab.",
+        "sourceName": "the original chat"
+      },
+      "terminalRestart": {
+        "action": "Restart from here in a new tab",
+        "tooltip": "Open a new tab with this chat up to just before this message, the message in its composer. This tab keeps running.",
+        "title": "Restart from here in a new tab?",
+        "confirmation": "A new tab opens with this chat up to just before this message, and the message waits in its composer so you can edit and send it. This tab keeps running as it is.",
+        "confirm": "Restart in new tab",
+        "cancel": "Cancel",
+        "pending": "Opening a new tab…"
       }
     },
     "tab": {

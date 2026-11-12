@@ -76,22 +76,11 @@ describe('activity inbox facts (Paweł, 2026-11-12: busy agents stay out of the 
 
 describe('carryAgentReachOut', () => {
   it('keeps the last reach-out across rows that say nothing about one', () => {
-    const first = { reachOut: { message: 'hi', at: 1 }, updatedAt: 1 }
-    expect(carryAgentReachOut({ updatedAt: 2, toolName: 'Bash' }, first)).toEqual({
-      message: 'hi',
-      at: 1
+    const first = { reachOut: { message: 'hi', at: 1 } }
+    expect(carryAgentReachOut({}, first)).toEqual({ message: 'hi', at: 1 })
+    expect(carryAgentReachOut({ reachOut: { message: 'again', at: 2 } }, first)).toEqual({
+      message: 'again',
+      at: 2
     })
-  })
-
-  it('reads an older host’s PushNotification row once, by its tool name', () => {
-    const row = { toolName: 'PushNotification', toolInput: 'build ready', updatedAt: 5 }
-    expect(carryAgentReachOut(row, { toolName: 'Bash', updatedAt: 4 })).toEqual({
-      message: 'build ready',
-      at: 5
-    })
-    const later = { ...row, updatedAt: 9 }
-    expect(
-      carryAgentReachOut(later, { ...row, reachOut: { message: 'build ready', at: 5 } })
-    ).toEqual({ message: 'build ready', at: 5 })
   })
 })

@@ -14,6 +14,7 @@ import type {
   AgentJournalMessageState,
   AgentJournalPosition,
   AgentJournalProducerLinkage,
+  AgentJournalThreadGoalState,
   AgentJournalToolCallEnding,
   AgentJournalToolCallState
 } from '../agent-session/journal/agent-session-journal-types'
@@ -231,6 +232,8 @@ export type NativeChatMessage = AgentJournalProducerLinkage & {
   completedAt?: number
   /** On a conversation command the user sent, such as `/compact`: the command it names. */
   command?: { name: string }
+  /** On a row reporting the agent's own goal (Claude's `/goal` in a terminal): the goal after it. */
+  threadGoal?: AgentJournalThreadGoalState
   /** On a user-role message another agent sent through Orca: who, as the journal recorded it. */
   from?: AgentMessageSource
   /** Projected creation fact, never a user turn or provider input. */

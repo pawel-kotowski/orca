@@ -7,7 +7,8 @@ import { cn } from '@/lib/class-names'
 import { useTranslate } from '@/i18n/use-translate'
 import {
   NativeChatQueuedMessageCard,
-  queuedMessageCardCaption
+  queuedMessageCardCaption,
+  type QueuedMessageSteerShortcut
 } from './NativeChatQueuedMessageCard'
 import type {
   QueuedMessagesPendingAction,
@@ -19,7 +20,8 @@ import { NATIVE_CHAT_ROOT_SELECTOR } from '@/components/native-chat/paste/native
 import { focusNativeChatPromptCard } from '../prompts/use-native-chat-prompt-card-focus'
 import {
   headSteerableQueuedMessageCard,
-  queuedMessageCardNeedsAttention
+  queuedMessageCardNeedsAttention,
+  type QueuedMessageCard
 } from '../../../../../shared/agent-session/view/structured-agent-session-queued-cards'
 import type { QueuedEditAttachTarget } from './editing/NativeChatQueuedMessageComposer'
 
@@ -31,7 +33,9 @@ export function NativeChatQueuedMessageList({
   statedFailures,
   steerHeld = false,
   focusComposer,
-  editAttachTo
+  editAttachTo,
+  steerShortcut,
+  cardHint
 }: {
   controller: StructuredAgentSessionQueuedMessagesController
   /** Where a card's sender is opened from; null shows it unlinked. */
@@ -44,6 +48,10 @@ export function NativeChatQueuedMessageList({
   focusComposer?: () => void
   /** The chat files added in a card's editor attach to, as its chat box attaches them. */
   editAttachTo?: QueuedEditAttachTarget
+  /** Local: the head card's chord where it differs (a terminal Claude's Ctrl+Enter). */
+  steerShortcut?: QueuedMessageSteerShortcut
+  /** Local: a quiet line under a plainly waiting card (the terminal chat's held messages). */
+  cardHint?: (card: QueuedMessageCard, index: number) => string | null
 }): React.JSX.Element {
   const t = useTranslate()
   const regionRef = useRef<HTMLDivElement>(null)
@@ -142,6 +150,8 @@ export function NativeChatQueuedMessageList({
                     agentName={agentName}
                     statedFailures={statedFailures}
                     showsSteerShortcut={card === steerableHead}
+                    steerShortcut={steerShortcut}
+                    hint={cardHint?.(card, cards.indexOf(card))}
                     agentWorking={controller.isWorking}
                     steerHeld={steerHeld}
                     pending={controller.pending(card.messageId)}

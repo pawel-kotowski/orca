@@ -6,8 +6,6 @@ const TOOL_INPUT_KEYS_BY_TOOL: Record<string, readonly string[]> = {
   Create: ['file_path', 'filePath', 'path'],
   Edit: ['file_path', 'filePath', 'path'],
   Execute: ['command'],
-  // Why: an agent's reach-out reads as its message (agent-reach-out.ts).
-  PushNotification: ['message'],
   MultiEdit: ['file_path', 'filePath', 'path'],
   NotebookEdit: ['file_path', 'filePath', 'path'],
   Bash: ['command'],

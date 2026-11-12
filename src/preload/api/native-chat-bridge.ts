@@ -1,4 +1,8 @@
 import type {
+  NativeChatForkClaudeTranscriptArgs,
+  NativeChatForkClaudeTranscriptResult
+} from '../../shared/native-chat/native-chat-terminal-fork-contract'
+import type {
   NativeChatReadSubagentsArgs,
   NativeChatReadSubagentsResult
 } from '../../shared/native-chat/native-chat-subagent-transcripts'
@@ -69,6 +73,10 @@ export const nativeChatApi = {
     args: NativeChatReadSubagentsArgs
   ): Promise<NativeChatReadSubagentsResult> =>
     ipcRenderer.invoke('nativeChat:claudeSubagents', args),
+  forkClaudeTranscript: (
+    args: NativeChatForkClaudeTranscriptArgs
+  ): Promise<NativeChatForkClaudeTranscriptResult> =>
+    ipcRenderer.invoke('nativeChat:forkClaudeTranscript', args),
   listClaudeProjectSessions: (transcriptPath: string): Promise<ClaudeProjectSession[]> =>
     ipcRenderer.invoke('nativeChat:claudeProjectSessions', transcriptPath)
 } satisfies PreloadApi['nativeChat']

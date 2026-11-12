@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { isPublicOrchestrationAddress } from './mailbox/orchestration-agent-reference'
 import { WorkerApprovalPayloadSchema } from './approvals/worker-approval-payload'
-import { parseOrcaSessionAddress } from '../orca-session-address'
+import { isWorkerApprovalsParty } from './worker-approvals-party'
 
 export const CrewParty = z.string().refine(isPublicOrchestrationAddress)
 export const CrewSubscribeParams = z.object({ party: CrewParty })
@@ -64,7 +64,7 @@ export type OrchestrationCrewFrame = z.infer<typeof CrewFrame>
 
 /** A chat coordinator's worker approvals alone, so a chat need not follow its whole crew. */
 export const WorkerApprovalsSubscribeParams = z.object({
-  party: CrewParty.refine((party) => parseOrcaSessionAddress(party) !== null)
+  party: CrewParty.refine(isWorkerApprovalsParty)
 })
 export const WorkerApprovalEntry = CrewRowApproval.extend({
   worker: CrewRow.omit({ approvals: true })

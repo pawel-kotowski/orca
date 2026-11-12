@@ -17,9 +17,12 @@ export const NATIVE_CHAT_STOP_TINT =
  * 2026-11-08: "i need to see that i have to press it").
  */
 export function NativeChatAlternateSendChip({
-  alternateSend
+  alternateSend,
+  shortcut
 }: {
   alternateSend: NativeChatFollowUpBehavior
+  /** The chord where it is not Cmd/Ctrl+Enter: a terminal Claude's Ctrl+Enter, which sends now. */
+  shortcut?: string
 }): React.JSX.Element {
   const t = useTranslate()
   return (
@@ -28,7 +31,7 @@ export function NativeChatAlternateSendChip({
       className="flex shrink-0 items-center gap-1 whitespace-nowrap text-2xs text-chat-foreground-faint"
     >
       <kbd className="rounded border border-chat-code-border px-1 font-sans text-3xs leading-4 text-chat-foreground">
-        {getScreenSubmitShortcutLabel()}
+        {shortcut ?? getScreenSubmitShortcutLabel()}
       </kbd>
       {alternateSend === 'steer'
         ? t('components.native-chat.composer.alternateSteerChip', 'steer')

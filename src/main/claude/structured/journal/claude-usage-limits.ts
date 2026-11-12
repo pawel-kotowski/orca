@@ -15,7 +15,7 @@ import {
 import type { ClaudeOpenTurn } from '../turns/claude-open-turn'
 import { claudeRecord, claudeText } from './claude-structured-item-translation'
 
-const CLAUDE_LIMIT_WINDOWS: Record<string, AgentSessionUsageLimitWindow> = {
+export const CLAUDE_LIMIT_WINDOWS: Record<string, AgentSessionUsageLimitWindow> = {
   five_hour: 'session',
   seven_day: 'weekly',
   seven_day_opus: 'weeklyModel',

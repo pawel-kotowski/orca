@@ -68,6 +68,8 @@ export type NativeChatComposerFieldProps = {
   hasDraft?: boolean
   /** While the agent works: what Cmd/Ctrl+Enter would do instead of a plain send, when it differs. */
   alternateSend?: NativeChatFollowUpBehavior
+  /** Local: the chord that does `alternateSend` where it is not Cmd/Ctrl+Enter (a terminal Claude's Ctrl+Enter). */
+  alternateSendShortcut?: string
   /** This client's Stop request is in flight: the Stop control is disabled and says so. */
   isStopping?: boolean
   /** After Stop, describe whether the host queues the next message as a card or holds the send. */
@@ -146,6 +148,7 @@ export function NativeChatComposerField({
   isWorking,
   hasDraft = false,
   alternateSend,
+  alternateSendShortcut,
   isStopping = false,
   afterStop,
   attachDisabled,
@@ -444,6 +447,7 @@ export function NativeChatComposerField({
                 isWorking={isWorking}
                 hasDraft={hasDraft}
                 alternateSend={alternateSend}
+                alternateSendShortcut={alternateSendShortcut}
                 isStopping={isStopping}
                 isDictating={isDictating}
                 isDictationHoldMode={isDictationHoldMode}

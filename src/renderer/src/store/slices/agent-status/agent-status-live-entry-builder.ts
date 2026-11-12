@@ -198,15 +198,7 @@ export function buildAgentStatusLiveEntry(
   const mainAgent = resolveAgentStatusLiveEntryMainAgent(existing, payload, identity.agentType)
   const programStatus =
     payload.programStatus === undefined ? existing?.programStatus : payload.programStatus
-  const reachOut = carryAgentReachOut(
-    {
-      reachOut: payload.reachOut,
-      toolName: payload.toolName,
-      toolInput: payload.toolInput,
-      updatedAt
-    },
-    existing
-  )
+  const reachOut = carryAgentReachOut(payload, existing)
   const entry: AgentStatusEntry = {
     state: payload.state,
     workingMode: payload.workingMode,

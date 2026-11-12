@@ -1,8 +1,12 @@
 /* eslint-disable max-lines -- Why: upstream's pane sits at the limit; the local Ctrl+Enter send-now,
-   transcript model, context use and terminal switch add a few wiring lines, and moving upstream's
-   own code out would fork the pane from upstream on every merge. */
+   transcript model, context use, terminal switch and terminal queue add a few wiring lines, and
+   moving upstream's own code out would fork the pane from upstream on every merge. */
 import { useNativeChatComposerEditSession } from '../queue/editing/use-native-chat-composer-edit-session'
 import { useNativeChatComposerNotice } from './controls/use-native-chat-composer-notice'
+import {
+  useNativeChatTerminalComposerNotices,
+  usePublishNativeChatPromptSlotNotices
+} from '../usage/terminal/native-chat-terminal-pane-store'
 import { useNativeChatMobileHoldNotice } from '../host-access/use-native-chat-mobile-hold-notice'
 import { forwardRef, useCallback, useState, useRef } from 'react'
 import { useNativeChatComposerInterrupt } from './submit/use-native-chat-composer-interrupt'
@@ -32,6 +36,12 @@ import { useNativeChatComposerCommandPicker } from './pickers/use-native-chat-co
 import { newestModel } from '../native-chat-transcript-context-usage'
 import { useNativeChatCtrlEnterSendsNow } from '../use-native-chat-ctrl-enter-sends-now'
 import { useNativeChatShowsWorkspaceLine } from '../use-native-chat-shows-workspace-line'
+import { withNativeChatTerminalSendNow } from './submit/native-chat-terminal-send-now-state'
+import {
+  useNativeChatTerminalHeldSender,
+  useNativeChatTerminalHold,
+  useNativeChatTerminalSteerHead
+} from '../queue/use-native-chat-terminal-queued-messages'
 import type * as C from './native-chat-composer-types'
 
 type ComposerHandle = C.NativeChatComposerHandle
@@ -89,7 +99,14 @@ export const NativeChatComposerPane = forwardRef<ComposerHandle, C.NativeChatCom
       structuredTransport ? null : targetPtyId,
       canSend
     )
-    const { notices, setNotice } = useNativeChatComposerNotice(chatNotices, holdNotice)
+    // A terminal chat's failed Continue comes in; its notices go above a prompt card that hides it.
+    const terminalNotices = useNativeChatTerminalComposerNotices(
+      paneKey,
+      !structuredTransport,
+      chatNotices
+    )
+    const { notices, setNotice } = useNativeChatComposerNotice(terminalNotices.notices, holdNotice)
+    usePublishNativeChatPromptSlotNotices(terminalNotices.publish, notices, inputOwnedByCard)
     const { textareaRef } = useNativeChatComposerAppMenuSelection(imeEnterGesture.isComposing)
     const recall = useNativeChatComposerRecall({
       draft,
@@ -237,6 +254,17 @@ export const NativeChatComposerPane = forwardRef<ComposerHandle, C.NativeChatCom
       setCaret
     })
 
+    // Local: a terminal chat's message box (not an edit or launch prompt) holds while its agent works.
+    const terminalBox = !structuredTransport && !editSession && !launchPrompt
+    const ctrlEnterSendsNow = useNativeChatCtrlEnterSendsNow(agent, terminalBox)
+    const holdWhileWorking = useNativeChatTerminalHold(paneKey, terminalBox && isWorking)
+    // The parent's steer (a structured chat's queue) or the head message this box holds.
+    const heldSteerHead = useNativeChatTerminalSteerHead(
+      paneKey,
+      terminalBox,
+      agent === 'claude' && isWorking
+    )
+    const headSteer = steerHead ?? heldSteerHead
     const ptyCommandRouting = {
       agent,
       disabled,
@@ -264,8 +292,13 @@ export const NativeChatComposerPane = forwardRef<ComposerHandle, C.NativeChatCom
       classifySend,
       onOptimisticSend,
       optimisticSendOutcome,
-      terminalTabId
+      terminalTabId,
+      holdWhileWorking
     })
+    useNativeChatTerminalHeldSender(
+      paneKey,
+      terminalBox ? (held, sendNow) => sendPty(undefined, { held, sendNow }) : undefined
+    )
     const submission = useNativeChatComposerSubmit({
       agent,
       textareaRef,
@@ -285,20 +318,23 @@ export const NativeChatComposerPane = forwardRef<ComposerHandle, C.NativeChatCom
     })
 
     const { goalMode } = submission
-    const { sendHeld, ...sendButton } = nativeChatComposerSendState({
-      agent,
-      draft,
-      messageDelivery: submission.messageDelivery,
-      imageAttachments,
-      pastedTextSaving: attachments.pastedTextSaving,
-      disabled,
-      structuredTransport,
-      editSession,
-      isWorking,
-      canStop: hasPty && onStop !== undefined,
-      orcaCommand: !pending && !launchPrompt && orcaCommands.matchesDraft(draft),
-      goalMode: goalMode.active
-    })
+    const { sendHeld, ...sendButton } = withNativeChatTerminalSendNow(
+      nativeChatComposerSendState({
+        agent,
+        draft,
+        messageDelivery: submission.messageDelivery,
+        imageAttachments,
+        pastedTextSaving: attachments.pastedTextSaving,
+        disabled,
+        structuredTransport,
+        editSession,
+        isWorking,
+        canStop: hasPty && onStop !== undefined,
+        orcaCommand: !pending && !launchPrompt && orcaCommands.matchesDraft(draft),
+        goalMode: goalMode.active
+      }),
+      ctrlEnterSendsNow && isWorking && submission.messageDelivery
+    )
 
     const { send, chooseEditItem, fieldOverrides, dispatchPickerCommand } =
       useNativeChatComposerEditSession({
@@ -342,11 +378,8 @@ export const NativeChatComposerPane = forwardRef<ComposerHandle, C.NativeChatCom
       interrupt: editSession?.cancel ?? interrupt,
       send,
       hasAttachments: imageAttachments.length > 0,
-      ...(!editSession && steerHead ? { steerHead } : {}),
-      ctrlEnterSendsNow: useNativeChatCtrlEnterSendsNow(
-        agent,
-        !structuredTransport && !editSession && !launchPrompt
-      ),
+      ...(!editSession && headSteer ? { steerHead: headSteer } : {}),
+      ctrlEnterSendsNow,
       chordSteersHead: sendButton.chordSteersHead,
       setActiveSuggestion: picker.navigateSuggestion,
       setDraft,
@@ -355,7 +388,14 @@ export const NativeChatComposerPane = forwardRef<ComposerHandle, C.NativeChatCom
 
     const pickerOpen = autocomplete.mode !== 'none'
     const showsWorkspaceLine = useNativeChatShowsWorkspaceLine()
-    const steerChord = useNativeChatSteerChordPreview(root, sendButton, steerHead, send, pickerOpen)
+    const steerChord = useNativeChatSteerChordPreview(
+      root,
+      sendButton,
+      headSteer,
+      send,
+      pickerOpen,
+      ctrlEnterSendsNow
+    )
 
     const draftEvents = useNativeChatDraftEvents({
       draft,

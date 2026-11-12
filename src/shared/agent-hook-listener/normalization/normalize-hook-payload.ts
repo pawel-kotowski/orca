@@ -1,4 +1,5 @@
 import { readHookAgentProcess } from '../../agent-status/process/agent-process-presence'
+import { withPaneReachOut } from '../pane-reach-out'
 import { isInheritedHookStatus } from '../presence/agent-hook-presence-transition'
 import { readHookProcessAdmission } from '../presence/agent-hook-owner-presence'
 import { normalizeAgentStatusPayload } from '../../agent-status/contracts/agent-status-types'
@@ -309,6 +310,6 @@ export function normalizeHookPayload(
     ...(providerSessionOnly ? { providerSessionOnly: true } : {}),
     ...dispatched.hostTurnSignals,
     ...(dispatched.replyCandidate ? { replyCandidate: dispatched.replyCandidate } : {}),
-    payload: transportPayload
+    payload: withPaneReachOut(state, paneKey, transportPayload)
   }
 }

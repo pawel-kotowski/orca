@@ -145,7 +145,9 @@ export function useNativeChatComposerKeyDown({
       if (ctrlEnterSendsNow && isNativeChatCtrlEnter(event)) {
         event.preventDefault()
         // Why also with an empty box: Claude then sends the messages it holds for the turn's end.
-        if (!event.repeat) {
+        // Local: on an empty box the head message Orca holds goes first, when there is one.
+        const empty = draft.trim() === '' && !hasAttachments
+        if (!event.repeat && !(empty && steerHead?.())) {
           send({ sendNow: true })
         }
         return

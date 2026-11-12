@@ -13,7 +13,7 @@ export function NativeChatRewindAction({
 }) {
   const t = useTranslate()
   const confirm = useConfirmationDialog()
-  const label = t('components.native-chat.rewind.action', 'Rewind to here')
+  const label = rewind.label ?? t('components.native-chat.rewind.action', 'Rewind to here')
   return (
     <Tooltip>
       <TooltipTrigger asChild>
@@ -33,7 +33,7 @@ export function NativeChatRewindAction({
         </button>
       </TooltipTrigger>
       <TooltipContent side="top" sideOffset={4}>
-        {rewind.disabledReason ?? label}
+        {rewind.disabledReason ?? rewind.tooltip ?? label}
       </TooltipContent>
     </Tooltip>
   )

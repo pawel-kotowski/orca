@@ -4,6 +4,7 @@ import { nativeChatTranscriptPathOnExecutionHost } from '../native-chat/ssh-tran
 import { readClaudeModelContextWindows } from '../claude/claude-model-catalog-context-windows'
 import { listClaudeProjectSessions } from '../claude/claude-project-sessions'
 import { readNativeChatClaudeSubagents } from '../native-chat/native-chat-claude-subagents-read'
+import { forkNativeChatClaudeTranscript } from '../native-chat/native-chat-claude-terminal-fork'
 import { readClaudeSessionEffortSettings } from '../claude/claude-session-effort'
 import { claudeSessionRecordDirs } from './pty/host-env/live-claude-session-holder'
 import { getAppEnvironment } from '../../shared/app-environment'
@@ -32,6 +33,13 @@ export function registerNativeChatClaudeContextWindowsHandler(): void {
   ipcMain.removeHandler('nativeChat:claudeSubagents')
   ipcMain.handle('nativeChat:claudeSubagents', (_event, args: unknown) =>
     readNativeChatClaudeSubagents(args, (sessionId, path) =>
+      nativeChatTranscriptPathOnExecutionHost(agentHookServer.getStatusSnapshot(), sessionId, path)
+    )
+  )
+  // A terminal-backed Claude chat's Fork and "Restart from here" copy its transcript up to a row.
+  ipcMain.removeHandler('nativeChat:forkClaudeTranscript')
+  ipcMain.handle('nativeChat:forkClaudeTranscript', (_event, args: unknown) =>
+    forkNativeChatClaudeTranscript(args, (sessionId, path) =>
       nativeChatTranscriptPathOnExecutionHost(agentHookServer.getStatusSnapshot(), sessionId, path)
     )
   )

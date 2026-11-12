@@ -57,3 +57,13 @@ export const NativeChatReadClaudeSubagents = z.object({
   sessionId: z.string().min(1),
   transcriptPath: z.string().min(1).optional()
 })
+
+/** A terminal-backed Claude chat's shortened copy, written on the host that holds its transcript. */
+export const NativeChatForkClaudeTranscript = z.object({
+  sessionId: z.string().min(1),
+  transcriptPath: z.string().min(1).optional(),
+  cut: z.object({
+    kind: z.enum(['through-response', 'before-prompt']),
+    uuid: z.string().min(1)
+  })
+})

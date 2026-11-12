@@ -9,6 +9,10 @@ export type NativeChatRewindSurface = {
   disabledReason: string | null
   eligibleItemIds?: ReadonlySet<string>
   request: (itemId: string, confirm: ConfirmationDialogContextValue) => Promise<void>
+  /** The button's own name where it does something else than rewind (a terminal chat's restart). */
+  label?: string
+  /** Its tooltip when enabled; the label when absent. */
+  tooltip?: string
 }
 
 export type NativeChatRewindHost = {

@@ -12,6 +12,7 @@ import {
   hasClaudeSubagentSpawn,
   mergeClaudeSubagents
 } from '../../../../shared/native-chat/transcript/native-chat-claude-subagent-merge'
+import { publishNativeChatClaudeSubagents } from './native-chat-claude-subagents-store'
 
 const NONE: readonly NativeChatSubagentTranscript[] = []
 /** While a subagent runs, its rows are read this often. */
@@ -132,6 +133,12 @@ export function useNativeChatClaudeSubagents<T extends { messages: NativeChatMes
   useEffect(() => {
     setSubagents(NONE)
   }, [sessionId])
+
+  const shown = spawned ? subagents : NONE
+  useEffect(() => {
+    publishNativeChatClaudeSubagents(paneKey, shown)
+  }, [paneKey, shown])
+  useEffect(() => () => publishNativeChatClaudeSubagents(paneKey, NONE), [paneKey])
 
   return useMemo(
     () =>

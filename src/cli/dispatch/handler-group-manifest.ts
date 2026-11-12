@@ -205,6 +205,11 @@ export const HANDLER_GROUPS: readonly HandlerGroup[] = [
     load: async () => (await import('../agents/agent-hooks.js')).AGENT_HOOK_HANDLERS
   },
   {
+    name: 'move-to-inbox',
+    keys: ['move-to-inbox'],
+    load: async () => (await import('../agents/move-to-inbox.js')).MOVE_TO_INBOX_HANDLERS
+  },
+  {
     name: 'agent-launch',
     keys: ['agent launch'],
     load: async () => (await import('../agents/agent-launch.js')).AGENT_LAUNCH_HANDLERS

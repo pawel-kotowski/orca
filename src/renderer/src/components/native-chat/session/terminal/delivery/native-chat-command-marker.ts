@@ -66,7 +66,7 @@ function isClearCommand(command: string): boolean {
   return command.trim().toLowerCase().split(/\s+/)[0] === '/clear'
 }
 
-function latestClearSentAt(markers: readonly NativeChatCommandMarker[]): number | null {
+export function latestClearSentAt(markers: readonly NativeChatCommandMarker[]): number | null {
   let latest: number | null = null
   for (const marker of markers) {
     if (isClearCommand(marker.command) && (latest === null || marker.sentAt > latest)) {

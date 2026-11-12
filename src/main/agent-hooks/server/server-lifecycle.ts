@@ -1,4 +1,5 @@
 /* eslint-disable max-lines -- Why: upstream's file sits at the limit and the local build (local/orca-glass) adds a line or two here; it never goes upstream. */
+import { ORCA_MOVE_TO_INBOX_PATH } from '../../../shared/agent-status/contracts/agent-reach-out'
 import {
   AgentHookStartup,
   listenForAgentHooks
@@ -111,6 +112,11 @@ export abstract class AgentHookServerLifecycle extends AgentHookServerStatusHook
         await this.initializeStatusHookOwner()
         if (!isStatusCurrent()) {
           res.writeHead(404)
+          res.end()
+          return
+        }
+        if (pathname === ORCA_MOVE_TO_INBOX_PATH) {
+          res.writeHead(this.moveToInbox(body) ? 204 : 404)
           res.end()
           return
         }
