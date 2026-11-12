@@ -102,23 +102,31 @@ describe('ActivityThreadRow corner slot', () => {
     expect(onSelect).not.toHaveBeenCalled()
   })
 
-  it('clears a seen Inbox card from its corner X without selecting the row', async () => {
-    const thread = createTestThread()
-    const onClear = vi.fn()
-    const onSelect = vi.fn()
+  // Why two labels (2026-11-12): clearing a finished card stands it by; clearing a running agent's
+  // move-to-inbox sends it back to Working.
+  it.each([
+    [null, 'Done with it: move to Standing by'],
+    ['working', 'Seen it: back to Working']
+  ] as const)(
+    'clears a seen Inbox card (agent %s) from its corner X without selecting the row',
+    async (currentAgentState, label) => {
+      const thread = createTestThread({ currentAgentState })
+      const onClear = vi.fn()
+      const onSelect = vi.fn()
 
-    await act(async () => {
-      root.render(<Harness thread={thread} onClear={onClear} onSelect={onSelect} />)
-    })
+      await act(async () => {
+        root.render(<Harness thread={thread} onClear={onClear} onSelect={onSelect} />)
+      })
 
-    const clearButton = container.querySelector<HTMLButtonElement>(
-      'button[aria-label="Done with it: move to Standing by"]'
-    )
-    expect(clearButton).not.toBeNull()
+      const clearButton = container.querySelector<HTMLButtonElement>(
+        `button[aria-label="${label}"]`
+      )
+      expect(clearButton).not.toBeNull()
 
-    act(() => clearButton?.click())
+      act(() => clearButton?.click())
 
-    expect(onClear).toHaveBeenCalledWith(thread)
-    expect(onSelect).not.toHaveBeenCalled()
-  })
+      expect(onClear).toHaveBeenCalledWith(thread)
+      expect(onSelect).not.toHaveBeenCalled()
+    }
+  )
 })
