@@ -38,15 +38,17 @@ export function NativeChatHookFeedbackLine({
   )
   const header = t('components.native-chat.notices.stopHookFeedback', HEADER)
   return (
-    <div data-native-chat-hook-feedback className="min-w-0 text-sm">
+    <div data-native-chat-hook-feedback className="min-w-0 text-xs leading-relaxed">
       <button
         type="button"
         aria-expanded={open}
         disabled={reason.length === 0}
         onClick={() => setOpen(!open)}
-        className="group/hook flex w-full min-w-0 items-center gap-2 rounded-md py-0.5 text-left text-chat-foreground-faint hover:text-chat-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-default"
+        className="group/hook flex min-h-6 w-full min-w-0 items-center gap-1.5 rounded-md py-0.5 text-left text-chat-foreground-faint hover:text-chat-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-default"
       >
-        <AlertTriangle aria-hidden className="size-4 shrink-0" />
+        <span className="flex size-4 shrink-0 items-center justify-center">
+          <AlertTriangle aria-hidden className="size-3.5" />
+        </span>
         <span className="shrink-0 font-medium">{header}</span>
         {!open && firstLine ? <span className="min-w-0 truncate">{firstLine}</span> : null}
         {reason ? (
@@ -54,20 +56,20 @@ export function NativeChatHookFeedbackLine({
             aria-hidden
             className={
               open
-                ? 'size-3.5 shrink-0 rotate-90 transition-transform motion-reduce:transition-none'
-                : 'size-3.5 shrink-0 opacity-0 transition-transform group-hover/hook:opacity-100 group-focus-visible/hook:opacity-100 motion-reduce:transition-none'
+                ? 'size-3 shrink-0 rotate-90 transition-transform motion-reduce:transition-none'
+                : 'size-3 shrink-0 opacity-0 transition-transform group-hover/hook:opacity-100 group-focus-visible/hook:opacity-100 motion-reduce:transition-none'
             }
           />
         ) : null}
       </button>
       <NativeChatExpandable open={open}>
-        <div className="ml-6 mt-1 border-l border-border pl-3 text-chat-foreground-faint">
+        <div className="ml-5.5 mt-1 border-l border-border pl-3 text-chat-foreground-faint">
           <NativeChatMarkdown
             rowKey={messageId === undefined ? undefined : `hook-feedback:${messageId}`}
             content={reason}
             variant="document"
             renderCodeBlock={NativeChatCodeBlock}
-            className="text-sm"
+            className="text-xs"
           />
         </div>
       </NativeChatExpandable>
