@@ -46,8 +46,8 @@ export function NativeChatHookFeedbackLine({
         onClick={() => setOpen(!open)}
         className="group/hook flex w-full min-w-0 items-center gap-2 rounded-md py-0.5 text-left text-chat-foreground-faint hover:text-chat-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-default"
       >
-        <AlertTriangle aria-hidden className="size-4 shrink-0 text-chat-warning" />
-        <span className="shrink-0 text-chat-warning">{header}</span>
+        <AlertTriangle aria-hidden className="size-4 shrink-0" />
+        <span className="shrink-0 font-medium">{header}</span>
         {!open && firstLine ? <span className="min-w-0 truncate">{firstLine}</span> : null}
         {reason ? (
           <ChevronRight
