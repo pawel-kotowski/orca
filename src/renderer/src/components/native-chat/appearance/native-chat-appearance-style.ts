@@ -185,8 +185,8 @@ function applyChatPaletteHues(style: NativeChatAppearanceStyle, theme: PaletteTh
   // Inline code's chocolate browns (native-chat-colors.css): fixed, not from the palette, but only
   // while the chat is in colour. Light brown words on a dark chip in a dark chat, the reverse in a
   // light one.
-  style['--chat-brown-surface'] = dark ? 'oklch(0.31 0.05 55)' : 'oklch(0.91 0.035 68)'
-  style['--chat-brown-border'] = dark ? 'oklch(0.4 0.055 55)' : 'oklch(0.8 0.05 62)'
+  style['--chat-brown-surface'] = dark ? 'oklch(0.24 0.022 55)' : 'oklch(0.92 0.02 68)'
+  style['--chat-brown-border'] = dark ? 'oklch(0.32 0.028 55)' : 'oklch(0.82 0.03 62)'
   style['--chat-brown-text'] = dark ? 'oklch(0.8 0.075 68)' : 'oklch(0.4 0.075 50)'
 }
 
