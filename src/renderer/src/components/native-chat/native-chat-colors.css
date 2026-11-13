@@ -19,11 +19,18 @@
     var(--chat-inline-code-surface)
   );
   --chat-tint-quote: color-mix(in oklab, var(--chat-hue-cyan) 60%, transparent);
-  /* Inline code is a dark, saturated brown (Paweł, 2026-11-13: "orange should have more contrast as
-     previously but just change color to dark brown"; desaturating or blending toward the text read
-     washed out): the orange's own chroma, a fifth darker, nudged toward brown. Headings stay the
-     palette's yellow ("yellow should be as previously, more vibrant"). */
-  --chat-tint-inline-code: oklch(from var(--chat-tint-orange) calc(l * 0.8) c calc(h + 4));
+  /* The palette's orange and yellow, a touch dimmer (Paweł, 2026-11-13, after trying blends and
+     browns: "go back to what we had previously and just dim yellow tiny bit and orange tiny bit but
+     make background on orange backticked stuff also darker"; the darker chip is dark mode only). */
+  --chat-tint-inline-code: oklch(from var(--chat-tint-orange) calc(l * 0.93) c h);
+  --chat-tint-yellow: oklch(from var(--chat-hue-yellow) calc(l * 0.94) c h);
+}
+.dark [data-native-chat-root] {
+  --chat-tint-code-surface: color-mix(
+    in oklab,
+    color-mix(in oklab, var(--chat-hue-yellow) 7%, var(--chat-inline-code-surface)) 65%,
+    black
+  );
 }
 
 /* Each step's icon by what it does: commands green, reading and searching blue, edits yellow,
@@ -57,7 +64,7 @@
   color: var(--chat-hue-green, inherit);
 }
 
-/* The answer's words: links blue, inline code dark brown on a warm chip, headings and list markers
+/* The answer's words: links blue, inline code orange on a warm chip, headings and list markers
    yellow, quotes ruled cyan. */
 [data-native-chat-root] .native-chat-markdown a {
   color: var(--chat-hue-blue, var(--chat-foreground-strong));
@@ -72,10 +79,10 @@
   color: var(--chat-tint-inline-code, var(--chat-code-foreground));
 }
 [data-native-chat-root] .native-chat-markdown :is(h1, h2, h3) {
-  color: var(--chat-hue-yellow, var(--chat-foreground-strong));
+  color: var(--chat-tint-yellow, var(--chat-foreground-strong));
 }
 [data-native-chat-root] .native-chat-markdown li::marker {
-  color: var(--chat-hue-yellow, inherit);
+  color: var(--chat-tint-yellow, inherit);
 }
 [data-native-chat-root] .native-chat-markdown blockquote {
   border-left-color: var(--chat-tint-quote, revert-layer);
