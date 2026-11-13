@@ -26,6 +26,8 @@ import { shouldInstallManagedHooks } from './configure-process'
 import { mainProcessState as state } from './main-process-state'
 import { initializeMainProcessObservers } from './main-process-observers'
 import { installFirstWorkRenameHookSubscription } from './branch-rename-hook'
+import { installIdleCompaction } from '../agent-hooks/idle-compaction/idle-compaction-install'
+import { agentHookServer } from '../agent-hooks/server/agent-hook-server'
 import { initializeMainProcessAccountServices } from './main-process-account-services'
 import {
   initializeMainProcessRuntime,
@@ -68,6 +70,7 @@ export async function initializeReadyRuntimeServices(): Promise<void> {
   initializeMainProcessAutomations()
   configureRuntimeServices(runtime)
   installFirstWorkRenameHookSubscription()
+  installIdleCompaction(agentHookServer, () => state.runtime)
   await initializeMainProcessPlugins(runtime)
   state.starNag = new StarNagService(store, state.stats!)
   state.starNag.start()

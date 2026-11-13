@@ -52,7 +52,8 @@ export function installOrcadFirstWorkRename(
 
 /**
  * What follows orcad's hook server once the runtime exists: status changes republish session.tabs
- * to paired clients, the runtime's agent status store attaches, and first-work naming arms.
+ * to paired clients, the runtime's agent status store attaches, first-work naming and idle
+ * compaction arm.
  */
 export async function attachOrcadAgentStatusFollowers(
   server: AgentHookServer,
@@ -64,7 +65,11 @@ export async function attachOrcadAgentStatusFollowers(
   const uninstallRepublish = installHookStatusSessionTabsRepublish(server, () => runtime)
   const detachStatusStore = runtime.attachAgentStatusStore(server)
   const uninstallRename = installOrcadFirstWorkRename(server, store, runtime)
+  const { installIdleCompaction } =
+    await import('../agent-hooks/idle-compaction/idle-compaction-install')
+  const uninstallIdleCompaction = installIdleCompaction(server, () => runtime)
   return () => {
+    uninstallIdleCompaction()
     uninstallRename()
     detachStatusStore()
     uninstallRepublish()
