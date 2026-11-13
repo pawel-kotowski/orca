@@ -26,4 +26,12 @@ describe('local chat appearance style', () => {
       ]
     ).toBe('#abc')
   })
+
+  it('sizes inline code as a share of the message text, so it grows with the text', () => {
+    const ratio = (settings: Parameters<typeof nativeChatAppearanceStyle>[0]) =>
+      nativeChatAppearanceStyle(settings)['--chat-inline-code-ratio']
+    expect(ratio(undefined)).toBe(`${12 / 14}em`)
+    expect(ratio({ nativeChatAppearance: { fontSize: 20 } })).toBe(`${12 / 14}em`)
+    expect(ratio({ nativeChatAppearance: { fontSize: 20, codeFontSize: 14 } })).toBe('1em')
+  })
 })

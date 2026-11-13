@@ -8,31 +8,18 @@
 [data-native-chat-root] {
   --chat-tint-orange: color-mix(in oklab, var(--chat-hue-red) 45%, var(--chat-hue-yellow));
   --chat-tint-link-line: color-mix(in oklab, var(--chat-hue-blue) 45%, transparent);
-  --chat-tint-code-border: color-mix(
-    in oklab,
-    var(--chat-hue-red) 20%,
-    var(--chat-inline-code-border)
-  );
-  --chat-tint-code-surface: color-mix(
-    in oklab,
-    var(--chat-hue-yellow) 7%,
-    var(--chat-inline-code-surface)
-  );
+  /* Inline code is chocolate: a dark brown chip with light brown words in a dark chat, the reverse
+     in a light one (Paweł, 2026-11-13, replacing the orange: "use dark brown and light brown
+     chocolate like but make it easily readable, so high contrast probably but not too high").
+     The browns are fixed (native-chat-appearance-style.ts picks the light or dark set from the
+     chat's background); mixing in 0% of a hue only keeps them off while the palette is off. */
+  --chat-tint-code-border: color-mix(in oklab, var(--chat-hue-red) 0%, var(--chat-brown-border));
+  --chat-tint-code-surface: color-mix(in oklab, var(--chat-hue-red) 0%, var(--chat-brown-surface));
+  --chat-tint-inline-code: color-mix(in oklab, var(--chat-hue-red) 0%, var(--chat-brown-text));
   --chat-tint-quote: color-mix(in oklab, var(--chat-hue-cyan) 60%, transparent);
-  /* The palette's orange and yellow, a touch dimmer (Paweł, 2026-11-13, after trying blends and
-     browns: "go back to what we had previously and just dim yellow tiny bit and orange tiny bit but
-     make background on orange backticked stuff also darker"; the darker chip is dark mode only). */
-  --chat-tint-inline-code: oklch(from var(--chat-tint-orange) calc(l * 0.93) c h);
+  /* The palette's yellow, a touch dimmer (Paweł, 2026-11-13). */
   --chat-tint-yellow: oklch(from var(--chat-hue-yellow) calc(l * 0.94) c h);
 }
-.dark [data-native-chat-root] {
-  --chat-tint-code-surface: color-mix(
-    in oklab,
-    color-mix(in oklab, var(--chat-hue-yellow) 7%, var(--chat-inline-code-surface)) 65%,
-    black
-  );
-}
-
 /* Each step's icon by what it does: commands green, reading and searching blue, edits yellow,
    the browser cyan, integrations magenta, other agents and task lists orange. */
 [data-native-chat-root] [data-native-chat-glyph='square-terminal'] {
@@ -64,7 +51,7 @@
   color: var(--chat-hue-green, inherit);
 }
 
-/* The answer's words: links blue, inline code orange on a warm chip, headings and list markers
+/* The answer's words: links blue, inline code chocolate brown, headings and list markers
    yellow, quotes ruled cyan. */
 [data-native-chat-root] .native-chat-markdown a {
   color: var(--chat-hue-blue, var(--chat-foreground-strong));

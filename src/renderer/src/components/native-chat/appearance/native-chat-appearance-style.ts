@@ -4,6 +4,7 @@ import { useMemo } from 'react'
 import type { CSSProperties } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import {
+  DEFAULT_NATIVE_CHAT_FONT_SIZE,
   nativeChatColors,
   resolveNativeChatAppearanceSettings
 } from '../../../../../shared/native-chat/native-chat-appearance-settings'
@@ -153,6 +154,10 @@ function applyTerminalChatColors(
     '--chat-inline-code-mix': light ? '4%' : '6%',
     '--chat-inline-code-base': light ? 'var(--chat-canvas)' : 'transparent',
     '--chat-inline-code-border-mix': light ? '9%' : '8%',
+    // Inline code's chocolate browns (native-chat-colors.css), light words on a dark chip in a dark chat.
+    '--chat-brown-surface': light ? 'oklch(0.91 0.035 68)' : 'oklch(0.31 0.05 55)',
+    '--chat-brown-border': light ? 'oklch(0.8 0.05 62)' : 'oklch(0.4 0.055 55)',
+    '--chat-brown-text': light ? 'oklch(0.4 0.075 50)' : 'oklch(0.8 0.075 68)',
     '--chat-composer-mix': light ? '0%' : '4%',
     '--chat-composer-base': light ? 'var(--chat-canvas)' : 'transparent',
     '--chat-composer-border-mix': light ? '11%' : '9%'
@@ -210,7 +215,11 @@ export function nativeChatAppearanceStyle(
     '--chat-ui-font-size': `${uiFontSize}px`,
     '--chat-code-font-size': `${codeFontSize}px`,
     '--chat-content-max-width': width === 'full' ? 'none' : width === 'wide' ? '60rem' : '46rem',
-    '--chat-inline-code-ratio': `${codeFontSize / fontSize}em`,
+    // Inline code sits in a sentence, so it scales with the message text: at the default sizes it is
+    // 12/14 of the words around it, and the code size setting moves it from there. Dividing by the
+    // message size instead pinned it to the code size (Paweł, 2026-11-13: "backticked doesnt get
+    // bigger with font size change").
+    '--chat-inline-code-ratio': `${matching ? 1 : codeFontSize / DEFAULT_NATIVE_CHAT_FONT_SIZE}em`,
     '--chat-estimated-line-height': (22 * fontSize) / 14,
     '--chat-estimated-chars-per-line': Math.max(
       1,
