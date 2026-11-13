@@ -1,7 +1,8 @@
 import { useLayoutEffect, useRef, type ReactNode } from 'react'
 
 /**
- * A finished turn's answer in a quiet frame. A wide table, code block or diagram may grow past the
+ * A finished turn's answer in a quiet frame, padded the same on every side (py-3.5 plus the first
+ * and last lines' half-leading reads as px-5). A wide table, code block or diagram may grow past the
  * prose column (native-chat-markdown.css); the frame then widens with it, and keeps its text at the
  * column's width, so nothing crosses the frame's border.
  */
@@ -32,7 +33,7 @@ export function NativeChatAnswerFrame({
     <div
       ref={ref}
       data-native-chat-turn-answer
-      className="native-chat-answer-frame rounded-xl border border-chat-code-border bg-chat-code-surface/40 py-3 pl-6 pr-5"
+      className="native-chat-answer-frame rounded-xl border border-chat-code-border bg-chat-code-surface/40 px-5 py-3.5"
     >
       {children}
     </div>

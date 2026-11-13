@@ -141,8 +141,22 @@
   .native-chat-markdown-wide-blocks
   > :not(:is(div:has(> table), [data-native-chat-code-block], div:has(> .mermaid-block))) {
   contain: inline-size;
-  max-width: calc(var(--native-chat-answer-column, 100%) - 2.75rem - 2px);
+  max-width: calc(var(--native-chat-answer-column, 100%) - 2.5rem - 2px);
   margin-inline: auto;
+}
+
+/* The auto margins above also clear a list's own indent (ml-5), which left a framed answer's
+   numbers and bullets hanging outside its text, against the border. The indent comes back as
+   padding, so the list's text sits where it does unframed. A block that opens or closes the
+   frame drops its outer margin, so the frame's padding alone sets the space at top and bottom. */
+.native-chat-answer-frame .native-chat-markdown-wide-blocks > :is(ol, ul) {
+  padding-inline-start: 1.25rem;
+}
+.native-chat-answer-frame .native-chat-markdown > :first-child {
+  margin-block-start: 0;
+}
+.native-chat-answer-frame .native-chat-markdown > :last-child {
+  margin-block-end: 0;
 }
 
 .native-chat-answer-frame
