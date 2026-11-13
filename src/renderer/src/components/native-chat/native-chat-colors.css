@@ -10,28 +10,23 @@
   --chat-tint-link-line: color-mix(in oklab, var(--chat-hue-blue) 45%, transparent);
   --chat-tint-code-border: color-mix(
     in oklab,
-    var(--chat-hue-red) 12%,
+    var(--chat-hue-red) 20%,
     var(--chat-inline-code-border)
   );
   --chat-tint-code-surface: color-mix(
     in oklab,
-    var(--chat-hue-yellow) 5%,
+    var(--chat-hue-yellow) 7%,
     var(--chat-inline-code-surface)
   );
   --chat-tint-quote: color-mix(in oklab, var(--chat-hue-cyan) 60%, transparent);
-  /* The answer's words take calmer tints than the icons (Paweł, 2026-11-13: inline code "a bit
-     calmer ... and a bit more readable ... not drastically, keep the vibe, same for yellows"):
-     inline code leans amber and a quarter toward the text colour, headings and markers too. */
-  --chat-tint-inline-code: color-mix(
-    in oklab,
-    color-mix(in oklab, var(--chat-hue-red) 38%, var(--chat-hue-yellow)) 72%,
-    var(--chat-foreground-strong)
+  /* The answer's words keep the palette's strength but lean brown (Paweł, 2026-11-13: "bring back
+     the contrast but change orange to more brownish"): inline code a caramel, headings and list
+     markers an earthier gold. Same lightness, less chroma; blending toward the text colour read as
+     washed out. */
+  --chat-tint-inline-code: oklch(
+    from var(--chat-tint-orange) calc(l * 0.95) calc(c * 0.6) calc(h + 4)
   );
-  --chat-tint-heading: color-mix(
-    in oklab,
-    var(--chat-hue-yellow) 72%,
-    var(--chat-foreground-strong)
-  );
+  --chat-tint-heading: oklch(from var(--chat-hue-yellow) calc(l * 0.95) calc(c * 0.75) h);
 }
 
 /* Each step's icon by what it does: commands green, reading and searching blue, edits yellow,
@@ -65,8 +60,8 @@
   color: var(--chat-hue-green, inherit);
 }
 
-/* The answer's words: links blue, inline code amber on a warm chip, headings and list markers
-   soft yellow, quotes ruled cyan. */
+/* The answer's words: links blue, inline code caramel on a warm chip, headings and list markers
+   earthy gold, quotes ruled cyan. */
 [data-native-chat-root] .native-chat-markdown a {
   color: var(--chat-hue-blue, var(--chat-foreground-strong));
   text-decoration-color: var(
