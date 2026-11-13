@@ -11,11 +11,11 @@
   /* Inline code is chocolate: a dark brown chip with light brown words in a dark chat, the reverse
      in a light one (Paweł, 2026-11-13, replacing the orange: "use dark brown and light brown
      chocolate like but make it easily readable, so high contrast probably but not too high").
-     The browns are fixed (native-chat-appearance-style.ts picks the light or dark set from the
-     chat's background); mixing in 0% of a hue only keeps them off while the palette is off. */
-  --chat-tint-code-border: color-mix(in oklab, var(--chat-hue-red) 0%, var(--chat-brown-border));
-  --chat-tint-code-surface: color-mix(in oklab, var(--chat-hue-red) 0%, var(--chat-brown-surface));
-  --chat-tint-inline-code: color-mix(in oklab, var(--chat-hue-red) 0%, var(--chat-brown-text));
+     The browns are fixed; native-chat-appearance-style.ts sets them, light or dark by the
+     terminal theme's background, only while the chat takes colour. */
+  --chat-tint-code-border: var(--chat-brown-border);
+  --chat-tint-code-surface: var(--chat-brown-surface);
+  --chat-tint-inline-code: var(--chat-brown-text);
   --chat-tint-quote: color-mix(in oklab, var(--chat-hue-cyan) 60%, transparent);
   /* The palette's yellow, a touch dimmer (Paweł, 2026-11-13). */
   --chat-tint-yellow: oklch(from var(--chat-hue-yellow) calc(l * 0.94) c h);

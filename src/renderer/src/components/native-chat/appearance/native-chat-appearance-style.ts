@@ -154,10 +154,6 @@ function applyTerminalChatColors(
     '--chat-inline-code-mix': light ? '4%' : '6%',
     '--chat-inline-code-base': light ? 'var(--chat-canvas)' : 'transparent',
     '--chat-inline-code-border-mix': light ? '9%' : '8%',
-    // Inline code's chocolate browns (native-chat-colors.css), light words on a dark chip in a dark chat.
-    '--chat-brown-surface': light ? 'oklch(0.91 0.035 68)' : 'oklch(0.31 0.05 55)',
-    '--chat-brown-border': light ? 'oklch(0.8 0.05 62)' : 'oklch(0.4 0.055 55)',
-    '--chat-brown-text': light ? 'oklch(0.4 0.075 50)' : 'oklch(0.8 0.075 68)',
     '--chat-composer-mix': light ? '0%' : '4%',
     '--chat-composer-base': light ? 'var(--chat-canvas)' : 'transparent',
     '--chat-composer-border-mix': light ? '11%' : '9%'
@@ -186,6 +182,12 @@ function applyChatPaletteHues(style: NativeChatAppearanceStyle, theme: PaletteTh
       style[`--chat-hue-${hue}`] = value
     }
   }
+  // Inline code's chocolate browns (native-chat-colors.css): fixed, not from the palette, but only
+  // while the chat is in colour. Light brown words on a dark chip in a dark chat, the reverse in a
+  // light one.
+  style['--chat-brown-surface'] = dark ? 'oklch(0.31 0.05 55)' : 'oklch(0.91 0.035 68)'
+  style['--chat-brown-border'] = dark ? 'oklch(0.4 0.055 55)' : 'oklch(0.8 0.05 62)'
+  style['--chat-brown-text'] = dark ? 'oklch(0.8 0.075 68)' : 'oklch(0.4 0.075 50)'
 }
 
 export function nativeChatAppearanceStyle(

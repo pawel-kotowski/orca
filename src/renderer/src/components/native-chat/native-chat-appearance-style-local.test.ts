@@ -34,4 +34,12 @@ describe('local chat appearance style', () => {
     expect(ratio({ nativeChatAppearance: { fontSize: 20 } })).toBe(`${12 / 14}em`)
     expect(ratio({ nativeChatAppearance: { fontSize: 20, codeFontSize: 14 } })).toBe('1em')
   })
+
+  it('gives inline code its browns whenever the chat is in colour, not only when matching', () => {
+    const style = nativeChatAppearanceStyle({ nativeChatAppearance: {} })
+    expect(style['--chat-brown-text']).toMatch(/^oklch\(/)
+    expect(
+      nativeChatAppearanceStyle({ nativeChatAppearance: { chatColors: false } })
+    ).not.toHaveProperty('--chat-brown-text')
+  })
 })
