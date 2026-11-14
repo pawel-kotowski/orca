@@ -26,7 +26,10 @@ import {
   claudeTranscriptSessionValues,
   readClaudeSessionOptionsFromTerminalScreen
 } from './claude-terminal-session-options'
-import { claudeSessionValuesToReport } from './claude-terminal-model-identity'
+import {
+  claudeSessionValuesToReport,
+  claudeVersionedModelId
+} from './claude-terminal-model-identity'
 import { useClaudeTerminalSessionStart } from './use-claude-terminal-session-start'
 
 import { enqueueSessionOptionSettingsWrite } from '../native-chat-session-option-settings-write'
@@ -91,13 +94,17 @@ export function useNativeChatSessionOptions(args: {
     const discoveredModels = discoveryContext
       ? readNativeChatEnrichedModels(agent, discoveryContext.hostKey)
       : null
-    const reportedValues =
+    const screenValues =
       agent === 'claude'
         ? readClaudeSessionOptionsFromTerminalScreen(
             readTerminalScreen?.(),
             discoveredModels ?? undefined
           )
         : null
+    const reportedValues =
+      typeof screenValues?.model === 'string'
+        ? { ...screenValues, model: claudeVersionedModelId(screenValues.model, discoveredModels) }
+        : screenValues
     return createNativeChatPtySessionOptions({
       agent,
       scopeKey,

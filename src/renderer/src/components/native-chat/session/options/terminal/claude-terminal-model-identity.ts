@@ -47,7 +47,13 @@ export function claudeSessionValuesToReport(args: {
 }): Record<string, SessionOptionValue> | null {
   const { snapshot, models, hookEffort, start } = args
   const shownModel = shown(snapshot, 'model')
-  if (!args.found && shownModel && shown(snapshot, 'effort') !== null) {
+  // Why mapped: a cached or seed family row (`opus`) still has to become the versioned row.
+  if (
+    !args.found &&
+    shownModel &&
+    claudeVersionedModelId(shownModel, models) === shownModel &&
+    shown(snapshot, 'effort') !== null
+  ) {
     return null
   }
   const found =

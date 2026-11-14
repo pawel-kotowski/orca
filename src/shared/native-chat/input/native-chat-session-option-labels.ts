@@ -153,6 +153,15 @@ export function nativeChatSessionOptionDisabledReason(
   }
 }
 
+/**
+ * A Claude model on the pill reads as Claude Code prints it ("Opus 5.5"): the logo already
+ * names the maker, and the listing's "Claude Opus 5.5" and "Opus 5.5 alias" are the same model
+ * (Paweł, 2026-11-14: three different pills for one Opus 5.5).
+ */
+function plainClaudePillLabel(label: string): string {
+  return label.replace(/^Claude\s+(?=\S)/u, '').replace(/\s+alias$/iu, '')
+}
+
 export function nativeChatModelPillLabel(
   descriptor: SessionOptionDescriptor,
   say: NativeChatSessionOptionSay
@@ -161,12 +170,10 @@ export function nativeChatModelPillLabel(
   const choice = descriptor.valueSource === 'unknown' ? null : selectedNativeChatChoice(descriptor)
   // Why: the listing marks a family row (`opus`) "… alias" to tell it from the versioned row in
   // the list; on the pill that word names nothing (Paweł, 2026-11-14: "what alias?").
-  const selected = choice
-    ? nativeChatSessionChoiceLabel(choice, say).replace(/\s+alias$/iu, '')
-    : say('model')
+  const selected = choice ? nativeChatSessionChoiceLabel(choice, say) : say('model')
   const reported = descriptor.reportedModel
   if (!reported || (choice && reported === choice.value.replace(/\[[^\]]*\]$/u, ''))) {
-    return selected
+    return plainClaudePillLabel(selected)
   }
   const reportedChoice =
     descriptor.kind.type === 'select'
@@ -175,8 +182,7 @@ export function nativeChatModelPillLabel(
   const label = reportedChoice
     ? nativeChatSessionChoiceLabel(reportedChoice, say)
     : labelFromModelId(reported)
-  const actual = selected.startsWith('Claude ') ? label : label.replace(/^Claude /, '')
-  return actual.replace(/\s+alias$/iu, '')
+  return plainClaudePillLabel(label)
 }
 
 export function nativeChatOptionsPillTitle(

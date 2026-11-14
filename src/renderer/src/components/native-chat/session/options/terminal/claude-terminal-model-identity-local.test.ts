@@ -158,3 +158,52 @@ describe('a Claude terminal chat always names its model and effort (local)', () 
     ).toBe('Opus 5.5')
   })
 })
+
+describe('the model picker lists each Claude model once (local)', () => {
+  it('drops a family row whose versioned row is listed, and never says alias', async () => {
+    const { nativeChatPickerModels } =
+      await import('../../../../../../../shared/native-chat/input/native-chat-model-choices')
+    expect(
+      nativeChatPickerModels(LISTED, 'claude-opus-5-5').map(({ id, label }) => [id, label])
+    ).toEqual([
+      ['claude-opus-5-5', 'Claude Opus 5.5'],
+      ['claude-fable-5-2', 'Claude Fable 5.2']
+    ])
+    // A chat still on the family row keeps it, named without "alias".
+    expect(nativeChatPickerModels(LISTED, 'opus').map(({ label }) => label)).toContain('Opus 5.5')
+    // A family row with no versioned row listed (structured chats) stays.
+    expect(nativeChatPickerModels([LISTED[2]!], null)).toEqual([
+      { ...LISTED[2]!, label: 'Opus 5.5' }
+    ])
+  })
+
+  it('a cached family row becomes the versioned row even with the frame gone', () => {
+    expect(
+      claudeSessionValuesToReport({
+        found: null,
+        snapshot: [
+          modelDescriptor('opus', 'reported'),
+          {
+            ...EFFORT,
+            kind: { ...EFFORT.kind, currentValue: 'high' },
+            valueSource: 'reported',
+            transport: 'catalog',
+            settable: true
+          } as SessionOptionDescriptor
+        ],
+        models: LISTED,
+        hookEffort: null,
+        start: START
+      })
+    ).toEqual({ model: 'claude-opus-5-5', effort: 'high' })
+  })
+
+  it('shows a Claude model as Claude Code names it', () => {
+    expect(
+      nativeChatModelPillLabel(
+        modelDescriptor('claude-opus-5-5', 'reported'),
+        sayNativeChatSessionOptionEnglish
+      )
+    ).toBe('Opus 5.5')
+  })
+})
