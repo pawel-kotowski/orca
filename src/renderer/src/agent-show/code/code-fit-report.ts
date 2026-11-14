@@ -3,6 +3,9 @@ export function describeBackgroundTab(tabLabel: string): string {
   return `the window is too narrow for code beside the chat, so "${tabLabel}" opened as a background tab in the chat's pane; tell the user to switch to that tab (or widen the window), the chat stays in front`
 }
 
+/** How a result says a pane was reused for lack of room; a tour reads it as a step problem. */
+export const REUSED_PANE_DETAIL = 'no room for another pane'
+
 export function describeReusedPane(replacedLabel?: string, linesPerPane?: number): string {
   const room =
     linesPerPane === undefined
@@ -11,5 +14,5 @@ export function describeReusedPane(replacedLabel?: string, linesPerPane?: number
   const replaced = replacedLabel
     ? `the pane showing ${replacedLabel}, which stays there as a background tab and is no longer on screen`
     : 'the pane you used least recently'
-  return `no room for another pane with every range readable${room}, so it replaced ${replaced}`
+  return `${REUSED_PANE_DETAIL} with every range readable${room}, so it replaced ${replaced}`
 }

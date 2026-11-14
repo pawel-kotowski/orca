@@ -13,8 +13,13 @@ import {
   type PlayingTour
 } from './tour-player'
 
-function tourResult(tour: PlayingTour, detail?: string): AgentShowResult {
+function tourResult(tour: PlayingTour, detail?: string, everyStep = false): AgentShowResult {
   const outcome = tour.outcomes[tour.index]
+  const problems = everyStep
+    ? tour.outcomes.flatMap((stepOutcome, index) =>
+        (stepOutcome?.problems ?? []).map((problem) => `step ${index + 1}: ${problem}`)
+      )
+    : (outcome?.problems ?? [])
   return {
     ok: true,
     visible: (outcome?.visible ?? true) && tourStripRect(tour) !== null,
@@ -26,7 +31,7 @@ function tourResult(tour: PlayingTour, detail?: string): AgentShowResult {
       steps: tour.steps.length,
       stepTitle: tour.steps[tour.index]!.title,
       playing: tour.playing,
-      problems: outcome?.problems ?? []
+      problems
     }
   }
 }
@@ -47,9 +52,10 @@ export const showTour: AgentShowHandler<'tour'> = async (request, context) => {
     const tour = await startTour(context, {
       ...request.tour,
       step: (request.step ?? 1) - 1,
-      play: request.play
+      play: request.play,
+      check: request.check
     })
-    return tourResult(tour)
+    return tourResult(tour, undefined, request.check)
   }
   const tour = tourOf(context)
   if (!tour) {

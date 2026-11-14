@@ -153,7 +153,12 @@ export const SHOW_TOUR_HANDLERS: Record<string, CommandHandler> = {
       )
     }
     if ((CONTROLS as readonly string[]).includes(target)) {
-      await sendTour(ctx, worktree, { kind: 'tour', action: target as Control, play: false })
+      await sendTour(ctx, worktree, {
+        kind: 'tour',
+        action: target as Control,
+        play: false,
+        check: false
+      })
       return
     }
     if (target === 'step') {
@@ -161,7 +166,8 @@ export const SHOW_TOUR_HANDLERS: Record<string, CommandHandler> = {
         kind: 'tour',
         action: 'step',
         step: stepFlag(ctx) ?? 1,
-        play: false
+        play: false,
+        check: false
       })
       return
     }
@@ -195,7 +201,8 @@ export const SHOW_TOUR_HANDLERS: Record<string, CommandHandler> = {
       action: 'start',
       tour: { title: tour.title || target, file, steps },
       step: stepFlag(ctx) ?? 1,
-      play: ctx.flags.get('play') === true
+      play: ctx.flags.get('play') === true,
+      check: ctx.flags.get('check') === true
     })
   }
 }

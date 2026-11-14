@@ -6,6 +6,7 @@ import { clearCodeMarks, showCode, showFile } from '../code/show-code'
 import { clearTreeMarks, showTree } from '../tree/show-tree'
 import { clearUiMarks, showUi } from '../ui/show-ui'
 import { signalAgentShowChange } from '../persistence/agent-show-change-signal'
+import { REUSED_PANE_DETAIL } from '../code/code-fit-report'
 import {
   stepEntryClears,
   stepHoldMs,
@@ -84,6 +85,9 @@ function describeProblem(result: AgentShowResult): string | null {
   if (!result.ok) {
     return `${result.code}: ${result.message}`
   }
+  if (result.detail?.includes(REUSED_PANE_DETAIL)) {
+    return result.detail.slice(result.detail.indexOf(REUSED_PANE_DETAIL))
+  }
   if (result.fit && result.fit.linesVisible < result.fit.rangeLines) {
     return `only ${result.fit.linesVisible} of ${result.fit.rangeLines} lines fit`
   }
@@ -158,7 +162,15 @@ export function goToStep(
 
 export async function startTour(
   context: AgentShowContext,
-  input: { title: string; file: string; steps: TourStep[]; step: number; play: boolean }
+  input: {
+    title: string
+    file: string
+    steps: TourStep[]
+    step: number
+    play: boolean
+    /** Stage every step once first, so each one's problems are known before the user plays it. */
+    check?: boolean
+  }
 ): Promise<PlayingTour> {
   stopTimer(context)
   const tour: PlayingTour = {
@@ -172,6 +184,13 @@ export async function startTour(
     outcomes: input.steps.map(() => null)
   }
   tours.set(tourKey(context), tour)
+  if (input.check) {
+    tour.playing = false
+    for (let index = 0; index < input.steps.length; index += 1) {
+      await goToStep(context, index)
+    }
+    tour.playing = input.play
+  }
   await goToStep(context, Math.min(Math.max(0, input.step), input.steps.length - 1))
   return tour
 }

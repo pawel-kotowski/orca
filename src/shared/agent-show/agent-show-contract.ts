@@ -96,6 +96,8 @@ export const AgentShowTourRequest = z.object({
   /** 1-based; the step to start on or move to. */
   step: z.number().int().positive().optional(),
   play: z.boolean().default(false),
+  /** start: stage every step once and report each one's problems, then go to `step`. */
+  check: z.boolean().default(false),
   tour: z
     .object({
       title: z.string().min(1).max(200),

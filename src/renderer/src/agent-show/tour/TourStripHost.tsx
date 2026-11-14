@@ -79,7 +79,15 @@ function markChatsWithTours(tours: PlayingTour[]): void {
 
 const TRANSCRIPT_ROOM_RULE = `[data-orca-tour-room] [data-native-chat-scroll] { padding-bottom: ${STRIP_PX + 2 * GAP_PX}px !important; }`
 
-type PlacedStrip = { key: string; tour: PlayingTour; rect: StripRect }
+/** A strip with the tour's step and play state copied out, so a step change is a prop change. */
+type PlacedStrip = {
+  key: string
+  tour: PlayingTour
+  rect: StripRect
+  index: number
+  playing: boolean
+  advanceAt: number | null
+}
 
 const sameRect = (a: StripRect, b: StripRect): boolean =>
   a.left === b.left && a.top === b.top && a.width === b.width && a.height === b.height
@@ -90,7 +98,9 @@ function placeStrips(previous: PlacedStrip[]): PlacedStrip[] {
   const next = tours.flatMap((tour) => {
     const rect = tourStripRect(tour)
     const key = `${tour.context.worktreeId}:${tour.context.ownerTabId}`
-    return rect ? [{ key, tour, rect }] : []
+    return rect
+      ? [{ key, tour, rect, index: tour.index, playing: tour.playing, advanceAt: tour.advanceAt }]
+      : []
   })
   const unchanged =
     next.length === previous.length &&
@@ -138,7 +148,14 @@ function TourStrips(): React.JSX.Element {
     <>
       <style>{TRANSCRIPT_ROOM_RULE}</style>
       {strips.map((strip) => (
-        <TourCaptionStrip key={strip.key} tour={strip.tour} rect={strip.rect} />
+        <TourCaptionStrip
+          key={strip.key}
+          tour={strip.tour}
+          index={strip.index}
+          playing={strip.playing}
+          advanceAt={strip.advanceAt}
+          rect={strip.rect}
+        />
       ))}
     </>
   )
