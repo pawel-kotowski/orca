@@ -1,11 +1,19 @@
-import { Presentation, X } from 'lucide-react'
+import { GripVertical, Presentation, X } from 'lucide-react'
 import { useAppStore } from '@/store/index'
 import { findWorktreeById } from '@/store/github/refresh/worktree-refresh'
 import { revealWorkspaceSurface } from '@/lib/workspace/activation/workspace-surface-reveal'
 import { endTour, type PlayingTour } from './tour-player'
+import type { DockDragHandle } from './use-tour-dock-drag'
 
 /** A tour whose workspace is not on screen: one click goes back to it, where its strip waits. */
-export function TourAwayPill({ tour }: { tour: PlayingTour }): React.JSX.Element {
+export function TourAwayPill({
+  tour,
+  handle
+}: {
+  tour: PlayingTour
+  /** Drags the dock by the pill's grip. */
+  handle: DockDragHandle
+}): React.JSX.Element {
   const workspace = useAppStore(
     (state) => findWorktreeById(state, tour.context.worktreeId)?.displayName ?? 'its workspace'
   )
@@ -13,8 +21,15 @@ export function TourAwayPill({ tour }: { tour: PlayingTour }): React.JSX.Element
   return (
     <div
       data-orca-tour-pill=""
-      className="pointer-events-auto flex h-[22px] max-w-full items-center gap-1 rounded-full border border-border bg-card pl-2 pr-0.5 text-xs text-muted-foreground shadow-sm"
+      className="pointer-events-auto flex h-[22px] max-w-full items-center gap-1 rounded-full border border-border bg-card pl-0.5 pr-0.5 text-xs text-muted-foreground shadow-sm"
     >
+      <span
+        {...handle}
+        title="Drag to move; double-click to put it back"
+        className="flex h-full shrink-0 cursor-grab select-none items-center active:cursor-grabbing"
+      >
+        <GripVertical className="size-3 text-muted-foreground/70" />
+      </span>
       <button
         type="button"
         title={`Back to ${workspace}`}
