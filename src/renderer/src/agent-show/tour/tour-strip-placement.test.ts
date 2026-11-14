@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { estimateStripPx, stripAndPills, tourBandPx, tourStripSize } from './tour-strip-placement'
+import { stripAndPills, tourStripSize } from './tour-strip-placement'
 import { predictionMiss } from './tour-step-problems'
 
 describe('tourStripSize', () => {
@@ -10,25 +10,6 @@ describe('tourStripSize', () => {
 
   it('narrows on a small window, keeping 16 px each side', () => {
     expect(tourStripSize({ width: 500, height: 400 })).toEqual({ width: 468, maxHeight: 120 })
-  })
-})
-
-describe('tourBandPx', () => {
-  it('reserves the strip plus its gap above and below, and nothing without a strip', () => {
-    expect(tourBandPx(80)).toBe(96)
-    expect(tourBandPx(0)).toBe(0)
-  })
-})
-
-describe('estimateStripPx', () => {
-  it('sizes for the longest caption: 100 chars wrap to two lines in a 600 px strip', () => {
-    // 22 chrome + 1 title line (18) + 2 caption lines (33).
-    const steps = [
-      { title: 'Short', caption: 'x'.repeat(100) },
-      { title: 'Other', caption: 'y' }
-    ]
-    expect(estimateStripPx(steps, { width: 600, maxHeight: 240 })).toBe(73)
-    expect(estimateStripPx(steps, { width: 600, maxHeight: 60 })).toBe(60)
   })
 })
 

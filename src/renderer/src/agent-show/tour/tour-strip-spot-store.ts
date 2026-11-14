@@ -20,11 +20,6 @@ export function tourStripSpot(): TourStripSpot | null {
   return current
 }
 
-/** True once the user moved the strip: it then reserves no room and the step may sit under it. */
-export function tourStripMoved(): boolean {
-  return tourStripSpot() !== null
-}
-
 /** Stores a dragged spot, or null to put the strip back at its default spot. */
 export function setTourStripSpot(spot: TourStripSpot | null): void {
   loaded = true

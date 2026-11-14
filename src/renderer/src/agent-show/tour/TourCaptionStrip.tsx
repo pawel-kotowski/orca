@@ -40,7 +40,7 @@ function CaptionText({ text }: { text: string }): React.JSX.Element {
 
 /**
  * Every step's text in one grid cell, only the current one visible: the cell is as tall as the
- * longest, so the strip keeps one height and the layout above it never moves between steps.
+ * longest, so the strip keeps one height and its controls never jump between steps.
  */
 function StackedStepText({
   texts,
@@ -132,7 +132,6 @@ export function TourCaptionStrip({
   warning,
   size,
   version,
-  stripRef,
   handle
 }: {
   tour: PlayingTour
@@ -145,8 +144,6 @@ export function TourCaptionStrip({
   size: StripSize
   /** Changes on every tour change, so a memoized strip still redraws. */
   version: number
-  /** The host measures the strip to keep the band under it as tall. */
-  stripRef: (element: HTMLDivElement | null) => void
   /** Drags the dock by the title row. */
   handle: DockDragHandle
 }): React.JSX.Element {
@@ -166,7 +163,6 @@ export function TourCaptionStrip({
   }
   return (
     <div
-      ref={stripRef}
       data-orca-tour-strip=""
       data-tour-version={version}
       tabIndex={0}
@@ -231,7 +227,6 @@ export function TourCaptionStrip({
           <X className="size-3.5" />
         </StripButton>
       </div>
-      {/* Why no clamp: the whole caption is the step; the band under the app makes room for it. */}
       <div className="scrollbar-sleek min-h-0 overflow-y-auto text-xs leading-snug text-muted-foreground">
         <StackedStepText texts={tour.steps.map((s) => s.caption)} index={index} className="" />
       </div>

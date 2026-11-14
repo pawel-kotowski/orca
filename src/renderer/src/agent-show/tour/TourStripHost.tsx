@@ -1,11 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-  useSyncExternalStore
-} from 'react'
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { createRoot } from 'react-dom/client'
 import { TranslationScopeProvider } from '@/i18n/translation-scope-provider'
 import { useAppStore } from '@/store/index'
@@ -13,11 +6,10 @@ import type { AppState } from '@/store/types'
 import { worktreeDrawn, windowShown } from '../window-drawn'
 import { TourCaptionStrip } from './TourCaptionStrip'
 import { TourAwayPill } from './TourAwayPill'
-import { stripAndPills, tourBandPx, tourStripSize } from './tour-strip-placement'
+import { stripAndPills, tourStripSize } from './tour-strip-placement'
 import { dockBox } from './tour-strip-spot'
 import { subscribeTourStripSpot, tourStripSpot } from './tour-strip-spot-store'
 import { useTourDockDrag } from './use-tour-dock-drag'
-import { setTourBand, TOUR_BAND_RULE } from './tour-band'
 import {
   pauseAllTours,
   playingTours,
@@ -74,12 +66,11 @@ function useDrawnSize(): [(element: HTMLElement | null) => void, Size] {
   return [ref, size]
 }
 
-function TourStrips(): React.JSX.Element {
+function TourStrips(): React.JSX.Element | null {
   const version = useSyncExternalStore(subscribeTours, toursVersion)
   const spot = useSyncExternalStore(subscribeTourStripSpot, tourStripSpot)
   const drawn = useAppStore(drawnKey)
   const size = useWindowSize()
-  const [stripRef, strip] = useDrawnSize()
   const [dockRef, dock] = useDrawnSize()
   useEffect(() => {
     // Why: a click into the code or a key in the chat means the user took over from auto-play.
@@ -96,9 +87,6 @@ function TourStrips(): React.JSX.Element {
       window.removeEventListener('keydown', takeOver, true)
     }
   }, [])
-  // Why: only the default spot keeps the app clear under the strip; a moved strip is the user's call.
-  useLayoutEffect(() => setTourBand(spot ? 0 : tourBandPx(strip.height)), [spot, strip.height])
-  useEffect(() => () => setTourBand(0), [])
   const tours = playingTours()
   const { strip: stripTour, pills: away } = stripAndPills(
     tours,
@@ -107,41 +95,38 @@ function TourStrips(): React.JSX.Element {
   const box = dockBox(spot, dock, size, stripTour !== undefined)
   const { dragBox, handle } = useTourDockDrag(box, dock, size)
   const at = dragBox ?? box
+  if (!stripTour && away.length === 0) {
+    return null
+  }
   return (
-    <>
-      <style>{TOUR_BAND_RULE}</style>
-      {stripTour || away.length > 0 ? (
-        <div
-          ref={dockRef}
-          data-orca-tour-dock=""
-          className={`pointer-events-none fixed ${DOCK_LAYER} flex max-w-[calc(100vw-8px)] flex-col items-center gap-2`}
-          // Why no-drag: Electron's titlebar drag ignores z-index, so a dock moved up there must opt out.
-          style={{ left: at.left, top: at.top, WebkitAppRegion: 'no-drag' } as React.CSSProperties}
-        >
-          {away.map((tour) => (
-            <TourAwayPill
-              key={`${tour.context.worktreeId}:${tour.context.ownerTabId}`}
-              tour={tour}
-              handle={handle}
-            />
-          ))}
-          {stripTour ? (
-            <TourCaptionStrip
-              key={`${stripTour.context.worktreeId}:${stripTour.context.ownerTabId}`}
-              tour={stripTour}
-              index={stripTour.index}
-              playing={stripTour.playing}
-              advanceAt={stripTour.advanceAt}
-              warning={stripTour.warnings[stripTour.index] ?? null}
-              size={tourStripSize(size)}
-              version={version}
-              stripRef={stripRef}
-              handle={handle}
-            />
-          ) : null}
-        </div>
+    <div
+      ref={dockRef}
+      data-orca-tour-dock=""
+      className={`pointer-events-none fixed ${DOCK_LAYER} flex max-w-[calc(100vw-8px)] flex-col items-center gap-2`}
+      // Why no-drag: Electron's titlebar drag ignores z-index, so a dock moved up there must opt out.
+      style={{ left: at.left, top: at.top, WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+    >
+      {away.map((tour) => (
+        <TourAwayPill
+          key={`${tour.context.worktreeId}:${tour.context.ownerTabId}`}
+          tour={tour}
+          handle={handle}
+        />
+      ))}
+      {stripTour ? (
+        <TourCaptionStrip
+          key={`${stripTour.context.worktreeId}:${stripTour.context.ownerTabId}`}
+          tour={stripTour}
+          index={stripTour.index}
+          playing={stripTour.playing}
+          advanceAt={stripTour.advanceAt}
+          warning={stripTour.warnings[stripTour.index] ?? null}
+          size={tourStripSize(size)}
+          version={version}
+          handle={handle}
+        />
       ) : null}
-    </>
+    </div>
   )
 }
 

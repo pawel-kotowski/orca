@@ -4,9 +4,6 @@ import { buildWorkspaceFileContextForFile } from '@/runtime/files/workspace-file
 import { resolveShowRequestFile } from '../code/show-request-file'
 import { predictTour, type RangeLineLengths, type StepPrediction } from './tour-fit-prediction'
 import { measurePredictionGeometry } from './tour-stage-geometry'
-import { estimateStripPx, tourBandPx, tourStripSize } from './tour-strip-placement'
-import { tourBandDrawnPx } from './tour-band'
-import { tourStripMoved } from './tour-strip-spot-store'
 import type { TourStep } from './tour-steps'
 
 // Why 4: Monaco's default tab size; a tab-indented line wraps as that many columns each.
@@ -62,24 +59,14 @@ export type TourCheck =
   | { measured: false; reason: string }
 
 /**
- * Every step's fit, predicted from the window as drawn and the strip it will show, staging nothing:
+ * Every step's fit, predicted from the window as drawn, staging nothing:
  * the screen stays as it is.
  */
 export async function checkTour(
   context: AgentShowContext,
   steps: readonly TourStep[]
 ): Promise<TourCheck> {
-  // Why: a drawn band is already in the measured stage; a strip the user moved reserves none.
-  const band =
-    tourBandDrawnPx() > 0 || tourStripMoved()
-      ? 0
-      : tourBandPx(
-          estimateStripPx(
-            steps,
-            tourStripSize({ width: window.innerWidth, height: window.innerHeight })
-          )
-        )
-  const geometry = measurePredictionGeometry(context, band)
+  const geometry = measurePredictionGeometry(context)
   if (!geometry) {
     return {
       measured: false,

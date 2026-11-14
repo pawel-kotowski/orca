@@ -10,7 +10,7 @@ export type DockBox = { left: number; top: number }
 /** How far the dock keeps from the window's edges when the user drags it. */
 const EDGE_PX = 4
 /** The default spot's gap under the strip; a pill alone sits on the status bar's empty middle. */
-export const STRIP_BOTTOM_GAP_PX = 8
+const STRIP_BOTTOM_GAP_PX = 8
 const PILL_BOTTOM_GAP_PX = 1
 
 const clamp = (value: number, min: number, max: number): number =>
