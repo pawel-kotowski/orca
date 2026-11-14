@@ -13,6 +13,7 @@ import {
   nativeChatFileLinkActions,
   nativeChatFileOpenDeps
 } from './native-chat-link-target-actions'
+import { openNativeChatCodeRange } from '@/agent-show/ui/chat-code-show'
 
 /** Honor terminal link-click settings: plain-click popover, modifier opens in Orca, Shift uses the default app. */
 export function useNativeChatFileLinkClick(
@@ -44,10 +45,17 @@ export function useNativeChatFileLinkClick(
         return
       }
       if (behavior === 'open' || !request) {
-        openDetectedFilePath(target.absolutePath, target.line, target.column, {
-          ...nativeChatFileOpenDeps(target, context),
-          openWithSystemDefault: event.shiftKey
-        })
+        const open = (): void =>
+          openDetectedFilePath(target.absolutePath, target.line, target.column, {
+            ...nativeChatFileOpenDeps(target, context),
+            openWithSystemDefault: event.shiftKey
+          })
+        const { line, endLine } = target
+        if (line && endLine && !event.shiftKey) {
+          void openNativeChatCodeRange({ ...target, line, endLine }, context, open)
+        } else {
+          open()
+        }
         return
       }
       const anchor = event.currentTarget

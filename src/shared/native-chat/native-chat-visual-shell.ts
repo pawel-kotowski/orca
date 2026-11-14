@@ -1,4 +1,5 @@
 import { PANEL_DESIGN_TOKEN_ALLOWLIST } from '../plugins/frames/plugin-panel-design-tokens'
+import { parseVisualCodeLocation, type CodeLineRange } from './native-chat-code-range'
 
 /** Shared Electron-free sandbox document. Parse CSP before visual markup so later HTML cannot loosen it.
  * Allow pinned-CDN scripts/styles/fonts/images only; block fetch/sockets/frames/forms. Allowed-CDN requests can still carry data: disclosed accepted risk, not a no-egress guarantee. */
@@ -49,6 +50,8 @@ export const NATIVE_CHAT_VISUAL_THEME_TYPE = 'orca-visual-theme'
 export const NATIVE_CHAT_VISUAL_PING_TYPE = 'orca-visual-ping'
 export const NATIVE_CHAT_VISUAL_PONG_TYPE = 'orca-visual-pong'
 export const NATIVE_CHAT_VISUAL_READER_SCROLL_TYPE = 'orca-visual-reader-scroll'
+/** A click on an element carrying `data-orca-show="path:40-62"`. */
+export const NATIVE_CHAT_VISUAL_SHOW_CODE_TYPE = 'orca-visual-show-code'
 /** Visuals' own wait for an answer: at 1 s, a busy visual in WebKit answered too late. */
 export const NATIVE_CHAT_VISUAL_PONG_TIMEOUT_MS = 5_000
 
@@ -100,7 +103,7 @@ export function nativeChatVisualThemeCss(theme: NativeChatVisualTheme): string {
 // Grow frames to fit, hide their scrollbar and inherit the thread background; later visual CSS may override defaults.
 function visualBaseCss(fitFrame: boolean): string {
   const scrollbars = fitFrame ? ';scrollbar-width:none}html::-webkit-scrollbar{display:none}' : '}'
-  return `html{background:var(--background);color:var(--foreground);font-family:var(--font-sans);font-size:14px;line-height:1.5${scrollbars}body{margin:0}code,pre,kbd,samp{font-family:var(--font-mono)}`
+  return `html{background:var(--background);color:var(--foreground);font-family:var(--font-sans);font-size:14px;line-height:1.5${scrollbars}body{margin:0}code,pre,kbd,samp{font-family:var(--font-mono)}[data-orca-show]{cursor:pointer}`
 }
 
 const BASE_CSS = visualBaseCss(true)
@@ -123,7 +126,8 @@ function bootstrapScript(channel: string): string {
     theme: NATIVE_CHAT_VISUAL_THEME_TYPE,
     ping: NATIVE_CHAT_VISUAL_PING_TYPE,
     pong: NATIVE_CHAT_VISUAL_PONG_TYPE,
-    scroll: NATIVE_CHAT_VISUAL_READER_SCROLL_TYPE
+    scroll: NATIVE_CHAT_VISUAL_READER_SCROLL_TYPE,
+    show: NATIVE_CHAT_VISUAL_SHOW_CODE_TYPE
   })
   // Plain ES5 so it runs before, and independent of, anything the visual loads.
   return `(function () {
@@ -145,6 +149,12 @@ try { window.open = function () { return null } } catch (_) {}
 document.addEventListener('click', function (event) {
   var node = event.target
   while (node && node.nodeType !== 1) node = node.parentNode
+  var shown = node && node.closest ? node.closest('[data-orca-show]') : null
+  if (shown) {
+    event.preventDefault()
+    if (event.isTrusted) send({ type: C.show, location: shown.getAttribute('data-orca-show') || '' })
+    return
+  }
   var anchor = node && node.closest ? node.closest('a[href]') : null
   if (!anchor) return
   var href = anchor.getAttribute('href') || ''
@@ -241,6 +251,7 @@ export type NativeChatVisualFrameMessage =
   /** Uncancelled input; the host checks whether the transcript actually moved. */
   | { kind: 'reader-scroll'; input: 'wheel'; deltaY: number }
   | { kind: 'reader-scroll'; input: 'touch' }
+  | { kind: 'show-code'; location: CodeLineRange }
 
 /** A message from a visual's shell, validated; null for anything else. */
 export function readNativeChatVisualFrameMessage(
@@ -271,6 +282,10 @@ export function readNativeChatVisualFrameMessage(
       deltaY !== 0
       ? { kind: 'reader-scroll', input, deltaY }
       : null
+  }
+  if (data.type === NATIVE_CHAT_VISUAL_SHOW_CODE_TYPE) {
+    const location = parseVisualCodeLocation('location' in data ? data.location : undefined)
+    return location ? { kind: 'show-code', location } : null
   }
   if (data.type === NATIVE_CHAT_VISUAL_OPEN_LINK_TYPE) {
     const url = 'url' in data ? data.url : undefined
