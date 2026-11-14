@@ -71,7 +71,6 @@ export function chooseCodePlacement(input: CodePlacementInput): CodePlacement {
   if (codePane) {
     return { kind: 'group', groupId: codePane }
   }
-  return input.roomBelow
-    ? { kind: 'split', sourceGroupId: current, direction: 'down' }
-    : { kind: 'group', groupId: current, reusedForRoom: true }
+  // Why always: a short code pane says so in its fit, a covered page is just gone.
+  return { kind: 'split', sourceGroupId: current, direction: 'down' }
 }

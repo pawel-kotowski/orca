@@ -84,7 +84,13 @@ describe('chooseCodePlacement', () => {
       })
     ).toEqual({ kind: 'group', groupId: 'a' })
     expect(
-      chooseCodePlacement({ ...roomy, stageLeaves: ['page'], usedByOwner: [], pagePanes: ['page'] })
+      chooseCodePlacement({
+        ...roomy,
+        stageLeaves: ['page'],
+        usedByOwner: [],
+        pagePanes: ['page'],
+        roomBelow: false
+      })
     ).toEqual({ kind: 'split', sourceGroupId: 'page', direction: 'down' })
   })
 })

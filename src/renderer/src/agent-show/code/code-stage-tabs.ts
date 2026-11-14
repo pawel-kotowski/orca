@@ -31,14 +31,21 @@ function ownerStage(context: AgentShowContext): OwnerStage {
   return stage
 }
 
-/** Opened tabs whose file no longer carries any of the owner's marks, except `keepTabId`. */
+/**
+ * Opened tabs none of the owner's marks belong to any more, except `keepTabId`. A mark belongs
+ * to the pane it was shown in; one without a pane belongs to every tab of its file.
+ */
 export function stageTabsToClose(
   openedTabs: ReadonlyMap<string, string>,
-  markedFiles: ReadonlySet<string>,
+  marks: readonly { filePath: string; tabId?: string }[],
   keepTabId: string | null
 ): string[] {
   return [...openedTabs]
-    .filter(([tabId, filePath]) => tabId !== keepTabId && !markedFiles.has(filePath))
+    .filter(
+      ([tabId, filePath]) =>
+        tabId !== keepTabId &&
+        !marks.some((mark) => mark.tabId === tabId || (!mark.tabId && mark.filePath === filePath))
+    )
     .map(([tabId]) => tabId)
 }
 
@@ -100,8 +107,10 @@ export function tidyCodeStage(context: AgentShowContext, keepTabId: string | nul
   if (!stage) {
     return
   }
-  const marked = new Set(ownerCodeMarks(codeMarkOwnerKey(context))?.keys() ?? [])
-  closeStageTabs(context.worktreeId, stage, stageTabsToClose(stage.openedTabs, marked, keepTabId))
+  const marks = [...(ownerCodeMarks(codeMarkOwnerKey(context)) ?? [])].flatMap(
+    ([filePath, onFile]) => onFile.map((mark) => ({ filePath, tabId: mark.tabId }))
+  )
+  closeStageTabs(context.worktreeId, stage, stageTabsToClose(stage.openedTabs, marks, keepTabId))
 }
 
 /** `orca show clear`: every tab and pane this owner's shows opened goes. */

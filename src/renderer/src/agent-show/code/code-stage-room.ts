@@ -30,7 +30,7 @@ export const PANE_CHROME_PX = STRIP_PX + 44
 /** Height kept for a pane in the stack that shows no marks of ours (the user's own tab). */
 const UNMARKED_PANE_PX = 160
 /** A browser page the agent points at keeps enough height to read. */
-const PAGE_PANE_PX = 360
+const PAGE_PANE_PX = 280
 // Why 1.5: Monaco's derived line height on macOS; elsewhere it is smaller, so this errs safe.
 const AUTO_LINE_HEIGHT_RATIO = 1.5
 
@@ -120,12 +120,14 @@ export function measureStageRoom(input: {
     }
   }
   const floorLine = codeLineHeightAt(codeFontFloor(user.fontSize), user, AUTO_LINE_HEIGHT_RATIO)
-  const perPanePx = (heightPx - panes * (PANE_CHROME_PX + ZONE_CHROME_PX + ZONE_LINE_PX)) / panes
+  const perPanePx =
+    (heightPx - panes * (PANE_CHROME_PX + ZONE_CHROME_PX + 2 * ZONE_LINE_PX)) / panes
   return {
     stageHasRoom,
     roomBelow: needPx + panes * PANE_CHROME_PX <= heightPx,
     roomRight,
-    linesPerPaneIfSplit: Math.max(0, Math.floor(perPanePx / floorLine))
+    // Why 0.85: long lines wrap in a stage pane; a promise of 12 lines that fits 10 costs a retry.
+    linesPerPaneIfSplit: Math.max(0, Math.floor((0.85 * perPanePx) / floorLine))
   }
 }
 
