@@ -3,6 +3,7 @@ import type { BrowserSessionCookieApi } from './browser-session-cookie-api'
 import type { BrowserDevToolsDockBounds } from '../../../shared/browser/devtools/browser-devtools-dock'
 import type { BrowserSetAnnotationViewportBridgeArgs } from '../../../shared/browser/annotations/browser-annotation-viewport-bridge'
 import type { BrowserAgentPresenceApi } from './browser-agent-presence-api'
+import type { BrowserAgentShowMarksApi } from './browser-agent-show-marks-api'
 import type { ManagedBrowserProfileOwner } from '../../../shared/browser/profiles/browser-profile-scope'
 import type { BrowserExtensionToolbarApi } from './browser-extension-toolbar-api'
 import type { BrowserExtensionContextMenuApi } from './browser-extension-context-menu-api'
@@ -304,7 +305,8 @@ export type BrowserApi = {
   BrowserExtensionWebStoreApi &
   BrowserExtensionContextMenuApi &
   BrowserSessionCookieApi &
-  BrowserAgentPresenceApi
+  BrowserAgentPresenceApi &
+  BrowserAgentShowMarksApi
 
 export type DetectedBrowserProfileInfo = {
   name: string

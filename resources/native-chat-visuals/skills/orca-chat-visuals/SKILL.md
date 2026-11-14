@@ -37,6 +37,18 @@ clearer.
   `--destructive`, `--destructive-foreground`, `--border`, `--input`, `--ring`, `--radius`,
   `--font-sans`, `--font-mono`, and `--chart-1` through `--chart-5`.
 
+## Pointing at code
+
+Give any element `data-orca-show="path/to/file.ts:40-62"` (or `file.ts:40` for one line) and a
+click on it opens that file beside the chat with those lines highlighted. Use it on the boxes of
+an architecture diagram, the rows of a table or the steps of a flow, so the reader can go from
+the picture to the code behind it. The path is relative to the workspace root, never absolute
+and never with `..`; ranges are at most 5000 lines. Such elements get a pointer cursor; add your
+own hover style if you like.
+
+In the reply itself, a link or path such as `src/app.ts:40-62` opens with the whole range
+highlighted, not just its first line.
+
 ## Showing it
 
 After the file exists, put this on its own line in your reply, outside any code block:
