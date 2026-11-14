@@ -7,8 +7,10 @@ import {
 } from '@/components/diff-comments/diff-comment-view-zone-entry'
 import {
   codeColumnsAtFloor,
+  codeFontFloor,
   codeLineHeightAt,
   codePaneNeedPx,
+  type CodePaneNeed,
   type CodeTypography
 } from './code-fit'
 import { codeFitForTab } from './code-editor-fit'
@@ -23,6 +25,8 @@ const MIN_CHAT_WIDTH_PX = 320
 export const CHAT_SHARE_BESIDE_STAGE = 0.42
 const GUTTER_PX = 56
 const STRIP_PX = 36
+/** Height a stage pane spends outside its editor: tab strip, path bar, scrollbar and margin. */
+export const PANE_CHROME_PX = STRIP_PX + 44
 /** Height kept for a pane in the stack that shows no marks of ours (the user's own tab). */
 const UNMARKED_PANE_PX = 160
 /** A browser page the agent points at keeps enough height to read. */
@@ -53,7 +57,13 @@ function noteCardPx(note: string | undefined): number {
   return note ? ZONE_CHROME_PX + Math.ceil(note.length / 60) * ZONE_LINE_PX : 0
 }
 
-export type StageRoom = { stageHasRoom: boolean; roomBelow: boolean; roomRight: boolean }
+export type StageRoom = {
+  stageHasRoom: boolean
+  roomBelow: boolean
+  roomRight: boolean
+  /** Lines each pane of the stack would hold, with a note card, had a new pane been added. */
+  linesPerPaneIfSplit?: number
+}
 
 /** Whether the window has room for the stage, a pane below the current one, or one to its right. */
 export function measureStageRoom(input: {
@@ -109,7 +119,14 @@ export function measureStageRoom(input: {
       panes += 1
     }
   }
-  return { stageHasRoom, roomBelow: needPx + panes * STRIP_PX <= heightPx, roomRight }
+  const floorLine = codeLineHeightAt(codeFontFloor(user.fontSize), user, AUTO_LINE_HEIGHT_RATIO)
+  const perPanePx = (heightPx - panes * (PANE_CHROME_PX + ZONE_CHROME_PX + ZONE_LINE_PX)) / panes
+  return {
+    stageHasRoom,
+    roomBelow: needPx + panes * PANE_CHROME_PX <= heightPx,
+    roomRight,
+    linesPerPaneIfSplit: Math.max(0, Math.floor(perPanePx / floorLine))
+  }
 }
 
 /** A marked pane needs its fitted range at the floor font; an unmarked one keeps a little room. */
@@ -124,18 +141,29 @@ export function markedPaneNeedPx(activeTabId: string | null, showsPage = false):
   return fit.needPxAtFloor
 }
 
-/** The height share a pane about to open asks for. */
-export function newPaneNeedForRatio(state: AppState, lines: number, note?: string): number {
+/** What a pane about to open will need, from its range and note. */
+export function newPaneNeed(state: AppState, lines: number, note?: string): CodePaneNeed {
   const user = userCodeTypography(state)
-  const lineHeight = codeLineHeightAt(user.fontSize, user, AUTO_LINE_HEIGHT_RATIO)
-  return lines * lineHeight + noteCardPx(note) + STRIP_PX
+  const at = (fontSize: number): number =>
+    lines * codeLineHeightAt(fontSize, user, AUTO_LINE_HEIGHT_RATIO) + noteCardPx(note)
+  return { floorPx: at(codeFontFloor(user.fontSize)), userPx: at(user.fontSize) }
 }
 
-/** Each stack pane's share of height: what its range needs at the user's font, so all can keep it when there is room. */
-export function stagePaneNeedForRatio(activeTabId: string | null, showsPage = false): number {
+/** What a stage pane's editor needs: its fitted range, a readable page, or a little room. */
+export function stagePaneNeed(activeTabId: string | null, showsPage = false): CodePaneNeed {
   if (showsPage) {
-    return PAGE_PANE_PX + STRIP_PX
+    return { floorPx: PAGE_PANE_PX, userPx: PAGE_PANE_PX }
   }
   const fit = activeTabId ? codeFitForTab(activeTabId) : undefined
-  return (fit ? fit.needPxAtUser : UNMARKED_PANE_PX) + STRIP_PX
+  return fit
+    ? { floorPx: fit.needPxAtFloor, userPx: fit.needPxAtUser }
+    : { floorPx: UNMARKED_PANE_PX, userPx: UNMARKED_PANE_PX }
+}
+
+/** The stack's drawn height: its panes' bodies and tab strips. */
+export function stackHeightPx(leaves: readonly string[]): number {
+  return leaves.reduce(
+    (sum, groupId) => sum + (groupBodyRect(groupId)?.height ?? 0) + groupStripPx(groupId),
+    0
+  )
 }

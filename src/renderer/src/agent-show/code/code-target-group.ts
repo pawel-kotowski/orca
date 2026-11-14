@@ -11,9 +11,12 @@ import {
   CHAT_SHARE_BESIDE_STAGE,
   markedPaneNeedPx,
   measureStageRoom,
-  newPaneNeedForRatio,
-  stagePaneNeedForRatio
+  newPaneNeed,
+  PANE_CHROME_PX,
+  stackHeightPx,
+  stagePaneNeed
 } from './code-stage-room'
+import { stackPaneShares, type CodePaneNeed } from './code-fit'
 import { ownerOpenedTab, rememberStageGroupCreated, stagePanesUsedBy } from './code-stage-tabs'
 import { makeRoomForStage } from './code-stage-sidebars'
 
@@ -24,6 +27,9 @@ export type CodeTarget = {
   background: boolean
   /** A split was wanted but would leave a range unreadable, so a used pane was reused. */
   reusedForRoom: boolean
+  /** The tab that pane showed before (it stays there, behind). */
+  replacedLabel?: string
+  linesPerPaneIfSplit?: number
 }
 
 export type CodeTargetRequest = {
@@ -56,13 +62,13 @@ function ownerGroupOf(state: AppState, context: AgentShowContext): string | null
 }
 
 /**
- * Sizes the stage panes stacked with `groupId` by what each range needs, so a 30-line hop gets
- * more height than a 10-line one. `newNeedPx` stands in for a pane whose editor is not open yet.
+ * Sizes the stage panes stacked with `groupId` so each shows its range: floors first, then toward
+ * the user's font. `newNeed` stands in for a pane whose editor is not open yet.
  */
 export function sizeCodeStageStack(
   context: AgentShowContext,
   groupId: string,
-  newNeedPx?: number
+  newNeed?: CodePaneNeed
 ): void {
   const state = useAppStore.getState()
   const layout = state.layoutByWorktree[context.worktreeId]
@@ -73,15 +79,21 @@ export function sizeCodeStageStack(
     return
   }
   const groups = state.groupsByWorktree[context.worktreeId] ?? []
-  const ratios = stackSplitRatios(layout, stack.path, (id) =>
-    id === groupId && newNeedPx !== undefined
-      ? newNeedPx
-      : stagePaneNeedForRatio(
+  const needs = stack.leaves.map((id) =>
+    id === groupId && newNeed
+      ? newNeed
+      : stagePaneNeed(
           groups.find((group) => group.id === id)?.activeTabId ?? null,
           showsPage(state, context.worktreeId, id)
         )
   )
-  for (const { path, ratio } of ratios) {
+  const shares = stackPaneShares(needs, stackHeightPx(stack.leaves), PANE_CHROME_PX)
+  const shareOf = new Map(stack.leaves.map((id, index) => [id, shares[index] ?? 0]))
+  for (const { path, ratio } of stackSplitRatios(
+    layout,
+    stack.path,
+    (id) => shareOf.get(id) ?? 0
+  )) {
     state.setTabGroupSplitRatio(context.worktreeId, path, ratio)
   }
 }
@@ -153,10 +165,18 @@ export function resolveCodeTarget(
     return { groupId: placement.groupId, background: true, reusedForRoom: false }
   }
   if (placement.kind === 'group') {
+    const front = groups.find((group) => group.id === placement.groupId)?.activeTabId
+    const frontTab = state.unifiedTabsByWorktree[worktreeId]?.find((tab) => tab.id === front)
     return {
       groupId: placement.groupId,
       background: false,
-      reusedForRoom: placement.reusedForRoom === true
+      reusedForRoom: placement.reusedForRoom === true,
+      ...(placement.reusedForRoom && frontTab
+        ? { replacedLabel: frontTab.customLabel ?? frontTab.label }
+        : {}),
+      ...(room.linesPerPaneIfSplit === undefined
+        ? {}
+        : { linesPerPaneIfSplit: room.linesPerPaneIfSplit })
     }
   }
   const created = state.createEmptySplitGroup(
@@ -173,7 +193,7 @@ export function resolveCodeTarget(
     giveStageItsWidth(context, ownerGroupId)
   }
   if (placement.direction === 'down') {
-    sizeCodeStageStack(context, created, newPaneNeedForRatio(state, request.lines, request.note))
+    sizeCodeStageStack(context, created, newPaneNeed(state, request.lines, request.note))
   }
   return { groupId: created, background: false, reusedForRoom: false }
 }

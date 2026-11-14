@@ -134,7 +134,9 @@ export const showCode: AgentShowHandler<'code'> = async (request, context) => {
   const details = [
     `mark ${placed.mark} in ${file.relativePath}`,
     target.background ? describeBackgroundTab(tabLabel ?? file.relativePath) : null,
-    target.reusedForRoom ? describeReusedPane() : null,
+    target.reusedForRoom
+      ? describeReusedPane(target.replacedLabel, target.linesPerPaneIfSplit)
+      : null,
     lineCount === null && !target.background ? 'the editor has not drawn the file yet' : null,
     clamp?.clamped ? describeClampedRange(request.range, clamp.range, lineCount ?? 0) : null
   ]

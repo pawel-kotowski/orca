@@ -87,3 +87,31 @@ export function codeColumnsAtFloor(
   // Why 0.6: monospace advance is about 0.6 em in the fonts Orca ships and most users pick.
   return Math.floor((widthPx - gutterPx) / (codeFontFloor(userFontSize) * 0.6))
 }
+
+/** What a stacked pane's editor needs: its range and cards at the floor font and at the user's. */
+export type CodePaneNeed = { floorPx: number; userPx: number }
+
+/**
+ * Heights for panes stacked in `heightPx`, each spending `chromePx` outside its editor. Every
+ * pane gets its floor need first; what is left goes toward each pane's need at the user's font,
+ * and any surplus beyond that in proportion. Short of the floors, each gets its floor's share.
+ */
+export function stackPaneShares(
+  needs: readonly CodePaneNeed[],
+  heightPx: number,
+  chromePx: number
+): number[] {
+  const available = heightPx - needs.length * chromePx
+  const floor = needs.reduce((sum, need) => sum + need.floorPx, 0)
+  const user = needs.reduce((sum, need) => sum + need.userPx, 0)
+  return needs.map((need) => {
+    if (available >= user) {
+      return need.userPx + ((available - user) * need.userPx) / Math.max(1, user) + chromePx
+    }
+    if (available >= floor) {
+      const toward = (available - floor) / Math.max(1, user - floor)
+      return need.floorPx + toward * (need.userPx - need.floorPx) + chromePx
+    }
+    return (available * need.floorPx) / Math.max(1, floor) + chromePx
+  })
+}
