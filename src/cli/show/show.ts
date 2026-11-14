@@ -10,7 +10,8 @@ import {
 import { printResult } from '../output/command-result-output'
 import { RuntimeClientError } from '../runtime/types'
 import { isRendererUnavailable } from '../files/file-open-call'
-import { getFileWorktreeSelector, resolveFilePath } from '../files/file-worktree-target'
+import { getFileWorktreeSelector } from '../files/file-worktree-target'
+import { resolveShowPath } from './show-path'
 import {
   getClearScope,
   getPlacement,
@@ -20,11 +21,12 @@ import {
   treeEntriesFor
 } from './show-request-args'
 import { formatShowResult } from './show-result-format'
+import { showOwnerTabId } from './show-owner-tab'
 
 // Why 30s: main waits up to 20s for the window, plus worktree resolution.
 const SHOW_TIMEOUT_MS = 30_000
 
-async function callShowRpc<T>(ctx: HandlerContext, method: string, params: object) {
+export async function callShowRpc<T>(ctx: HandlerContext, method: string, params: object) {
   try {
     return await ctx.client.call<T>(method, params, { timeoutMs: SHOW_TIMEOUT_MS })
   } catch (error) {
@@ -39,7 +41,7 @@ async function callShowRpc<T>(ctx: HandlerContext, method: string, params: objec
   }
 }
 
-type BuildRequest = (ctx: HandlerContext, worktree: string) => Promise<AgentShowRequest>
+export type BuildRequest = (ctx: HandlerContext, worktree: string) => Promise<AgentShowRequest>
 
 function showHandler(build: BuildRequest): CommandHandler {
   return async (ctx) => {
@@ -48,7 +50,7 @@ function showHandler(build: BuildRequest): CommandHandler {
     const response = await callShowRpc<AgentShowResult>(ctx, 'agentShow.request', {
       worktree,
       request,
-      ownerTabId: process.env.ORCA_TAB_ID || null,
+      ownerTabId: showOwnerTabId(),
       focus: ctx.flags.get('no-focus') !== true
     })
     const result = response.result
@@ -68,22 +70,23 @@ function noteAndMark(flags: Flags): { note?: string; mark?: string } {
   return { ...(note ? { note } : {}), ...(mark ? { mark } : {}) }
 }
 
-export const SHOW_HANDLERS: Record<string, CommandHandler> = {
-  'show code': showHandler(async (ctx, worktree) => ({
+/** How each staging subcommand turns flags into a request; tours reuse them line by line. */
+export const SHOW_REQUEST_BUILDERS = {
+  code: (async (ctx, worktree) => ({
     kind: 'code',
-    filePath: await resolveFilePath(ctx, worktree, getRequiredStringFlag(ctx.flags, 'path')),
+    filePath: await resolveShowPath(ctx, worktree, getRequiredStringFlag(ctx.flags, 'path')),
     range: parseLineRange(getRequiredStringFlag(ctx.flags, 'lines')),
     ...noteAndMark(ctx.flags),
     place: getPlacement(ctx.flags) ?? 'beside',
     keepOthers: ctx.flags.get('keep') === true
-  })),
-  'show file': showHandler(async (ctx, worktree) => ({
+  })) satisfies BuildRequest,
+  file: (async (ctx, worktree) => ({
     kind: 'file',
-    filePath: await resolveFilePath(ctx, worktree, getRequiredStringFlag(ctx.flags, 'path')),
+    filePath: await resolveShowPath(ctx, worktree, getRequiredStringFlag(ctx.flags, 'path')),
     preview: ctx.flags.get('preview') === true,
     place: getPlacement(ctx.flags) ?? 'beside'
-  })),
-  'show tree': showHandler(async (ctx, worktree) => {
+  })) satisfies BuildRequest,
+  tree: (async (ctx, worktree) => {
     const typed = getRepeatedStringFlag(ctx.flags, 'path')
     if (typed.length === 0) {
       throw new RuntimeClientError('invalid_argument', 'Name at least one path to show.')
@@ -94,14 +97,14 @@ export const SHOW_HANDLERS: Record<string, CommandHandler> = {
       entries: await Promise.all(
         entries.map(async (entry) => ({
           ...entry,
-          path: await resolveFilePath(ctx, worktree, entry.path)
+          path: await resolveShowPath(ctx, worktree, entry.path)
         }))
       ),
       expand: ctx.flags.get('no-expand') !== true,
       dimOthers: ctx.flags.get('dim-others') === true
     }
-  }),
-  'show ui': showHandler(async (ctx, worktree) => {
+  }) satisfies BuildRequest,
+  ui: (async (ctx, worktree) => {
     const target = getUiTarget(ctx.flags)
     const pageId = getOptionalStringFlag(ctx.flags, 'page')
     const codeRef = getOptionalStringFlag(ctx.flags, 'code')
@@ -112,10 +115,17 @@ export const SHOW_HANDLERS: Record<string, CommandHandler> = {
       ...(pageId ? { pageId } : {}),
       ...noteAndMark(ctx.flags),
       ...(code
-        ? { code: { ...code, filePath: await resolveFilePath(ctx, worktree, code.filePath) } }
+        ? { code: { ...code, filePath: await resolveShowPath(ctx, worktree, code.filePath) } }
         : {})
     }
-  }),
+  }) satisfies BuildRequest
+}
+
+export const SHOW_HANDLERS: Record<string, CommandHandler> = {
+  'show code': showHandler(SHOW_REQUEST_BUILDERS.code),
+  'show file': showHandler(SHOW_REQUEST_BUILDERS.file),
+  'show tree': showHandler(SHOW_REQUEST_BUILDERS.tree),
+  'show ui': showHandler(SHOW_REQUEST_BUILDERS.ui),
   'show clear': showHandler(async (ctx) => ({ kind: 'clear', scope: getClearScope(ctx.flags) })),
   'show state': showHandler(async () => ({ kind: 'state' })),
   'show snap': async (ctx) => {

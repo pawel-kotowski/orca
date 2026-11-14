@@ -1,15 +1,24 @@
 import type { AgentShowContext } from '../../../../shared/agent-show/agent-show-contract'
 import type { CodeLineRange } from './code-line-range'
 
-export type CodeMark = CodeLineRange & { mark: string; note?: string }
+/**
+ * `seq` orders marks by when they were shown, so an editor can fit the newest; `tabId` is the
+ * pane the mark was shown in, which fits it and draws its card when one file is open twice.
+ */
+export type CodeMark = CodeLineRange & { mark: string; note?: string; seq?: number; tabId?: string }
+type NewCodeMark = CodeLineRange & { mark?: string; note?: string; tabId?: string }
 /** One owner's marks by absolute file path. */
 export type OwnerCodeMarks = ReadonlyMap<string, readonly CodeMark[]>
 
-/** Places `next` among an owner's marks: replaces them all unless keepOthers; a reused label moves. */
+/**
+ * Places `next` among an owner's marks: replaces them all unless keepOthers; a kept mark whose
+ * lines overlap `next` on the same file gives way to it. A reused label marks one more place,
+ * as one step that spans two ranges.
+ */
 export function placeOwnerCodeMark(
   previous: OwnerCodeMarks | undefined,
   filePath: string,
-  next: CodeLineRange & { mark?: string; note?: string },
+  next: NewCodeMark & { seq?: number },
   keepOthers: boolean
 ): { marks: Map<string, CodeMark[]>; placed: CodeMark } {
   const kept = new Map<string, CodeMark[]>()
@@ -17,20 +26,25 @@ export function placeOwnerCodeMark(
     for (const [path, marks] of previous) {
       kept.set(
         path,
-        marks.filter((mark) => mark.mark !== next.mark)
+        marks.filter(
+          (mark) =>
+            path !== filePath || mark.endLine < next.startLine || mark.startLine > next.endLine
+        )
       )
     }
   }
   const used = new Set([...kept.values()].flat().map((mark) => mark.mark))
   let label = next.mark
-  for (let n = used.size + 1; !label; n += 1) {
+  for (let n = 1; !label; n += 1) {
     label = used.has(String(n)) ? undefined : String(n)
   }
   const placed: CodeMark = {
     mark: label,
     startLine: next.startLine,
     endLine: next.endLine,
-    ...(next.note ? { note: next.note } : {})
+    ...(next.note ? { note: next.note } : {}),
+    ...(next.seq === undefined ? {} : { seq: next.seq }),
+    ...(next.tabId === undefined ? {} : { tabId: next.tabId })
   }
   const onFile = [...(kept.get(filePath) ?? []), placed].sort((a, b) => a.startLine - b.startLine)
   kept.set(filePath, onFile)
@@ -42,7 +56,17 @@ export function placeOwnerCodeMark(
   return { marks: kept, placed }
 }
 
+/** Marks an editor fits and carries cards for: its own, unpinned ones, and any whose pane is gone. */
+export function marksForEditor(
+  marks: readonly CodeMark[],
+  tabId: string | undefined,
+  isMounted: (tabId: string) => boolean
+): CodeMark[] {
+  return marks.filter((mark) => !mark.tabId || mark.tabId === tabId || !isMounted(mark.tabId))
+}
+
 const marksByOwner = new Map<string, OwnerCodeMarks>()
+let shownCount = 0
 const listeners = new Set<() => void>()
 
 function notify(): void {
@@ -59,13 +83,13 @@ export function codeMarkOwnerKey(context: AgentShowContext): string {
 export function putCodeMark(
   ownerKey: string,
   filePath: string,
-  next: CodeLineRange & { mark?: string; note?: string },
+  next: NewCodeMark,
   keepOthers: boolean
 ): CodeMark {
   const { marks, placed } = placeOwnerCodeMark(
     marksByOwner.get(ownerKey),
     filePath,
-    next,
+    { ...next, seq: (shownCount += 1) },
     keepOthers
   )
   marksByOwner.set(ownerKey, marks)
@@ -77,6 +101,27 @@ export function clearOwnerCodeMarks(ownerKey: string): void {
   if (marksByOwner.delete(ownerKey)) {
     notify()
   }
+}
+
+/** One owner's marks as plain data, to persist. */
+export function snapshotOwnerCodeMarks(ownerKey: string): [string, CodeMark[]][] {
+  return [...(marksByOwner.get(ownerKey) ?? [])].map(([path, marks]) => [path, [...marks]])
+}
+
+/** Puts back an owner's persisted marks; later shows number after them. */
+export function restoreOwnerCodeMarks(ownerKey: string, entries: [string, CodeMark[]][]): void {
+  if (entries.length === 0) {
+    return
+  }
+  marksByOwner.set(ownerKey, new Map(entries))
+  const seqs = entries.flatMap(([, marks]) => marks.map((mark) => mark.seq ?? 0))
+  shownCount = Math.max(shownCount, ...seqs)
+  notify()
+}
+
+/** One owner's marks by file, for tidying the tabs it opened. */
+export function ownerCodeMarks(ownerKey: string): OwnerCodeMarks | undefined {
+  return marksByOwner.get(ownerKey)
 }
 
 /** Every owner's marks on one file, for the editors showing it. */

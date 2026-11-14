@@ -1,5 +1,5 @@
 import type { OpenFile } from '@/store/slices/editor/types/open-file'
-import { basename } from '@/lib/path'
+import { basename, dirname } from '@/lib/path'
 import { translate } from '@/i18n/i18n'
 import type { Translate } from '@/i18n/use-translate'
 
@@ -97,4 +97,46 @@ export function getEditorDisplayLabel(
   }
 
   return getDiffTabLabel(getBaseLabel(file, variant), source, t)
+}
+
+const SINGLE_TAB_MODES: ReadonlySet<OpenFile['mode']> = new Set([
+  'conflict-review',
+  'git-graph',
+  'check-details'
+])
+
+function parentFolder(relativePath: string): string {
+  const folder = dirname(relativePath)
+  return folder === '.' || folder === '/' || folder === relativePath ? '' : folder
+}
+
+/**
+ * The folder that tells this tab apart from another open file of the same name in its worktree
+ * ("mobile" for mobile/README.md beside cloud/README.md), or null when its name is unique.
+ */
+export function getSameNameFolderHint(
+  file: OpenFile,
+  openFiles: readonly OpenFile[]
+): string | null {
+  if (SINGLE_TAB_MODES.has(file.mode)) {
+    return null
+  }
+  const name = basename(file.relativePath)
+  const folder = parentFolder(file.relativePath)
+  const others = openFiles.filter(
+    (other) =>
+      other.worktreeId === file.worktreeId &&
+      other.relativePath !== file.relativePath &&
+      !SINGLE_TAB_MODES.has(other.mode) &&
+      basename(other.relativePath) === name
+  )
+  if (others.length === 0 || !folder) {
+    return null
+  }
+  const nearest = basename(folder)
+  // Why: two `src` parents (a/src, b/src) need the whole folder path to differ.
+  const nearestIsShared = others.some(
+    (other) => basename(parentFolder(other.relativePath)) === nearest
+  )
+  return nearestIsShared ? folder : nearest
 }

@@ -275,7 +275,7 @@ export function FileExplorerRow({
           {agentMark.label ? (
             <span
               className={cn(
-                'min-w-0 max-w-[50%] shrink-0 truncate text-[10px] font-medium text-primary mr-2',
+                'min-w-0 max-w-[60%] shrink-0 truncate text-2xs font-medium text-primary mr-2',
                 !nodeStatus && !isIgnored && 'ml-auto'
               )}
               title={agentMark.label}

@@ -15,6 +15,7 @@ import {
   uiPagesWithMarks
 } from './ui-page-marks'
 import { listenForUiPageEvents } from './ui-page-events'
+import { forgetUiRequests, rememberUiRequest } from './ui-mark-requests'
 
 function codeLabelFor(
   code: { filePath: string; range: { startLine: number; endLine: number } },
@@ -58,6 +59,7 @@ export const showUi: AgentShowHandler<'ui'> = async (request, context) => {
   if (!result.ok) {
     return result
   }
+  rememberUiRequest(context, { pageId: target.pageId, request: { ...request, mark: label } })
   putUiPageMark(target.pageId, result.url, {
     key,
     label,
@@ -80,6 +82,7 @@ export const showUi: AgentShowHandler<'ui'> = async (request, context) => {
 }
 
 export async function clearUiMarks(context: AgentShowContext): Promise<void> {
+  forgetUiRequests(context)
   const removed = takeOwnerUiMarks(context.worktreeId, context.ownerTabId)
   const clear = window.api.browser.agentShowClearPageMarks
   if (!clear) {

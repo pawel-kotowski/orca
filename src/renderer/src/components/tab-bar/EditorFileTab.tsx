@@ -6,7 +6,7 @@ import { Eye, ShieldAlert, Pin } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { TabHoverCard } from './TabHoverCard'
 import { basename } from '@/lib/path'
-import { getEditorDisplayLabel } from '@/components/editor/editor-labels'
+import { getEditorDisplayLabel, getSameNameFolderHint } from '@/components/editor/editor-labels'
 import { renameFileOnDisk } from '@/lib/editor/file-operations/rename-file'
 import { isImeCompositionKeyDown } from '@/lib/text-input/ime/ime-composition-keyboard-event'
 import { detectLanguage } from '../../../../shared/editor-language/editor-language-detect'
@@ -67,6 +67,7 @@ export default function EditorFileTab({
       ? editorTabWorkspace(state.unifiedTabsByWorktree, file.tabId) !== file.worktreeId
       : false
   )
+  const sameNameFolder = useAppStore((state) => getSameNameFolderHint(file, state.openFiles))
   const worktree = useWorktreeById(file.worktreeId, getOpenFileExecutionHostId(file))
   const repo = useAppStore((state) =>
     worktree ? resolveReviewRepository(state.repos, worktree) : null
@@ -316,6 +317,9 @@ export default function EditorFileTab({
             }}
           >
             {getEditorDisplayLabel(file, undefined, t)}
+            {sameNameFolder ? (
+              <span className="ml-1 text-[11px] text-muted-foreground">{sameNameFolder}</span>
+            ) : null}
             {placedElsewhere && repo ? ` · ${repo.displayName}` : ''}
           </span>
         )}

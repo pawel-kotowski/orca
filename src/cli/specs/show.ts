@@ -3,7 +3,7 @@ import { CLI_GLOBAL_FLAGS as GLOBAL_FLAGS } from '../../shared/cli-argument-boun
 
 const SHOW_FLAGS = [...GLOBAL_FLAGS, 'worktree', 'no-focus']
 const PATH_NOTE =
-  'Paths are relative to the worktree or absolute inside it. When --worktree is omitted, the worktree is inferred from cwd.'
+  'A relative path names the file seen from your shell folder when it exists there, else from the worktree root; absolute paths must be inside the worktree. A missing file fails with file_not_found. When --worktree is omitted, the worktree is inferred from cwd.'
 const OWNER_NOTE =
   "Marks belong to the agent's tab (ORCA_TAB_ID), so `orca show clear` removes only your own. Showing brings the user to it; --no-focus leaves the view alone."
 const NO_WINDOW_NOTE =
@@ -18,7 +18,7 @@ export const SHOW_COMMAND_SPECS: CommandSpec[] = [
     allowedFlags: [...SHOW_FLAGS, 'path', 'lines', 'note', 'mark', 'place', 'keep'],
     positionalArgs: ['path'],
     notes: [
-      '--lines 42 means line 42 only. --place picks where the editor opens relative to your tab (default beside). --keep leaves your earlier code marks in place.',
+      '--lines 42 means line 42 only. Code opens in a column beside your chat, never over it: beside/same reuse your current pane there, below stacks a new pane and right adds a column, each only when every pane still shows its range (else your least recent pane is reused and the result says which). Each editor shrinks its font (not below 11px) to fit; the result prints `fits: 18/18 lines at 12px`. A new show closes the tabs your earlier one opened unless --keep.',
       PATH_NOTE,
       OWNER_NOTE,
       NO_WINDOW_NOTE
@@ -69,6 +69,27 @@ export const SHOW_COMMAND_SPECS: CommandSpec[] = [
     ],
     examples: [
       'orca show ui --text "Sign in" --note "This button posts to /login" --code src/auth/login.ts:20-48'
+    ]
+  },
+  {
+    path: ['show', 'tour'],
+    summary:
+      "Play a tour: steps of words and shows, captioned above your chat's message box with Back, Play and Next",
+    usage:
+      'orca show tour <file.md> [--check] [--step <n>] [--play] | orca show tour next|back|play|pause|stop|state | orca show tour step --step <n> [--worktree <selector>] [--json]',
+    allowedFlags: [...SHOW_FLAGS, 'target', 'step', 'play', 'check'],
+    positionalArgs: ['target'],
+    notes: [
+      'A tour file is Markdown: "# Title", then per step "## Step title", 1-3 sentences, and one ```orca-show block of show subcommands without the "orca show" prefix (code, tree, file, ui), one per line. Paths are worktree-relative. Optional <!-- hold: 12s --> sets the auto-play time.',
+      'Every line is checked before anything is shown; all problems are listed at once. --check also stages every step once and reports what did not fit (a range cut off, a pane that had to be reused), then shows the start step; run it before handing the tour to the user. Each step is staged from scratch, so Back and Next show the same screen however the user got there.',
+      'The caption and controls sit at the bottom of your chat, above its message box, and the code changes with them on the stage beside it. The user can use the strip; you can drive it with next, back, step --step <n>, play, pause. stop (or orca show clear) ends it.',
+      OWNER_NOTE
+    ],
+    examples: [
+      'orca show tour docs/tours/file-open.md',
+      'orca show tour "$ORCA_CHAT_SCRATCH_DIR/tour.md" --play',
+      'orca show tour next',
+      'orca show tour step --step 3'
     ]
   },
   {

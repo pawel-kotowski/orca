@@ -39,11 +39,18 @@ export function performReveal(
     endLineMaxColumn:
       endLine === undefined ? undefined : model.getLineMaxColumn(Math.max(1, endLine))
   })
-  const shouldHighlight = matchLength > 0 || endLine !== undefined
+  // Why not ranges: their caller draws a lasting tint; a search-hit flash over it is noise.
+  const shouldHighlight = matchLength > 0 && endLine === undefined
 
   ed.setPosition({ lineNumber: range.startLineNumber, column: range.startColumn })
-  if (shouldHighlight) {
-    ed.setSelection(range)
+  if (endLine !== undefined) {
+    // Why no selection: a selected range brings up the "Copy context" hint over the code.
+    ed.setSelection({
+      startLineNumber: range.startLineNumber,
+      startColumn: 1,
+      endLineNumber: range.startLineNumber,
+      endColumn: 1
+    })
     const rangeHeight =
       ed.getBottomForLineNumber(range.endLineNumber) - ed.getTopForLineNumber(range.startLineNumber)
     // Why: centring a range taller than the pane leaves its first line halfway down.

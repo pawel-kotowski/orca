@@ -1,4 +1,6 @@
+import { formatTourResult } from './show-tour-format'
 import type {
+  AgentShowCodeFit,
   AgentShowRequest,
   AgentShowResult,
   AgentShowState
@@ -28,7 +30,10 @@ function formatState(state: AgentShowState): string {
       ? ` lines ${editor.visibleRange.startLine}-${editor.visibleRange.endLine}`
       : ''
     const marks = editor.marks.length > 0 ? ` marks ${editor.marks.join(', ')}` : ''
-    lines.push(`Editor ${editor.filePath}${range}${marks}`)
+    const fits = editor.marks.length > 0 ? (editor.fits ? ', range fits' : ', range cut off') : ''
+    lines.push(
+      `Editor ${editor.filePath}${range}${marks} (${editor.fontSize}px, ${editor.paneLines} lines tall${fits})`
+    )
   }
   const highlighted = state.explorer.highlighted.length
   lines.push(
@@ -46,11 +51,28 @@ export function formatShowResult(kind: AgentShowRequest['kind'], result: ShownRe
   if (result.state) {
     return formatState(result.state)
   }
+  if (result.tour) {
+    return formatTourResult(result)
+  }
   if (kind === 'clear') {
     return `Cleared your marks: ${result.detail ?? 'code, tree, ui'}.`
   }
   const head = result.visible
     ? `Shown ${kind}; it is on screen.`
     : `Shown ${kind}, but it is not on screen.`
-  return result.detail ? `${head} ${result.detail}` : head
+  const lines = [result.detail ? `${head} ${result.detail}` : head]
+  if (result.fit) {
+    lines.push(formatCodeFit(result.fit))
+  }
+  return lines.join('\n')
+}
+
+/** `fits: 18/18 lines at 12px (yours 14px)`, or a cut-off range with what to do. */
+export function formatCodeFit(fit: AgentShowCodeFit): string {
+  const font =
+    fit.fontSize === fit.userFontSize
+      ? `${fit.fontSize}px`
+      : `${fit.fontSize}px (yours ${fit.userFontSize}px)`
+  const head = `fits: ${fit.linesVisible}/${fit.rangeLines} lines at ${font}`
+  return fit.linesVisible >= fit.rangeLines ? head : `${head}; pick a shorter range`
 }

@@ -27,3 +27,19 @@
 .orca-agent-show-note-card {
   border-left: 3px solid color-mix(in srgb, var(--ai-action-accent) 70%, transparent);
 }
+
+.orca-agent-show-note-chip {
+  display: flex;
+  align-items: center;
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+.orca-agent-show-note-chip-text {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

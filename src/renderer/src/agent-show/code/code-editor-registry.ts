@@ -6,6 +6,8 @@ export type MountedCodeEditor = {
   worktreeId: string | undefined
   /** The unified tab the editor draws (Monaco's viewStateId). */
   tabId: string
+  /** Re-fits the font to the editor's marks and centres them. */
+  refit: () => void
 }
 
 const editorsByTab = new Map<string, MountedCodeEditor>()
