@@ -1,0 +1,29 @@
+/* Agent highlights use the AI accent so they never read as search hits (amber) or review notes (ring). */
+.monaco-editor .orca-agent-show-line {
+  background: color-mix(in srgb, var(--ai-action-accent) 10%, transparent);
+}
+
+.monaco-editor .orca-agent-show-line-bar {
+  margin-left: 3px;
+  width: 3px !important;
+  background: color-mix(in srgb, var(--ai-action-accent) 70%, transparent);
+}
+
+.orca-agent-show-mark-badge {
+  display: inline-block;
+  min-width: 1.5em;
+  margin-right: 0.5em;
+  padding: 0 0.4em;
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--ai-action-accent) 22%, transparent);
+  color: var(--foreground);
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.orca-agent-show-note-card {
+  border-left: 3px solid color-mix(in srgb, var(--ai-action-accent) 70%, transparent);
+}
