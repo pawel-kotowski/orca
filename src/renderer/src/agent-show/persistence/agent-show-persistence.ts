@@ -17,8 +17,8 @@ import { ensureTourStrips } from '../tour/TourStripHost'
 import {
   isEmptyShow,
   parseShows,
-  restorableShows,
   serializeShows,
+  splitByOpenTab,
   type OwnerShowSnapshot
 } from './agent-show-snapshot'
 
@@ -28,6 +28,11 @@ const STORAGE_KEY = 'orca.agentShow.stages.v1'
 const SAVE_DELAY_MS = 400
 const PAGE_RETRY_MS = 1000
 const PAGE_RETRIES = 20
+// Why: after a restart an agent's terminal tab reaches the store after the session has loaded.
+const WAIT_FOR_OWNER_TAB_MS = 120_000
+
+/** Stored owners whose tab has not appeared yet; kept in every save until it does or time runs out. */
+let awaitingTab: OwnerShowSnapshot[] = []
 
 function tourSnapshotOf(context: AgentShowContext): OwnerShowSnapshot['tour'] {
   const tour = tourOf(context)
@@ -52,10 +57,13 @@ function snapshotOwner(context: AgentShowContext): OwnerShowSnapshot | null {
 }
 
 function save(): void {
-  const owners = watchedShowOwners().flatMap((context) => {
-    const snapshot = snapshotOwner(context)
-    return snapshot && !isEmptyShow(snapshot) ? [snapshot] : []
-  })
+  const owners = [
+    ...watchedShowOwners().flatMap((context) => {
+      const snapshot = snapshotOwner(context)
+      return snapshot && !isEmptyShow(snapshot) ? [snapshot] : []
+    }),
+    ...awaitingTab
+  ]
   try {
     if (owners.length === 0) {
       localStorage.removeItem(STORAGE_KEY)
@@ -80,14 +88,22 @@ async function replayPageMarks(context: AgentShowContext, shown: ShownUiRequest[
   }
 }
 
-function restore(clearEverything: (context: AgentShowContext) => unknown): void {
-  let stored: OwnerShowSnapshot[] = []
+function readStored(): OwnerShowSnapshot[] {
   try {
-    stored = parseShows(localStorage.getItem(STORAGE_KEY))
+    return parseShows(localStorage.getItem(STORAGE_KEY))
   } catch {
-    return
+    return []
   }
-  for (const owner of restorableShows(stored, useAppStore.getState().unifiedTabsByWorktree)) {
+}
+
+/** Restores the awaited owners whose tab is open now; the rest keep waiting. */
+function restoreOpenOwners(clearEverything: (context: AgentShowContext) => unknown): void {
+  const { ready, waiting } = splitByOpenTab(
+    awaitingTab,
+    useAppStore.getState().unifiedTabsByWorktree
+  )
+  awaitingTab = waiting
+  for (const owner of ready) {
     const context: AgentShowContext = {
       worktreeId: owner.worktreeId,
       worktreePath: owner.worktreePath,
@@ -109,6 +125,39 @@ function restore(clearEverything: (context: AgentShowContext) => unknown): void 
   }
 }
 
+/** Restores owners as their tabs appear, for a while; then the ones still missing are gone for good. */
+function restoreAsTabsAppear(
+  clearEverything: (context: AgentShowContext) => unknown,
+  onDone: () => void
+): () => void {
+  awaitingTab = readStored()
+  restoreOpenOwners(clearEverything)
+  if (awaitingTab.length === 0) {
+    return () => undefined
+  }
+  let stop = (): void => undefined
+  const finish = (): void => {
+    stop()
+    awaitingTab = []
+    onDone()
+  }
+  const timer = setTimeout(finish, WAIT_FOR_OWNER_TAB_MS)
+  const unsubscribe = useAppStore.subscribe((state, previous) => {
+    if (state.unifiedTabsByWorktree === previous.unifiedTabsByWorktree) {
+      return
+    }
+    restoreOpenOwners(clearEverything)
+    if (awaitingTab.length === 0) {
+      stop()
+    }
+  })
+  stop = () => {
+    clearTimeout(timer)
+    unsubscribe()
+  }
+  return stop
+}
+
 const sessionLoaded = (): boolean => {
   const state = useAppStore.getState()
   return state.workspaceSessionReady && state.hydrationSucceeded
@@ -116,7 +165,7 @@ const sessionLoaded = (): boolean => {
 
 /**
  * Brings each agent's stage back after a reload or restart while its tab is open, then keeps
- * the stored copy current. Owners whose tab is gone are dropped on the first save.
+ * the stored copy current. Owners whose tab does not come back within two minutes are dropped.
  */
 export function startAgentShowPersistence(
   clearEverything: (context: AgentShowContext) => unknown
@@ -133,7 +182,7 @@ export function startAgentShowPersistence(
   }
   const subscriptions: (() => void)[] = []
   const begin = (): void => {
-    restore(clearEverything)
+    subscriptions.push(restoreAsTabsAppear(clearEverything, schedule))
     subscriptions.push(subscribeCodeMarks(schedule), subscribeTreeMarks(schedule))
     subscriptions.push(onAgentShowChange(schedule))
     schedule()

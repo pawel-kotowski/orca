@@ -7,7 +7,7 @@ import { clearCodeMarks, showCode, showFile } from './code/show-code'
 import { clearTreeMarks, showTree } from './tree/show-tree'
 import { clearUiMarks, showUi } from './ui/show-ui'
 import { showState } from './state/show-state'
-import { endTourOf, showTour } from './tour/show-tour'
+import { endTourOf, showTour, tourControlContext } from './tour/show-tour'
 import { createAgentShowDispatcher } from './agent-show-routing'
 import { watchShowOwner } from './agent-show-owner-lifecycle'
 import { WINDOW_HIDDEN_DETAIL, windowShown, worktreeDrawn } from './window-drawn'
@@ -57,7 +57,8 @@ export const clearEverything = (context: AgentShowContext): Promise<unknown> =>
     clearUiMarks(context)
   ])
 
-export const dispatchAgentShow: typeof routeAgentShow = (request, context) => {
+export const dispatchAgentShow: typeof routeAgentShow = (request, raw) => {
+  const context = tourControlContext(request, raw)
   watchShowOwner(context, clearEverything)
   return routeAgentShow(request, context)
 }

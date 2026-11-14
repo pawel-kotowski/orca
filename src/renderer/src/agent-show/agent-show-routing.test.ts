@@ -106,6 +106,19 @@ describe('createAgentShowDispatcher', () => {
     expect(areas.revealWorktree).not.toHaveBeenCalled()
   })
 
+  it('brings the user to a tour step the agent moves to, but not for a check, state or pause', async () => {
+    const areas = fakeAreas()
+    const dispatch = createAgentShowDispatcher(areas)
+    const tour = (action: 'start' | 'next' | 'state' | 'pause', check = false): AgentShowRequest =>
+      ({ kind: 'tour', action, play: false, check }) as AgentShowRequest
+    await dispatch(tour('start', true), context(true))
+    await dispatch(tour('state'), context(true))
+    await dispatch(tour('pause'), context(true))
+    expect(areas.revealWorktree).not.toHaveBeenCalled()
+    await dispatch(tour('next'), context(true))
+    expect(areas.revealWorktree).toHaveBeenCalledWith('wt-1')
+  })
+
   it('fans clear all out to every area, and one scope to that area only', async () => {
     const areas = fakeAreas()
     const dispatch = createAgentShowDispatcher(areas)

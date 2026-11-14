@@ -88,3 +88,12 @@ export function restorableShows(
     )
   )
 }
+
+/** Stored owners split by whether their tab is open yet; after a restart a tab arrives late. */
+export function splitByOpenTab(
+  owners: readonly OwnerShowSnapshot[],
+  tabsByWorktree: Readonly<Record<string, readonly { id: string; entityId: string }[] | undefined>>
+): { ready: OwnerShowSnapshot[]; waiting: OwnerShowSnapshot[] } {
+  const ready = restorableShows(owners, tabsByWorktree)
+  return { ready, waiting: owners.filter((owner) => !ready.includes(owner)) }
+}

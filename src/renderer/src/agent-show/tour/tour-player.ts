@@ -7,6 +7,11 @@ import { clearTreeMarks, showTree } from '../tree/show-tree'
 import { clearUiMarks, showUi } from '../ui/show-ui'
 import { signalAgentShowChange } from '../persistence/agent-show-change-signal'
 import { REUSED_PANE_DETAIL } from '../code/code-fit-report'
+import { windowShown, worktreeDrawn } from '../window-drawn'
+import { useAppStore } from '@/store/index'
+import type { StepPrediction } from './tour-fit-prediction'
+import { describeCut, describeOffScreen, predictionMiss } from './tour-step-problems'
+import { findOwnerTour } from './tour-owner-lookup'
 import {
   stepEntryClears,
   stepHoldMs,
@@ -28,6 +33,10 @@ export type PlayingTour = {
   advanceAt: number | null
   /** What the last entry of each step showed, for the agent's results. */
   outcomes: (TourStepOutcome | null)[]
+  /** Each step's fit as predicted when the tour started, before anything was staged. */
+  predictions: StepPrediction[] | null
+  /** What a step showed that its prediction missed, shown quietly on the strip. */
+  warnings: (string | null)[]
 }
 
 const tours = new Map<string, PlayingTour>()
@@ -62,7 +71,7 @@ export function playingTours(): PlayingTour[] {
 }
 
 export function tourOf(context: AgentShowContext): PlayingTour | undefined {
-  return tours.get(tourKey(context))
+  return findOwnerTour(tours, tourKey(context), context.ownerTabId)
 }
 
 async function runShow(
@@ -81,15 +90,18 @@ async function runShow(
   }
 }
 
-function describeProblem(result: AgentShowResult): string | null {
+function describeProblem(
+  result: AgentShowResult,
+  request: TourStep['requests'][number]
+): string | null {
   if (!result.ok) {
     return `${result.code}: ${result.message}`
   }
   if (result.detail?.includes(REUSED_PANE_DETAIL)) {
     return result.detail.slice(result.detail.indexOf(REUSED_PANE_DETAIL))
   }
-  if (result.fit && result.fit.linesVisible < result.fit.rangeLines) {
-    return `only ${result.fit.linesVisible} of ${result.fit.rangeLines} lines fit`
+  if (result.fit && result.fit.linesVisible < result.fit.rangeLines && request.kind === 'code') {
+    return describeCut(request, result.fit.linesVisible, result.fit.rangeLines)
   }
   return result.visible ? null : (result.detail ?? 'not on screen')
 }
@@ -130,12 +142,7 @@ function offScreenRanges(step: TourStep, context: AgentShowContext): string[] {
         editor.visibleRange.startLine <= startLine &&
         editor.visibleRange.endLine >= endLine
     )
-    const label = request.mark ? `mark ${request.mark} ` : ''
-    return shown
-      ? []
-      : [
-          `${label}(${request.filePath}:${startLine}-${endLine}) is not on screen; split the step or shorten its ranges`
-        ]
+    return shown ? [] : [describeOffScreen(request)]
   })
 }
 
@@ -160,7 +167,7 @@ async function enterStep(tour: PlayingTour, index: number): Promise<TourStepOutc
   let visible = true
   for (const request of stepRequests(step)) {
     const result = await runShow(request, context)
-    const problem = describeProblem(result)
+    const problem = describeProblem(result, request)
     visible &&= result.ok && result.visible
     if (problem) {
       problems.push(problem)
@@ -168,6 +175,11 @@ async function enterStep(tour: PlayingTour, index: number): Promise<TourStepOutc
   }
   problems.push(...offScreenRanges(step, context))
   tour.outcomes[index] = { visible: visible && problems.length === 0, problems }
+  const predicted = tour.predictions?.[index]
+  // Why drawn only: in a hidden window or another workspace every range reads as off screen.
+  const measurable = windowShown() && worktreeDrawn(useAppStore.getState(), context.worktreeId)
+  tour.warnings[index] =
+    predicted && measurable ? predictionMiss(predicted.problems, problems) : null
   schedule(tour)
   notify()
   return tour.outcomes[index]!
@@ -179,7 +191,7 @@ export function goToStep(
   index: number
 ): Promise<TourStepOutcome | null> {
   const run = entering.then(() => {
-    const tour = tours.get(tourKey(context))
+    const tour = tourOf(context)
     return tour && index >= 0 && index < tour.steps.length ? enterStep(tour, index) : null
   })
   entering = run.catch(() => undefined)
@@ -194,10 +206,13 @@ export async function startTour(
     steps: TourStep[]
     step: number
     play: boolean
-    /** Stage every step once first, so each one's problems are known before the user plays it. */
-    check?: boolean
+    predictions: StepPrediction[] | null
   }
 ): Promise<PlayingTour> {
+  const previous = tourOf(context)
+  if (previous) {
+    endTour(previous.context)
+  }
   stopTimer(context)
   const tour: PlayingTour = {
     context: { ...context, focus: false },
@@ -207,16 +222,11 @@ export async function startTour(
     index: 0,
     playing: input.play,
     advanceAt: null,
-    outcomes: input.steps.map(() => null)
+    outcomes: input.steps.map(() => null),
+    predictions: input.predictions,
+    warnings: input.steps.map(() => null)
   }
   tours.set(tourKey(context), tour)
-  if (input.check) {
-    tour.playing = false
-    for (let index = 0; index < input.steps.length; index += 1) {
-      await goToStep(context, index)
-    }
-    tour.playing = input.play
-  }
   await goToStep(context, Math.min(Math.max(0, input.step), input.steps.length - 1))
   return tour
 }
@@ -228,7 +238,7 @@ function stopTimer(context: AgentShowContext): void {
 }
 
 export function setTourPlaying(context: AgentShowContext, playing: boolean): void {
-  const tour = tours.get(tourKey(context))
+  const tour = tourOf(context)
   if (!tour || tour.playing === playing) {
     return
   }
@@ -251,15 +261,16 @@ export async function stepTour(
   action: 'next' | 'back' | 'step',
   requested?: number
 ): Promise<TourStepOutcome | null> {
-  const tour = tours.get(tourKey(context))
+  const tour = tourOf(context)
   if (!tour) {
     return null
   }
   const target = tourTargetStep(action, tour.index, tour.steps.length, requested)
-  return target === null ? null : goToStep(context, target)
+  return target === null ? null : goToStep(tour.context, target)
 }
 
 /** Ends the tour; its marks go with `orca show clear`, which calls this. */
+/** Ends exactly this owner's tour in this worktree: a clear from another folder leaves it be. */
 export function endTour(context: AgentShowContext): void {
   stopTimer(context)
   if (tours.delete(tourKey(context))) {
@@ -280,7 +291,9 @@ export function restoreTour(
     index: Math.min(saved.index, saved.steps.length - 1),
     playing: false,
     advanceAt: null,
-    outcomes: saved.steps.map(() => null)
+    outcomes: saved.steps.map(() => null),
+    predictions: null,
+    warnings: saved.steps.map(() => null)
   })
   notify()
 }
