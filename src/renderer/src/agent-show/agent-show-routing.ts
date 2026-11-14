@@ -52,13 +52,23 @@ async function clearScopes(
   return { ok: true, visible: false, detail: scopes.join(', ') }
 }
 
+/** Moving a tour stages a step, so it shows like any show; a check stages nothing. */
+function stagesSomething(request: AgentShowRequest): boolean {
+  if (request.kind === 'tour') {
+    return request.action === 'start'
+      ? !request.check
+      : ['next', 'back', 'step'].includes(request.action)
+  }
+  return STAGING_KINDS.includes(request.kind)
+}
+
 async function route(
   areas: AgentShowAreas,
   request: AgentShowRequest,
   context: AgentShowContext
 ): Promise<AgentShowResult> {
-  // Reading state or clearing marks never moves the user's view.
-  if (context.focus && !['state', 'clear', 'tour'].includes(request.kind)) {
+  // Reading state, clearing marks or checking a tour never moves the user's view.
+  if (context.focus && stagesSomething(request)) {
     await areas.revealWorktree(context.worktreeId)
   }
   switch (request.kind) {

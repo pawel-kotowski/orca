@@ -19,11 +19,11 @@ import { verticalStackAround, type CodeStage } from './code-stage'
 /** Columns of code a stage pane must show at the floor font, else code goes to a background tab. */
 export const MIN_STAGE_COLUMNS = 60
 /** A second stage column only when each half still shows this many. */
-const MIN_SPLIT_RIGHT_COLUMNS = 72
-const MIN_CHAT_WIDTH_PX = 320
+export const MIN_SPLIT_RIGHT_COLUMNS = 72
+export const MIN_CHAT_WIDTH_PX = 320
 // Why 0.42: code wraps in a narrow pane; the chat's few sentences read fine in less width.
 export const CHAT_SHARE_BESIDE_STAGE = 0.42
-const GUTTER_PX = 56
+export const GUTTER_PX = 56
 const STRIP_PX = 36
 /** Height a stage pane spends outside its editor: tab strip, path bar, scrollbar and margin. */
 export const PANE_CHROME_PX = STRIP_PX + 44
@@ -32,7 +32,7 @@ const UNMARKED_PANE_PX = 160
 /** A browser page the agent points at keeps enough height to read. */
 const PAGE_PANE_PX = 280
 // Why 1.5: Monaco's derived line height on macOS; elsewhere it is smaller, so this errs safe.
-const AUTO_LINE_HEIGHT_RATIO = 1.5
+export const AUTO_LINE_HEIGHT_RATIO = 1.5
 
 type Rect = { width: number; height: number }
 
@@ -52,7 +52,7 @@ export function userCodeTypography(state: AppState): CodeTypography {
   return { fontSize: typography.fontSize, lineHeight: typography.lineHeight }
 }
 
-function noteCardPx(note: string | undefined): number {
+export function noteCardPx(note: string | undefined): number {
   // Why: the card wraps at about 60 characters in a stage pane.
   return note ? ZONE_CHROME_PX + Math.ceil(note.length / 60) * ZONE_LINE_PX : 0
 }

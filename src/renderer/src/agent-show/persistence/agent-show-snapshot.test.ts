@@ -4,6 +4,7 @@ import {
   parseShows,
   restorableShows,
   serializeShows,
+  splitByOpenTab,
   type OwnerShowSnapshot
 } from './agent-show-snapshot'
 
@@ -56,5 +57,25 @@ describe('agent show snapshots', () => {
   it('treats an owner with no marks left as nothing to keep', () => {
     expect(isEmptyShow({ ...owner('w1', 'chat'), code: [], ui: [] })).toBe(true)
     expect(isEmptyShow(owner('w1', 'chat'))).toBe(false)
+  })
+
+  it('keeps a stored tour waiting until its tab arrives after a restart, then restores it', () => {
+    const playing = {
+      ...owner('w1', 'term-1'),
+      code: [],
+      ui: [],
+      tour: {
+        title: 'Features',
+        file: '/w/tour.md',
+        index: 1,
+        steps: [{ title: 'a', caption: 'b', holdMs: null, requests: [] }]
+      }
+    }
+    const stored = parseShows(serializeShows([playing]))
+    expect(splitByOpenTab(stored, {})).toEqual({ ready: [], waiting: stored })
+    expect(splitByOpenTab(stored, { w1: [{ id: 'term-1', entityId: 'pty-1' }] })).toEqual({
+      ready: stored,
+      waiting: []
+    })
   })
 })

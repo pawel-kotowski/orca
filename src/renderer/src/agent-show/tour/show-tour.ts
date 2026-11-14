@@ -1,10 +1,12 @@
 import type {
   AgentShowContext,
   AgentShowHandler,
+  AgentShowRequest,
   AgentShowResult
 } from '../../../../shared/agent-show/agent-show-contract'
-import { ensureTourStrips, tourStripRect } from './TourStripHost'
+import { ensureTourStrips, tourStripShown } from './TourStripHost'
 import { windowShown } from '../window-drawn'
+import { checkTour, describeTourCheck } from './tour-check'
 import {
   endTour,
   setTourPlaying,
@@ -17,21 +19,17 @@ import {
 const HIDDEN_WINDOW_PROBLEM =
   'the Orca window is hidden (minimized, on another desktop or covered), so no step could be measured; run it again once Orca is in front'
 
-function tourResult(tour: PlayingTour, detail?: string, everyStep = false): AgentShowResult {
+function tourResult(tour: PlayingTour, detail?: string): AgentShowResult {
   const outcome = tour.outcomes[tour.index]
   const shown = windowShown()
   // Why: in a hidden window every range reads as off screen; that is the window, not the tour.
-  const problems = !shown
-    ? [HIDDEN_WINDOW_PROBLEM]
-    : everyStep
-      ? tour.outcomes.flatMap((stepOutcome, index) =>
-          (stepOutcome?.problems ?? []).map((problem) => `step ${index + 1}: ${problem}`)
-        )
-      : (outcome?.problems ?? [])
+  const problems = !shown ? [HIDDEN_WINDOW_PROBLEM] : (outcome?.problems ?? [])
+  const warning = tour.warnings[tour.index]
+  const details = [detail, warning ? `step ${tour.index + 1}: ${warning}` : null].filter(Boolean)
   return {
     ok: true,
-    visible: shown && (outcome?.visible ?? true) && tourStripRect(tour) !== null,
-    ...(detail ? { detail } : {}),
+    visible: (outcome?.visible ?? true) && tourStripShown(tour),
+    ...(details.length > 0 ? { detail: details.join('; ') } : {}),
     tour: {
       title: tour.title,
       file: tour.file,
@@ -56,14 +54,19 @@ export const showTour: AgentShowHandler<'tour'> = async (request, context) => {
     if (!request.tour) {
       return { ok: false, code: 'invalid_argument', message: 'start needs the tour steps' }
     }
+    const check = await checkTour(context, request.tour.steps)
+    if (request.check) {
+      // Why nothing staged: the user should not watch every step flash by while the agent checks.
+      return { ok: true, visible: false, detail: describeTourCheck(request.tour.title, check) }
+    }
     ensureTourStrips()
     const tour = await startTour(context, {
       ...request.tour,
       step: (request.step ?? 1) - 1,
       play: request.play,
-      check: request.check
+      predictions: check.measured ? check.steps : null
     })
-    return tourResult(tour, undefined, request.check)
+    return tourResult(tour)
   }
   const tour = tourOf(context)
   if (!tour) {
@@ -83,7 +86,7 @@ export const showTour: AgentShowHandler<'tour'> = async (request, context) => {
       setTourPlaying(context, request.action === 'play')
       return tourResult(tour)
     case 'stop':
-      endTour(context)
+      endTour(tour.context)
       return { ok: true, visible: false, detail: `ended the tour "${tour.title}"` }
     case 'state':
       return tourResult(tour)
@@ -92,4 +95,19 @@ export const showTour: AgentShowHandler<'tour'> = async (request, context) => {
 
 export function endTourOf(context: AgentShowContext): void {
   endTour(context)
+}
+
+/**
+ * A tour control runs in the tour's own worktree, whatever folder the agent's shell is in, so the
+ * view moves there and the owner is watched where its tab is.
+ */
+export function tourControlContext(
+  request: AgentShowRequest,
+  context: AgentShowContext
+): AgentShowContext {
+  if (request.kind !== 'tour' || request.action === 'start') {
+    return context
+  }
+  const tour = tourOf(context)
+  return tour ? { ...tour.context, focus: context.focus } : context
 }
