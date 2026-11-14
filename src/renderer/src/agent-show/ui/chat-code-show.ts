@@ -8,11 +8,11 @@ import { showCode } from '../code/show-code'
 /** A click asked to see this code, so it always moves the view, whatever the agent's own focus. */
 export function showCodeOnClick(
   code: { filePath: string; range: { startLine: number; endLine: number } },
-  context: AgentShowContext
+  context: Omit<AgentShowContext, 'focus'>
 ): Promise<AgentShowResult> {
   return showCode(
     { kind: 'code', filePath: code.filePath, range: code.range, place: 'beside', keepOthers: true },
-    Object.assign({}, context, { focus: true })
+    { ...context, focus: true }
   )
 }
 

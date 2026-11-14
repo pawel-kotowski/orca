@@ -39,6 +39,9 @@ import type {
   AgentPaneActivityChange
 } from '../../../../shared/agent-status/presentation/agent-list-status'
 
+import type { AgentShowResult } from '../../../../shared/agent-show/agent-show-contract'
+import type { AgentShowWindowRequest } from '../../../../shared/agent-show/agent-show-window-relay'
+
 export type RuntimeNotifier = {
   automationsChanged?(payload: {
     selector?: { kind: 'self' } | { kind: 'ssh'; targetId: string } | { kind: 'orphan' }
@@ -145,6 +148,10 @@ export type RuntimeNotifier = {
   closeSessionTab?(tabId: string, worktreeId: string): void | Promise<void>
   moveSessionTab?(worktreeId: string, move: RuntimeMobileSessionTabMove): void
   /** The window moves a client's pane to a new tab, since it owns the layout; rejects when it cannot answer. */
+  /** Runs one `orca show` request in the window; rejects with renderer_unavailable when it cannot answer. */
+  agentShow?(request: AgentShowWindowRequest): Promise<AgentShowResult>
+  /** PNG of the whole window, captured without showing, raising or focusing it. */
+  captureWindowPng?(): Promise<{ png: Buffer; width: number; height: number }>
   movePaneToNewTab?(
     move: Omit<TerminalPaneMoveToNewTabRequest, 'requestId'>
   ): Promise<TerminalLeafMoveResult>

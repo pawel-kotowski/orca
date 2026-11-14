@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import type { TabContentType, TabGroupLayoutNode } from '../tab-types'
 
 // Why: one contract for `orca show`, so the CLI, the RPC layer and each renderer area agree without importing each other.
 
@@ -89,6 +90,8 @@ export type AgentShowContext = {
   worktreeId: string
   worktreePath: string
   ownerTabId: string | null
+  // False (--no-focus): do not activate tabs or the sidebar, and do not move the view.
+  focus: boolean
 }
 
 export type AgentShowVisibleEditor = {
@@ -99,8 +102,23 @@ export type AgentShowVisibleEditor = {
   marks: string[]
 }
 
+export type AgentShowLayoutTab = {
+  tabId: string
+  contentType: TabContentType
+  label: string
+  filePath: string | null
+  isOwner: boolean
+}
+
+export type AgentShowLayout = {
+  root: TabGroupLayoutNode | null
+  activeGroupId: string | null
+  groups: { groupId: string; activeTabId: string | null; tabs: AgentShowLayoutTab[] }[]
+}
+
 export type AgentShowState = {
   worktreeOnScreen: boolean
+  layout: AgentShowLayout
   ownerTabVisible: boolean
   editors: AgentShowVisibleEditor[]
   explorer: { open: boolean; highlighted: string[] }

@@ -9,6 +9,7 @@ import type { TerminalTabCreateReply } from '../../shared/workspace-layout/termi
 import { runWorktreeChangeInvalidators } from '../ipc/worktrees/listing/worktree-change-invalidators'
 import { requestAgentLaunchTabPublishFromRenderer } from './agent-launch-tab-publish-relay'
 import { requestAgentPaneActivityFromRenderer } from './agent-pane-activity-relay'
+import { captureAgentShowWindowPng, requestAgentShowFromRenderer } from './agent-show-window-relay'
 import type { OrcaRuntimeService } from '../runtime/orca-runtime'
 import { registerRendererDocumentNavigation } from './renderer-document-navigation'
 import { createRuntimeRendererNotificationSender } from './runtime-renderer-notification-sender'
@@ -192,6 +193,8 @@ export function registerRuntimeWindowLifecycle(
     moveSessionTab: (worktreeId: string, move: RuntimeMobileSessionTabMove) =>
       send('ui:moveSessionTab', { worktreeId, ...move }),
     movePaneToNewTab: (move) => requestTerminalPaneMoveFromRenderer(mainWindow, move),
+    agentShow: (request) => requestAgentShowFromRenderer(mainWindow, request),
+    captureWindowPng: () => captureAgentShowWindowPng(mainWindow),
     openFile: (worktreeId, filePath, relativePath, runtimeEnvironmentId?, navigation?, position?) =>
       send('ui:openFileFromMobile', {
         worktreeId,
