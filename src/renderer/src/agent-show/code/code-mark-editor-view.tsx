@@ -14,7 +14,10 @@ import { buildCodeMarkDecorations } from './code-mark-decorations'
 import type { CodeMark } from './code-mark-store'
 import { AgentShowNoteCard } from './AgentShowNoteCard'
 
+const COMPACT_NOTE_PX = 34
+
 type NoteZone = {
+  mark: string
   zoneId: string
   domNode: HTMLElement
   delegate: editor.IViewZone
@@ -23,12 +26,21 @@ type NoteZone = {
 }
 
 export type CodeMarkEditorView = {
-  render: (marks: readonly CodeMark[]) => void
+  /** Tints every mark; cards only for `cardMarks` (default: all). */
+  render: (marks: readonly CodeMark[], cardMarks?: readonly CodeMark[]) => void
+  /** Pixel height of the note cards drawn for these marks. */
+  noteHeightPx: (marks: readonly CodeMark[]) => number
   dispose: () => void
 }
 
-/** One editor's marks: a decorations collection plus a note card per noted mark, below its range. */
-export function createCodeMarkEditorView(ed: editor.IStandaloneCodeEditor): CodeMarkEditorView {
+/**
+ * One editor's marks: a decorations collection plus a note card per noted mark, below its range.
+ * `onNoteResized` runs after a card's height settles, so the editor can refit around it.
+ */
+export function createCodeMarkEditorView(
+  ed: editor.IStandaloneCodeEditor,
+  onNoteResized: () => void
+): CodeMarkEditorView {
   const decorations = ed.createDecorationsCollection()
   const zones = new Map<string, NoteZone>()
 
@@ -49,7 +61,7 @@ export function createCodeMarkEditorView(ed: editor.IStandaloneCodeEditor): Code
     queueMicrotask(() => roots.forEach((root) => root.unmount()))
   }
 
-  const render = (marks: readonly CodeMark[]): void => {
+  const render = (marks: readonly CodeMark[], cardMarks: readonly CodeMark[] = marks): void => {
     const model = ed.getModel()
     if (!model) {
       decorations.clear()
@@ -58,16 +70,22 @@ export function createCodeMarkEditorView(ed: editor.IStandaloneCodeEditor): Code
     }
     decorations.set(buildCodeMarkDecorations(marks, model))
     const lineCount = model.getLineCount()
-    const wanted = new Map<string, CodeMark>()
-    for (const mark of marks) {
+    const wanted = new Map<string, { mark: CodeMark; compact: boolean }>()
+    const newest = Math.max(...cardMarks.map((mark) => mark.seq ?? 0))
+    for (const mark of cardMarks) {
       if (mark.note) {
         const shown = { ...mark, ...clampCodeLineRange(mark, lineCount).range }
-        wanted.set(JSON.stringify([shown.mark, shown.startLine, shown.endLine, shown.note]), shown)
+        // Why: only the newest note is read now; older ones fold to a line so the code stays in view.
+        const compact = (mark.seq ?? 0) < newest
+        wanted.set(
+          JSON.stringify([shown.mark, shown.startLine, shown.endLine, shown.note, compact]),
+          { mark: shown, compact }
+        )
       }
     }
     removeZones([...zones.keys()].filter((key) => !wanted.has(key)))
     ed.changeViewZones((accessor) => {
-      for (const [key, mark] of wanted) {
+      for (const [key, { mark, compact }] of wanted) {
         if (zones.has(key)) {
           continue
         }
@@ -75,14 +93,17 @@ export function createCodeMarkEditorView(ed: editor.IStandaloneCodeEditor): Code
         domNode.className = 'orca-diff-comment-inline'
         const delegate: editor.IViewZone = {
           afterLineNumber: mark.endLine,
-          heightInPx: Math.max(
-            ZONE_MIN_PX,
-            ZONE_CHROME_PX + getCommentBodyLayoutLineCount(mark.note ?? '') * ZONE_LINE_PX
-          ),
+          heightInPx: compact
+            ? COMPACT_NOTE_PX
+            : Math.max(
+                ZONE_MIN_PX,
+                ZONE_CHROME_PX + getCommentBodyLayoutLineCount(mark.note ?? '') * ZONE_LINE_PX
+              ),
           domNode,
           suppressMouseDown: false
         }
         const zone: NoteZone = {
+          mark: mark.mark,
           zoneId: accessor.addZone(delegate),
           domNode,
           delegate,
@@ -92,7 +113,17 @@ export function createCodeMarkEditorView(ed: editor.IStandaloneCodeEditor): Code
         zones.set(key, zone)
         zone.root.render(
           <TranslationScopeProvider>
-            <AgentShowNoteCard mark={mark} onResize={() => resizeDiffCommentZone(ed, zone)} />
+            <AgentShowNoteCard
+              mark={mark}
+              compact={compact}
+              onResize={() => {
+                const before = zone.delegate.heightInPx
+                resizeDiffCommentZone(ed, zone)
+                if (zone.delegate.heightInPx !== before) {
+                  onNoteResized()
+                }
+              }}
+            />
           </TranslationScopeProvider>
         )
       }
@@ -101,6 +132,12 @@ export function createCodeMarkEditorView(ed: editor.IStandaloneCodeEditor): Code
 
   return {
     render,
+    noteHeightPx: (marks) => {
+      const labels = new Set(marks.map((mark) => mark.mark))
+      return [...zones.values()]
+        .filter((zone) => labels.has(zone.mark))
+        .reduce((sum, zone) => sum + (zone.delegate.heightInPx ?? 0), 0)
+    },
     dispose: () => {
       decorations.clear()
       removeZones([...zones.keys()])

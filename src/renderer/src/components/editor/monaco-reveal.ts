@@ -39,7 +39,8 @@ export function performReveal(
     endLineMaxColumn:
       endLine === undefined ? undefined : model.getLineMaxColumn(Math.max(1, endLine))
   })
-  const shouldHighlight = matchLength > 0 || endLine !== undefined
+  // Why not ranges: their caller draws a lasting tint; a search-hit flash over it is noise.
+  const shouldHighlight = matchLength > 0 && endLine === undefined
 
   ed.setPosition({ lineNumber: range.startLineNumber, column: range.startColumn })
   if (endLine !== undefined) {

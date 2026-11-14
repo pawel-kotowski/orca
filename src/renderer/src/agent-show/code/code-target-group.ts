@@ -4,61 +4,196 @@ import type {
 } from '../../../../shared/agent-show/agent-show-contract'
 import type { AppState } from '@/store/types'
 import { useAppStore } from '@/store'
-import { resolveLinkOpenSidePlacement } from '@/lib/links/placement/adjacent-link-open-group'
 import { liveLinkOpenGroupIds } from '@/lib/links/placement/link-open-intent'
-import { chooseCodePlacement } from './code-placement'
-import { codeMarkOwnerKey } from './code-mark-store'
+import { chooseCodePlacement, currentStagePane } from './code-placement'
+import { findCodeStage, stackSplitRatios, verticalStackAround } from './code-stage'
+import {
+  CHAT_SHARE_BESIDE_STAGE,
+  markedPaneNeedPx,
+  measureStageRoom,
+  newPaneNeed,
+  PANE_CHROME_PX,
+  stackHeightPx,
+  stagePaneNeed
+} from './code-stage-room'
+import { stackPaneShares, type CodePaneNeed } from './code-fit'
+import { ownerOpenedTab, rememberStageGroupCreated, stagePanesUsedBy } from './code-stage-tabs'
+import { makeRoomForStage } from './code-stage-sidebars'
 
-const lastGroupByOwner = new Map<string, string>()
-
-export function rememberOwnerGroup(context: AgentShowContext, groupId: string): void {
-  lastGroupByOwner.set(codeMarkOwnerKey(context), groupId)
+export type CodeTarget = {
+  /** undefined: the editor's default group (no owner tab). */
+  groupId: string | undefined
+  /** The window is too narrow for a stage: a background tab in the chat's pane. */
+  background: boolean
+  /** A split was wanted but would leave a range unreadable, so a used pane was reused. */
+  reusedForRoom: boolean
+  /** The tab that pane showed before (it stays there, behind). */
+  replacedLabel?: string
+  linesPerPaneIfSplit?: number
 }
 
-/** The group a show request opens into, creating its split; undefined = the editor's default. */
-export function resolveCodeTargetGroup(
-  context: AgentShowContext,
-  place: AgentShowPlacement,
-  focus: boolean
-): string | undefined {
-  const state: AppState = useAppStore.getState()
+export type CodeTargetRequest = {
+  place: AgentShowPlacement
+  lines: number
+  note?: string
+  keepOthers: boolean
+}
+
+/** The pane's front tab is a browser page. */
+function showsPage(state: AppState, worktreeId: string, groupId: string): boolean {
+  const activeTabId = state.groupsByWorktree[worktreeId]?.find((g) => g.id === groupId)?.activeTabId
+  return (
+    state.unifiedTabsByWorktree[worktreeId]?.find((tab) => tab.id === activeTabId)?.contentType ===
+    'browser'
+  )
+}
+
+function ownerGroupOf(state: AppState, context: AgentShowContext): string | null {
   const { worktreeId, ownerTabId } = context
-  const live = liveLinkOpenGroupIds(state, worktreeId)
-  const ownerTab = ownerTabId
-    ? state.unifiedTabsByWorktree[worktreeId]?.find(
-        (tab) => tab.id === ownerTabId || tab.entityId === ownerTabId
-      )
-    : undefined
-  const ownerGroupId = ownerTab && live.has(ownerTab.groupId) ? ownerTab.groupId : null
-  const remembered = lastGroupByOwner.get(codeMarkOwnerKey(context))
-  const placement = chooseCodePlacement({
-    place,
-    ownerGroupId,
-    lastGroupId: remembered && live.has(remembered) ? remembered : null,
-    beside: ownerGroupId
-      ? resolveLinkOpenSidePlacement({
-          layout: state.layoutByWorktree[worktreeId],
-          groups: state.groupsByWorktree[worktreeId] ?? [],
-          sourceGroupId: ownerGroupId
-        })
-      : null
-  })
-  // Why: code opened in the chat's own pane hides the chat; split beside it instead.
-  if (placement.kind === 'group' && placement.groupId === ownerGroupId) {
-    return (
-      state.createEmptySplitGroup(worktreeId, placement.groupId, 'right', { activate: focus }) ??
-      undefined
+  if (!ownerTabId) {
+    return null
+  }
+  const ownerTab = state.unifiedTabsByWorktree[worktreeId]?.find(
+    (tab) => tab.id === ownerTabId || tab.entityId === ownerTabId
+  )
+  return ownerTab && liveLinkOpenGroupIds(state, worktreeId).has(ownerTab.groupId)
+    ? ownerTab.groupId
+    : null
+}
+
+/**
+ * Sizes the stage panes stacked with `groupId` so each shows its range: floors first, then toward
+ * the user's font. `newNeed` stands in for a pane whose editor is not open yet.
+ */
+export function sizeCodeStageStack(
+  context: AgentShowContext,
+  groupId: string,
+  newNeed?: CodePaneNeed
+): void {
+  const state = useAppStore.getState()
+  const layout = state.layoutByWorktree[context.worktreeId]
+  const ownerGroupId = ownerGroupOf(state, context)
+  const stage = layout && ownerGroupId ? findCodeStage(layout, ownerGroupId) : null
+  const stack = layout && stage ? verticalStackAround(layout, stage.path, groupId) : null
+  if (!layout || !stack || stack.leaves.length < 2) {
+    return
+  }
+  const groups = state.groupsByWorktree[context.worktreeId] ?? []
+  const needs = stack.leaves.map((id) =>
+    id === groupId && newNeed
+      ? newNeed
+      : stagePaneNeed(
+          groups.find((group) => group.id === id)?.activeTabId ?? null,
+          showsPage(state, context.worktreeId, id)
+        )
+  )
+  const shares = stackPaneShares(needs, stackHeightPx(stack.leaves), PANE_CHROME_PX)
+  const shareOf = new Map(stack.leaves.map((id, index) => [id, shares[index] ?? 0]))
+  for (const { path, ratio } of stackSplitRatios(
+    layout,
+    stack.path,
+    (id) => shareOf.get(id) ?? 0
+  )) {
+    state.setTabGroupSplitRatio(context.worktreeId, path, ratio)
+  }
+}
+
+/** A new stage takes more of the width than the chat it splits from. */
+function giveStageItsWidth(context: AgentShowContext, ownerGroupId: string): void {
+  const state = useAppStore.getState()
+  const layout = state.layoutByWorktree[context.worktreeId]
+  const stage = layout ? findCodeStage(layout, ownerGroupId) : null
+  if (stage) {
+    state.setTabGroupSplitRatio(
+      context.worktreeId,
+      stage.path.slice(0, -1).join('.'),
+      CHAT_SHARE_BESIDE_STAGE
     )
+  }
+}
+
+/** The group a show request opens into, beside the chat, creating the stage or its split. */
+export function resolveCodeTarget(
+  context: AgentShowContext,
+  request: CodeTargetRequest,
+  focus: boolean
+): CodeTarget {
+  const state = useAppStore.getState()
+  const { worktreeId } = context
+  const ownerGroupId = ownerGroupOf(state, context)
+  const none = { groupId: undefined, background: false, reusedForRoom: false }
+  if (!ownerGroupId) {
+    return none
+  }
+  const layout = state.layoutByWorktree[worktreeId]
+  const live = liveLinkOpenGroupIds(state, worktreeId)
+  const stage = layout ? findCodeStage(layout, ownerGroupId) : null
+  const used = stagePanesUsedBy(context).filter((id) => live.has(id))
+  const groups = state.groupsByWorktree[worktreeId] ?? []
+  const measure = (extraWidthPx: number) =>
+    measureStageRoom({
+      extraWidthPx,
+      state,
+      layout,
+      ownerGroupId,
+      stage,
+      currentPane: stage ? currentStagePane(stage.leaves, used) : null,
+      newRange: { lines: request.lines, note: request.note },
+      paneNeedPx: (groupId) => {
+        const group = groups.find((candidate) => candidate.id === groupId)
+        const ours = group?.tabOrder.every((tabId) => ownerOpenedTab(context, tabId)) ?? false
+        if (!request.keepOthers) {
+          // Why: a pane holding only tabs this show replaces closes after it.
+          return ours ? null : markedPaneNeedPx(null, showsPage(state, worktreeId, groupId))
+        }
+        return markedPaneNeedPx(group?.activeTabId ?? null, showsPage(state, worktreeId, groupId))
+      }
+    })
+  const room = focus ? makeRoomForStage(state, context, measure) : measure(0)
+  const placement = chooseCodePlacement({
+    place: request.place,
+    ownerGroupId,
+    stageLeaves: stage?.leaves ?? null,
+    usedByOwner: used,
+    pagePanes: (stage?.leaves ?? []).filter((id) => showsPage(state, worktreeId, id)),
+    ...room
+  })
+  if (placement.kind === 'default') {
+    return none
+  }
+  if (placement.kind === 'background') {
+    return { groupId: placement.groupId, background: true, reusedForRoom: false }
   }
   if (placement.kind === 'group') {
-    return placement.groupId
+    const front = groups.find((group) => group.id === placement.groupId)?.activeTabId
+    const frontTab = state.unifiedTabsByWorktree[worktreeId]?.find((tab) => tab.id === front)
+    return {
+      groupId: placement.groupId,
+      background: false,
+      reusedForRoom: placement.reusedForRoom === true,
+      ...(placement.reusedForRoom && frontTab
+        ? { replacedLabel: frontTab.customLabel ?? frontTab.label }
+        : {}),
+      ...(room.linesPerPaneIfSplit === undefined
+        ? {}
+        : { linesPerPaneIfSplit: room.linesPerPaneIfSplit })
+    }
   }
-  if (placement.kind === 'split') {
-    return (
-      state.createEmptySplitGroup(worktreeId, placement.sourceGroupId, placement.direction, {
-        activate: focus
-      }) ?? undefined
-    )
+  const created = state.createEmptySplitGroup(
+    worktreeId,
+    placement.sourceGroupId,
+    placement.direction,
+    { activate: focus }
+  )
+  if (!created) {
+    return none
   }
-  return undefined
+  rememberStageGroupCreated(context, created)
+  if (placement.sourceGroupId === ownerGroupId) {
+    giveStageItsWidth(context, ownerGroupId)
+  }
+  if (placement.direction === 'down') {
+    sizeCodeStageStack(context, created, newPaneNeed(state, request.lines, request.note))
+  }
+  return { groupId: created, background: false, reusedForRoom: false }
 }

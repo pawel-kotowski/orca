@@ -6,9 +6,12 @@ import type { CodeMark } from './code-mark-store'
 // Read-only sibling of DiffCommentCard: same chrome, the agent's mark and note, no actions.
 export function AgentShowNoteCard({
   mark,
+  compact,
   onResize
 }: {
   mark: CodeMark
+  /** One line: an older step's note, kept for reference. */
+  compact: boolean
   onResize: () => void
 }): React.JSX.Element {
   const t = useTranslate()
@@ -27,6 +30,19 @@ export function AgentShowNoteCard({
     observer.observe(card)
     return () => observer.disconnect()
   }, [])
+
+  if (compact) {
+    return (
+      <div
+        ref={cardRef}
+        className="orca-diff-comment-card orca-agent-show-note-card orca-agent-show-note-chip"
+        title={mark.note}
+      >
+        <span className="orca-agent-show-mark-badge">{mark.mark}</span>
+        <span className="orca-agent-show-note-chip-text">{mark.note}</span>
+      </div>
+    )
+  }
 
   return (
     <div ref={cardRef} className="orca-diff-comment-card orca-agent-show-note-card">

@@ -14,6 +14,10 @@ type MarkParts = {
   box: HTMLElement
   chip: HTMLElement
   bubble: HTMLElement | null
+  /** The note shows while pinned by a chip click, hovered, or briefly after it is shown. */
+  pinned: boolean
+  hovered: boolean
+  flashUntil: number
 }
 type OverlayRegistry = {
   host: HTMLElement
@@ -55,10 +59,12 @@ export function installAgentShowMark(
     const taken: Box[] = rects.filter((_rect, index) => shown[index])
     marks.forEach((parts, index) => {
       const rect = rects[index]!
-      for (const node of [parts.box, parts.chip, parts.bubble]) {
-        if (node) {
-          node.style.display = shown[index] ? 'block' : 'none'
-        }
+      const noteOpen = parts.pinned || parts.hovered || Date.now() < parts.flashUntil
+      for (const node of [parts.box, parts.chip]) {
+        node.style.display = shown[index] ? 'block' : 'none'
+      }
+      if (parts.bubble) {
+        parts.bubble.style.display = shown[index] && noteOpen ? 'block' : 'none'
       }
       if (!shown[index]) {
         return
@@ -69,7 +75,7 @@ export function installAgentShowMark(
       parts.box.style.height = `${rect.height + 6}px`
       parts.chip.style.left = `${rect.left - 12}px`
       parts.chip.style.top = `${rect.top - 12}px`
-      if (!parts.bubble) {
+      if (!parts.bubble || !noteOpen) {
         return
       }
       const width = parts.bubble.offsetWidth
@@ -161,7 +167,7 @@ export function installAgentShowMark(
   chip.textContent = spec.label
   css(
     chip,
-    `position:fixed;min-width:20px;height:20px;padding:0 6px;box-sizing:border-box;border-radius:10px;background:${ACCENT};color:#1a1a1a;font:700 11px/20px -apple-system,BlinkMacSystemFont,system-ui,sans-serif;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.45);pointer-events:none;z-index:3;`
+    `position:fixed;min-width:20px;height:20px;padding:0 6px;box-sizing:border-box;border-radius:10px;background:${ACCENT};color:#1a1a1a;font:700 11px/20px -apple-system,BlinkMacSystemFont,system-ui,sans-serif;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.45);pointer-events:auto;cursor:pointer;z-index:3;`
   )
   let bubble: HTMLElement | null = null
   if (spec.note || spec.codeLabel) {
@@ -195,7 +201,40 @@ export function installAgentShowMark(
       bubble.appendChild(code)
     }
   }
-  const parts: MarkParts = { element, box, chip, bubble }
+  // Why brief: the note is in the chat and on the code card; kept open it covers the page.
+  const parts: MarkParts = {
+    element,
+    box,
+    chip,
+    bubble,
+    pinned: false,
+    hovered: false,
+    flashUntil: Date.now() + 4000
+  }
+  const relayout = registry.layout
+  let leaveTimer = 0
+  const hover = (on: boolean): void => {
+    win.clearTimeout(leaveTimer)
+    // Why the delay: the pointer crosses a gap between chip and note on its way to the code link.
+    leaveTimer = win.setTimeout(
+      () => {
+        parts.hovered = on
+        relayout()
+      },
+      on ? 0 : 250
+    )
+  }
+  for (const node of [chip, bubble]) {
+    node?.addEventListener('mouseenter', () => hover(true))
+    node?.addEventListener('mouseleave', () => hover(false))
+  }
+  chip.addEventListener('click', (event) => {
+    event.preventDefault()
+    event.stopPropagation()
+    parts.pinned = !parts.pinned
+    parts.flashUntil = 0
+    relayout()
+  })
   registry.layer.append(box, chip, ...(bubble ? [bubble] : []))
   registry.marks.set(spec.key, parts)
 

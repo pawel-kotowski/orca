@@ -189,16 +189,25 @@ export default function MonacoEditor({
     }
   }, [cancelScheduledReveal, clearTransientRevealHighlight, modelUri, viewStateKey])
 
+  const agentShowOptions = useAgentShowCodeMarks(
+    mountedEditor,
+    filePath,
+    worktreeId,
+    passiveMirror ? undefined : viewStateId,
+    typography
+  )
+
   useEffect(() => {
     if (!editorRef.current) {
       return
     }
     editorRef.current.updateOptions({
       ...typographyOptions,
+      ...agentShowOptions,
       ...buildFileEditorWordWrapOptions(editorWordWrap),
       readOnly
     })
-  }, [typographyOptions, editorWordWrap, readOnly])
+  }, [typographyOptions, agentShowOptions, editorWordWrap, readOnly])
 
   const decorations = useMonacoEditorDecorations({
     editorRef,
@@ -208,13 +217,6 @@ export default function MonacoEditor({
     markdownDocuments,
     conflictDecorationsEnabled
   })
-
-  useAgentShowCodeMarks(
-    mountedEditor,
-    filePath,
-    worktreeId,
-    passiveMirror ? undefined : viewStateId
-  )
 
   const handleMount = useMonacoEditorMount({
     fileId,
@@ -334,7 +336,9 @@ export default function MonacoEditor({
           padding: { top: 0 },
           find: monacoFindOptions,
           // Monaco owns rendered lines, so its selection clipboard must enforce the app opt-out independently of the global DOM hook.
-          selectionClipboard: settings?.primarySelectionMiddleClickPaste ?? isLinuxUserAgent()
+          selectionClipboard: settings?.primarySelectionMiddleClickPaste ?? isLinuxUserAgent(),
+          // Why last: @monaco-editor/react re-applies options each render; a marked stage editor keeps its fit.
+          ...agentShowOptions
         }}
         // Build a model URI because the React wrapper’s Uri.parse treats Windows drive letters as schemes.
         path={modelUri}

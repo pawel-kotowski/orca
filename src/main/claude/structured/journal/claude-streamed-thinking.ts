@@ -13,8 +13,10 @@ import {
   createClaudeStreamedTextCheckpoints,
   type ClaudeStreamedBlockEnd
 } from './claude-streamed-text-checkpoints'
+import { isClaudeNarrationThinking } from '../../../native-chat/claude-narration-thinking'
 import {
   claudeRecord,
+  claudeStreamingMessageBody,
   claudeText,
   claudeThinkingIdentity,
   claudeThinkingText,
@@ -121,10 +123,13 @@ export function createClaudeStreamedThinking(deps: {
       const text = claudeThinkingText(envelope) ?? checkpoints.latest(key) ?? ''
       checkpoints.forget(key)
       open.delete(key)
-      const body = journalReasoningBody(
-        text,
-        endedJournalReasoning(streamed ? observedAt : undefined)
+      // Why: narration is the agent's words between tool calls; the transcript decoder shows it too.
+      const narration = envelope.content.some((part) =>
+        isClaudeNarrationThinking(claudeRecord(part))
       )
+      const body = narration
+        ? claudeStreamingMessageBody(text)
+        : journalReasoningBody(text, endedJournalReasoning(streamed ? observedAt : undefined))
       return body
         ? { identity, body, ...(streamed ? { startedAt: streamed.startedAt } : {}) }
         : null
