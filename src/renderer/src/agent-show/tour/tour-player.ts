@@ -2,7 +2,7 @@ import type {
   AgentShowContext,
   AgentShowResult
 } from '../../../../shared/agent-show/agent-show-contract'
-import { clearCodeMarks, showCode, showFile } from '../code/show-code'
+import { clearCodeMarks, codeStateFor, showCode, showFile } from '../code/show-code'
 import { clearTreeMarks, showTree } from '../tree/show-tree'
 import { clearUiMarks, showUi } from '../ui/show-ui'
 import { signalAgentShowChange } from '../persistence/agent-show-change-signal'
@@ -114,6 +114,31 @@ function schedule(tour: PlayingTour): void {
   )
 }
 
+/** The step's code ranges no editor on screen shows whole, whatever pushed them out. */
+function offScreenRanges(step: TourStep, context: AgentShowContext): string[] {
+  const editors = codeStateFor(context)
+  return stepRequests(step).flatMap((request) => {
+    if (request.kind !== 'code') {
+      return []
+    }
+    const { startLine, endLine } = request.range
+    const shown = editors.some(
+      (editor) =>
+        (editor.filePath === request.filePath ||
+          editor.filePath.endsWith(`/${request.filePath}`)) &&
+        editor.visibleRange !== null &&
+        editor.visibleRange.startLine <= startLine &&
+        editor.visibleRange.endLine >= endLine
+    )
+    const label = request.mark ? `mark ${request.mark} ` : ''
+    return shown
+      ? []
+      : [
+          `${label}(${request.filePath}:${startLine}-${endLine}) is not on screen; split the step or shorten its ranges`
+        ]
+  })
+}
+
 /** Stages one step from scratch: clears what it replaces, then runs its shows in order. */
 async function enterStep(tour: PlayingTour, index: number): Promise<TourStepOutcome> {
   const step = tour.steps[index]!
@@ -141,7 +166,8 @@ async function enterStep(tour: PlayingTour, index: number): Promise<TourStepOutc
       problems.push(problem)
     }
   }
-  tour.outcomes[index] = { visible, problems }
+  problems.push(...offScreenRanges(step, context))
+  tour.outcomes[index] = { visible: visible && problems.length === 0, problems }
   schedule(tour)
   notify()
   return tour.outcomes[index]!

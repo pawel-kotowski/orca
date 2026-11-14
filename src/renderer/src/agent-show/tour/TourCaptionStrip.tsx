@@ -1,10 +1,16 @@
 import { useEffect, useState } from 'react'
 import { ChevronLeft, ChevronRight, Pause, Play, X } from 'lucide-react'
 import { stepHoldMs } from './tour-steps'
-import { setTourPlaying, stepTour, endTour, type PlayingTour } from './tour-player'
+import { setTourPlaying, stepTour, endTour, tourKey, type PlayingTour } from './tour-player'
 
 /** Where the strip sits: its bottom edge just above the chat's message box, as wide as it. */
-export type StripRect = { left: number; bottom: number; width: number }
+export type StripRect = {
+  left: number
+  bottom: number
+  width: number
+  /** The room above the message box; a caption taller than that scrolls inside the strip. */
+  maxHeight: number
+}
 
 const DOTS_MAX_STEPS = 5
 const DOTS_MIN_WIDTH_PX = 460
@@ -123,13 +129,19 @@ export function TourCaptionStrip({
   return (
     <div
       data-orca-tour-strip=""
+      data-tour-key={tourKey(tour.context)}
       data-tour-version={version}
       tabIndex={0}
       onKeyDown={onKey}
       className="fixed z-30 flex flex-col gap-1 overflow-hidden rounded-xl border border-border bg-card px-3 py-2 shadow-md outline-none"
-      style={{ left: rect.left, bottom: rect.bottom, width: rect.width }}
+      style={{
+        left: rect.left,
+        bottom: rect.bottom,
+        width: rect.width,
+        maxHeight: rect.maxHeight
+      }}
     >
-      <div className="flex items-center gap-2">
+      <div className="flex shrink-0 items-center gap-2">
         <span className="orca-agent-show-mark-badge">{index + 1}</span>
         <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-foreground">
           <CaptionText text={step.title} />
@@ -180,7 +192,8 @@ export function TourCaptionStrip({
           <X className="size-3.5" />
         </StripButton>
       </div>
-      <p className="line-clamp-4 text-xs leading-snug text-muted-foreground" title={step.caption}>
+      {/* Why no clamp: the whole caption is the step; the chat above makes room for it. */}
+      <p className="scrollbar-sleek min-h-0 overflow-y-auto text-xs leading-snug text-muted-foreground">
         <CaptionText text={step.caption} />
       </p>
       <HoldBar step={step} playing={playing} advanceAt={advanceAt} />

@@ -7,13 +7,14 @@ import {
   pauseAllTours,
   playingTours,
   subscribeTours,
+  tourKey,
   toursVersion,
   type PlayingTour
 } from './tour-player'
 
-// Why: the strip grows with its caption (up to four lines); the transcript keeps room for the tallest.
-const MAX_STRIP_PX = 132
 const GAP_PX = 6
+// Why: the strip may grow over the transcript but never up into the chat's header.
+const HEADER_ROOM_PX = 72
 
 /** The chat's message box for the tour's owner tab, in the terminal chat view or the structured chat. */
 function ownerComposer(tour: PlayingTour): HTMLElement | null {
@@ -55,29 +56,43 @@ export function tourStripRect(tour: PlayingTour): StripRect | null {
   return {
     left: composer.left,
     bottom: window.innerHeight - composer.top + GAP_PX,
-    width: composer.width
+    width: composer.width,
+    maxHeight: Math.max(96, composer.top - GAP_PX - HEADER_ROOM_PX)
   }
+}
+
+/** The drawn strip's height, so the transcript under it leaves exactly that much room. */
+function stripHeight(tour: PlayingTour): number {
+  const key = CSS.escape(tourKey(tour.context))
+  return (
+    document.querySelector<HTMLElement>(`[data-orca-tour-strip][data-tour-key="${key}"]`)
+      ?.offsetHeight ?? 0
+  )
 }
 
 /** Leaves room under the newest message for the strip in the chats a tour plays beside. */
 function markChatsWithTours(tours: PlayingTour[]): void {
-  const roots = new Set(
-    tours.flatMap((tour) => {
-      const root = ownerComposer(tour)?.closest<HTMLElement>('[data-native-chat-root]')
-      return root ? [root] : []
-    })
-  )
-  for (const element of document.querySelectorAll<HTMLElement>('[data-orca-tour-room]')) {
-    if (!roots.has(element)) {
-      element.removeAttribute('data-orca-tour-room')
+  const rooms = new Map<HTMLElement, number>()
+  for (const tour of tours) {
+    const root = ownerComposer(tour)?.closest<HTMLElement>('[data-native-chat-root]')
+    if (root) {
+      rooms.set(root, stripHeight(tour))
     }
   }
-  for (const root of roots) {
+  for (const element of document.querySelectorAll<HTMLElement>('[data-orca-tour-room]')) {
+    if (!rooms.has(element)) {
+      element.removeAttribute('data-orca-tour-room')
+      element.style.removeProperty('--orca-tour-room')
+    }
+  }
+  for (const [root, height] of rooms) {
     root.setAttribute('data-orca-tour-room', '')
+    root.style.setProperty('--orca-tour-room', `${height + 2 * GAP_PX}px`)
   }
 }
 
-const TRANSCRIPT_ROOM_RULE = `[data-orca-tour-room] [data-native-chat-scroll] { padding-bottom: ${MAX_STRIP_PX + 2 * GAP_PX}px !important; }`
+const TRANSCRIPT_ROOM_RULE =
+  '[data-orca-tour-room] [data-native-chat-scroll] { padding-bottom: var(--orca-tour-room, 144px) !important; }'
 
 function TourStrips(): React.JSX.Element {
   // Why both: the version re-renders on any tour change; the tick re-measures when the chat moves.
