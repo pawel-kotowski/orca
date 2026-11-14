@@ -103,6 +103,22 @@ export function clearOwnerCodeMarks(ownerKey: string): void {
   }
 }
 
+/** One owner's marks as plain data, to persist. */
+export function snapshotOwnerCodeMarks(ownerKey: string): [string, CodeMark[]][] {
+  return [...(marksByOwner.get(ownerKey) ?? [])].map(([path, marks]) => [path, [...marks]])
+}
+
+/** Puts back an owner's persisted marks; later shows number after them. */
+export function restoreOwnerCodeMarks(ownerKey: string, entries: [string, CodeMark[]][]): void {
+  if (entries.length === 0) {
+    return
+  }
+  marksByOwner.set(ownerKey, new Map(entries))
+  const seqs = entries.flatMap(([, marks]) => marks.map((mark) => mark.seq ?? 0))
+  shownCount = Math.max(shownCount, ...seqs)
+  notify()
+}
+
 /** One owner's marks by file, for tidying the tabs it opened. */
 export function ownerCodeMarks(ownerKey: string): OwnerCodeMarks | undefined {
   return marksByOwner.get(ownerKey)

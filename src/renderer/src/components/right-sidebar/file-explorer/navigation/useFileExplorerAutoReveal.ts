@@ -4,6 +4,7 @@ import { getRelativePathInsideRoot } from '@/lib/path'
 import { useAppStore } from '@/store/index'
 import type { OpenFile } from '@/store/slices/editor/types/open-file'
 import type { FileExplorerRowProjection } from '../tree/file-explorer-row-projection'
+import { getTreeMarkIndex } from '@/agent-show/tree/tree-marks-store'
 
 type UseFileExplorerAutoRevealParams = {
   activeFileId: string | null
@@ -54,6 +55,11 @@ export function useFileExplorerAutoReveal({
 
     // Don't override a pending manual reveal (e.g. from Source Control "Reveal in Explorer")
     if (pendingExplorerReveal) {
+      return
+    }
+
+    // Why: an agent has lit folders to explain; following each file it opens scrolls them away.
+    if (getTreeMarkIndex().sets.length > 0) {
       return
     }
 

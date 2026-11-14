@@ -112,6 +112,11 @@ export const HANDLER_GROUPS: readonly HandlerGroup[] = [
     load: async () => (await import('../show/show.js')).SHOW_HANDLERS
   },
   {
+    name: 'show-tour',
+    keys: ['show tour'],
+    load: async () => (await import('../show/show-tour.js')).SHOW_TOUR_HANDLERS
+  },
+  {
     name: 'terminal',
     keys: [
       'terminal list',

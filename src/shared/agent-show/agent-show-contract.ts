@@ -70,13 +70,61 @@ export const AgentShowClearRequest = z.object({
 
 export const AgentShowStateRequest = z.object({ kind: z.literal('state') })
 
+/** The shows one tour step stages: the same requests `orca show code|tree|file|ui` send. */
+export const AgentShowTourStageRequest = z.discriminatedUnion('kind', [
+  AgentShowCodeRequest,
+  AgentShowTreeRequest,
+  AgentShowFileRequest,
+  AgentShowUiRequest
+])
+export type AgentShowTourStageRequest = z.infer<typeof AgentShowTourStageRequest>
+
+export const AGENT_SHOW_TOUR_ACTIONS = [
+  'start',
+  'next',
+  'back',
+  'step',
+  'play',
+  'pause',
+  'stop',
+  'state'
+] as const
+
+export const AgentShowTourRequest = z.object({
+  kind: z.literal('tour'),
+  action: z.enum(AGENT_SHOW_TOUR_ACTIONS),
+  /** 1-based; the step to start on or move to. */
+  step: z.number().int().positive().optional(),
+  play: z.boolean().default(false),
+  /** start: stage every step once and report each one's problems, then go to `step`. */
+  check: z.boolean().default(false),
+  tour: z
+    .object({
+      title: z.string().min(1).max(200),
+      file: z.string().min(1),
+      steps: z
+        .array(
+          z.object({
+            title: z.string().min(1).max(200),
+            caption: z.string().max(1200),
+            holdMs: z.number().int().positive().max(120_000).nullable(),
+            requests: z.array(AgentShowTourStageRequest).max(12)
+          })
+        )
+        .min(1)
+        .max(40)
+    })
+    .optional()
+})
+
 export const AgentShowRequest = z.discriminatedUnion('kind', [
   AgentShowCodeRequest,
   AgentShowTreeRequest,
   AgentShowFileRequest,
   AgentShowUiRequest,
   AgentShowClearRequest,
-  AgentShowStateRequest
+  AgentShowStateRequest,
+  AgentShowTourRequest
 ])
 
 export type AgentShowRequest = z.infer<typeof AgentShowRequest>
@@ -105,6 +153,17 @@ export type AgentShowVisibleEditor = {
   paneLines: number
   /** Its marked range is visible whole (true when it carries no marks). */
   fits: boolean
+}
+
+/** Where a tour is: its step, whether it plays, and what went wrong staging the step. */
+export type AgentShowTourInfo = {
+  title: string
+  file: string
+  step: number
+  steps: number
+  stepTitle: string
+  playing: boolean
+  problems: string[]
 }
 
 /** How a shown range fits its pane: the font it got and how many of its lines are on screen. */
@@ -145,6 +204,7 @@ export type AgentShowResult =
       detail?: string
       state?: AgentShowState
       fit?: AgentShowCodeFit
+      tour?: AgentShowTourInfo
     }
   | { ok: false; code: string; message: string }
 

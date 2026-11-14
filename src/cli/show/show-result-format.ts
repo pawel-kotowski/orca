@@ -1,3 +1,4 @@
+import { formatTourResult } from './show-tour-format'
 import type {
   AgentShowCodeFit,
   AgentShowRequest,
@@ -49,6 +50,9 @@ function formatState(state: AgentShowState): string {
 export function formatShowResult(kind: AgentShowRequest['kind'], result: ShownResult): string {
   if (result.state) {
     return formatState(result.state)
+  }
+  if (result.tour) {
+    return formatTourResult(result)
   }
   if (kind === 'clear') {
     return `Cleared your marks: ${result.detail ?? 'code, tree, ui'}.`

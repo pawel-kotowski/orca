@@ -19,6 +19,11 @@ export function closedShowOwners(
 const owners = new Map<string, AgentShowContext>()
 let unsubscribe: (() => void) | null = null
 
+/** Every owner that showed something since the window loaded (or was restored). */
+export function watchedShowOwners(): AgentShowContext[] {
+  return [...owners.values()]
+}
+
 /** Clears an agent's marks and the panes it opened once its tab closes, as `orca show clear` would. */
 export function watchShowOwner(
   context: AgentShowContext,
