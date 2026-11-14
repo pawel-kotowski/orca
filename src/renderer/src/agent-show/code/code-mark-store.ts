@@ -6,7 +6,10 @@ export type CodeMark = CodeLineRange & { mark: string; note?: string; seq?: numb
 /** One owner's marks by absolute file path. */
 export type OwnerCodeMarks = ReadonlyMap<string, readonly CodeMark[]>
 
-/** Places `next` among an owner's marks: replaces them all unless keepOthers; a reused label moves. */
+/**
+ * Places `next` among an owner's marks: replaces them all unless keepOthers; a reused label
+ * moves, and a kept mark whose lines overlap `next` on the same file gives way to it.
+ */
 export function placeOwnerCodeMark(
   previous: OwnerCodeMarks | undefined,
   filePath: string,
@@ -18,13 +21,17 @@ export function placeOwnerCodeMark(
     for (const [path, marks] of previous) {
       kept.set(
         path,
-        marks.filter((mark) => mark.mark !== next.mark)
+        marks.filter(
+          (mark) =>
+            mark.mark !== next.mark &&
+            (path !== filePath || mark.endLine < next.startLine || mark.startLine > next.endLine)
+        )
       )
     }
   }
   const used = new Set([...kept.values()].flat().map((mark) => mark.mark))
   let label = next.mark
-  for (let n = used.size + 1; !label; n += 1) {
+  for (let n = 1; !label; n += 1) {
     label = used.has(String(n)) ? undefined : String(n)
   }
   const placed: CodeMark = {

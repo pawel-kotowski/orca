@@ -41,4 +41,16 @@ describe('placeOwnerCodeMark', () => {
     expect(marks.has(B)).toBe(false)
     expect(marks.get(A)?.map((mark) => mark.mark)).toEqual(['1', '2'])
   })
+
+  it('replaces a kept mark whose lines overlap the new one on the same file', () => {
+    const { marks, placed } = placeOwnerCodeMark(
+      previous,
+      A,
+      { startLine: 12, endLine: 15, note: 'narrower' },
+      true
+    )
+    expect(placed.mark).toBe('1')
+    expect(marks.get(A)).toEqual([{ mark: '1', startLine: 12, endLine: 15, note: 'narrower' }])
+    expect(marks.get(B)).toEqual([{ mark: '2', startLine: 3, endLine: 4, note: 'old' }])
+  })
 })

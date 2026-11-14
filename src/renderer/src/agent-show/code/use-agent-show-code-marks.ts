@@ -36,7 +36,8 @@ export function useAgentShowCodeMarks(
     if (!ed) {
       return
     }
-    const view = createCodeMarkEditorView(ed)
+    // Why: a card wraps to its real height after it mounts; the fit must count that height.
+    const view = createCodeMarkEditorView(ed, () => fit(true))
     const quietDefaults = editorQuietDefaults(ed)
     let applied: CodeEditorFitOptions | null = null
     let fitting = false

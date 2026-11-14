@@ -10,8 +10,8 @@ type OwnerStage = {
   createdGroups: Set<string>
   /** Stage panes this owner used, most recent first. */
   usedGroups: string[]
-  /** The project sidebar was folded to make room; `clear` opens it again. */
-  foldedSidebar: boolean
+  /** Sidebars folded to make room; `clear` opens them again. */
+  foldedSidebars: Set<'left' | 'right'>
 }
 
 const stageByOwner = new Map<string, OwnerStage>()
@@ -24,7 +24,7 @@ function ownerStage(context: AgentShowContext): OwnerStage {
       openedTabs: new Map(),
       createdGroups: new Set(),
       usedGroups: [],
-      foldedSidebar: false
+      foldedSidebars: new Set()
     }
     stageByOwner.set(key, stage)
   }
@@ -50,8 +50,8 @@ export function ownerOpenedTab(context: AgentShowContext, tabId: string): boolea
   return stageByOwner.get(codeMarkOwnerKey(context))?.openedTabs.has(tabId) ?? false
 }
 
-export function rememberSidebarFolded(context: AgentShowContext): void {
-  ownerStage(context).foldedSidebar = true
+export function rememberSidebarFolded(context: AgentShowContext, side: 'left' | 'right'): void {
+  ownerStage(context).foldedSidebars.add(side)
 }
 
 export function rememberStageGroupCreated(context: AgentShowContext, groupId: string): void {
@@ -112,8 +112,11 @@ export function clearCodeStage(context: AgentShowContext): void {
     return
   }
   closeStageTabs(context.worktreeId, stage, [...stage.openedTabs.keys()])
-  if (stage.foldedSidebar) {
+  if (stage.foldedSidebars.has('left')) {
     useAppStore.getState().setSidebarOpen(true)
+  }
+  if (stage.foldedSidebars.has('right')) {
+    useAppStore.getState().setRightSidebarOpen(true)
   }
   stageByOwner.delete(key)
 }

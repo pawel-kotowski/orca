@@ -319,8 +319,6 @@ export default function MonacoEditor({
           ...PLUGIN_SYNTAX_EDITOR_OPTIONS,
           ...buildFileEditorWordWrapOptions(editorWordWrap),
           ...typographyOptions,
-          // Why: @monaco-editor/react re-applies options each render; keep a stage editor's fitted font.
-          ...agentShowOptions,
           lineNumbers: 'on',
           renderLineHighlight: 'line',
           automaticLayout: true,
@@ -338,7 +336,9 @@ export default function MonacoEditor({
           padding: { top: 0 },
           find: monacoFindOptions,
           // Monaco owns rendered lines, so its selection clipboard must enforce the app opt-out independently of the global DOM hook.
-          selectionClipboard: settings?.primarySelectionMiddleClickPaste ?? isLinuxUserAgent()
+          selectionClipboard: settings?.primarySelectionMiddleClickPaste ?? isLinuxUserAgent(),
+          // Why last: @monaco-editor/react re-applies options each render; a marked stage editor keeps its fit.
+          ...agentShowOptions
         }}
         // Build a model URI because the React wrapper’s Uri.parse treats Windows drive letters as schemes.
         path={modelUri}

@@ -14,12 +14,8 @@ import {
   newPaneNeedForRatio,
   stagePaneNeedForRatio
 } from './code-stage-room'
-import {
-  ownerOpenedTab,
-  rememberSidebarFolded,
-  rememberStageGroupCreated,
-  stagePanesUsedBy
-} from './code-stage-tabs'
+import { ownerOpenedTab, rememberStageGroupCreated, stagePanesUsedBy } from './code-stage-tabs'
+import { makeRoomForStage } from './code-stage-sidebars'
 
 export type CodeTarget = {
   /** undefined: the editor's default group (no owner tab). */
@@ -129,16 +125,7 @@ export function resolveCodeTarget(
         return markedPaneNeedPx(group?.activeTabId ?? null)
       }
     })
-  let room = measure(0)
-  if (!room.stageHasRoom && state.sidebarOpen) {
-    // Why: the project list matters less than the code during a tour; `clear` opens it again.
-    const folded = measure(state.sidebarWidth)
-    if (folded.stageHasRoom) {
-      state.setSidebarOpen(false)
-      rememberSidebarFolded(context)
-      room = folded
-    }
-  }
+  const room = focus ? makeRoomForStage(state, context, measure) : measure(0)
   const placement = chooseCodePlacement({
     place: request.place,
     ownerGroupId,

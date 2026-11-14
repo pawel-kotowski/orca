@@ -52,7 +52,28 @@ function reasoning(text: string, lifecycle: Record<string, unknown>): AgentJourn
 
 afterEach(() => vi.useRealTimers())
 
+// Signature prefixes from a Claude Code 2.1.318 transcript (thinking display "updates").
+const NARRATION_SIGNATURE =
+  'CAQS/gUKEQgTGAI4AUIJbmFycmF0aW9uEgzdYleegWAASzwMDeoaDDzmjOvwDJT9tmgX6yIw8OiPMipcXfBDCeUPbySpZlpqAUSIHrUs2ezLgkGJb6tZGWHu'
+
 describe('structured Claude reasoning', () => {
+  it('shows narration as the agent speaking, not as folded reasoning', () => {
+    const { rows, final, translator } = setup()
+    final(
+      'narration',
+      [{ type: 'thinking', thinking: 'Step 2 is on screen now.', signature: NARRATION_SIGNATURE }],
+      5_000
+    )
+    expect([...rows.values()]).toEqual([
+      {
+        kind: 'message',
+        role: 'assistant',
+        blocks: [{ type: 'text', text: 'Step 2 is on screen now.' }]
+      }
+    ])
+    translator.dispose()
+  })
+
   it('writes final-only thinking closed, with no span it never saw', () => {
     const { rows, final, translator } = setup()
     final('final-only', [{ type: 'thinking', thinking: 'Inspecting the request' }], 5_000)
