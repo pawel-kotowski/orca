@@ -13,6 +13,8 @@ export type NativeChatResolvedFileLink = {
   absolutePath: string
   line: number | null
   column: number | null
+  /** A `path:40-62` link: the range ends here and opens highlighted as a whole. */
+  endLine?: number
   /** The link names a directory by its trailing separator; the popover can say "Open folder". */
   isDirectoryHint?: true
 }
@@ -23,7 +25,7 @@ function hasDirectorySeparator(pathText: string): boolean {
 
 function resolvePathText(
   pathText: string,
-  fallbackLine: number | null,
+  fallback: { line: number | null; endLine?: number },
   context: NativeChatFileLinkContext
 ): NativeChatResolvedFileLink | null {
   const parsed = parseExplicitFileLinkTarget(pathText, { allowRelativeDirectoryPath: true })
@@ -37,8 +39,11 @@ function resolvePathText(
   }
   return {
     absolutePath: resolved.absolutePath,
-    line: resolved.line ?? fallbackLine,
+    line: resolved.line ?? fallback.line,
     column: resolved.column,
+    ...(resolved.line === null && fallback.endLine !== undefined
+      ? { endLine: fallback.endLine }
+      : {}),
     ...(hasDirectorySeparator(pathText) ? { isDirectoryHint: true as const } : {})
   }
 }
@@ -78,5 +83,5 @@ export function resolveNativeChatFileLink(
         }
       : null
   }
-  return resolvePathText(route.pathText, route.line, context)
+  return resolvePathText(route.pathText, route, context)
 }

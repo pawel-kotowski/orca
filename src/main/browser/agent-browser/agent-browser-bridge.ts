@@ -282,6 +282,19 @@ export class AgentBrowserBridge extends AgentBrowserBridgeInteractionCommands {
       { elements: passthroughElementArgs(args), blockFileChooser: true }
     )
   }
+
+  /** Runs a page function on the element a snapshot ref names, in its own frame (`orca show ui --ref`). */
+  async callOnElement(
+    element: string,
+    functionDeclaration: string,
+    args: unknown[],
+    worktreeId: string,
+    browserPageId: string
+  ): Promise<unknown> {
+    return this.enqueueTargetedCommand(worktreeId, browserPageId, (sessionName) =>
+      this.actOnElement(sessionName, element, 'show', functionDeclaration, args)
+    )
+  }
 }
 
 // Commands whose first operand is an element, where agent-browser reads a bare `e2` as a ref.

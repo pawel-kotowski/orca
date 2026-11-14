@@ -21,6 +21,7 @@ import {
 import { openNativeChatWebLink } from './native-chat-web-link-actions'
 import { showFileLinkOpenFailureToast } from '@/lib/files/open/file-link-open-failure-toast'
 import type { Translate } from '@/i18n/use-translate'
+import { openNativeChatCodeRange } from '@/agent-show/ui/chat-code-show'
 
 export function resolveNativeChatHttpLinkRouting(
   state: AppState,
@@ -57,7 +58,7 @@ export function nativeChatFileLinkActions(
   context: NativeChatFileLinkContext,
   t?: Translate
 ): FileLinkActions {
-  return buildFileLinkActions(
+  const actions = buildFileLinkActions(
     target.absolutePath,
     target.line,
     target.column,
@@ -66,6 +67,22 @@ export function nativeChatFileLinkActions(
     t,
     target.isDirectoryHint ? { directoryHint: true } : undefined
   )
+  const { line, endLine } = target
+  // A range link's Open file highlights the whole range instead of placing the cursor on its first line.
+  return line && endLine && actions.primary && actions.kind === 'file'
+    ? {
+        ...actions,
+        primary: {
+          ...actions.primary,
+          run: () =>
+            void openNativeChatCodeRange(
+              { absolutePath: target.absolutePath, line, endLine },
+              context,
+              actions.primary.run
+            )
+        }
+      }
+    : actions
 }
 
 export function nativeChatLinkActions(

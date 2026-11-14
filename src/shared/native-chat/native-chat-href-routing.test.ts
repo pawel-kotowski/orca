@@ -90,6 +90,46 @@ describe('routeNativeChatHref', () => {
     expect(routeNativeChatHref('localhost:3000')).toEqual({ kind: 'none' })
   })
 
+  it('reads a line range as the path with its first and last line', () => {
+    expect(routeNativeChatHref('src/app.ts:40-62')).toEqual({
+      kind: 'file',
+      pathText: 'src/app.ts',
+      line: 40,
+      endLine: 62
+    })
+    expect(routeNativeChatHref('README.md:5-20')).toEqual({
+      kind: 'file',
+      pathText: 'README.md',
+      line: 5,
+      endLine: 20
+    })
+    expect(routeNativeChatHref(createNativeChatFileHref('src/app.ts:40-62'))).toEqual({
+      kind: 'file',
+      pathText: 'src/app.ts',
+      line: 40,
+      endLine: 62
+    })
+    expect(routeNativeChatHref('src/app.ts#L40-L62')).toEqual({
+      kind: 'file',
+      pathText: 'src/app.ts',
+      line: 40,
+      endLine: 62
+    })
+  })
+
+  it('reads a one-line or backwards range as a single line', () => {
+    expect(routeNativeChatHref('src/app.ts:40-40')).toEqual({
+      kind: 'file',
+      pathText: 'src/app.ts',
+      line: 40
+    })
+    expect(routeNativeChatHref('src/app.ts:62-40')).toEqual({
+      kind: 'file',
+      pathText: 'src/app.ts:62-40',
+      line: null
+    })
+  })
+
   it('drops anchors, unknown schemes, malformed file URIs, and empty hrefs', () => {
     expect(routeNativeChatHref('#section')).toEqual({ kind: 'none' })
     expect(routeNativeChatHref(undefined)).toEqual({ kind: 'none' })

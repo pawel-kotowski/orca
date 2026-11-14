@@ -4,6 +4,7 @@ import {
   NATIVE_CHAT_VISUAL_PING_TYPE,
   NATIVE_CHAT_VISUAL_PONG_TYPE,
   NATIVE_CHAT_VISUAL_READER_SCROLL_TYPE,
+  NATIVE_CHAT_VISUAL_SHOW_CODE_TYPE,
   NATIVE_CHAT_VISUAL_SIZE_TYPE,
   buildNativeChatVisualDocument,
   nativeChatVisualThemeCss,
@@ -48,6 +49,18 @@ describe('nativeChatVisualThemeCss', () => {
 })
 
 describe('readNativeChatVisualFrameMessage', () => {
+  it('reads a data-orca-show click as a validated code range', () => {
+    expect(
+      readNativeChatVisualFrameMessage(
+        { type: NATIVE_CHAT_VISUAL_SHOW_CODE_TYPE, channel: 'c', location: 'src/app.ts:40-62' },
+        'c'
+      )
+    ).toEqual({
+      kind: 'show-code',
+      location: { pathText: 'src/app.ts', startLine: 40, endLine: 62 }
+    })
+  })
+
   it.each([
     ['another channel', { type: NATIVE_CHAT_VISUAL_SIZE_TYPE, channel: 'x', height: 10 }],
     ['no channel', { type: NATIVE_CHAT_VISUAL_SIZE_TYPE, height: 10 }],
@@ -89,6 +102,11 @@ describe('readNativeChatVisualFrameMessage', () => {
       'unknown input',
       { type: NATIVE_CHAT_VISUAL_READER_SCROLL_TYPE, channel: 'c', input: 'key', deltaY: -3 }
     ],
+    [
+      'code outside the workspace',
+      { type: NATIVE_CHAT_VISUAL_SHOW_CODE_TYPE, channel: 'c', location: '../x.ts:1-2' }
+    ],
+    ['code without a location', { type: NATIVE_CHAT_VISUAL_SHOW_CODE_TYPE, channel: 'c' }],
     ['unknown type', { type: 'orca-panel-action', channel: 'c' }],
     ['a string', 'orca-visual-size'],
     ['null', null]
