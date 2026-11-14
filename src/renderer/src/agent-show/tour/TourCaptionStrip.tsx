@@ -1,20 +1,8 @@
 import { useEffect, useState } from 'react'
-import { ChevronLeft, ChevronRight, Pause, Play, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Pause, Play, TriangleAlert, X } from 'lucide-react'
 import { stepHoldMs } from './tour-steps'
 import { setTourPlaying, stepTour, endTour, type PlayingTour } from './tour-player'
-
-/** Where the strip sits: its bottom edge just above the chat's message box, as wide as it. */
-export type StripRect = {
-  left: number
-  bottom: number
-  width: number
-  /** The room above the message box; a caption taller than that scrolls inside the strip. */
-  maxHeight: number
-}
-
-/** The strip's DOM key, so the host can measure it; plain text, unlike the player's map key. */
-export const stripKey = (tour: PlayingTour): string =>
-  `${tour.context.worktreeId}:${tour.context.ownerTabId ?? ''}`
+import type { StripRect } from './tour-strip-placement'
 
 const DOTS_MAX_STEPS = 5
 const DOTS_MIN_WIDTH_PX = 460
@@ -38,6 +26,34 @@ function CaptionText({ text }: { text: string }): React.JSX.Element {
         )
       )}
     </>
+  )
+}
+
+/**
+ * Every step's text in one grid cell, only the current one visible: the cell is as tall as the
+ * longest, so the strip keeps one height and the layout above it never moves between steps.
+ */
+function StackedStepText({
+  texts,
+  index,
+  className
+}: {
+  texts: readonly string[]
+  index: number
+  className: string
+}): React.JSX.Element {
+  return (
+    <span className={`grid ${className}`}>
+      {texts.map((text, textIndex) => (
+        <span
+          key={textIndex}
+          aria-hidden={textIndex !== index}
+          className={`[grid-area:1/1] ${textIndex === index ? '' : 'invisible'}`}
+        >
+          <CaptionText text={text} />
+        </span>
+      ))}
+    </span>
   )
 }
 
@@ -98,23 +114,29 @@ function HoldBar({
   )
 }
 
-/** One tour's caption and controls, above the chat's message box while its code is staged beside. */
+/** One tour's caption and controls, floating centred near the bottom of the window. */
 export function TourCaptionStrip({
   tour,
   index,
   playing,
   advanceAt,
+  warning,
   rect,
-  version
+  version,
+  stripRef
 }: {
   tour: PlayingTour
   /** Copied out of `tour`, which the player mutates: the props must change when the step does. */
   index: number
   playing: boolean
   advanceAt: number | null
+  /** What this step showed that the check did not predict. */
+  warning: string | null
   rect: StripRect
-  /** Changes on every tour change and re-measure, so a memoized strip still redraws. */
+  /** Changes on every tour change, so a memoized strip still redraws. */
   version: number
+  /** The host measures the strip to keep the band under it as tall. */
+  stripRef: (element: HTMLDivElement | null) => void
 }): React.JSX.Element {
   const step = tour.steps[index]!
   const last = index === tour.steps.length - 1
@@ -132,8 +154,8 @@ export function TourCaptionStrip({
   }
   return (
     <div
+      ref={stripRef}
       data-orca-tour-strip=""
-      data-tour-key={stripKey(tour)}
       data-tour-version={version}
       tabIndex={0}
       onKeyDown={onKey}
@@ -146,9 +168,11 @@ export function TourCaptionStrip({
       }}
     >
       <div className="flex shrink-0 items-start gap-2">
-        <span className="min-w-0 flex-1 break-words py-[3px] text-[13px] font-medium leading-snug text-foreground">
-          <CaptionText text={step.title} />
-        </span>
+        <StackedStepText
+          texts={tour.steps.map((s) => s.title)}
+          index={index}
+          className="min-w-0 flex-1 break-words py-[3px] text-[13px] font-medium leading-snug text-foreground"
+        />
         {tour.steps.length <= DOTS_MAX_STEPS && rect.width >= DOTS_MIN_WIDTH_PX ? (
           <div
             className="flex h-6 items-center gap-1"
@@ -195,10 +219,16 @@ export function TourCaptionStrip({
           <X className="size-3.5" />
         </StripButton>
       </div>
-      {/* Why no clamp: the whole caption is the step; the chat above makes room for it. */}
-      <p className="scrollbar-sleek min-h-0 overflow-y-auto text-xs leading-snug text-muted-foreground">
-        <CaptionText text={step.caption} />
-      </p>
+      {/* Why no clamp: the whole caption is the step; the band under the app makes room for it. */}
+      <div className="scrollbar-sleek min-h-0 overflow-y-auto text-xs leading-snug text-muted-foreground">
+        <StackedStepText texts={tour.steps.map((s) => s.caption)} index={index} className="" />
+      </div>
+      {warning ? (
+        <p className="flex shrink-0 items-start gap-1 text-[11px] leading-snug text-muted-foreground">
+          <TriangleAlert className="mt-px size-3 shrink-0 text-status-warning" />
+          <span>{warning}</span>
+        </p>
+      ) : null}
       <HoldBar step={step} playing={playing} advanceAt={advanceAt} />
     </div>
   )
