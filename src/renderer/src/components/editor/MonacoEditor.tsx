@@ -189,16 +189,25 @@ export default function MonacoEditor({
     }
   }, [cancelScheduledReveal, clearTransientRevealHighlight, modelUri, viewStateKey])
 
+  const agentShowOptions = useAgentShowCodeMarks(
+    mountedEditor,
+    filePath,
+    worktreeId,
+    passiveMirror ? undefined : viewStateId,
+    typography
+  )
+
   useEffect(() => {
     if (!editorRef.current) {
       return
     }
     editorRef.current.updateOptions({
       ...typographyOptions,
+      ...agentShowOptions,
       ...buildFileEditorWordWrapOptions(editorWordWrap),
       readOnly
     })
-  }, [typographyOptions, editorWordWrap, readOnly])
+  }, [typographyOptions, agentShowOptions, editorWordWrap, readOnly])
 
   const decorations = useMonacoEditorDecorations({
     editorRef,
@@ -208,13 +217,6 @@ export default function MonacoEditor({
     markdownDocuments,
     conflictDecorationsEnabled
   })
-
-  useAgentShowCodeMarks(
-    mountedEditor,
-    filePath,
-    worktreeId,
-    passiveMirror ? undefined : viewStateId
-  )
 
   const handleMount = useMonacoEditorMount({
     fileId,
@@ -317,6 +319,8 @@ export default function MonacoEditor({
           ...PLUGIN_SYNTAX_EDITOR_OPTIONS,
           ...buildFileEditorWordWrapOptions(editorWordWrap),
           ...typographyOptions,
+          // Why: @monaco-editor/react re-applies options each render; keep a stage editor's fitted font.
+          ...agentShowOptions,
           lineNumbers: 'on',
           renderLineHighlight: 'line',
           automaticLayout: true,

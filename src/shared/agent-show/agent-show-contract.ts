@@ -100,6 +100,19 @@ export type AgentShowVisibleEditor = {
   filePath: string
   visibleRange: { startLine: number; endLine: number } | null
   marks: string[]
+  fontSize: number
+  /** Lines the pane shows at its current font. */
+  paneLines: number
+  /** Its marked range is visible whole (true when it carries no marks). */
+  fits: boolean
+}
+
+/** How a shown range fits its pane: the font it got and how many of its lines are on screen. */
+export type AgentShowCodeFit = {
+  linesVisible: number
+  rangeLines: number
+  fontSize: number
+  userFontSize: number
 }
 
 export type AgentShowLayoutTab = {
@@ -126,7 +139,13 @@ export type AgentShowState = {
 }
 
 export type AgentShowResult =
-  | { ok: true; visible: boolean; detail?: string; state?: AgentShowState }
+  | {
+      ok: true
+      visible: boolean
+      detail?: string
+      state?: AgentShowState
+      fit?: AgentShowCodeFit
+    }
   | { ok: false; code: string; message: string }
 
 export type AgentShowHandler<K extends AgentShowRequest['kind']> = (

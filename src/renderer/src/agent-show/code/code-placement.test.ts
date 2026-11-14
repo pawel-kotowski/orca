@@ -1,65 +1,76 @@
 import { describe, expect, it } from 'vitest'
-import { chooseCodePlacement } from './code-placement'
+import { chooseCodePlacement, type CodePlacementInput } from './code-placement'
+
+const roomy: CodePlacementInput = {
+  place: 'beside',
+  ownerGroupId: 'chat',
+  stageLeaves: ['a', 'b'],
+  usedByOwner: ['b', 'a'],
+  stageHasRoom: true,
+  roomBelow: true,
+  roomRight: true
+}
 
 describe('chooseCodePlacement', () => {
-  it('splits right of the chat when the agent has not used a pane yet', () => {
-    expect(
-      chooseCodePlacement({
-        place: 'right',
-        ownerGroupId: 'chat',
-        lastGroupId: null,
-        beside: null
+  it('makes a stage column right of the chat when there is none', () => {
+    for (const place of ['beside', 'below', 'right', 'same'] as const) {
+      expect(chooseCodePlacement({ ...roomy, place, stageLeaves: null, usedByOwner: [] })).toEqual({
+        kind: 'split',
+        sourceGroupId: 'chat',
+        direction: 'right'
       })
-    ).toEqual({ kind: 'split', sourceGroupId: 'chat', direction: 'right' })
+    }
   })
 
-  it('splits below the pane the agent used last', () => {
-    expect(
-      chooseCodePlacement({
-        place: 'below',
-        ownerGroupId: 'chat',
-        lastGroupId: 'code-a',
-        beside: { groupId: 'code-a' }
-      })
-    ).toEqual({ kind: 'split', sourceGroupId: 'code-a', direction: 'down' })
+  it('opens beside and same in the stage pane used last, never the chat', () => {
+    expect(chooseCodePlacement(roomy)).toEqual({ kind: 'group', groupId: 'b' })
+    expect(chooseCodePlacement({ ...roomy, place: 'same' })).toEqual({
+      kind: 'group',
+      groupId: 'b'
+    })
+    expect(chooseCodePlacement({ ...roomy, usedByOwner: [] })).toEqual({
+      kind: 'group',
+      groupId: 'a'
+    })
   })
 
-  it('reuses the last pane for same, and falls back to beside without one', () => {
-    expect(
-      chooseCodePlacement({
-        place: 'same',
-        ownerGroupId: 'chat',
-        lastGroupId: 'code-a',
-        beside: { groupId: 'other' }
-      })
-    ).toEqual({ kind: 'group', groupId: 'code-a' })
-    expect(
-      chooseCodePlacement({
-        place: 'same',
-        ownerGroupId: 'chat',
-        lastGroupId: null,
-        beside: { split: { sourceGroupId: 'chat' } }
-      })
-    ).toEqual({ kind: 'split', sourceGroupId: 'chat', direction: 'right' })
+  it('splits the current pane below when every range still fits', () => {
+    expect(chooseCodePlacement({ ...roomy, place: 'below' })).toEqual({
+      kind: 'split',
+      sourceGroupId: 'b',
+      direction: 'down'
+    })
   })
 
-  it('opens beside into the neighbour pane a chat link would use', () => {
-    expect(
-      chooseCodePlacement({
-        place: 'beside',
-        ownerGroupId: 'chat',
-        lastGroupId: 'code-b',
-        beside: { groupId: 'neighbour' }
-      })
-    ).toEqual({ kind: 'group', groupId: 'neighbour' })
+  it('reuses the pane used least recently instead of a split that would not fit', () => {
+    expect(chooseCodePlacement({ ...roomy, place: 'below', roomBelow: false })).toEqual({
+      kind: 'group',
+      groupId: 'a',
+      reusedForRoom: true
+    })
+  })
+
+  it('treats right as below when the stage is too narrow for two columns', () => {
+    expect(chooseCodePlacement({ ...roomy, place: 'right', roomRight: false })).toEqual({
+      kind: 'split',
+      sourceGroupId: 'b',
+      direction: 'down'
+    })
+    expect(chooseCodePlacement({ ...roomy, place: 'right' })).toEqual({
+      kind: 'split',
+      sourceGroupId: 'b',
+      direction: 'right'
+    })
+  })
+
+  it('opens a background tab in the chat pane when no stage fits beside it', () => {
+    expect(chooseCodePlacement({ ...roomy, stageHasRoom: false })).toEqual({
+      kind: 'background',
+      groupId: 'chat'
+    })
   })
 
   it('leaves placement to the editor when there is no owner tab', () => {
-    expect(
-      chooseCodePlacement({ place: 'below', ownerGroupId: null, lastGroupId: null, beside: null })
-    ).toEqual({ kind: 'default' })
-    expect(
-      chooseCodePlacement({ place: 'beside', ownerGroupId: null, lastGroupId: null, beside: null })
-    ).toEqual({ kind: 'default' })
+    expect(chooseCodePlacement({ ...roomy, ownerGroupId: null })).toEqual({ kind: 'default' })
   })
 })

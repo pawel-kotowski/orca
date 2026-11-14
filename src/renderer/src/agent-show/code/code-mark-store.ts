@@ -1,7 +1,8 @@
 import type { AgentShowContext } from '../../../../shared/agent-show/agent-show-contract'
 import type { CodeLineRange } from './code-line-range'
 
-export type CodeMark = CodeLineRange & { mark: string; note?: string }
+/** `seq` orders marks by when they were shown, so an editor can fit the newest. */
+export type CodeMark = CodeLineRange & { mark: string; note?: string; seq?: number }
 /** One owner's marks by absolute file path. */
 export type OwnerCodeMarks = ReadonlyMap<string, readonly CodeMark[]>
 
@@ -9,7 +10,7 @@ export type OwnerCodeMarks = ReadonlyMap<string, readonly CodeMark[]>
 export function placeOwnerCodeMark(
   previous: OwnerCodeMarks | undefined,
   filePath: string,
-  next: CodeLineRange & { mark?: string; note?: string },
+  next: CodeLineRange & { mark?: string; note?: string; seq?: number },
   keepOthers: boolean
 ): { marks: Map<string, CodeMark[]>; placed: CodeMark } {
   const kept = new Map<string, CodeMark[]>()
@@ -30,7 +31,8 @@ export function placeOwnerCodeMark(
     mark: label,
     startLine: next.startLine,
     endLine: next.endLine,
-    ...(next.note ? { note: next.note } : {})
+    ...(next.note ? { note: next.note } : {}),
+    ...(next.seq === undefined ? {} : { seq: next.seq })
   }
   const onFile = [...(kept.get(filePath) ?? []), placed].sort((a, b) => a.startLine - b.startLine)
   kept.set(filePath, onFile)
@@ -43,6 +45,7 @@ export function placeOwnerCodeMark(
 }
 
 const marksByOwner = new Map<string, OwnerCodeMarks>()
+let shownCount = 0
 const listeners = new Set<() => void>()
 
 function notify(): void {
@@ -65,7 +68,7 @@ export function putCodeMark(
   const { marks, placed } = placeOwnerCodeMark(
     marksByOwner.get(ownerKey),
     filePath,
-    next,
+    { ...next, seq: (shownCount += 1) },
     keepOthers
   )
   marksByOwner.set(ownerKey, marks)
@@ -77,6 +80,11 @@ export function clearOwnerCodeMarks(ownerKey: string): void {
   if (marksByOwner.delete(ownerKey)) {
     notify()
   }
+}
+
+/** One owner's marks by file, for tidying the tabs it opened. */
+export function ownerCodeMarks(ownerKey: string): OwnerCodeMarks | undefined {
+  return marksByOwner.get(ownerKey)
 }
 
 /** Every owner's marks on one file, for the editors showing it. */

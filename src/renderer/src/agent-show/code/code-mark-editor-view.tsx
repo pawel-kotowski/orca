@@ -15,6 +15,7 @@ import type { CodeMark } from './code-mark-store'
 import { AgentShowNoteCard } from './AgentShowNoteCard'
 
 type NoteZone = {
+  mark: string
   zoneId: string
   domNode: HTMLElement
   delegate: editor.IViewZone
@@ -24,6 +25,8 @@ type NoteZone = {
 
 export type CodeMarkEditorView = {
   render: (marks: readonly CodeMark[]) => void
+  /** Pixel height of the note cards drawn for these marks. */
+  noteHeightPx: (marks: readonly CodeMark[]) => number
   dispose: () => void
 }
 
@@ -83,6 +86,7 @@ export function createCodeMarkEditorView(ed: editor.IStandaloneCodeEditor): Code
           suppressMouseDown: false
         }
         const zone: NoteZone = {
+          mark: mark.mark,
           zoneId: accessor.addZone(delegate),
           domNode,
           delegate,
@@ -101,6 +105,12 @@ export function createCodeMarkEditorView(ed: editor.IStandaloneCodeEditor): Code
 
   return {
     render,
+    noteHeightPx: (marks) => {
+      const labels = new Set(marks.map((mark) => mark.mark))
+      return [...zones.values()]
+        .filter((zone) => labels.has(zone.mark))
+        .reduce((sum, zone) => sum + (zone.delegate.heightInPx ?? 0), 0)
+    },
     dispose: () => {
       decorations.clear()
       removeZones([...zones.keys()])

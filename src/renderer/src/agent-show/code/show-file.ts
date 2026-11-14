@@ -7,7 +7,9 @@ import {
   getEditorViewLanguage,
   getMarkdownViewModes
 } from '@/components/editor/view-mode/markdown-preview-controls'
-import { rememberOwnerGroup, resolveCodeTargetGroup } from './code-target-group'
+import { resolveCodeTarget } from './code-target-group'
+import { rememberStageTab } from './code-stage-tabs'
+import { describeBackgroundTab } from './code-fit-report'
 import { findEntityTab, isTabOnScreen, waitForAppState } from './code-view-visibility'
 import {
   contextWantsFocus,
@@ -59,10 +61,19 @@ export const showFile: AgentShowHandler<'file'> = async (request, context) => {
     return outsideWorktreeResult(request.filePath)
   }
   const focus = contextWantsFocus(context)
-  const targetGroupId = resolveCodeTargetGroup(context, request.place, focus)
+  // Why 40 lines: a file view has no range; ask the stage for a pane about that tall.
+  const target = resolveCodeTarget(
+    context,
+    { place: request.place, lines: 40, keepOthers: true },
+    focus
+  )
+  const targetGroupId = target.groupId
+  const before = new Set(
+    (useAppStore.getState().unifiedTabsByWorktree[file.worktreeId] ?? []).map((t) => t.id)
+  )
   let findTab: ReturnType<typeof openShownFile>
   try {
-    findTab = openShownFile(file, request.preview, targetGroupId, focus)
+    findTab = openShownFile(file, request.preview, targetGroupId, focus && !target.background)
   } catch (error) {
     return {
       ok: false,
@@ -74,6 +85,14 @@ export const showFile: AgentShowHandler<'file'> = async (request, context) => {
   if (!tab) {
     return { ok: false, code: 'open_failed', message: `${file.relativePath} did not open` }
   }
-  rememberOwnerGroup(context, tab.groupId)
+  rememberStageTab(context, {
+    tabId: tab.id,
+    groupId: tab.groupId,
+    filePath: file.filePath,
+    openedByShow: targetGroupId !== undefined && !before.has(tab.id)
+  })
+  if (target.background) {
+    return { ok: true, visible: false, detail: describeBackgroundTab(file.relativePath) }
+  }
   return { ok: true, visible: isTabOnScreen(useAppStore.getState(), context.worktreeId, tab.id) }
 }
