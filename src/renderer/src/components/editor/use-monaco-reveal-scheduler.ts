@@ -1,6 +1,7 @@
 import { useCallback, useRef } from 'react'
 import type { editor } from 'monaco-editor'
 import { MAX_REVEAL_CONTENT_WAIT_FRAMES, performReveal } from './monaco-reveal'
+import type { EditorRevealExtent } from '@/store/slices/editor/types/pending-editor-reveal'
 
 export type MonacoRevealScheduler = {
   clearTransientRevealHighlight: () => void
@@ -11,7 +12,8 @@ export type MonacoRevealScheduler = {
     column: number,
     matchLength: number,
     onApplied?: () => void,
-    canApply?: () => boolean
+    canApply?: () => boolean,
+    extent?: EditorRevealExtent
   ) => void
 }
 
@@ -49,7 +51,8 @@ export function useMonacoRevealScheduler(): MonacoRevealScheduler {
       column: number,
       matchLength: number,
       onApplied?: () => void,
-      canApply?: () => boolean
+      canApply?: () => boolean,
+      extent?: EditorRevealExtent
     ) => {
       cancelScheduledReveal()
       let waitFrames = 0
@@ -78,7 +81,8 @@ export function useMonacoRevealScheduler(): MonacoRevealScheduler {
               matchLength,
               clearTransientRevealHighlight,
               revealDecorationRef,
-              revealHighlightTimerRef
+              revealHighlightTimerRef,
+              extent
             )
             onApplied?.()
           })
