@@ -68,6 +68,25 @@ const COMMAND_SCOPED_FLAG_HELP: Record<string, Record<string, string>> = {
   'file open-changed': {
     focus: FILE_OPEN_FOCUS_HELP
   },
+  'show code': {
+    lines: '--lines <a>-<b>        Line range to highlight (1-based); one number is one line',
+    note: '--note <text>          Note card shown beside the range',
+    mark: '--mark <n>             Short marker (a number) linking this range to your reply',
+    place: '--place <where>        beside (default), right, below or same: where the editor opens',
+    keep: '--keep                 Keep your earlier code marks instead of replacing them'
+  },
+  'show tree': {
+    label: '--label <path>=<label> Label one of the shown paths; repeat for several',
+    'no-expand': '--no-expand            Do not open the folders you show',
+    'dim-others': '--dim-others           Fade every explorer row you did not show'
+  },
+  'show ui': {
+    code: '--code <path>:<a>-<b>  Code range this element comes from; shown and linked',
+    page: "--page <id>            Browser page id; default is the worktree's current page"
+  },
+  'show snap': {
+    out: '--out <file.png>       Where to save the PNG (default: the OS temp folder)'
+  },
   'repo hide': {
     host: "--host <host>          Which host's copy to hide: local, ssh:<target-id>, runtime:<id>, or a host name"
   },

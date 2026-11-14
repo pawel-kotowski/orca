@@ -157,6 +157,7 @@ export async function useIpcEventsForCloseRouting({
         onBaseStatus: () => () => {},
         onRemoteBranchConflict: () => () => {}
       },
+      agentShow: { onRequest: () => () => {}, reply: () => {} },
       ui: {
         onStateChanged: () => () => {},
         onOpenSettings: () => () => {},
