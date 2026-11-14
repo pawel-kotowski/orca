@@ -20,6 +20,8 @@ export type CodePlacementInput = {
   roomBelow: boolean
   /** The current pane is wide enough to split into two columns of code. */
   roomRight: boolean
+  /** Stage panes showing a browser page: code goes beside them, never over them. */
+  pagePanes?: readonly string[]
 }
 
 /** The stage pane the agent works in now: the one it used last, else the stage's first. */
@@ -33,7 +35,8 @@ export function currentStagePane(
 /**
  * Code goes in the column beside the chat, never in the chat's pane. beside: the current stage
  * pane; below/right: a split of it when every pane still shows its range, else the pane used
- * least recently; same: the pane used last. No owner tab: the editor's default.
+ * least recently; same: the pane used last. A pane showing a browser page keeps it: code goes to
+ * another stage pane or stacks under the page. No owner tab: the editor's default.
  */
 export function chooseCodePlacement(input: CodePlacementInput): CodePlacement {
   const { place, ownerGroupId, stageLeaves, usedByOwner, stageHasRoom } = input
@@ -53,9 +56,22 @@ export function chooseCodePlacement(input: CodePlacementInput): CodePlacement {
   if ((place === 'right' || place === 'below') && input.roomBelow) {
     return { kind: 'split', sourceGroupId: current, direction: 'down' }
   }
+  const pages = input.pagePanes ?? []
   if (place === 'right' || place === 'below') {
-    const used = usedByOwner.filter((id) => stageLeaves.includes(id))
+    const used = usedByOwner.filter((id) => stageLeaves.includes(id) && !pages.includes(id))
     return { kind: 'group', groupId: used.at(-1) ?? current, reusedForRoom: true }
   }
-  return { kind: 'group', groupId: current }
+  if (!pages.includes(current)) {
+    return { kind: 'group', groupId: current }
+  }
+  // Why: the agent is pointing at that page; its code goes next to it, not over it.
+  const codePane =
+    usedByOwner.find((id) => stageLeaves.includes(id) && !pages.includes(id)) ??
+    stageLeaves.find((id) => !pages.includes(id))
+  if (codePane) {
+    return { kind: 'group', groupId: codePane }
+  }
+  return input.roomBelow
+    ? { kind: 'split', sourceGroupId: current, direction: 'down' }
+    : { kind: 'group', groupId: current, reusedForRoom: true }
 }

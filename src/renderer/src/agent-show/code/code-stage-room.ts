@@ -25,6 +25,8 @@ const GUTTER_PX = 56
 const STRIP_PX = 36
 /** Height kept for a pane in the stack that shows no marks of ours (the user's own tab). */
 const UNMARKED_PANE_PX = 160
+/** A browser page the agent points at keeps enough height to read. */
+const PAGE_PANE_PX = 360
 // Why 1.5: Monaco's derived line height on macOS; elsewhere it is smaller, so this errs safe.
 const AUTO_LINE_HEIGHT_RATIO = 1.5
 
@@ -111,7 +113,10 @@ export function measureStageRoom(input: {
 }
 
 /** A marked pane needs its fitted range at the floor font; an unmarked one keeps a little room. */
-export function markedPaneNeedPx(activeTabId: string | null): number {
+export function markedPaneNeedPx(activeTabId: string | null, showsPage = false): number {
+  if (showsPage) {
+    return PAGE_PANE_PX
+  }
   const fit = activeTabId ? codeFitForTab(activeTabId) : undefined
   if (!fit) {
     return UNMARKED_PANE_PX
@@ -127,7 +132,10 @@ export function newPaneNeedForRatio(state: AppState, lines: number, note?: strin
 }
 
 /** Each stack pane's share of height: what its range needs at the user's font, so all can keep it when there is room. */
-export function stagePaneNeedForRatio(activeTabId: string | null): number {
+export function stagePaneNeedForRatio(activeTabId: string | null, showsPage = false): number {
+  if (showsPage) {
+    return PAGE_PANE_PX + STRIP_PX
+  }
   const fit = activeTabId ? codeFitForTab(activeTabId) : undefined
   return (fit ? fit.needPxAtUser : UNMARKED_PANE_PX) + STRIP_PX
 }

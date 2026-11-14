@@ -73,4 +73,18 @@ describe('chooseCodePlacement', () => {
   it('leaves placement to the editor when there is no owner tab', () => {
     expect(chooseCodePlacement({ ...roomy, ownerGroupId: null })).toEqual({ kind: 'default' })
   })
+
+  it('never covers a browser page: code goes to another stage pane or stacks under it', () => {
+    expect(
+      chooseCodePlacement({
+        ...roomy,
+        stageLeaves: ['page', 'a'],
+        usedByOwner: [],
+        pagePanes: ['page']
+      })
+    ).toEqual({ kind: 'group', groupId: 'a' })
+    expect(
+      chooseCodePlacement({ ...roomy, stageLeaves: ['page'], usedByOwner: [], pagePanes: ['page'] })
+    ).toEqual({ kind: 'split', sourceGroupId: 'page', direction: 'down' })
+  })
 })

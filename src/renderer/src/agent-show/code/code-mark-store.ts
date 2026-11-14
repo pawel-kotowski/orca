@@ -1,8 +1,12 @@
 import type { AgentShowContext } from '../../../../shared/agent-show/agent-show-contract'
 import type { CodeLineRange } from './code-line-range'
 
-/** `seq` orders marks by when they were shown, so an editor can fit the newest. */
-export type CodeMark = CodeLineRange & { mark: string; note?: string; seq?: number }
+/**
+ * `seq` orders marks by when they were shown, so an editor can fit the newest; `tabId` is the
+ * pane the mark was shown in, which fits it and draws its card when one file is open twice.
+ */
+export type CodeMark = CodeLineRange & { mark: string; note?: string; seq?: number; tabId?: string }
+type NewCodeMark = CodeLineRange & { mark?: string; note?: string; tabId?: string }
 /** One owner's marks by absolute file path. */
 export type OwnerCodeMarks = ReadonlyMap<string, readonly CodeMark[]>
 
@@ -13,7 +17,7 @@ export type OwnerCodeMarks = ReadonlyMap<string, readonly CodeMark[]>
 export function placeOwnerCodeMark(
   previous: OwnerCodeMarks | undefined,
   filePath: string,
-  next: CodeLineRange & { mark?: string; note?: string; seq?: number },
+  next: NewCodeMark & { seq?: number },
   keepOthers: boolean
 ): { marks: Map<string, CodeMark[]>; placed: CodeMark } {
   const kept = new Map<string, CodeMark[]>()
@@ -39,7 +43,8 @@ export function placeOwnerCodeMark(
     startLine: next.startLine,
     endLine: next.endLine,
     ...(next.note ? { note: next.note } : {}),
-    ...(next.seq === undefined ? {} : { seq: next.seq })
+    ...(next.seq === undefined ? {} : { seq: next.seq }),
+    ...(next.tabId === undefined ? {} : { tabId: next.tabId })
   }
   const onFile = [...(kept.get(filePath) ?? []), placed].sort((a, b) => a.startLine - b.startLine)
   kept.set(filePath, onFile)
@@ -49,6 +54,15 @@ export function placeOwnerCodeMark(
     }
   }
   return { marks: kept, placed }
+}
+
+/** Marks an editor fits and carries cards for: its own, unpinned ones, and any whose pane is gone. */
+export function marksForEditor(
+  marks: readonly CodeMark[],
+  tabId: string | undefined,
+  isMounted: (tabId: string) => boolean
+): CodeMark[] {
+  return marks.filter((mark) => !mark.tabId || mark.tabId === tabId || !isMounted(mark.tabId))
 }
 
 const marksByOwner = new Map<string, OwnerCodeMarks>()
@@ -69,7 +83,7 @@ export function codeMarkOwnerKey(context: AgentShowContext): string {
 export function putCodeMark(
   ownerKey: string,
   filePath: string,
-  next: CodeLineRange & { mark?: string; note?: string },
+  next: NewCodeMark,
   keepOthers: boolean
 ): CodeMark {
   const { marks, placed } = placeOwnerCodeMark(

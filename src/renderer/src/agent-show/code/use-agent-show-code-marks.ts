@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import type { editor } from 'monaco-editor'
-import { registerCodeEditor } from './code-editor-registry'
+import { mountedCodeEditor, registerCodeEditor } from './code-editor-registry'
 import { createCodeMarkEditorView } from './code-mark-editor-view'
-import { codeMarksOnFile, subscribeCodeMarks } from './code-mark-store'
+import { codeMarksOnFile, marksForEditor, subscribeCodeMarks } from './code-mark-store'
 import type { CodeFit, CodeTypography } from './code-fit'
 import {
   codeFitTargets,
@@ -58,8 +58,9 @@ export function useAgentShowCodeMarks(
     const fitNow = (reveal: boolean): void => {
       const model = ed.getModel()
       const marks = codeMarksOnFile(filePath)
-      view.render(marks)
-      const targets = model ? codeFitTargets(marks, model.getLineCount()) : []
+      const own = marksForEditor(marks, tabId, (id) => !!mountedCodeEditor(id))
+      view.render(marks, own)
+      const targets = model ? codeFitTargets(own, model.getLineCount()) : []
       if (targets.length === 0) {
         setCodeFitForTab(tabId, null)
         if (applied) {

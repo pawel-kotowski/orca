@@ -109,7 +109,7 @@ export const showCode: AgentShowHandler<'code'> = async (request, context) => {
   const placed = putCodeMark(
     codeMarkOwnerKey(context),
     openPath,
-    { ...request.range, mark: request.mark, note: request.note },
+    { ...request.range, mark: request.mark, note: request.note, tabId: tab.id },
     request.keepOthers
   )
   tidyCodeStage(context, tab.id)

@@ -33,6 +33,15 @@ export type CodeTargetRequest = {
   keepOthers: boolean
 }
 
+/** The pane's front tab is a browser page. */
+function showsPage(state: AppState, worktreeId: string, groupId: string): boolean {
+  const activeTabId = state.groupsByWorktree[worktreeId]?.find((g) => g.id === groupId)?.activeTabId
+  return (
+    state.unifiedTabsByWorktree[worktreeId]?.find((tab) => tab.id === activeTabId)?.contentType ===
+    'browser'
+  )
+}
+
 function ownerGroupOf(state: AppState, context: AgentShowContext): string | null {
   const { worktreeId, ownerTabId } = context
   if (!ownerTabId) {
@@ -67,7 +76,10 @@ export function sizeCodeStageStack(
   const ratios = stackSplitRatios(layout, stack.path, (id) =>
     id === groupId && newNeedPx !== undefined
       ? newNeedPx
-      : stagePaneNeedForRatio(groups.find((group) => group.id === id)?.activeTabId ?? null)
+      : stagePaneNeedForRatio(
+          groups.find((group) => group.id === id)?.activeTabId ?? null,
+          showsPage(state, context.worktreeId, id)
+        )
   )
   for (const { path, ratio } of ratios) {
     state.setTabGroupSplitRatio(context.worktreeId, path, ratio)
@@ -120,9 +132,9 @@ export function resolveCodeTarget(
         const ours = group?.tabOrder.every((tabId) => ownerOpenedTab(context, tabId)) ?? false
         if (!request.keepOthers) {
           // Why: a pane holding only tabs this show replaces closes after it.
-          return ours ? null : markedPaneNeedPx(null)
+          return ours ? null : markedPaneNeedPx(null, showsPage(state, worktreeId, groupId))
         }
-        return markedPaneNeedPx(group?.activeTabId ?? null)
+        return markedPaneNeedPx(group?.activeTabId ?? null, showsPage(state, worktreeId, groupId))
       }
     })
   const room = focus ? makeRoomForStage(state, context, measure) : measure(0)
@@ -131,6 +143,7 @@ export function resolveCodeTarget(
     ownerGroupId,
     stageLeaves: stage?.leaves ?? null,
     usedByOwner: used,
+    pagePanes: (stage?.leaves ?? []).filter((id) => showsPage(state, worktreeId, id)),
     ...room
   })
   if (placement.kind === 'default') {

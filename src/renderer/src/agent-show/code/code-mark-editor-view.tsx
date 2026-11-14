@@ -26,7 +26,8 @@ type NoteZone = {
 }
 
 export type CodeMarkEditorView = {
-  render: (marks: readonly CodeMark[]) => void
+  /** Tints every mark; cards only for `cardMarks` (default: all). */
+  render: (marks: readonly CodeMark[], cardMarks?: readonly CodeMark[]) => void
   /** Pixel height of the note cards drawn for these marks. */
   noteHeightPx: (marks: readonly CodeMark[]) => number
   dispose: () => void
@@ -60,7 +61,7 @@ export function createCodeMarkEditorView(
     queueMicrotask(() => roots.forEach((root) => root.unmount()))
   }
 
-  const render = (marks: readonly CodeMark[]): void => {
+  const render = (marks: readonly CodeMark[], cardMarks: readonly CodeMark[] = marks): void => {
     const model = ed.getModel()
     if (!model) {
       decorations.clear()
@@ -70,8 +71,8 @@ export function createCodeMarkEditorView(
     decorations.set(buildCodeMarkDecorations(marks, model))
     const lineCount = model.getLineCount()
     const wanted = new Map<string, { mark: CodeMark; compact: boolean }>()
-    const newest = Math.max(...marks.map((mark) => mark.seq ?? 0))
-    for (const mark of marks) {
+    const newest = Math.max(...cardMarks.map((mark) => mark.seq ?? 0))
+    for (const mark of cardMarks) {
       if (mark.note) {
         const shown = { ...mark, ...clampCodeLineRange(mark, lineCount).range }
         // Why: only the newest note is read now; older ones fold to a line so the code stays in view.
