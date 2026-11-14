@@ -2,7 +2,10 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'reac
 import type { AgentType } from '../../../../../../../shared/agent-status/contracts/agent-status-types'
 import { getAgentSessionOptionCatalog } from '../../../../../../../shared/agent-session/options/agent-session-option-catalog'
 import { matchNativeChatCatalogModelId } from '../../../../../../../shared/native-chat/input/native-chat-session-option-state'
-import type { SessionOptionDescriptor } from '../../../../../../../shared/native-chat/input/native-chat-session-options'
+import type {
+  SessionOptionDescriptor,
+  SessionOptionValue
+} from '../../../../../../../shared/native-chat/input/native-chat-session-options'
 import { useAppStore } from '../../../../../store/index'
 import { sayNativeChatSessionOptionTranslated } from '../controls/native-chat-session-option-labels-text'
 import {
@@ -21,11 +24,10 @@ import {
 } from '../catalog/native-chat-session-option-discovery'
 import {
   claudeTranscriptSessionValues,
-  readClaudeSessionOptionsFromTerminalScreen,
-  withClaudeHookEffort,
-  withClaudeStartingEffort
+  readClaudeSessionOptionsFromTerminalScreen
 } from './claude-terminal-session-options'
-import type { ClaudeSessionEffortSettings } from '../../../../../../../shared/native-chat/claude-session-effort-types'
+import { claudeSessionValuesToReport } from './claude-terminal-model-identity'
+import { useClaudeTerminalSessionStart } from './use-claude-terminal-session-start'
 
 import { enqueueSessionOptionSettingsWrite } from '../native-chat-session-option-settings-write'
 
@@ -60,41 +62,12 @@ export function useNativeChatSessionOptions(args: {
     paneKey,
     transcriptModel = null
   } = args
-  // Claude reports its live effort level on tool and Stop hooks; fresher than the startup frame.
-  const hookEffort = useAppStore((state) =>
-    paneKey && agent === 'claude'
-      ? (state.agentStatusByPaneKey[paneKey]?.providerSession?.effort ?? null)
-      : null
+  // Claude's hook-reported effort, and the model and effort its session started with.
+  const { hookEffort, start: claudeStart } = useClaudeTerminalSessionStart(
+    agent === 'claude' ? paneKey : undefined
   )
-  // Until Claude reports an effort, the one it started with (its flag or its config's saved level).
-  const claudeSessionId = useAppStore((state) =>
-    paneKey && agent === 'claude'
-      ? (state.agentStatusByPaneKey[paneKey]?.providerSession?.id ?? null)
-      : null
-  )
-  const [startingEffort, setStartingEffort] = useState<{
-    sessionId: string
-    settings: ClaudeSessionEffortSettings
-  } | null>(null)
-  useEffect(() => {
-    const read = window.api?.nativeChat?.getClaudeSessionEffort
-    if (!claudeSessionId || !read) {
-      return
-    }
-    let cancelled = false
-    void read(claudeSessionId)
-      .then((settings) => {
-        if (!cancelled) {
-          setStartingEffort({ sessionId: claudeSessionId, settings })
-        }
-      })
-      .catch(() => {})
-    return () => {
-      cancelled = true
-    }
-  }, [claudeSessionId])
-  const startingEffortSettings =
-    startingEffort && startingEffort.sessionId === claudeSessionId ? startingEffort.settings : null
+  // Bumped when the host's model list arrives, so the pill is resolved again against it.
+  const [modelsTick, setModelsTick] = useState(0)
   const reportedModel = useAppStore((state) =>
     paneKey ? (state.agentStatusByPaneKey[paneKey]?.model ?? null) : null
   )
@@ -104,7 +77,7 @@ export function useNativeChatSessionOptions(args: {
   // Only changed hook models are new evidence; repeated status pings must not undo newer user picks.
   const appliedReportedModelRef = useRef<string | null>(null)
   // Cache parsed screen text so late discovery can resolve real host model IDs.
-  const reportedScreenRef = useRef<string | null>(null)
+  const reportedScreenRef = useRef<{ surface: object; screen: string } | null>(null)
   const discoveryContext = useMemo(
     () => resolveNativeChatModelDiscoveryContext(terminalTabId),
     [terminalTabId]
@@ -161,7 +134,8 @@ export function useNativeChatSessionOptions(args: {
       return
     }
     let cancelled = false
-    reportedScreenRef.current = null
+    const cachedScreen =
+      reportedScreenRef.current?.surface === surface ? reportedScreenRef.current.screen : null
     const reportCurrentValues = async (): Promise<void> => {
       let authoritativeScreen: string | null = null
       if (targetPtyId && window.api?.pty?.getMainBufferSnapshot) {
@@ -175,41 +149,33 @@ export function useNativeChatSessionOptions(args: {
           // The mounted renderer buffer remains a transport-neutral fallback.
         }
       }
+      if (cancelled) {
+        return
+      }
       const models = discoveryContext
         ? readNativeChatEnrichedModels(agent, discoveryContext.hostKey)
         : null
-      for (const screen of [authoritativeScreen, readTerminalScreen?.() ?? null]) {
-        const reportedValues = readClaudeSessionOptionsFromTerminalScreen(
-          screen,
-          models ?? undefined
-        )
-        if (!reportedValues) {
-          continue
+      let found: Record<string, SessionOptionValue> | null = null
+      // Why the cached screen: the model frame scrolls away before late discovery resolves ids.
+      for (const screen of [authoritativeScreen, readTerminalScreen?.() ?? null, cachedScreen]) {
+        found = readClaudeSessionOptionsFromTerminalScreen(screen, models ?? undefined)
+        if (found && screen) {
+          reportedScreenRef.current = { surface, screen }
+          break
         }
-        // Retain parsed screen text for late discovery after the model frame scrolls away.
-        if (cancelled) {
-          return
-        }
-        reportedScreenRef.current = screen
-        surface.reportSessionOptions(
-          withClaudeStartingEffort(
-            withClaudeHookEffort(reportedValues, hookEffort),
-            startingEffortSettings
-          )
-        )
-        return
       }
       // Why: the startup frame scrolls away or a resumed session never draws it; the newest
-      // reply still names the model, so the pill shows it rather than a bare "Model".
-      const transcriptValues = claudeTranscriptSessionValues(
-        transcriptModel,
-        models ?? undefined,
-        hookEffort
-      )
-      if (transcriptValues && !cancelled) {
-        surface.reportSessionOptions(
-          withClaudeStartingEffort(transcriptValues, startingEffortSettings)
-        )
+      // reply still names the model. Past that, the model the session started on: the pill
+      // always names a model and an effort, never a bare "Model" (Paweł, 2026-11-14).
+      const values = claudeSessionValuesToReport({
+        found: found ?? claudeTranscriptSessionValues(transcriptModel, models ?? undefined, null),
+        snapshot: surface.getSnapshot(),
+        models,
+        hookEffort,
+        start: claudeStart
+      })
+      if (values) {
+        surface.reportSessionOptions(values)
       }
     }
     void reportCurrentValues()
@@ -218,10 +184,11 @@ export function useNativeChatSessionOptions(args: {
     }
   }, [
     agent,
+    claudeStart,
     discoveryContext,
     hookEffort,
+    modelsTick,
     readTerminalScreen,
-    startingEffortSettings,
     surface,
     targetPtyId,
     transcriptModel
@@ -267,12 +234,9 @@ export function useNativeChatSessionOptions(args: {
       discoveryContext.hostKey,
       (models) => {
         surface.replaceModels(models)
-        const screen = agent === 'claude' ? reportedScreenRef.current : null
-        const reportedValues = screen
-          ? readClaudeSessionOptionsFromTerminalScreen(screen, models)
-          : null
-        if (reportedValues) {
-          surface.reportSessionOptions(reportedValues)
+        // Why: one path names the model and effort, so a list refresh never drops the effort.
+        if (agent === 'claude') {
+          setModelsTick((tick) => tick + 1)
         }
       }
     )

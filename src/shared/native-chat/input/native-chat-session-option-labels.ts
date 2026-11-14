@@ -159,7 +159,11 @@ export function nativeChatModelPillLabel(
 ): string {
   // The tooltip names the category; default sources still identify a model, while unknown sources do not.
   const choice = descriptor.valueSource === 'unknown' ? null : selectedNativeChatChoice(descriptor)
-  const selected = choice ? nativeChatSessionChoiceLabel(choice, say) : say('model')
+  // Why: the listing marks a family row (`opus`) "… alias" to tell it from the versioned row in
+  // the list; on the pill that word names nothing (Paweł, 2026-11-14: "what alias?").
+  const selected = choice
+    ? nativeChatSessionChoiceLabel(choice, say).replace(/\s+alias$/iu, '')
+    : say('model')
   const reported = descriptor.reportedModel
   if (!reported || (choice && reported === choice.value.replace(/\[[^\]]*\]$/u, ''))) {
     return selected
@@ -172,7 +176,7 @@ export function nativeChatModelPillLabel(
     ? nativeChatSessionChoiceLabel(reportedChoice, say)
     : labelFromModelId(reported)
   const actual = selected.startsWith('Claude ') ? label : label.replace(/^Claude /, '')
-  return actual
+  return actual.replace(/\s+alias$/iu, '')
 }
 
 export function nativeChatOptionsPillTitle(

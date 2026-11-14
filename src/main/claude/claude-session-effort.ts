@@ -43,6 +43,17 @@ export function readEffortFlag(command: string): string | null {
   return (match && readAgentEffortLevel(match[1])) ?? null
 }
 
+/** The model a Claude process was started on by flag (`--model opus`, `--model=claude-opus-5-5`). */
+export function readModelFlag(command: string): string | null {
+  return command.match(/(?:^|\s)['"]?--model(?:=|['"]?\s+)['"]?([^\s'"]+)/)?.[1] ?? null
+}
+
+function readSavedModel(settings: unknown): string | null {
+  const model =
+    settings && typeof settings === 'object' ? (settings as Record<string, unknown>).model : null
+  return typeof model === 'string' && model.trim() ? model.trim() : null
+}
+
 export function readEffortSettings(
   settings: unknown
 ): Pick<ClaudeSessionEffortSettings, 'byModel' | 'fallback'> {
@@ -81,5 +92,9 @@ export async function readClaudeSessionEffortSettings(
       .then((text) => JSON.parse(text) as unknown)
       .catch(() => null)
   ])
-  return { flag: readEffortFlag(command), ...readEffortSettings(settings) }
+  return {
+    flag: readEffortFlag(command),
+    ...readEffortSettings(settings),
+    model: readModelFlag(command) ?? readSavedModel(settings)
+  }
 }

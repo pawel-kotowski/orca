@@ -177,9 +177,17 @@ function findClaudeCatalogModel(
 ): CatalogModel | undefined {
   const seeded = getAgentSessionOptionCatalog('claude')?.models ?? []
   for (const candidates of [models ?? [], seeded]) {
-    const matches = candidates.filter(({ label }) => labelNamesReportedModel(reportedModel, label))
+    // Why plain: a host row reads "Claude Opus 5.5" or "Opus 5.5 alias"; the frame says "Opus 5.5".
+    const matches = candidates.filter(({ label }) =>
+      labelNamesReportedModel(
+        reportedModel,
+        label.replace(/^claude\s+/iu, '').replace(/\s+alias$/iu, '')
+      )
+    )
     const best = matches.sort(
-      (left, right) => modelNameTokens(right.label).length - modelNameTokens(left.label).length
+      (left, right) =>
+        modelNameTokens(right.label.replace(/\s+alias$/iu, '')).length -
+        modelNameTokens(left.label.replace(/\s+alias$/iu, '')).length
     )[0]
     if (best) {
       return best

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { readEffortFlag, readEffortSettings } from './claude-session-effort'
+import { readEffortFlag, readEffortSettings, readModelFlag } from './claude-session-effort'
 import { claudeStartingEffort } from '../../shared/native-chat/claude-session-effort-types'
 
 describe('the effort a Claude session started with', () => {
@@ -7,6 +7,12 @@ describe('the effort a Claude session started with', () => {
     expect(readEffortFlag('claude --effort max --resume abc')).toBe('max')
     expect(readEffortFlag('claude --effort=low')).toBe('low')
     expect(readEffortFlag('claude --dangerously-skip-permissions')).toBeNull()
+  })
+
+  it('reads a --model flag from the process command', () => {
+    expect(readModelFlag('claude --model opus --effort max')).toBe('opus')
+    expect(readModelFlag("claude '--model=claude-fable-5-2'")).toBe('claude-fable-5-2')
+    expect(readModelFlag('claude --resume abc')).toBeNull()
   })
 
   it("reads the config folder's saved levels, per model and overall", () => {
