@@ -20,6 +20,7 @@ import {
   treeEntriesFor
 } from './show-request-args'
 import { formatShowResult } from './show-result-format'
+import { showOwnerTabId } from './show-owner-tab'
 
 // Why 30s: main waits up to 20s for the window, plus worktree resolution.
 const SHOW_TIMEOUT_MS = 30_000
@@ -48,7 +49,7 @@ function showHandler(build: BuildRequest): CommandHandler {
     const response = await callShowRpc<AgentShowResult>(ctx, 'agentShow.request', {
       worktree,
       request,
-      ownerTabId: process.env.ORCA_TAB_ID || null,
+      ownerTabId: showOwnerTabId(),
       focus: ctx.flags.get('no-focus') !== true
     })
     const result = response.result
