@@ -20,7 +20,7 @@ const routeAgentShow = createAgentShowDispatcher({
   revealWorktree: (worktreeId) => revealWorkspaceSurface(useAppStore.getState(), worktreeId)
 })
 
-const clearEverything = (context: AgentShowContext): Promise<unknown> =>
+export const clearEverything = (context: AgentShowContext): Promise<unknown> =>
   Promise.all([clearCodeMarks(context), clearTreeMarks(context), clearUiMarks(context)])
 
 export const dispatchAgentShow: typeof routeAgentShow = (request, context) => {

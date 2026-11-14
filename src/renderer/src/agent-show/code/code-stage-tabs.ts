@@ -2,6 +2,7 @@ import type { AgentShowContext } from '../../../../shared/agent-show/agent-show-
 import { useAppStore } from '@/store'
 import { needsSavePromptOnClose } from '@/store/slices/editor/buffers/editor-buffer-close-rule'
 import { codeMarkOwnerKey, ownerCodeMarks } from './code-mark-store'
+import { signalAgentShowChange } from '../persistence/agent-show-change-signal'
 
 /** What `orca show` put on screen for one owner: only these are ever closed. */
 type OwnerStage = {
@@ -59,10 +60,43 @@ export function ownerOpenedTab(context: AgentShowContext, tabId: string): boolea
 
 export function rememberSidebarFolded(context: AgentShowContext, side: 'left' | 'right'): void {
   ownerStage(context).foldedSidebars.add(side)
+  signalAgentShowChange()
+}
+
+export type StageSnapshot = {
+  openedTabs: [string, string][]
+  createdGroups: string[]
+  usedGroups: string[]
+  foldedSidebars: ('left' | 'right')[]
+}
+
+/** What an owner's shows opened, as plain data to persist. */
+export function snapshotCodeStage(context: AgentShowContext): StageSnapshot {
+  const stage = stageByOwner.get(codeMarkOwnerKey(context))
+  return {
+    openedTabs: [...(stage?.openedTabs ?? [])],
+    createdGroups: [...(stage?.createdGroups ?? [])],
+    usedGroups: [...(stage?.usedGroups ?? [])],
+    foldedSidebars: [...(stage?.foldedSidebars ?? [])]
+  }
+}
+
+/** Puts back what an owner's shows opened, keeping only tabs and panes that still exist. */
+export function restoreCodeStage(context: AgentShowContext, snapshot: StageSnapshot): void {
+  const state = useAppStore.getState()
+  const tabIds = new Set((state.unifiedTabsByWorktree[context.worktreeId] ?? []).map((t) => t.id))
+  const groupIds = new Set((state.groupsByWorktree[context.worktreeId] ?? []).map((g) => g.id))
+  stageByOwner.set(codeMarkOwnerKey(context), {
+    openedTabs: new Map(snapshot.openedTabs.filter(([tabId]) => tabIds.has(tabId))),
+    createdGroups: new Set(snapshot.createdGroups.filter((id) => groupIds.has(id))),
+    usedGroups: snapshot.usedGroups.filter((id) => groupIds.has(id)),
+    foldedSidebars: new Set(snapshot.foldedSidebars)
+  })
 }
 
 export function rememberStageGroupCreated(context: AgentShowContext, groupId: string): void {
   ownerStage(context).createdGroups.add(groupId)
+  signalAgentShowChange()
 }
 
 export function rememberStageTab(
@@ -74,6 +108,7 @@ export function rememberStageTab(
   if (tab.openedByShow) {
     stage.openedTabs.set(tab.tabId, tab.filePath)
   }
+  signalAgentShowChange()
 }
 
 function closeStageTabs(worktreeId: string, stage: OwnerStage, tabIds: readonly string[]): void {
@@ -99,6 +134,7 @@ function closeStageTabs(worktreeId: string, stage: OwnerStage, tabIds: readonly 
     (useAppStore.getState().groupsByWorktree[worktreeId] ?? []).map((group) => group.id)
   )
   stage.usedGroups = stage.usedGroups.filter((id) => groups.has(id))
+  signalAgentShowChange()
 }
 
 /** Closes the tabs `orca show` opened whose marks are gone, and the panes that leaves empty. */
@@ -128,4 +164,5 @@ export function clearCodeStage(context: AgentShowContext): void {
     useAppStore.getState().setRightSidebarOpen(true)
   }
   stageByOwner.delete(key)
+  signalAgentShowChange()
 }
