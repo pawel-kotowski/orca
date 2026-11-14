@@ -20,6 +20,7 @@ import { codeFitForTab } from './code-editor-fit'
 import { userCodeTypography } from './code-stage-room'
 import { describeBackgroundTab, describeReusedPane } from './code-fit-report'
 import { findEntityTab, isTabOnScreen, waitForAppState } from './code-view-visibility'
+import { afterWindowShown, windowShown } from '../window-drawn'
 import {
   contextWantsFocus,
   missingFileResult,
@@ -59,6 +60,23 @@ function revealRangeInTab(
 // Why a timer, not frames: split ratios and Monaco's automatic layout land over a few frames.
 const layoutSettled = (): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, LAYOUT_SETTLE_MS))
+
+/** The reveal and fit a show in a hidden window could not do, run once the window is drawn. */
+async function finishStagingWhenDrawn(
+  context: AgentShowContext,
+  tab: { id: string; groupId: string },
+  openPath: string,
+  fileId: string,
+  range: CodeLineRange
+): Promise<void> {
+  if (!(await waitForCodeEditor(tab.id, EDITOR_MOUNT_WAIT_MS))) {
+    return
+  }
+  await revealRangeInTab(openPath, fileId, tab.id, range)
+  await layoutSettled()
+  mountedCodeEditor(tab.id)?.refit()
+  sizeCodeStageStack(context, tab.groupId)
+}
 
 export const showCode: AgentShowHandler<'code'> = async (request, context) => {
   const file = resolveShowRequestFile(context, request.filePath)
@@ -119,11 +137,20 @@ export const showCode: AgentShowHandler<'code'> = async (request, context) => {
   )
   tidyCodeStage(context, tab.id)
   // Why mounted first: the editor holds one pending reveal, so a later show would replace ours.
-  const lineCount = showInFront
+  // Why: a hidden window draws nothing, so the editor cannot mount and the range cannot be revealed
+  // or measured now; finish that when the user brings Orca forward, and say so instead of waiting.
+  const drawNow = showInFront && windowShown()
+  if (showInFront && !drawNow) {
+    afterWindowShown(
+      tab.id,
+      () => void finishStagingWhenDrawn(context, tab, openPath, fileId, request.range)
+    )
+  }
+  const lineCount = drawNow
     ? (await waitForCodeEditor(tab.id, EDITOR_MOUNT_WAIT_MS)) &&
       (await revealRangeInTab(openPath, fileId, tab.id, request.range))
     : (mountedCodeEditor(tab.id)?.editor.getModel()?.getLineCount() ?? null)
-  if (showInFront) {
+  if (drawNow) {
     await layoutSettled()
     mountedCodeEditor(tab.id)?.refit()
     // Why after the fit: a pane's share of the stack follows what its range measured as needing.
@@ -142,7 +169,9 @@ export const showCode: AgentShowHandler<'code'> = async (request, context) => {
     target.reusedForRoom
       ? describeReusedPane(target.replacedLabel, target.linesPerPaneIfSplit)
       : null,
-    lineCount === null && !target.background ? 'the editor has not drawn the file yet' : null,
+    lineCount === null && !target.background && windowShown()
+      ? 'the editor has not drawn the file yet'
+      : null,
     clamp?.clamped ? describeClampedRange(request.range, clamp.range, lineCount ?? 0) : null
   ]
   return {

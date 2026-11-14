@@ -4,6 +4,7 @@ import type {
   AgentShowResult
 } from '../../../../shared/agent-show/agent-show-contract'
 import { ensureTourStrips, tourStripRect } from './TourStripHost'
+import { windowShown } from '../window-drawn'
 import {
   endTour,
   setTourPlaying,
@@ -13,16 +14,23 @@ import {
   type PlayingTour
 } from './tour-player'
 
+const HIDDEN_WINDOW_PROBLEM =
+  'the Orca window is hidden (minimized, on another desktop or covered), so no step could be measured; run it again once Orca is in front'
+
 function tourResult(tour: PlayingTour, detail?: string, everyStep = false): AgentShowResult {
   const outcome = tour.outcomes[tour.index]
-  const problems = everyStep
-    ? tour.outcomes.flatMap((stepOutcome, index) =>
-        (stepOutcome?.problems ?? []).map((problem) => `step ${index + 1}: ${problem}`)
-      )
-    : (outcome?.problems ?? [])
+  const shown = windowShown()
+  // Why: in a hidden window every range reads as off screen; that is the window, not the tour.
+  const problems = !shown
+    ? [HIDDEN_WINDOW_PROBLEM]
+    : everyStep
+      ? tour.outcomes.flatMap((stepOutcome, index) =>
+          (stepOutcome?.problems ?? []).map((problem) => `step ${index + 1}: ${problem}`)
+        )
+      : (outcome?.problems ?? [])
   return {
     ok: true,
-    visible: (outcome?.visible ?? true) && tourStripRect(tour) !== null,
+    visible: shown && (outcome?.visible ?? true) && tourStripRect(tour) !== null,
     ...(detail ? { detail } : {}),
     tour: {
       title: tour.title,
