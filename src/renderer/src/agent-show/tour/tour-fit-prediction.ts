@@ -23,7 +23,7 @@ import {
   describeReused
 } from './tour-step-problems'
 
-/** The window as the check measured it, with the strip's band already taken from the height. */
+/** The window as the check measured it. */
 export type PredictionGeometry = {
   /** The chat's pane, and the stage column beside it (0 when there is none yet). */
   ownerWidthPx: number

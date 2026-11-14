@@ -1,8 +1,17 @@
 import { useEffect, useState } from 'react'
-import { ChevronLeft, ChevronRight, Pause, Play, TriangleAlert, X } from 'lucide-react'
+import {
+  ChevronLeft,
+  ChevronRight,
+  GripVertical,
+  Pause,
+  Play,
+  TriangleAlert,
+  X
+} from 'lucide-react'
 import { stepHoldMs } from './tour-steps'
 import { setTourPlaying, stepTour, endTour, type PlayingTour } from './tour-player'
-import type { StripRect } from './tour-strip-placement'
+import type { StripSize } from './tour-strip-placement'
+import type { DockDragHandle } from './use-tour-dock-drag'
 
 const DOTS_MAX_STEPS = 5
 const DOTS_MIN_WIDTH_PX = 460
@@ -31,7 +40,7 @@ function CaptionText({ text }: { text: string }): React.JSX.Element {
 
 /**
  * Every step's text in one grid cell, only the current one visible: the cell is as tall as the
- * longest, so the strip keeps one height and the layout above it never moves between steps.
+ * longest, so the strip keeps one height and its controls never jump between steps.
  */
 function StackedStepText({
   texts,
@@ -114,16 +123,16 @@ function HoldBar({
   )
 }
 
-/** One tour's caption and controls, floating centred near the bottom of the window. */
+/** One tour's caption and controls; its title row moves the dock it floats in. */
 export function TourCaptionStrip({
   tour,
   index,
   playing,
   advanceAt,
   warning,
-  rect,
+  size,
   version,
-  stripRef
+  handle
 }: {
   tour: PlayingTour
   /** Copied out of `tour`, which the player mutates: the props must change when the step does. */
@@ -132,11 +141,11 @@ export function TourCaptionStrip({
   advanceAt: number | null
   /** What this step showed that the check did not predict. */
   warning: string | null
-  rect: StripRect
+  size: StripSize
   /** Changes on every tour change, so a memoized strip still redraws. */
   version: number
-  /** The host measures the strip to keep the band under it as tall. */
-  stripRef: (element: HTMLDivElement | null) => void
+  /** Drags the dock by the title row. */
+  handle: DockDragHandle
 }): React.JSX.Element {
   const step = tour.steps[index]!
   const last = index === tour.steps.length - 1
@@ -154,26 +163,25 @@ export function TourCaptionStrip({
   }
   return (
     <div
-      ref={stripRef}
       data-orca-tour-strip=""
       data-tour-version={version}
       tabIndex={0}
       onKeyDown={onKey}
-      className="fixed z-30 flex flex-col gap-1 overflow-hidden rounded-xl border border-border bg-card px-3 py-2 shadow-md outline-none"
-      style={{
-        left: rect.left,
-        bottom: rect.bottom,
-        width: rect.width,
-        maxHeight: rect.maxHeight
-      }}
+      className="pointer-events-auto relative flex flex-col gap-1 overflow-hidden rounded-xl border border-border bg-card px-3 py-2 shadow-md outline-none"
+      style={{ width: size.width, maxHeight: size.maxHeight }}
     >
-      <div className="flex shrink-0 items-start gap-2">
+      <div
+        {...handle}
+        title="Drag to move; double-click to put it back"
+        className="-ml-1.5 flex shrink-0 cursor-grab select-none items-start gap-2 active:cursor-grabbing"
+      >
+        <GripVertical className="mt-[5px] size-3.5 shrink-0 text-muted-foreground/70" />
         <StackedStepText
           texts={tour.steps.map((s) => s.title)}
           index={index}
           className="min-w-0 flex-1 break-words py-[3px] text-[13px] font-medium leading-snug text-foreground"
         />
-        {tour.steps.length <= DOTS_MAX_STEPS && rect.width >= DOTS_MIN_WIDTH_PX ? (
+        {tour.steps.length <= DOTS_MAX_STEPS && size.width >= DOTS_MIN_WIDTH_PX ? (
           <div
             className="flex h-6 items-center gap-1"
             aria-label={`Step ${index + 1} of ${tour.steps.length}`}
@@ -219,7 +227,6 @@ export function TourCaptionStrip({
           <X className="size-3.5" />
         </StripButton>
       </div>
-      {/* Why no clamp: the whole caption is the step; the band under the app makes room for it. */}
       <div className="scrollbar-sleek min-h-0 overflow-y-auto text-xs leading-snug text-muted-foreground">
         <StackedStepText texts={tour.steps.map((s) => s.caption)} index={index} className="" />
       </div>

@@ -41,13 +41,10 @@ function union(boxes: readonly Box[]): Box {
 }
 
 /**
- * The chat's pane, the stage beside it and the sidebars as drawn now, less `bandPx` the strip will
- * take; null when the owner's workspace is not on screen, since nothing can be measured then.
+ * The chat's pane, the stage beside it and the sidebars as drawn now (the strip floats over them and
+ * takes no room); null when the owner's workspace is not on screen, since nothing can be measured then.
  */
-export function measurePredictionGeometry(
-  context: AgentShowContext,
-  bandPx: number
-): PredictionGeometry | null {
+export function measurePredictionGeometry(context: AgentShowContext): PredictionGeometry | null {
   const state = useAppStore.getState()
   const { worktreeId, ownerTabId } = context
   if (!ownerTabId || !worktreeDrawn(state, worktreeId)) {
@@ -70,7 +67,7 @@ export function measurePredictionGeometry(
   return {
     ownerWidthPx: ownerBox.right - ownerBox.left,
     stageWidthPx: stageBox ? stageBox.right - stageBox.left : 0,
-    heightPx: column.bottom - column.top - bandPx,
+    heightPx: column.bottom - column.top,
     explorer: { open: state.rightSidebarOpen, widthPx: state.rightSidebarWidth },
     projectList: { open: state.sidebarOpen, widthPx: state.sidebarWidth },
     user: userCodeTypography(state),
