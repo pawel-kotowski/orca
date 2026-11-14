@@ -1,0 +1,79 @@
+import type { AgentShowHandler } from '../../../../shared/agent-show/agent-show-contract'
+import type { AppState } from '@/store/types'
+import { useAppStore } from '@/store'
+import { openHtmlFilePreview } from '@/lib/browser/documents/open-html-file-preview'
+import { resolveEditorOpenTargetGroupId } from '@/store/slices/editor/tabs/editor-open-target-group'
+import {
+  getEditorViewLanguage,
+  getMarkdownViewModes
+} from '@/components/editor/view-mode/markdown-preview-controls'
+import { rememberOwnerGroup, resolveCodeTargetGroup } from './code-target-group'
+import { findEntityTab, isTabOnScreen, waitForAppState } from './code-view-visibility'
+import {
+  contextWantsFocus,
+  outsideWorktreeResult,
+  resolveShowRequestFile,
+  type ShowRequestFile
+} from './show-request-file'
+
+const TAB_WAIT_MS = 5000
+
+/** Opens the file the way its kind wants; returns how to find the tab that shows it. */
+function openShownFile(
+  file: ShowRequestFile,
+  preview: boolean,
+  targetGroupId: string | undefined,
+  focus: boolean
+): (state: AppState) => { id: string; groupId: string } | null {
+  const store = useAppStore.getState()
+  const { worktreeId } = file
+  if (preview && file.language === 'html') {
+    const groupId = targetGroupId ?? resolveEditorOpenTargetGroupId(store, worktreeId)
+    if (groupId) {
+      const before = store.groupsByWorktree[worktreeId]?.find((g) => g.id === groupId)?.activeTabId
+      openHtmlFilePreview({ filePath: file.filePath, worktreeId, targetGroupId: groupId })
+      return (state) => {
+        const group = state.groupsByWorktree[worktreeId]?.find((g) => g.id === groupId)
+        const tab = state.unifiedTabsByWorktree[worktreeId]?.find(
+          (candidate) => candidate.id === group?.activeTabId
+        )
+        return tab && tab.id !== before && tab.contentType === 'browser' ? tab : null
+      }
+    }
+  }
+  const fileId = store.openFile(
+    { ...file, mode: 'edit' },
+    { targetGroupId, selection: focus ? 'focus' : 'none' }
+  )
+  // Markdown, Mermaid, SVG and CSV render in their own tab's rich view; images need nothing.
+  const viewLanguage = getEditorViewLanguage(file.filePath, file.language)
+  if (preview && getMarkdownViewModes({ language: viewLanguage, mode: 'edit' }).includes('rich')) {
+    store.setMarkdownViewMode(fileId, 'rich')
+  }
+  return (state) => findEntityTab(state, worktreeId, fileId, targetGroupId)
+}
+
+export const showFile: AgentShowHandler<'file'> = async (request, context) => {
+  const file = resolveShowRequestFile(context, request.filePath)
+  if (!file) {
+    return outsideWorktreeResult(request.filePath)
+  }
+  const focus = contextWantsFocus(context)
+  const targetGroupId = resolveCodeTargetGroup(context, request.place, focus)
+  let findTab: ReturnType<typeof openShownFile>
+  try {
+    findTab = openShownFile(file, request.preview, targetGroupId, focus)
+  } catch (error) {
+    return {
+      ok: false,
+      code: 'open_failed',
+      message: error instanceof Error ? error.message : String(error)
+    }
+  }
+  const tab = await waitForAppState(findTab, TAB_WAIT_MS)
+  if (!tab) {
+    return { ok: false, code: 'open_failed', message: `${file.relativePath} did not open` }
+  }
+  rememberOwnerGroup(context, tab.groupId)
+  return { ok: true, visible: isTabOnScreen(useAppStore.getState(), context.worktreeId, tab.id) }
+}
