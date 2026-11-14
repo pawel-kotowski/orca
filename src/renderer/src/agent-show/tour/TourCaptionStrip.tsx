@@ -3,7 +3,11 @@ import { ChevronLeft, ChevronRight, Pause, Play, X } from 'lucide-react'
 import { stepHoldMs } from './tour-steps'
 import { setTourPlaying, stepTour, endTour, type PlayingTour } from './tour-player'
 
-export type StripRect = { left: number; top: number; width: number; height: number }
+/** Where the strip sits: its bottom edge just above the chat's message box, as wide as it. */
+export type StripRect = { left: number; bottom: number; width: number }
+
+const DOTS_MAX_STEPS = 5
+const DOTS_MIN_WIDTH_PX = 460
 
 /** A caption's inline `code` and **bold**, as the chat draws them; everything else is text. */
 function CaptionText({ text }: { text: string }): React.JSX.Element {
@@ -90,7 +94,8 @@ export function TourCaptionStrip({
   index,
   playing,
   advanceAt,
-  rect
+  rect,
+  version
 }: {
   tour: PlayingTour
   /** Copied out of `tour`, which the player mutates: the props must change when the step does. */
@@ -98,6 +103,8 @@ export function TourCaptionStrip({
   playing: boolean
   advanceAt: number | null
   rect: StripRect
+  /** Changes on every tour change and re-measure, so a memoized strip still redraws. */
+  version: number
 }): React.JSX.Element {
   const step = tour.steps[index]!
   const last = index === tour.steps.length - 1
@@ -116,31 +123,38 @@ export function TourCaptionStrip({
   return (
     <div
       data-orca-tour-strip=""
+      data-tour-version={version}
       tabIndex={0}
       onKeyDown={onKey}
-      className="fixed z-30 flex flex-col justify-center gap-1 overflow-hidden rounded-xl border border-border bg-card px-3 py-2 shadow-md outline-none"
-      style={{ left: rect.left, top: rect.top, width: rect.width, height: rect.height }}
+      className="fixed z-30 flex flex-col gap-1 overflow-hidden rounded-xl border border-border bg-card px-3 py-2 shadow-md outline-none"
+      style={{ left: rect.left, bottom: rect.bottom, width: rect.width }}
     >
       <div className="flex items-center gap-2">
         <span className="orca-agent-show-mark-badge">{index + 1}</span>
         <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-foreground">
           <CaptionText text={step.title} />
         </span>
-        <div
-          className="flex items-center gap-1"
-          aria-label={`Step ${index + 1} of ${tour.steps.length}`}
-        >
-          {tour.steps.map((s, dotIndex) => (
-            <button
-              key={`${dotIndex}-${s.title}`}
-              type="button"
-              title={`${dotIndex + 1}. ${s.title}`}
-              aria-label={`Go to step ${dotIndex + 1}`}
-              onClick={() => void stepTour(tour.context, 'step', dotIndex + 1)}
-              className={`size-1.5 rounded-full ${dotIndex === index ? 'bg-[var(--ai-action-accent)]' : 'bg-border hover:bg-muted-foreground'}`}
-            />
-          ))}
-        </div>
+        {tour.steps.length <= DOTS_MAX_STEPS && rect.width >= DOTS_MIN_WIDTH_PX ? (
+          <div
+            className="flex items-center gap-1"
+            aria-label={`Step ${index + 1} of ${tour.steps.length}`}
+          >
+            {tour.steps.map((s, dotIndex) => (
+              <button
+                key={`${dotIndex}-${s.title}`}
+                type="button"
+                title={`${dotIndex + 1}. ${s.title}`}
+                aria-label={`Go to step ${dotIndex + 1}`}
+                onClick={() => void stepTour(tour.context, 'step', dotIndex + 1)}
+                className={`size-1.5 rounded-full ${dotIndex === index ? 'bg-[var(--ai-action-accent)]' : 'bg-border hover:bg-muted-foreground'}`}
+              />
+            ))}
+          </div>
+        ) : (
+          <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+            {index + 1} / {tour.steps.length}
+          </span>
+        )}
         <StripButton
           label="Back"
           disabled={index === 0}
@@ -166,7 +180,7 @@ export function TourCaptionStrip({
           <X className="size-3.5" />
         </StripButton>
       </div>
-      <p className="line-clamp-2 text-xs leading-snug text-muted-foreground" title={step.caption}>
+      <p className="line-clamp-4 text-xs leading-snug text-muted-foreground" title={step.caption}>
         <CaptionText text={step.caption} />
       </p>
       <HoldBar step={step} playing={playing} advanceAt={advanceAt} />

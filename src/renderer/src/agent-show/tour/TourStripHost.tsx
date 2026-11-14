@@ -11,7 +11,8 @@ import {
   type PlayingTour
 } from './tour-player'
 
-const STRIP_PX = 84
+// Why: the strip grows with its caption (up to four lines); the transcript keeps room for the tallest.
+const MAX_STRIP_PX = 132
 const GAP_PX = 6
 
 /** The chat's message box for the tour's owner tab, in the terminal chat view or the structured chat. */
@@ -53,9 +54,8 @@ export function tourStripRect(tour: PlayingTour): StripRect | null {
   }
   return {
     left: composer.left,
-    top: composer.top - STRIP_PX - GAP_PX,
-    width: composer.width,
-    height: STRIP_PX
+    bottom: window.innerHeight - composer.top + GAP_PX,
+    width: composer.width
   }
 }
 
@@ -77,58 +77,23 @@ function markChatsWithTours(tours: PlayingTour[]): void {
   }
 }
 
-const TRANSCRIPT_ROOM_RULE = `[data-orca-tour-room] [data-native-chat-scroll] { padding-bottom: ${STRIP_PX + 2 * GAP_PX}px !important; }`
-
-/** A strip with the tour's step and play state copied out, so a step change is a prop change. */
-type PlacedStrip = {
-  key: string
-  tour: PlayingTour
-  rect: StripRect
-  index: number
-  playing: boolean
-  advanceAt: number | null
-}
-
-const sameRect = (a: StripRect, b: StripRect): boolean =>
-  a.left === b.left && a.top === b.top && a.width === b.width && a.height === b.height
-
-function placeStrips(previous: PlacedStrip[]): PlacedStrip[] {
-  const tours = playingTours()
-  markChatsWithTours(tours)
-  const next = tours.flatMap((tour) => {
-    const rect = tourStripRect(tour)
-    const key = `${tour.context.worktreeId}:${tour.context.ownerTabId}`
-    return rect
-      ? [{ key, tour, rect, index: tour.index, playing: tour.playing, advanceAt: tour.advanceAt }]
-      : []
-  })
-  const unchanged =
-    next.length === previous.length &&
-    next.every((strip, index) => {
-      const before = previous[index]
-      return (
-        before?.key === strip.key && before.tour === strip.tour && sameRect(before.rect, strip.rect)
-      )
-    })
-  return unchanged ? previous : next
-}
+const TRANSCRIPT_ROOM_RULE = `[data-orca-tour-room] [data-native-chat-scroll] { padding-bottom: ${MAX_STRIP_PX + 2 * GAP_PX}px !important; }`
 
 function TourStrips(): React.JSX.Element {
+  // Why both: the version re-renders on any tour change; the tick re-measures when the chat moves.
   const version = useSyncExternalStore(subscribeTours, toursVersion)
-  const [strips, setStrips] = useState<PlacedStrip[]>([])
+  const [tick, setTick] = useState(0)
   useEffect(() => {
-    // Why measure here and poll: the chat moves with layout, sidebars and the composer's height.
-    const place = (): void => setStrips(placeStrips)
-    place()
-    const unsubscribe = useAppStore.subscribe(place)
-    const timer = setInterval(place, 400)
-    window.addEventListener('resize', place)
+    const remeasure = (): void => setTick((n) => n + 1)
+    const unsubscribe = useAppStore.subscribe(remeasure)
+    const timer = setInterval(remeasure, 400)
+    window.addEventListener('resize', remeasure)
     return () => {
       unsubscribe()
       clearInterval(timer)
-      window.removeEventListener('resize', place)
+      window.removeEventListener('resize', remeasure)
     }
-  }, [version])
+  }, [])
   useEffect(() => {
     // Why: a click into the code or a key in the chat means the user took over from auto-play.
     const takeOver = (event: Event): void => {
@@ -144,17 +109,23 @@ function TourStrips(): React.JSX.Element {
       window.removeEventListener('keydown', takeOver, true)
     }
   }, [])
+  useEffect(() => markChatsWithTours(playingTours()), [version, tick])
+  const strips = playingTours().flatMap((tour) => {
+    const rect = tourStripRect(tour)
+    return rect ? [{ tour, rect }] : []
+  })
   return (
     <>
       <style>{TRANSCRIPT_ROOM_RULE}</style>
-      {strips.map((strip) => (
+      {strips.map(({ tour, rect }) => (
         <TourCaptionStrip
-          key={strip.key}
-          tour={strip.tour}
-          index={strip.index}
-          playing={strip.playing}
-          advanceAt={strip.advanceAt}
-          rect={strip.rect}
+          key={`${tour.context.worktreeId}:${tour.context.ownerTabId}`}
+          tour={tour}
+          index={tour.index}
+          playing={tour.playing}
+          advanceAt={tour.advanceAt}
+          rect={rect}
+          version={version + tick}
         />
       ))}
     </>
