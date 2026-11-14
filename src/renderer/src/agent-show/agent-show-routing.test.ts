@@ -21,7 +21,9 @@ function fakeAreas() {
     clearCode: vi.fn(),
     clearTree: vi.fn(),
     clearUi: vi.fn(),
-    revealWorktree: vi.fn()
+    revealWorktree: vi.fn(),
+    windowShown: vi.fn(() => true),
+    windowHiddenDetail: 'window hidden'
   } satisfies AgentShowAreas
 }
 
@@ -51,6 +53,44 @@ describe('createAgentShowDispatcher', () => {
     expect(areas.tree).toHaveBeenCalledWith(request, context(true))
     expect(areas.revealWorktree).toHaveBeenCalledWith('wt-1')
     expect(areas.code).not.toHaveBeenCalled()
+  })
+
+  it('waits for the worktree to be drawn before staging', async () => {
+    const areas = fakeAreas()
+    const order: string[] = []
+    areas.revealWorktree.mockImplementation(
+      () => new Promise<void>((resolve) => setTimeout(() => (order.push('drawn'), resolve()), 5))
+    )
+    areas.code.mockImplementation(() => (order.push('staged'), shown('code')))
+    await createAgentShowDispatcher(areas)(
+      {
+        kind: 'code',
+        filePath: 'a.ts',
+        range: { startLine: 1, endLine: 2 },
+        keepOthers: false,
+        place: 'beside'
+      },
+      context(true)
+    )
+    expect(order).toEqual(['drawn', 'staged'])
+  })
+
+  it('never says a show is visible while the window is hidden', async () => {
+    const areas = fakeAreas()
+    areas.windowShown.mockReturnValue(false)
+    const dispatch = createAgentShowDispatcher(areas)
+    await expect(
+      dispatch(
+        { kind: 'tree', entries: [{ path: 'src' }], expand: true, dimOthers: false },
+        context(true)
+      )
+    ).resolves.toEqual({ ok: true, visible: false, detail: 'tree; window hidden' })
+    // Why: state reports the window itself; clears show nothing.
+    await expect(dispatch({ kind: 'state' }, context(true))).resolves.toEqual({
+      ok: true,
+      visible: true,
+      detail: 'state'
+    })
   })
 
   it('leaves the view alone with --no-focus, and for state', async () => {

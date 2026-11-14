@@ -17,8 +17,27 @@ export type AgentShowAreas = {
   clearUi: (context: AgentShowContext) => void | Promise<void>
   /** `clear` with no scope also ends the agent's tour. */
   endTour: (context: AgentShowContext) => void
-  /** Switches the window to the worktree; called only when the request asks for focus. */
-  revealWorktree: (worktreeId: string) => void
+  /** Switches the window to the worktree and waits until it is drawn; only when focus is asked. */
+  revealWorktree: (worktreeId: string) => void | Promise<void>
+  /** False while the window is minimized, on another desktop or covered: nothing shown is seen. */
+  windowShown: () => boolean
+  /** What a result adds when the window is not drawn. */
+  windowHiddenDetail: string
+}
+
+const STAGING_KINDS: readonly AgentShowRequest['kind'][] = ['code', 'file', 'tree', 'ui']
+
+/** A show staged in a window nobody can see is not visible, whatever its layout says. */
+function withWindowShown(
+  areas: AgentShowAreas,
+  request: AgentShowRequest,
+  result: AgentShowResult
+): AgentShowResult {
+  if (!result.ok || !STAGING_KINDS.includes(request.kind) || areas.windowShown()) {
+    return result
+  }
+  const detail = [result.detail, areas.windowHiddenDetail].filter(Boolean).join('; ')
+  return { ...result, visible: false, detail }
 }
 
 type AreaScope = 'code' | 'tree' | 'ui'
@@ -40,7 +59,7 @@ async function route(
 ): Promise<AgentShowResult> {
   // Reading state or clearing marks never moves the user's view.
   if (context.focus && !['state', 'clear', 'tour'].includes(request.kind)) {
-    areas.revealWorktree(context.worktreeId)
+    await areas.revealWorktree(context.worktreeId)
   }
   switch (request.kind) {
     case 'code':
@@ -73,7 +92,7 @@ export function createAgentShowDispatcher(
 ): (request: AgentShowRequest, context: AgentShowContext) => Promise<AgentShowResult> {
   return async (request, context) => {
     try {
-      return await route(areas, request, context)
+      return withWindowShown(areas, request, await route(areas, request, context))
     } catch (error) {
       return {
         ok: false,
