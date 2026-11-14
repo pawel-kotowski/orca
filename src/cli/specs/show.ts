@@ -74,7 +74,7 @@ export const SHOW_COMMAND_SPECS: CommandSpec[] = [
   {
     path: ['show', 'tour'],
     summary:
-      'Play a tour: steps of words and shows, captioned on the stage with Back, Play and Next',
+      "Play a tour: steps of words and shows, captioned above your chat's message box with Back, Play and Next",
     usage:
       'orca show tour <file.md> [--check] [--step <n>] [--play] | orca show tour next|back|play|pause|stop|state | orca show tour step --step <n> [--worktree <selector>] [--json]',
     allowedFlags: [...SHOW_FLAGS, 'target', 'step', 'play', 'check'],
@@ -82,7 +82,7 @@ export const SHOW_COMMAND_SPECS: CommandSpec[] = [
     notes: [
       'A tour file is Markdown: "# Title", then per step "## Step title", 1-3 sentences, and one ```orca-show block of show subcommands without the "orca show" prefix (code, tree, file, ui), one per line. Paths are worktree-relative. Optional <!-- hold: 12s --> sets the auto-play time.',
       'Every line is checked before anything is shown; all problems are listed at once. --check also stages every step once and reports what did not fit (a range cut off, a pane that had to be reused), then shows the start step; run it before handing the tour to the user. Each step is staged from scratch, so Back and Next show the same screen however the user got there.',
-      'The caption and controls sit on the stage beside your chat, so the words and the code change together whatever the chat shows. The user can use the strip; you can drive it with next, back, step --step <n>, play, pause. stop (or orca show clear) ends it.',
+      'The caption and controls sit at the bottom of your chat, above its message box, and the code changes with them on the stage beside it. The user can use the strip; you can drive it with next, back, step --step <n>, play, pause. stop (or orca show clear) ends it.',
       OWNER_NOTE
     ],
     examples: [

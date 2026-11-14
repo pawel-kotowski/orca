@@ -2,12 +2,11 @@ import { useEffect, useState, useSyncExternalStore } from 'react'
 import { createRoot } from 'react-dom/client'
 import { TranslationScopeProvider } from '@/i18n/translation-scope-provider'
 import { useAppStore } from '@/store/index'
-import { TourCaptionStrip, type StripRect } from './TourCaptionStrip'
+import { stripKey, TourCaptionStrip, type StripRect } from './TourCaptionStrip'
 import {
   pauseAllTours,
   playingTours,
   subscribeTours,
-  tourKey,
   toursVersion,
   type PlayingTour
 } from './tour-player'
@@ -63,18 +62,28 @@ export function tourStripRect(tour: PlayingTour): StripRect | null {
 
 /** The drawn strip's height, so the transcript under it leaves exactly that much room. */
 function stripHeight(tour: PlayingTour): number {
-  const key = CSS.escape(tourKey(tour.context))
+  const key = CSS.escape(stripKey(tour))
   return (
     document.querySelector<HTMLElement>(`[data-orca-tour-strip][data-tour-key="${key}"]`)
       ?.offsetHeight ?? 0
   )
 }
 
+/** The nearest element holding both the message box and its transcript, in either chat view. */
+function chatAround(composer: HTMLElement | null): HTMLElement | null {
+  for (let element = composer?.parentElement; element; element = element.parentElement) {
+    if (element.querySelector('[data-native-chat-scroll]')) {
+      return element
+    }
+  }
+  return null
+}
+
 /** Leaves room under the newest message for the strip in the chats a tour plays beside. */
 function markChatsWithTours(tours: PlayingTour[]): void {
   const rooms = new Map<HTMLElement, number>()
   for (const tour of tours) {
-    const root = ownerComposer(tour)?.closest<HTMLElement>('[data-native-chat-root]')
+    const root = chatAround(ownerComposer(tour))
     if (root) {
       rooms.set(root, stripHeight(tour))
     }
@@ -86,13 +95,29 @@ function markChatsWithTours(tours: PlayingTour[]): void {
     }
   }
   for (const [root, height] of rooms) {
+    const room = `${height + 2 * GAP_PX}px`
+    if (
+      root.hasAttribute('data-orca-tour-room') &&
+      root.style.getPropertyValue('--orca-tour-room') === room
+    ) {
+      continue
+    }
+    // Why: a chat read to its end stays at its end when the strip grows, so no row hides under it.
+    const scroller = root.querySelector<HTMLElement>('[data-native-chat-scroll]')
+    const atEnd =
+      !!scroller && scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight < 48
     root.setAttribute('data-orca-tour-room', '')
-    root.style.setProperty('--orca-tour-room', `${height + 2 * GAP_PX}px`)
+    root.style.setProperty('--orca-tour-room', room)
+    if (scroller && atEnd) {
+      scroller.scrollTop = scroller.scrollHeight
+    }
   }
 }
 
+// Why the scroller's box and not its padding: the chat keeps its newest row at the box's bottom
+// edge itself, so a shorter box puts that row above the strip with no scrolling of ours.
 const TRANSCRIPT_ROOM_RULE =
-  '[data-orca-tour-room] [data-native-chat-scroll] { padding-bottom: var(--orca-tour-room, 144px) !important; }'
+  '[data-orca-tour-room] div:has(> [data-native-chat-scroll]) { padding-bottom: var(--orca-tour-room, 144px); }'
 
 function TourStrips(): React.JSX.Element {
   // Why both: the version re-renders on any tour change; the tick re-measures when the chat moves.

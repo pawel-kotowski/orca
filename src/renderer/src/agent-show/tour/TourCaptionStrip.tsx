@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { ChevronLeft, ChevronRight, Pause, Play, X } from 'lucide-react'
 import { stepHoldMs } from './tour-steps'
-import { setTourPlaying, stepTour, endTour, tourKey, type PlayingTour } from './tour-player'
+import { setTourPlaying, stepTour, endTour, type PlayingTour } from './tour-player'
 
 /** Where the strip sits: its bottom edge just above the chat's message box, as wide as it. */
 export type StripRect = {
@@ -11,6 +11,10 @@ export type StripRect = {
   /** The room above the message box; a caption taller than that scrolls inside the strip. */
   maxHeight: number
 }
+
+/** The strip's DOM key, so the host can measure it; plain text, unlike the player's map key. */
+export const stripKey = (tour: PlayingTour): string =>
+  `${tour.context.worktreeId}:${tour.context.ownerTabId ?? ''}`
 
 const DOTS_MAX_STEPS = 5
 const DOTS_MIN_WIDTH_PX = 460
@@ -129,7 +133,7 @@ export function TourCaptionStrip({
   return (
     <div
       data-orca-tour-strip=""
-      data-tour-key={tourKey(tour.context)}
+      data-tour-key={stripKey(tour)}
       data-tour-version={version}
       tabIndex={0}
       onKeyDown={onKey}
@@ -141,14 +145,13 @@ export function TourCaptionStrip({
         maxHeight: rect.maxHeight
       }}
     >
-      <div className="flex shrink-0 items-center gap-2">
-        <span className="orca-agent-show-mark-badge">{index + 1}</span>
-        <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-foreground">
+      <div className="flex shrink-0 items-start gap-2">
+        <span className="min-w-0 flex-1 break-words py-[3px] text-[13px] font-medium leading-snug text-foreground">
           <CaptionText text={step.title} />
         </span>
         {tour.steps.length <= DOTS_MAX_STEPS && rect.width >= DOTS_MIN_WIDTH_PX ? (
           <div
-            className="flex items-center gap-1"
+            className="flex h-6 items-center gap-1"
             aria-label={`Step ${index + 1} of ${tour.steps.length}`}
           >
             {tour.steps.map((s, dotIndex) => (
@@ -163,7 +166,7 @@ export function TourCaptionStrip({
             ))}
           </div>
         ) : (
-          <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+          <span className="flex h-6 shrink-0 items-center text-xs tabular-nums text-muted-foreground">
             {index + 1} / {tour.steps.length}
           </span>
         )}
