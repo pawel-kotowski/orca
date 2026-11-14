@@ -22,6 +22,7 @@ import { describeBackgroundTab, describeReusedPane } from './code-fit-report'
 import { findEntityTab, isTabOnScreen, waitForAppState } from './code-view-visibility'
 import {
   contextWantsFocus,
+  missingFileResult,
   outsideWorktreeResult,
   resolveShowRequestFile
 } from './show-request-file'
@@ -63,6 +64,10 @@ export const showCode: AgentShowHandler<'code'> = async (request, context) => {
   const file = resolveShowRequestFile(context, request.filePath)
   if (!file) {
     return outsideWorktreeResult(request.filePath)
+  }
+  const missing = await missingFileResult(context, file)
+  if (missing) {
+    return missing
   }
   const focus = contextWantsFocus(context)
   const target = resolveCodeTarget(

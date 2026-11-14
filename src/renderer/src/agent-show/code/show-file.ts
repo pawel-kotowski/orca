@@ -13,6 +13,7 @@ import { describeBackgroundTab } from './code-fit-report'
 import { findEntityTab, isTabOnScreen, waitForAppState } from './code-view-visibility'
 import {
   contextWantsFocus,
+  missingFileResult,
   outsideWorktreeResult,
   resolveShowRequestFile,
   type ShowRequestFile
@@ -59,6 +60,10 @@ export const showFile: AgentShowHandler<'file'> = async (request, context) => {
   const file = resolveShowRequestFile(context, request.filePath)
   if (!file) {
     return outsideWorktreeResult(request.filePath)
+  }
+  const missing = await missingFileResult(context, file)
+  if (missing) {
+    return missing
   }
   const focus = contextWantsFocus(context)
   // Why 40 lines: a file view has no range; ask the stage for a pane about that tall.

@@ -3,7 +3,7 @@ import { CLI_GLOBAL_FLAGS as GLOBAL_FLAGS } from '../../shared/cli-argument-boun
 
 const SHOW_FLAGS = [...GLOBAL_FLAGS, 'worktree', 'no-focus']
 const PATH_NOTE =
-  'Paths are relative to the worktree or absolute inside it. When --worktree is omitted, the worktree is inferred from cwd.'
+  'A relative path names the file seen from your shell folder when it exists there, else from the worktree root; absolute paths must be inside the worktree. A missing file fails with file_not_found. When --worktree is omitted, the worktree is inferred from cwd.'
 const OWNER_NOTE =
   "Marks belong to the agent's tab (ORCA_TAB_ID), so `orca show clear` removes only your own. Showing brings the user to it; --no-focus leaves the view alone."
 const NO_WINDOW_NOTE =

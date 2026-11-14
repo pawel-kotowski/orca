@@ -10,7 +10,8 @@ import {
 import { printResult } from '../output/command-result-output'
 import { RuntimeClientError } from '../runtime/types'
 import { isRendererUnavailable } from '../files/file-open-call'
-import { getFileWorktreeSelector, resolveFilePath } from '../files/file-worktree-target'
+import { getFileWorktreeSelector } from '../files/file-worktree-target'
+import { resolveShowPath } from './show-path'
 import {
   getClearScope,
   getPlacement,
@@ -72,7 +73,7 @@ function noteAndMark(flags: Flags): { note?: string; mark?: string } {
 export const SHOW_HANDLERS: Record<string, CommandHandler> = {
   'show code': showHandler(async (ctx, worktree) => ({
     kind: 'code',
-    filePath: await resolveFilePath(ctx, worktree, getRequiredStringFlag(ctx.flags, 'path')),
+    filePath: await resolveShowPath(ctx, worktree, getRequiredStringFlag(ctx.flags, 'path')),
     range: parseLineRange(getRequiredStringFlag(ctx.flags, 'lines')),
     ...noteAndMark(ctx.flags),
     place: getPlacement(ctx.flags) ?? 'beside',
@@ -80,7 +81,7 @@ export const SHOW_HANDLERS: Record<string, CommandHandler> = {
   })),
   'show file': showHandler(async (ctx, worktree) => ({
     kind: 'file',
-    filePath: await resolveFilePath(ctx, worktree, getRequiredStringFlag(ctx.flags, 'path')),
+    filePath: await resolveShowPath(ctx, worktree, getRequiredStringFlag(ctx.flags, 'path')),
     preview: ctx.flags.get('preview') === true,
     place: getPlacement(ctx.flags) ?? 'beside'
   })),
@@ -95,7 +96,7 @@ export const SHOW_HANDLERS: Record<string, CommandHandler> = {
       entries: await Promise.all(
         entries.map(async (entry) => ({
           ...entry,
-          path: await resolveFilePath(ctx, worktree, entry.path)
+          path: await resolveShowPath(ctx, worktree, entry.path)
         }))
       ),
       expand: ctx.flags.get('no-expand') !== true,
@@ -113,7 +114,7 @@ export const SHOW_HANDLERS: Record<string, CommandHandler> = {
       ...(pageId ? { pageId } : {}),
       ...noteAndMark(ctx.flags),
       ...(code
-        ? { code: { ...code, filePath: await resolveFilePath(ctx, worktree, code.filePath) } }
+        ? { code: { ...code, filePath: await resolveShowPath(ctx, worktree, code.filePath) } }
         : {})
     }
   }),
