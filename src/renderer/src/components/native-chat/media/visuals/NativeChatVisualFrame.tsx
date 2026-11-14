@@ -10,6 +10,7 @@ import {
   readNativeChatVisualPong
 } from '../../../../../../shared/native-chat/native-chat-visual-shell'
 import type { NativeChatVisualDocument } from './native-chat-visual-read-client'
+import type { CodeLineRange } from '../../../../../../shared/native-chat/native-chat-code-range'
 import { createNativeChatVisualHeightGovernor } from '../../../../../../shared/native-chat/native-chat-visual-height-governor'
 import type { ReaderGesture } from '../../viewport/scroll/native-chat-autoscroll'
 import { useNativeChatVisualTheme } from './use-native-chat-visual-theme'
@@ -19,6 +20,8 @@ import { useWebviewDragPassthroughActive } from '../../../browser-pane/host-gues
 export const NATIVE_CHAT_VISUAL_RESERVED_HEIGHT = 160
 // Allow one link per Chromium activation window so one click cannot open multiple pages.
 const LINK_COOLDOWN_MS = 5_000
+// One click shows one range; a quick second click on another part of a diagram is still welcome.
+const SHOW_CODE_COOLDOWN_MS = 300
 
 function newChannel(): string {
   const bytes = new Uint8Array(16)
@@ -32,7 +35,8 @@ export function NativeChatVisualFrame({
   title,
   themeScope,
   onRetired,
-  onReaderGesture
+  onReaderGesture,
+  onShowCode
 }: {
   document: NativeChatVisualDocument
   title: string
@@ -41,6 +45,8 @@ export function NativeChatVisualFrame({
   onRetired: () => void
   /** Uncancelled input; the transcript owner checks whether the conversation moved. */
   onReaderGesture?: (gesture: ReaderGesture) => void
+  /** A `data-orca-show` element was clicked; the location is validated already. */
+  onShowCode?: (location: CodeLineRange) => void
 }): React.JSX.Element {
   const frameRef = useRef<HTMLIFrameElement | null>(null)
   const theme = useNativeChatVisualTheme(themeScope)
@@ -49,10 +55,12 @@ export function NativeChatVisualFrame({
   // The latest theme for the next document build and the load-time post, without rebuilding on it.
   const themeRef = useRef(theme)
   const onReaderGestureRef = useRef(onReaderGesture)
+  const onShowCodeRef = useRef(onShowCode)
   useLayoutEffect(() => {
     themeRef.current = theme
     onReaderGestureRef.current = onReaderGesture
-  }, [onReaderGesture, theme])
+    onShowCodeRef.current = onShowCode
+  }, [onReaderGesture, onShowCode, theme])
   const [height, setHeight] = useState(NATIVE_CHAT_VISUAL_RESERVED_HEIGHT)
   const loadsRef = useRef(0)
   // The latest later load still awaiting an answer, and the timer that retires the frame.
@@ -77,6 +85,7 @@ export function NativeChatVisualFrame({
     let deferred: ReturnType<typeof setTimeout> | null = null
     let latestReported: number | null = null
     let lastLinkAt = -Infinity
+    let lastShowAt = -Infinity
     const applyHeight = (): void => {
       deferred = null
       if (latestReported === null) {
@@ -123,6 +132,15 @@ export function NativeChatVisualFrame({
       }
       // Require recent input in this focused frame; this blocks load-time opens but cannot prove the gesture named this link.
       const now = performance.now()
+      const userActed =
+        window.document.activeElement === frame && navigator.userActivation?.isActive === true
+      if (message.kind === 'show-code') {
+        if (userActed && now - lastShowAt >= SHOW_CODE_COOLDOWN_MS) {
+          lastShowAt = now
+          onShowCodeRef.current?.(message.location)
+        }
+        return
+      }
       if (
         window.document.activeElement !== frame ||
         navigator.userActivation?.isActive !== true ||
