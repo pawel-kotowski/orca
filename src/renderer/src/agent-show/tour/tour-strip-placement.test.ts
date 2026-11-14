@@ -1,35 +1,15 @@
 import { describe, expect, it } from 'vitest'
-import {
-  estimateStripPx,
-  floatingStripRect,
-  stripAndPills,
-  tourBandPx
-} from './tour-strip-placement'
+import { estimateStripPx, stripAndPills, tourBandPx, tourStripSize } from './tour-strip-placement'
 import { predictionMiss } from './tour-step-problems'
 
-describe('floatingStripRect', () => {
-  it('centres a 600 px strip 8 px above the bottom, whatever the layout', () => {
-    expect(floatingStripRect({ width: 1280, height: 800 })).toEqual({
-      left: 340,
-      bottom: 8,
-      width: 600,
-      maxHeight: 240
-    })
-    expect(floatingStripRect({ width: 1600, height: 1000 })).toEqual({
-      left: 500,
-      bottom: 8,
-      width: 600,
-      maxHeight: 300
-    })
+describe('tourStripSize', () => {
+  it('is 600 px wide whatever the layout, and may grow to 30% of the window', () => {
+    expect(tourStripSize({ width: 1280, height: 800 })).toEqual({ width: 600, maxHeight: 240 })
+    expect(tourStripSize({ width: 1600, height: 1000 })).toEqual({ width: 600, maxHeight: 300 })
   })
 
   it('narrows on a small window, keeping 16 px each side', () => {
-    expect(floatingStripRect({ width: 500, height: 400 })).toEqual({
-      left: 16,
-      bottom: 8,
-      width: 468,
-      maxHeight: 120
-    })
+    expect(tourStripSize({ width: 500, height: 400 })).toEqual({ width: 468, maxHeight: 120 })
   })
 })
 

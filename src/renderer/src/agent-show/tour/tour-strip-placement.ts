@@ -1,7 +1,7 @@
-/** Where the strip sits: horizontally centred on the window, a fixed gap above its bottom edge. */
-export type StripRect = {
-  left: number
-  bottom: number
+import { STRIP_BOTTOM_GAP_PX } from './tour-strip-spot'
+
+/** The strip's size; where it sits is the dock's (`tour-strip-spot.ts`). */
+export type StripSize = {
   width: number
   /** A caption taller than this scrolls inside the strip. */
   maxHeight: number
@@ -9,17 +9,13 @@ export type StripRect = {
 
 const STRIP_WIDTH_PX = 600
 const SIDE_GAP_PX = 16
-export const STRIP_BOTTOM_GAP_PX = 8
 const MAX_HEIGHT_SHARE = 0.3
 const MIN_MAX_HEIGHT_PX = 96
 
-/** The same place whatever the layout: 600 px wide (less on a narrow window), centred, near the bottom. */
-export function floatingStripRect(window: { width: number; height: number }): StripRect {
-  const width = Math.max(0, Math.min(STRIP_WIDTH_PX, window.width - 2 * SIDE_GAP_PX))
+/** The same size whatever the layout: 600 px wide (less on a narrow window). */
+export function tourStripSize(window: { width: number; height: number }): StripSize {
   return {
-    left: Math.round((window.width - width) / 2),
-    bottom: STRIP_BOTTOM_GAP_PX,
-    width,
+    width: Math.max(0, Math.min(STRIP_WIDTH_PX, window.width - 2 * SIDE_GAP_PX)),
     maxHeight: Math.max(MIN_MAX_HEIGHT_PX, Math.round(window.height * MAX_HEIGHT_SHARE))
   }
 }
@@ -29,12 +25,12 @@ export function tourBandPx(stripHeightPx: number): number {
   return stripHeightPx > 0 ? Math.ceil(stripHeightPx) + 2 * STRIP_BOTTOM_GAP_PX : 0
 }
 
-// Why these: the strip's 13 px title and 12 px caption in the app font, its padding and controls.
+// Why these: the strip's 13 px title and 12 px caption in the app font, its padding, grip and controls.
 const TITLE_LINE_PX = 18
 const CAPTION_LINE_PX = 16.5
 const TITLE_CHAR_PX = 7
 const CAPTION_CHAR_PX = 6.2
-const CONTROLS_PX = 150
+const CONTROLS_PX = 166
 const CHROME_PX = 22
 
 /**
@@ -43,7 +39,7 @@ const CHROME_PX = 22
  */
 export function estimateStripPx(
   steps: readonly { title: string; caption: string }[],
-  rect: Pick<StripRect, 'width' | 'maxHeight'>
+  rect: StripSize
 ): number {
   const textWidth = Math.max(1, rect.width - 24)
   const lines = (text: string, charPx: number, width: number): number =>
