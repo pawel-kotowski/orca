@@ -29,6 +29,7 @@ export function buildWindowApi(args: {
         onBaseStatus: () => () => {},
         onRemoteBranchConflict: () => () => {}
       },
+      agentShow: { onRequest: () => () => {}, reply: () => {} },
       ui: {
         onStateChanged: () => () => {},
         onOpenSettings: () => () => {},

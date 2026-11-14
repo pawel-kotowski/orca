@@ -1,5 +1,10 @@
 import { createNativeChatFileHref, routeNativeChatHref } from './native-chat-href-routing'
-import { formatFileLinkLocation, parseFileLinkLocation } from '../file-links/file-link-location'
+import { parseFileLinkLocation } from '../file-links/file-link-location'
+import {
+  extendLinkWithLineRange,
+  formatNativeChatFileLocation,
+  splitLineRangeSuffix
+} from './native-chat-code-range'
 import {
   extractTerminalFileLinkReadings,
   extractTerminalFileLinks,
@@ -36,10 +41,10 @@ function isLinkifiableFile(link: ParsedTerminalFileLink, isProse: boolean): bool
 }
 
 // Underline only host-confirmed paths; choose the longest existing candidate when spaced spans overlap tokens.
-function selectExistingLinks(
-  candidates: ParsedTerminalFileLink[],
+function selectExistingLinks<T extends ParsedTerminalFileLink>(
+  candidates: T[],
   exists: FileLinkExists
-): ParsedTerminalFileLink[] {
+): T[] {
   return preferLongestNonOverlappingMatches(
     candidates.filter((link) => exists(link)),
     {
@@ -96,10 +101,13 @@ function hasPartialPathBoundary(value: string, link: ParsedTerminalFileLink): bo
 }
 
 // Wrap parsed locations rather than raw file-URI display text so navigation receives the literal path.
-function createFileLinkNode(link: ParsedTerminalFileLink, child: MarkdownNode): MarkdownNode {
+function createFileLinkNode(
+  link: ParsedTerminalFileLink & { endLine?: number },
+  child: MarkdownNode
+): MarkdownNode {
   return {
     type: 'link',
-    url: createNativeChatFileHref(formatFileLinkLocation(link)),
+    url: createNativeChatFileHref(formatNativeChatFileLocation(link)),
     children: [child]
   }
 }
@@ -108,6 +116,7 @@ function splitTextSegment(value: string, exists: FileLinkExists): MarkdownNode[]
   const { links: textLinks, guesses } = extractTerminalFileLinkReadings(value)
   const links = selectExistingLinks(
     [...textLinks, ...guesses]
+      .map((link) => extendLinkWithLineRange(value, link))
       .filter((link) => !hasPartialPathBoundary(value, link))
       .filter((link) => isLinkifiableFile(link, true)),
     exists
@@ -150,7 +159,15 @@ function splitUnquotedText(value: string, exists: FileLinkExists): MarkdownNode[
   return children
 }
 
-function exactFileLink(value: string, exists: FileLinkExists): ParsedTerminalFileLink | null {
+function exactFileLink(
+  value: string,
+  exists: FileLinkExists
+): (ParsedTerminalFileLink & { endLine?: number }) | null {
+  const range = splitLineRangeSuffix(value)
+  if (range) {
+    const start = exactFileLink(`${range.pathText}:${range.startLine}`, exists)
+    return start ? extendLinkWithLineRange(value, start) : null
+  }
   const exactLink = extractTerminalFileLinks(value).find(
     (link) => link.startIndex === 0 && link.endIndex === value.length
   )
@@ -230,7 +247,7 @@ function transformFileLinks(node: MarkdownNode, exists: FileLinkExists): void {
     const route = routeNativeChatHref(node.url)
     if (route.kind === 'file') {
       // Resolve URL syntax once before wrapping literal location text.
-      node.url = createNativeChatFileHref(formatFileLinkLocation(route))
+      node.url = createNativeChatFileHref(formatNativeChatFileLocation(route))
     }
     return
   }

@@ -19,6 +19,8 @@ import { CLOSE_ALL_CONTEXT_MENUS_EVENT } from '@/lib/overlay-interaction/close-a
 import type { RuntimeFileOperationArgs } from '@/runtime/files/runtime-file-client-types'
 import { createMultiSelectDragGhost } from '../mutations/file-explorer-multi-drag-image'
 import { FileExplorerRowContextMenu } from './file-explorer-row-context-menu'
+import { useTreeRowMark } from '@/agent-show/tree/use-tree-row-mark'
+import { TREE_MARK_PATH_ATTRIBUTE } from '@/agent-show/tree/tree-first-row-visible'
 
 export type FileExplorerRowProps = {
   node: TreeNode
@@ -115,6 +117,7 @@ export function FileExplorerRow({
   onNativeDragExpandDir
 }: FileExplorerRowProps): React.JSX.Element {
   const t = useTranslate()
+  const agentMark = useTreeRowMark(node.path)
   const showLoadError = node.isDirectory && isExpanded && !isLoading && loadError !== null
   const rowDropDir = node.isDirectory ? node.path : targetDir
   const { setRowDragNode, handleDragOver, handleDragEnter, handleDragLeave, handleDrop } =
@@ -144,11 +147,14 @@ export function FileExplorerRow({
         <button
           data-file-explorer-row=""
           data-selected={isSelected ? 'true' : undefined}
+          {...(agentMark.marked ? { [TREE_MARK_PATH_ATTRIBUTE]: node.path } : {})}
           className={cn(
             'flex w-full items-center gap-1 rounded-sm px-2 py-1 text-left text-xs transition-colors',
             !isSelected && 'hover:bg-accent hover:text-foreground',
             isSelected && 'text-accent-foreground',
-            isFlashing && 'bg-amber-400/20 ring-1 ring-inset ring-amber-400/70'
+            isFlashing && 'bg-amber-400/20 ring-1 ring-inset ring-amber-400/70',
+            agentMark.marked && !isFlashing && 'bg-primary/10 ring-1 ring-inset ring-primary/30',
+            agentMark.dimmed && 'opacity-40'
           )}
           style={{ paddingLeft: `${(node.depth - displayDepthOffset) * 16 + 8}px` }}
           ref={setRowDragNode}
@@ -265,6 +271,17 @@ export function FileExplorerRow({
               className="ml-auto size-3 shrink-0 mr-2"
               style={{ color: 'var(--git-decoration-ignored)' }}
             />
+          ) : null}
+          {agentMark.label ? (
+            <span
+              className={cn(
+                'min-w-0 max-w-[50%] shrink-0 truncate text-[10px] font-medium text-primary mr-2',
+                !nodeStatus && !isIgnored && 'ml-auto'
+              )}
+              title={agentMark.label}
+            >
+              {agentMark.label}
+            </span>
           ) : null}
         </button>
       </ContextMenuTrigger>

@@ -6,7 +6,7 @@ import type { RuntimeRpcSuccess } from '../../shared/runtime-rpc-envelope'
 const NO_APP_WINDOW_MESSAGE =
   'This Orca server has no app window, so it cannot open files as tabs. Nothing was opened.'
 
-function isRendererUnavailable(error: unknown): boolean {
+export function isRendererUnavailable(error: unknown): boolean {
   return (
     error instanceof RuntimeClientError &&
     (error.code === 'renderer_unavailable' ||

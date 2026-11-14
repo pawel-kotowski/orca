@@ -87,6 +87,7 @@ import {
 import { CurrentRequestsParams } from './agent-session-current-requests-params'
 import { CreateAgentSessionParams, EnsureAgentSessionParams } from './agent-session-params'
 import { ReadVisualParams } from './agent-session-visual-params'
+import { AgentShowRequestParams, AgentShowSnapParams } from './agent-show-params'
 import {
   AiVaultDeleteSessionParams,
   AiVaultListSessionsParams,
@@ -892,6 +893,8 @@ export const RPC_PARAMS_BY_METHOD = {
   'agentSessionAttachment.uploadAppend': AttachmentUploadAppendParams,
   'agentSessionAttachment.uploadCommit': AttachmentUploadIdParams,
   'agentSessionAttachment.uploadStart': AttachmentUploadStartParams,
+  'agentShow.request': AgentShowRequestParams,
+  'agentShow.snap': AgentShowSnapParams,
   'agentTeams.prepareLaunch': AgentTeamsPrepareLaunch,
   'agentTeams.tmuxCompat': AgentTeamsTmuxCompat,
   'aiVault.deleteSession': AiVaultDeleteSessionParams,

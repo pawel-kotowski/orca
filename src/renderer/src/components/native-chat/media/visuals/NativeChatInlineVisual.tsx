@@ -17,6 +17,7 @@ import {
   runtimeTargetEnvironmentId
 } from '@/runtime/rpc/targets/runtime-client-target'
 import { NATIVE_CHAT_VISUAL_RESERVED_HEIGHT, NativeChatVisualFrame } from './NativeChatVisualFrame'
+import { showNativeChatVisualCode } from '@/agent-show/ui/chat-visual-code-show'
 import { observeTranscriptVisibility } from '../images/native-chat-image-visibility'
 import { NativeChatForwardedGestureContext } from '../../viewport/scroll/native-chat-reader-scroll-input'
 import { readNativeChatVisual } from './native-chat-visual-read-client'
@@ -114,6 +115,7 @@ export function NativeChatInlineVisual({
     return <NativeChatVisualUnavailable />
   }
   const label = title ?? file
+  const chatTabId = owner.tabId
   const openLabel = t('components.native-chat.visualOpenInNewTab', 'Open in new tab')
 
   return (
@@ -155,6 +157,9 @@ export function NativeChatInlineVisual({
             themeScope={boxRef}
             onRetired={() => setRetired(true)}
             onReaderGesture={forwardGesture ?? undefined}
+            onShowCode={
+              chatTabId ? (location) => showNativeChatVisualCode(chatTabId, location) : undefined
+            }
           />
         </>
       ) : (

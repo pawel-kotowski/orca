@@ -99,6 +99,19 @@ export const HANDLER_GROUPS: readonly HandlerGroup[] = [
     load: async () => (await import('../files/file.js')).FILE_HANDLERS
   },
   {
+    name: 'show',
+    keys: [
+      'show code',
+      'show tree',
+      'show file',
+      'show ui',
+      'show clear',
+      'show state',
+      'show snap'
+    ],
+    load: async () => (await import('../show/show.js')).SHOW_HANDLERS
+  },
+  {
     name: 'terminal',
     keys: [
       'terminal list',

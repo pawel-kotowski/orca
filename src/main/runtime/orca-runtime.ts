@@ -60,6 +60,7 @@ import { requireSwitchedOn } from './sidebar-inputs/require-switched-on'
 import { HEADLESS_RUNTIME_WINDOW_ID } from '../../shared/runtime-session-contracts'
 import { getHostDisplayLabelOverrides } from '../../shared/host-setting-overrides'
 import type { OrchestrationDb } from './orchestration/db/orchestration-db'
+import type { RuntimeNotifier } from './client/events/runtime-notifier-contract'
 import { continueRestoredWorkerMailSoon } from './rpc/methods/orchestration/messaging/settled-worker-follow-through'
 import {
   PeerMailRelay,
@@ -217,6 +218,11 @@ class OrcaRuntimeService extends OrcaRuntimeSidebarBase {
   subscribeStructuredAgentAvailability(read: AvailabilityReader): () => void {
     this.structuredAgentAvailability ??= installAvailability(this.store, this)
     return this.structuredAgentAvailability.subscribe(read)
+  }
+
+  /** The window's `orca show` surface; null without a desktop window (`orca serve`). */
+  agentShowWindow(): Pick<RuntimeNotifier, 'agentShow' | 'captureWindowPng'> | null {
+    return this.notifier
   }
 
   /** Whether a layout-owning window can show a tab before process creation. */
