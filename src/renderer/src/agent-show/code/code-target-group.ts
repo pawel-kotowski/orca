@@ -25,7 +25,9 @@ export function resolveCodeTargetGroup(
   const { worktreeId, ownerTabId } = context
   const live = liveLinkOpenGroupIds(state, worktreeId)
   const ownerTab = ownerTabId
-    ? state.unifiedTabsByWorktree[worktreeId]?.find((tab) => tab.id === ownerTabId)
+    ? state.unifiedTabsByWorktree[worktreeId]?.find(
+        (tab) => tab.id === ownerTabId || tab.entityId === ownerTabId
+      )
     : undefined
   const ownerGroupId = ownerTab && live.has(ownerTab.groupId) ? ownerTab.groupId : null
   const remembered = lastGroupByOwner.get(codeMarkOwnerKey(context))
@@ -41,6 +43,13 @@ export function resolveCodeTargetGroup(
         })
       : null
   })
+  // Why: code opened in the chat's own pane hides the chat; split beside it instead.
+  if (placement.kind === 'group' && placement.groupId === ownerGroupId) {
+    return (
+      state.createEmptySplitGroup(worktreeId, placement.groupId, 'right', { activate: focus }) ??
+      undefined
+    )
+  }
   if (placement.kind === 'group') {
     return placement.groupId
   }
