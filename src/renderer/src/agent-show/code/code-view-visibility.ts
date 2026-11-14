@@ -2,10 +2,14 @@ import type { AppState } from '@/store/types'
 import type { Tab } from '../../../../shared/tab-types'
 import { useAppStore } from '@/store'
 import { liveLinkOpenGroupIds } from '@/lib/links/placement/link-open-intent'
+import { worktreeDrawn } from '../window-drawn'
 
-/** True only when the window shows the worktree and the tab is its group's active tab. */
+/**
+ * True only when the workspace view shows the worktree (not Activity or another view) and the tab is
+ * its group's active tab. Layout only: whether the window itself is drawn is `windowShown`.
+ */
 export function isTabOnScreen(state: AppState, worktreeId: string, tabId: string): boolean {
-  if (state.activeWorktreeId !== worktreeId) {
+  if (!worktreeDrawn(state, worktreeId)) {
     return false
   }
   const tab = state.unifiedTabsByWorktree[worktreeId]?.find((candidate) => candidate.id === tabId)
