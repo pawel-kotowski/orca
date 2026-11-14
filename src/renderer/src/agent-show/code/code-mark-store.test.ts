@@ -31,14 +31,14 @@ describe('placeOwnerCodeMark', () => {
     expect(marks.get(B)).toEqual([{ mark: '2', startLine: 3, endLine: 4, note: 'old' }])
   })
 
-  it('moves a reused label instead of showing it twice', () => {
+  it('lets one label mark two places, as one step that spans two ranges', () => {
     const { marks } = placeOwnerCodeMark(
       previous,
       A,
       { mark: '2', startLine: 20, endLine: 20 },
       true
     )
-    expect(marks.has(B)).toBe(false)
+    expect(marks.get(B)?.map((mark) => mark.mark)).toEqual(['2'])
     expect(marks.get(A)?.map((mark) => mark.mark)).toEqual(['1', '2'])
   })
 

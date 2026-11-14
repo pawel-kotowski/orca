@@ -11,8 +11,9 @@ type NewCodeMark = CodeLineRange & { mark?: string; note?: string; tabId?: strin
 export type OwnerCodeMarks = ReadonlyMap<string, readonly CodeMark[]>
 
 /**
- * Places `next` among an owner's marks: replaces them all unless keepOthers; a reused label
- * moves, and a kept mark whose lines overlap `next` on the same file gives way to it.
+ * Places `next` among an owner's marks: replaces them all unless keepOthers; a kept mark whose
+ * lines overlap `next` on the same file gives way to it. A reused label marks one more place,
+ * as one step that spans two ranges.
  */
 export function placeOwnerCodeMark(
   previous: OwnerCodeMarks | undefined,
@@ -27,8 +28,7 @@ export function placeOwnerCodeMark(
         path,
         marks.filter(
           (mark) =>
-            mark.mark !== next.mark &&
-            (path !== filePath || mark.endLine < next.startLine || mark.startLine > next.endLine)
+            path !== filePath || mark.endLine < next.startLine || mark.startLine > next.endLine
         )
       )
     }
