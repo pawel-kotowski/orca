@@ -21,6 +21,7 @@ const owner = (worktreeId: string, ownerTabId: string): OwnerShowSnapshot => ({
     foldedSidebars: ['right']
   },
   tree: null,
+  tour: null,
   ui: [
     {
       pageId: 'p1',

@@ -12,6 +12,8 @@ import { uiRequestsOf, type ShownUiRequest } from '../ui/ui-mark-requests'
 import { showUi } from '../ui/show-ui'
 import { watchedShowOwners, watchShowOwner } from '../agent-show-owner-lifecycle'
 import { onAgentShowChange } from './agent-show-change-signal'
+import { restoreTour, tourOf } from '../tour/tour-player'
+import { ensureTourStrips } from '../tour/TourStripHost'
 import {
   isEmptyShow,
   parseShows,
@@ -27,6 +29,11 @@ const SAVE_DELAY_MS = 400
 const PAGE_RETRY_MS = 1000
 const PAGE_RETRIES = 20
 
+function tourSnapshotOf(context: AgentShowContext): OwnerShowSnapshot['tour'] {
+  const tour = tourOf(context)
+  return tour ? { title: tour.title, file: tour.file, index: tour.index, steps: tour.steps } : null
+}
+
 function snapshotOwner(context: AgentShowContext): OwnerShowSnapshot | null {
   if (!context.ownerTabId) {
     return null
@@ -39,7 +46,8 @@ function snapshotOwner(context: AgentShowContext): OwnerShowSnapshot | null {
     code: snapshotOwnerCodeMarks(codeMarkOwnerKey(context)),
     stage: snapshotCodeStage(context),
     tree: tree ? { ...tree, entries: [...tree.entries] } : null,
-    ui: uiRequestsOf(context)
+    ui: uiRequestsOf(context),
+    tour: tourSnapshotOf(context)
   }
 }
 
@@ -94,6 +102,10 @@ function restore(clearEverything: (context: AgentShowContext) => unknown): void 
     }
     watchShowOwner(context, clearEverything)
     void replayPageMarks(context, owner.ui)
+    if (owner.tour && owner.tour.steps.length > 0) {
+      ensureTourStrips()
+      restoreTour(context, owner.tour)
+    }
   }
 }
 

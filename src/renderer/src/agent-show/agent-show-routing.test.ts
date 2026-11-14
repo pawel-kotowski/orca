@@ -16,6 +16,8 @@ function fakeAreas() {
     tree: vi.fn(() => shown('tree')),
     ui: vi.fn(() => shown('ui')),
     state: vi.fn(() => shown('state')),
+    tour: vi.fn(() => shown('tour')),
+    endTour: vi.fn(),
     clearCode: vi.fn(),
     clearTree: vi.fn(),
     clearUi: vi.fn(),
@@ -89,5 +91,14 @@ describe('createAgentShowDispatcher', () => {
       context(false)
     )
     expect(result).toEqual({ ok: false, code: 'show_failed', message: 'page gone' })
+  })
+
+  it('ends the tour on a clear of everything, not on a scoped clear', async () => {
+    const areas = fakeAreas()
+    const dispatch = createAgentShowDispatcher(areas)
+    await dispatch({ kind: 'clear', scope: 'code' }, context(true))
+    expect(areas.endTour).not.toHaveBeenCalled()
+    await dispatch({ kind: 'clear', scope: 'all' }, context(true))
+    expect(areas.endTour).toHaveBeenCalledTimes(1)
   })
 })

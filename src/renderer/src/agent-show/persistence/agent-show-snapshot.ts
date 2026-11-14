@@ -1,5 +1,8 @@
 import { z } from 'zod'
-import { AgentShowUiRequest } from '../../../../shared/agent-show/agent-show-contract'
+import {
+  AgentShowTourStageRequest,
+  AgentShowUiRequest
+} from '../../../../shared/agent-show/agent-show-contract'
 
 const LineMark = z.object({
   mark: z.string(),
@@ -31,7 +34,23 @@ export const OwnerShowSnapshot = z.object({
       dimOthers: z.boolean()
     })
     .nullable(),
-  ui: z.array(z.object({ pageId: z.string(), request: AgentShowUiRequest }))
+  ui: z.array(z.object({ pageId: z.string(), request: AgentShowUiRequest })),
+  tour: z
+    .object({
+      title: z.string(),
+      file: z.string(),
+      index: z.number().int().nonnegative(),
+      steps: z.array(
+        z.object({
+          title: z.string(),
+          caption: z.string(),
+          holdMs: z.number().nullable(),
+          requests: z.array(AgentShowTourStageRequest)
+        })
+      )
+    })
+    .nullable()
+    .default(null)
 })
 export type OwnerShowSnapshot = z.infer<typeof OwnerShowSnapshot>
 
@@ -55,7 +74,7 @@ export function parseShows(text: string | null): OwnerShowSnapshot[] {
 }
 
 export function isEmptyShow(owner: OwnerShowSnapshot): boolean {
-  return owner.code.length === 0 && !owner.tree && owner.ui.length === 0
+  return owner.code.length === 0 && !owner.tree && owner.ui.length === 0 && !owner.tour
 }
 
 /** Owners whose tab is still open in their worktree; the rest are gone for good. */

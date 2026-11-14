@@ -11,9 +11,12 @@ export type AgentShowAreas = {
   tree: AgentShowHandler<'tree'>
   ui: AgentShowHandler<'ui'>
   state: AgentShowHandler<'state'>
+  tour: AgentShowHandler<'tour'>
   clearCode: (context: AgentShowContext) => void | Promise<void>
   clearTree: (context: AgentShowContext) => void | Promise<void>
   clearUi: (context: AgentShowContext) => void | Promise<void>
+  /** `clear` with no scope also ends the agent's tour. */
+  endTour: (context: AgentShowContext) => void
   /** Switches the window to the worktree; called only when the request asks for focus. */
   revealWorktree: (worktreeId: string) => void
 }
@@ -36,7 +39,7 @@ async function route(
   context: AgentShowContext
 ): Promise<AgentShowResult> {
   // Reading state or clearing marks never moves the user's view.
-  if (context.focus && request.kind !== 'state' && request.kind !== 'clear') {
+  if (context.focus && !['state', 'clear', 'tour'].includes(request.kind)) {
     areas.revealWorktree(context.worktreeId)
   }
   switch (request.kind) {
@@ -50,7 +53,12 @@ async function route(
       return areas.ui(request, context)
     case 'state':
       return areas.state(request, context)
+    case 'tour':
+      return areas.tour(request, context)
     case 'clear':
+      if (request.scope === 'all') {
+        areas.endTour(context)
+      }
       return clearScopes(
         areas,
         request.scope === 'all' ? ['code', 'tree', 'ui'] : [request.scope],
