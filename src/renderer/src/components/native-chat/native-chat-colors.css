@@ -13,7 +13,7 @@
   --chat-tint-link-line: color-mix(in oklab, var(--chat-tint-link) 45%, transparent);
   /* Inline code takes the theme's own look (Paweł, 2026-11-15: "more fitting my theme", replacing
      the fixed chocolate browns of 2026-11-13): words in the palette cyan, which is how Gruvbox
-     colours inline code, on a chip of the theme's background lifted toward its text colour.
+     colours inline code, on a chip darker than the chat in a dark theme (lifted in a light one).
      native-chat-appearance-style.ts sets the chip only while the chat takes colour. */
   --chat-tint-code-border: var(--chat-code-chip-border);
   --chat-tint-code-surface: var(--chat-code-chip-surface);

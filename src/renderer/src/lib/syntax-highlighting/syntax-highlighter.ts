@@ -321,11 +321,8 @@ export function loadedSyntaxHighlighter(language: string): SyntaxHighlighter | n
   return readyLanguages.get(languageKey(language)) ?? null
 }
 
-/**
- * Local build: colour the chat's code in the terminal theme's own syntax colours where shiki ships
- * them (null or an unknown name keeps Light+/Dark+). Loads the theme before switching, so no
- * block tokenizes against a theme the highlighter does not have.
- */
+/** Local build: the terminal theme's syntax colours where shiki ships them, loaded before switching
+ *  so no block tokenizes against a missing theme; null or an unknown name keeps Light+/Dark+. */
 export async function applyTerminalSyntaxThemes(names: {
   light: string | null
   dark: string | null
@@ -346,8 +343,9 @@ export async function applyTerminalSyntaxThemes(names: {
       )
     }
     setSelectedSyntaxThemes({ light: light?.id ?? 'light-plus', dark: dark?.id ?? 'dark-plus' })
-  } catch {
+  } catch (error) {
     // A theme that fails to load leaves the code in Light+/Dark+.
+    console.warn('[syntax] terminal syntax theme failed to load', names, error)
     setSelectedSyntaxThemes({ light: 'light-plus', dark: 'dark-plus' })
   }
 }

@@ -26,20 +26,32 @@ export function terminalSyntaxThemeNames(
   return { light, dark }
 }
 
-// Why the guard: some tests stand a plain object in for the store; Light+/Dark+ hold there.
-const useTerminalThemeNames: () => [string | null, string | null] =
-  typeof useAppStore === 'function'
-    ? () => {
-        const light = useAppStore((state) => terminalSyntaxThemeNames(state.settings).light)
-        const dark = useAppStore((state) => terminalSyntaxThemeNames(state.settings).dark)
-        return [light, dark]
-      }
-    : () => [null, null]
+let following = false
+let appliedKey: string | null = null
 
-/** Local build: the chat's code takes the terminal theme's syntax colours (syntax-terminal-themes.ts). */
+function applyFromSettings(settings: Parameters<typeof terminalSyntaxThemeNames>[0]): void {
+  const names = terminalSyntaxThemeNames(settings)
+  const key = `${names.light}\n${names.dark}`
+  if (key === appliedKey) {
+    return
+  }
+  appliedKey = key
+  void applyTerminalSyntaxThemes(names)
+}
+
+/**
+ * Local build: the chat's code takes the terminal theme's syntax colours (syntax-terminal-themes.ts).
+ * Why the store is read here, not through a hook guarded at module load: the guard ran while this
+ * lazily loaded chunk evaluated and left the code in Dark+ (2026-11-15); read on first use, the
+ * store is always ready. Some tests stand a plain object in for the store; Light+/Dark+ hold there.
+ */
 export function useNativeChatTerminalSyntaxThemes(): void {
-  const [light, dark] = useTerminalThemeNames()
   useEffect(() => {
-    void applyTerminalSyntaxThemes({ light, dark })
-  }, [light, dark])
+    if (following || typeof useAppStore?.subscribe !== 'function') {
+      return
+    }
+    following = true
+    applyFromSettings(useAppStore.getState().settings)
+    useAppStore.subscribe((state) => applyFromSettings(state.settings))
+  }, [])
 }

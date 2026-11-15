@@ -183,14 +183,16 @@ function applyChatPaletteHues(style: NativeChatAppearanceStyle, theme: PaletteTh
       style[`--chat-hue-${hue}`] = value
     }
   }
-  // Inline code's chip (native-chat-colors.css): the theme's own background lifted toward its
-  // text colour, as Gruvbox's bg2 is, so it sits in any theme; its words take the palette cyan.
+  // Inline code's chip (native-chat-colors.css): in a dark theme the theme's background darkened,
+  // below the chat's own surface, so the cyan words stand out (Paweł, 2026-11-15: "not distinct
+  // enough ... background should be a bit darker"); in a light one, lifted toward the text colour.
   // Set only while the chat is in colour.
   if (theme.foreground && theme.background) {
-    style['--chat-code-chip-surface'] =
-      `color-mix(in oklab, ${theme.foreground} ${dark ? 14 : 8}%, ${theme.background})`
+    style['--chat-code-chip-surface'] = dark
+      ? `color-mix(in oklab, ${theme.background} 72%, black)`
+      : `color-mix(in oklab, ${theme.foreground} 8%, ${theme.background})`
     style['--chat-code-chip-border'] =
-      `color-mix(in oklab, ${theme.foreground} ${dark ? 22 : 16}%, ${theme.background})`
+      `color-mix(in oklab, ${theme.foreground} ${dark ? 18 : 16}%, ${theme.background})`
   }
 }
 
