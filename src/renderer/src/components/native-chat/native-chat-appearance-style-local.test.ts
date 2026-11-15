@@ -35,11 +35,12 @@ describe('local chat appearance style', () => {
     expect(ratio({ nativeChatAppearance: { fontSize: 20, codeFontSize: 14 } })).toBe('1em')
   })
 
-  it('gives inline code its browns whenever the chat is in colour, not only when matching', () => {
+  it('gives inline code its theme chip whenever the chat is in colour, not only when matching', () => {
     const style = nativeChatAppearanceStyle({ nativeChatAppearance: {} })
-    expect(style['--chat-brown-text']).toMatch(/^oklch\(/)
+    expect(style['--chat-code-chip-surface']).toMatch(/^color-mix\(in oklab, #/)
+    expect(style['--chat-code-chip-border']).toMatch(/^color-mix\(in oklab, #/)
     expect(
       nativeChatAppearanceStyle({ nativeChatAppearance: { chatColors: false } })
-    ).not.toHaveProperty('--chat-brown-text')
+    ).not.toHaveProperty('--chat-code-chip-surface')
   })
 })

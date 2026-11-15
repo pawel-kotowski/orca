@@ -8,14 +8,13 @@
 [data-native-chat-root] {
   --chat-tint-orange: color-mix(in oklab, var(--chat-hue-red) 45%, var(--chat-hue-yellow));
   --chat-tint-link-line: color-mix(in oklab, var(--chat-hue-blue) 45%, transparent);
-  /* Inline code is chocolate: a dark brown chip with light brown words in a dark chat, the reverse
-     in a light one (Paweł, 2026-11-13, replacing the orange: "use dark brown and light brown
-     chocolate like but make it easily readable, so high contrast probably but not too high").
-     The browns are fixed; native-chat-appearance-style.ts sets them, light or dark by the
-     terminal theme's background, only while the chat takes colour. */
-  --chat-tint-code-border: var(--chat-brown-border);
-  --chat-tint-code-surface: var(--chat-brown-surface);
-  --chat-tint-inline-code: var(--chat-brown-text);
+  /* Inline code takes the theme's own look (Paweł, 2026-11-15: "more fitting my theme", replacing
+     the fixed chocolate browns of 2026-11-13): words in the palette cyan, which is how Gruvbox
+     colours inline code, on a chip of the theme's background lifted toward its text colour.
+     native-chat-appearance-style.ts sets the chip only while the chat takes colour. */
+  --chat-tint-code-border: var(--chat-code-chip-border);
+  --chat-tint-code-surface: var(--chat-code-chip-surface);
+  --chat-tint-inline-code: var(--chat-hue-cyan);
   --chat-tint-quote: color-mix(in oklab, var(--chat-hue-cyan) 60%, transparent);
   /* The palette's yellow, a touch dimmer (Paweł, 2026-11-13). */
   --chat-tint-yellow: oklch(from var(--chat-hue-yellow) calc(l * 0.94) c h);

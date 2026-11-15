@@ -182,12 +182,15 @@ function applyChatPaletteHues(style: NativeChatAppearanceStyle, theme: PaletteTh
       style[`--chat-hue-${hue}`] = value
     }
   }
-  // Inline code's chocolate browns (native-chat-colors.css): fixed, not from the palette, but only
-  // while the chat is in colour. Light brown words on a dark chip in a dark chat, the reverse in a
-  // light one.
-  style['--chat-brown-surface'] = dark ? 'oklch(0.32 0.035 55)' : 'oklch(0.92 0.02 68)'
-  style['--chat-brown-border'] = dark ? 'oklch(0.4 0.04 55)' : 'oklch(0.82 0.03 62)'
-  style['--chat-brown-text'] = dark ? 'oklch(0.8 0.085 65)' : 'oklch(0.4 0.075 50)'
+  // Inline code's chip (native-chat-colors.css): the theme's own background lifted toward its
+  // text colour, as Gruvbox's bg2 is, so it sits in any theme; its words take the palette cyan.
+  // Set only while the chat is in colour.
+  if (theme.foreground && theme.background) {
+    style['--chat-code-chip-surface'] =
+      `color-mix(in oklab, ${theme.foreground} ${dark ? 14 : 8}%, ${theme.background})`
+    style['--chat-code-chip-border'] =
+      `color-mix(in oklab, ${theme.foreground} ${dark ? 22 : 16}%, ${theme.background})`
+  }
 }
 
 export function nativeChatAppearanceStyle(
