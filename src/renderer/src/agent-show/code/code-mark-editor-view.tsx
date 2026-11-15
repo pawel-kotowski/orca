@@ -23,6 +23,8 @@ type NoteZone = {
   delegate: editor.IViewZone
   root: Root
   disposeMouseDownStopper: () => void
+  /** The card has measured its real height once (it starts at an estimate). */
+  measured: boolean
 }
 
 export type CodeMarkEditorView = {
@@ -30,6 +32,8 @@ export type CodeMarkEditorView = {
   render: (marks: readonly CodeMark[], cardMarks?: readonly CodeMark[]) => void
   /** Pixel height of the note cards drawn for these marks. */
   noteHeightPx: (marks: readonly CodeMark[]) => number
+  /** Every card drawn has measured its real height, so the editor's place will not shift. */
+  notesMeasured: () => boolean
   dispose: () => void
 }
 
@@ -108,7 +112,8 @@ export function createCodeMarkEditorView(
           domNode,
           delegate,
           root: createRoot(domNode),
-          disposeMouseDownStopper: installDiffCommentZoneMouseDownStopper(domNode)
+          disposeMouseDownStopper: installDiffCommentZoneMouseDownStopper(domNode),
+          measured: false
         }
         zones.set(key, zone)
         zone.root.render(
@@ -117,6 +122,7 @@ export function createCodeMarkEditorView(
               mark={mark}
               compact={compact}
               onResize={() => {
+                zone.measured = true
                 const before = zone.delegate.heightInPx
                 resizeDiffCommentZone(ed, zone)
                 if (zone.delegate.heightInPx !== before) {
@@ -138,6 +144,7 @@ export function createCodeMarkEditorView(
         .filter((zone) => labels.has(zone.mark))
         .reduce((sum, zone) => sum + (zone.delegate.heightInPx ?? 0), 0)
     },
+    notesMeasured: () => [...zones.values()].every((zone) => zone.measured),
     dispose: () => {
       decorations.clear()
       removeZones([...zones.keys()])

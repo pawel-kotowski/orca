@@ -115,3 +115,13 @@ export function stackPaneShares(
     return (available * need.floorPx) / Math.max(1, floor) + chromePx
   })
 }
+
+/** The block (range plus its note card, in content px) lies wholly inside the scrolled viewport. */
+export function codeBlockInView(block: {
+  top: number
+  bottom: number
+  scrollTop: number
+  viewHeight: number
+}): boolean {
+  return block.top >= block.scrollTop && block.bottom <= block.scrollTop + block.viewHeight
+}

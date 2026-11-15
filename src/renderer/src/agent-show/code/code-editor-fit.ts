@@ -2,6 +2,7 @@ import type { editor } from 'monaco-editor'
 import { EditorOption } from 'monaco-editor/esm/vs/editor/common/standalone/standaloneEnums.js'
 import { clampCodeLineRange, type CodeLineRange } from './code-line-range'
 import {
+  codeBlockInView,
   codeFontFloor,
   codeLineHeightAt,
   fitCodeFont,
@@ -150,6 +151,21 @@ export function fitCodeEditor(
     needPxAtFloor: scaledTo(codeFontFloor(user.fontSize)),
     needPxAtUser: scaledTo(user.fontSize)
   }
+}
+
+/** The range and its note card would show whole with the editor scrolled to `scrollTop`. */
+export function codeBlockShownAt(
+  ed: editor.IStandaloneCodeEditor,
+  range: CodeLineRange,
+  noteHeightPx: number,
+  scrollTop: number
+): boolean {
+  return codeBlockInView({
+    top: ed.getTopForLineNumber(range.startLine),
+    bottom: ed.getBottomForLineNumber(range.endLine) + noteHeightPx,
+    scrollTop,
+    viewHeight: ed.getLayoutInfo().height
+  })
 }
 
 /** Scrolls so the range and the note card under it sit centred, or start near the top if taller. */
