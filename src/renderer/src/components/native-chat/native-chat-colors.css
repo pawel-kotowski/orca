@@ -7,10 +7,9 @@
  */
 [data-native-chat-root] {
   --chat-tint-orange: color-mix(in oklab, var(--chat-hue-red) 45%, var(--chat-hue-yellow));
-  /* Links are sky blue (Paweł, 2026-11-15: the palette blue was "a bit too sad for my theme",
-     then "sky blue for link" over a softened orange); native-chat-appearance-style.ts sets it,
-     light or dark by the terminal theme's background, only while the chat takes colour. */
-  --chat-tint-link: var(--chat-sky-link);
+  /* Links are the palette's orange softened toward the text (Paweł, 2026-11-15: the palette blue
+     was "a bit too sad for my theme", sky blue "too bright"); under Gruvbox, its orange. */
+  --chat-tint-link: color-mix(in oklab, var(--chat-tint-orange) 80%, var(--chat-source-foreground));
   --chat-tint-link-line: color-mix(in oklab, var(--chat-tint-link) 45%, transparent);
   /* Inline code takes the theme's own look (Paweł, 2026-11-15: "more fitting my theme", replacing
      the fixed chocolate browns of 2026-11-13): words in the palette cyan, which is how Gruvbox
@@ -54,7 +53,7 @@
   color: var(--chat-hue-green, inherit);
 }
 
-/* The answer's words: links sky blue, inline code cyan on a theme chip, headings and list markers
+/* The answer's words: links orange, inline code cyan on a theme chip, headings and list markers
    yellow, quotes ruled cyan. */
 [data-native-chat-root] .native-chat-markdown a {
   color: var(--chat-tint-link, var(--chat-foreground-strong));
