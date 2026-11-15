@@ -38,4 +38,10 @@ describe('settings.update nativeChatAppearance', () => {
       lightText: true
     })
   })
+
+  it('accepts the interface font', () => {
+    expect(SettingsUpdate.parse({ appFontFamily: ' Albert Sans ' })).toEqual({
+      appFontFamily: 'Albert Sans'
+    })
+  })
 })

@@ -89,4 +89,5 @@ export type RuntimeClientSettingsUpdate = Pick<
   | 'claudeAccountDefaultByRepoId'
   | 'claudeAccountByWorktreeId'
   | 'nativeChatAppearance'
+  | 'appFontFamily'
 >

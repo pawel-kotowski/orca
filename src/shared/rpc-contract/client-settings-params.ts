@@ -138,7 +138,9 @@ export const SettingsUpdate = z
     claudeAccountByWorktreeId: z.record(z.string(), z.string()).optional(),
     /** Merged into Settings → Chat's appearance: only the keys given change (local build, so an
      *  agent can set the chat font or Light text without the Settings page). */
-    nativeChatAppearance: z.record(z.string(), z.unknown()).optional()
+    nativeChatAppearance: z.record(z.string(), z.unknown()).optional(),
+    /** Local build: the interface font (Settings → Appearance), so an agent can set it too. */
+    appFontFamily: z.string().trim().max(200).optional()
   })
   .strict()
   .default({})
