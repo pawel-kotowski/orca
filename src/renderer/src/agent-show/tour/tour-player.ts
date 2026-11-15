@@ -9,6 +9,8 @@ import { clearUiMarks } from '../ui/show-ui'
 import { runShow, runShowAsItWas } from './tour-step-shows'
 import { signalAgentShowChange } from '../persistence/agent-show-change-signal'
 import { REUSED_PANE_DETAIL } from '../code/code-fit-report'
+import { holdStagePane, holdStageWhile } from '../code/code-stage-hold'
+import { stagePanesUsedBy } from '../code/code-stage-tabs'
 import { windowShown, worktreeDrawn } from '../window-drawn'
 import { useAppStore } from '@/store/index'
 import type { StepPrediction } from './tour-fit-prediction'
@@ -18,6 +20,7 @@ import {
   stepEntryClears,
   stepHoldMs,
   stepRequests,
+  stepReshapesStage,
   tourTargetStep,
   type TourStep
 } from './tour-steps'
@@ -162,16 +165,23 @@ async function enterStep(
   }
   const problems: string[] = []
   let visible = true
-  for (const [at, request] of requests.entries()) {
-    const result = stale.has(at)
-      ? await runShowAsItWas(request, context, tour.commit!.sha)
-      : await runShow(request, context)
-    const problem = describeProblem(result, request)
-    visible &&= result.ok && result.visible
-    if (problem) {
-      problems.push(problem)
+  // Why one hold for the step: a later show (a split below) resizes the panes an earlier one staged.
+  await holdStageWhile(async () => {
+    const panes = stagePanesUsedBy(context)
+    if (windowShown() && stepReshapesStage(step, panes.length)) {
+      panes.forEach(holdStagePane)
     }
-  }
+    for (const [at, request] of requests.entries()) {
+      const result = stale.has(at)
+        ? await runShowAsItWas(request, context, tour.commit!.sha)
+        : await runShow(request, context)
+      const problem = describeProblem(result, request)
+      visible &&= result.ok && result.visible
+      if (problem) {
+        problems.push(problem)
+      }
+    }
+  })
   // Why: an old copy is a different file, so the current file's ranges are not expected on screen.
   problems.push(
     ...offScreenRanges({ requests: requests.filter((_, at) => !stale.has(at)) }, context)

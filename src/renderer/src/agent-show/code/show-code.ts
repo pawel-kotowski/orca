@@ -17,7 +17,8 @@ import {
   codeMarksOnFile,
   putCodeMark
 } from './code-mark-store'
-import { resolveCodeTarget, sizeCodeStageStack } from './code-target-group'
+import { resolveCodeTarget, sizeCodeStageStack, type CodeTarget } from './code-target-group'
+import { holdStagePane, holdStageWhile } from './code-stage-hold'
 import { clearCodeStage, rememberStageTab, tidyCodeStage } from './code-stage-tabs'
 import { codeFitForTab } from './code-editor-fit'
 import { userCodeTypography } from './code-stage-room'
@@ -57,7 +58,11 @@ function revealRangeInTab(
       instant: true,
       onApplied: () => {
         clearTimeout(timer)
-        resolve(mountedCodeEditor(tabId)?.editor.getModel()?.getLineCount() ?? null)
+        const mounted = mountedCodeEditor(tabId)
+        // Why now: the reveal centred the bare range; the fit's place (range + note) must win
+        // before Monaco paints, or the editor visibly jumps between the two.
+        mounted?.refit('restore')
+        resolve(mounted?.editor.getModel()?.getLineCount() ?? null)
       }
     })
   })
@@ -80,7 +85,7 @@ async function finishStagingWhenDrawn(
   }
   await revealRangeInTab(openPath, fileId, tab.id, range)
   await layoutSettled()
-  mountedCodeEditor(tab.id)?.refit()
+  mountedCodeEditor(tab.id)?.refit('if-cut')
   sizeCodeStageStack(context, tab.groupId)
 }
 
@@ -115,29 +120,65 @@ export function showCodeSnapshot(
   })
 }
 
-async function stageCodeFile(
+function stageCodeFile(
   request: AgentShowRequestOf<'code'>,
   context: AgentShowContext,
   file: ShowRequestFile & { readOnly?: true }
 ): Promise<AgentShowResult> {
-  const focus = contextWantsFocus(context)
-  const target = resolveCodeTarget(
-    context,
-    {
-      place: request.place,
-      lines: request.range.endLine - request.range.startLine + 1,
-      note: request.note,
-      keepOthers: request.keepOthers
-    },
-    focus
-  )
+  // Why a scope: a split made for this show remounts the pane it splits; both stay hidden until done.
+  return holdStageWhile(async () => {
+    const focus = contextWantsFocus(context)
+    const target = resolveCodeTarget(
+      context,
+      {
+        place: request.place,
+        lines: request.range.endLine - request.range.startLine + 1,
+        note: request.note,
+        keepOthers: request.keepOthers
+      },
+      focus
+    )
+    const showInFront = focus && !target.background
+    const drawNow = showInFront && windowShown()
+    // Why before the open: the new tab's first frames (empty pane, top of file, unfitted font)
+    // must not be painted; an editor already showing this file just moves, so it stays shown.
+    if (
+      drawNow &&
+      target.groupId &&
+      !showsFileNow(useAppStore.getState(), context, target.groupId, file.filePath)
+    ) {
+      holdStagePane(target.groupId)
+    }
+    return openAndStage(request, context, file, target, showInFront, drawNow)
+  })
+}
+
+/** The pane's front tab is an editor already drawing this file. */
+function showsFileNow(
+  state: ReturnType<typeof useAppStore.getState>,
+  context: AgentShowContext,
+  groupId: string,
+  filePath: string
+): boolean {
+  const front = state.groupsByWorktree[context.worktreeId]?.find((g) => g.id === groupId)
+  const mounted = front?.activeTabId ? mountedCodeEditor(front.activeTabId) : undefined
+  return mounted?.filePath === filePath
+}
+
+async function openAndStage(
+  request: AgentShowRequestOf<'code'>,
+  context: AgentShowContext,
+  file: ShowRequestFile & { readOnly?: true },
+  target: CodeTarget,
+  showInFront: boolean,
+  drawNow: boolean
+): Promise<AgentShowResult> {
   const before = useAppStore.getState()
   const alreadyOpenTabIds = new Set(
     (before.unifiedTabsByWorktree[context.worktreeId] ?? [])
       .filter((tab) => tab.groupId === target.groupId)
       .map((tab) => tab.id)
   )
-  const showInFront = focus && !target.background
   const fileId = before.openFile(
     { ...file, mode: 'edit' },
     { targetGroupId: target.groupId, selection: showInFront ? 'focus' : 'none' }
@@ -172,7 +213,6 @@ async function stageCodeFile(
   // Why mounted first: the editor holds one pending reveal, so a later show would replace ours.
   // Why: a hidden window draws nothing, so the editor cannot mount and the range cannot be revealed
   // or measured now; finish that when the user brings Orca forward, and say so instead of waiting.
-  const drawNow = showInFront && windowShown()
   if (showInFront && !drawNow) {
     afterWindowShown(
       tab.id,
@@ -185,7 +225,7 @@ async function stageCodeFile(
     : (mountedCodeEditor(tab.id)?.editor.getModel()?.getLineCount() ?? null)
   if (drawNow) {
     await layoutSettled()
-    mountedCodeEditor(tab.id)?.refit()
+    mountedCodeEditor(tab.id)?.refit('if-cut')
     // Why after the fit: a pane's share of the stack follows what its range measured as needing.
     sizeCodeStageStack(context, tab.groupId)
     await layoutSettled()

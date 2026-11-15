@@ -19,6 +19,7 @@ import {
 import { stackPaneShares, type CodePaneNeed } from './code-fit'
 import { ownerOpenedTab, rememberStageGroupCreated, stagePanesUsedBy } from './code-stage-tabs'
 import { makeRoomForStage } from './code-stage-sidebars'
+import { holdStagePane } from './code-stage-hold'
 
 export type CodeTarget = {
   /** undefined: the editor's default group (no owner tab). */
@@ -178,6 +179,10 @@ export function resolveCodeTarget(
         ? {}
         : { linesPerPaneIfSplit: room.linesPerPaneIfSplit })
     }
+  }
+  // Why: splitting remounts the source pane's editor; its first frames must not be painted.
+  if (placement.sourceGroupId !== ownerGroupId) {
+    holdStagePane(placement.sourceGroupId)
   }
   const created = state.createEmptySplitGroup(
     worktreeId,

@@ -1,4 +1,5 @@
 import type { editor } from 'monaco-editor'
+import type { CodeRevealMode } from './code-reveal-choice'
 
 export type MountedCodeEditor = {
   editor: editor.IStandaloneCodeEditor
@@ -6,8 +7,8 @@ export type MountedCodeEditor = {
   worktreeId: string | undefined
   /** The unified tab the editor draws (Monaco's viewStateId). */
   tabId: string
-  /** Re-fits the font to the editor's marks and centres them. */
-  refit: () => void
+  /** Re-fits the font to the editor's marks and scrolls them into place (default: centred). */
+  refit: (mode?: CodeRevealMode) => void
 }
 
 const editorsByTab = new Map<string, MountedCodeEditor>()

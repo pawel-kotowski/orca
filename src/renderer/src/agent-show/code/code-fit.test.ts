@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { codeColumnsAtFloor, codeFontFloor, fitCodeFont, stackPaneShares } from './code-fit'
+import {
+  codeBlockInView,
+  codeColumnsAtFloor,
+  codeFontFloor,
+  fitCodeFont,
+  stackPaneShares
+} from './code-fit'
 
 describe('codeFontFloor', () => {
   it('is 11 px or the user size minus 3, whichever is larger, never above the user size', () => {
@@ -72,5 +78,17 @@ describe('stackPaneShares', () => {
     const [a, b] = stackPaneShares([small, large], 760, 80)
     expect(Math.round(a!)).toBe(323)
     expect(Math.round(b!)).toBe(437)
+  })
+})
+
+describe('codeBlockInView', () => {
+  it('is in view when both edges are inside the viewport, edges included', () => {
+    expect(codeBlockInView({ top: 400, bottom: 700, scrollTop: 400, viewHeight: 300 })).toBe(true)
+    expect(codeBlockInView({ top: 450, bottom: 600, scrollTop: 400, viewHeight: 300 })).toBe(true)
+  })
+
+  it('is cut when a grown note card pushes the bottom out, or the top is above', () => {
+    expect(codeBlockInView({ top: 450, bottom: 701, scrollTop: 400, viewHeight: 300 })).toBe(false)
+    expect(codeBlockInView({ top: 399, bottom: 600, scrollTop: 400, viewHeight: 300 })).toBe(false)
   })
 })
