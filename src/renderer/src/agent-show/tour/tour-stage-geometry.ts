@@ -68,7 +68,11 @@ export function measurePredictionGeometry(context: AgentShowContext): Prediction
     ownerWidthPx: ownerBox.right - ownerBox.left,
     stageWidthPx: stageBox ? stageBox.right - stageBox.left : 0,
     heightPx: column.bottom - column.top,
-    explorer: { open: state.rightSidebarOpen, widthPx: state.rightSidebarWidth },
+    explorer: {
+      open: state.rightSidebarOpen,
+      widthPx: state.rightSidebarWidth,
+      tab: state.rightSidebarTab
+    },
     projectList: { open: state.sidebarOpen, widthPx: state.sidebarWidth },
     user: userCodeTypography(state),
     lineHeightRatio:

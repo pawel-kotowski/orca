@@ -139,6 +139,17 @@ describe('predictTour', () => {
     ])
   })
 
+  it('keeps the Tours panel open, so code has its width less', () => {
+    const narrow = {
+      ...geometry,
+      ownerWidthPx: 500,
+      explorer: { open: true, widthPx: 300, tab: 'tours' }
+    }
+    expect(predictTour([step(code('a.ts', 1, 5))], narrow, noLengths)[0]!.problems).toEqual([
+      '(a.ts:1-5) opens as a background tab: the window is too narrow for code beside the chat'
+    ])
+  })
+
   it('lists what it cannot foresee instead of guessing', () => {
     const preview: TourStep['requests'][number] = {
       kind: 'file',
