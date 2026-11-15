@@ -15,6 +15,7 @@ import {
   noteCardPx,
   PANE_CHROME_PX
 } from '../code/code-stage-room'
+import { stageFoldsRightSidebar } from '../code/code-stage-explorer'
 import { stepEntryClears, stepRequests, type TourStep } from './tour-steps'
 import {
   describeCut,
@@ -30,7 +31,8 @@ export type PredictionGeometry = {
   stageWidthPx: number
   /** The stage column's height (the chat pane's when none), tab strips included. */
   heightPx: number
-  explorer: { open: boolean; widthPx: number }
+  /** The right sidebar; `tab` decides whether the stage may fold it. */
+  explorer: { open: boolean; widthPx: number; tab?: string }
   projectList: { open: boolean; widthPx: number }
   user: CodeTypography
   /** Monaco's derived line height per px of font. */
@@ -303,7 +305,7 @@ function unpredictedOf(step: TourStep): string[] {
 
 /**
  * Every step's predicted problems, in order. The explorer folds on the first code shown while no
- * folders are lit (as the stage makes room), and lit folders stay lit until a step lights others.
+ * folders are lit and the Tours panel is not on screen (as the stage makes room), and lit folders stay lit until a step lights others.
  */
 export function predictTour(
   steps: readonly TourStep[],
@@ -317,7 +319,14 @@ export function predictTour(
     const shows = stepRequests(step).filter(
       (request): request is CodeShow => request.kind === 'code'
     )
-    if (shows.length > 0 && !foldersLit) {
+    if (
+      shows.length > 0 &&
+      stageFoldsRightSidebar({
+        open: explorerOpen,
+        tab: geometry.explorer.tab ?? 'explorer',
+        foldersLit
+      })
+    ) {
       explorerOpen = false
     }
     const problems = shows.length > 0 ? predictCode(shows, geometry, explorerOpen, lengths) : []
