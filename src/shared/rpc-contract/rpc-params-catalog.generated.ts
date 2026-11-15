@@ -87,7 +87,14 @@ import {
 import { CurrentRequestsParams } from './agent-session-current-requests-params'
 import { CreateAgentSessionParams, EnsureAgentSessionParams } from './agent-session-params'
 import { ReadVisualParams } from './agent-session-visual-params'
-import { AgentShowRequestParams, AgentShowSnapParams } from './agent-show-params'
+import {
+  AgentShowRequestParams,
+  AgentShowSnapParams,
+  AgentShowTourLoadParams,
+  AgentShowTourSnapshotParams,
+  AgentShowTourStampParams,
+  AgentShowToursParams
+} from './agent-show-params'
 import {
   AiVaultDeleteSessionParams,
   AiVaultListSessionsParams,
@@ -265,7 +272,7 @@ import {
   FileSaveChunk,
   FileSaveCommit
 } from './files-staged-save-params'
-import { FileOpen, FileWatch, WorktreeSelector } from './files-target-params'
+import { FileOpen, FileWatch } from './files-target-params'
 import {
   TerminalArtifactFile,
   TerminalArtifactFileChunk,
@@ -307,7 +314,7 @@ import {
   GitSubmoduleStatus,
   GitSwitchBranch,
   GitTargetedRemote,
-  WorktreeSelector as WorktreeSelectorOfGitParams
+  WorktreeSelector
 } from './git-params'
 import { BindableAccounts, ValidateAccountBinding } from './github-account-binding-params'
 import { UploadGitHubAttachment } from './github-attachment-params'
@@ -895,6 +902,10 @@ export const RPC_PARAMS_BY_METHOD = {
   'agentSessionAttachment.uploadStart': AttachmentUploadStartParams,
   'agentShow.request': AgentShowRequestParams,
   'agentShow.snap': AgentShowSnapParams,
+  'agentShow.tourLoad': AgentShowTourLoadParams,
+  'agentShow.tourSnapshot': AgentShowTourSnapshotParams,
+  'agentShow.tourStamp': AgentShowTourStampParams,
+  'agentShow.tours': AgentShowToursParams,
   'agentTeams.prepareLaunch': AgentTeamsPrepareLaunch,
   'agentTeams.tmuxCompat': AgentTeamsTmuxCompat,
   'aiVault.deleteSession': AiVaultDeleteSessionParams,
@@ -1074,9 +1085,9 @@ export const RPC_PARAMS_BY_METHOD = {
   'files.createFile': FileMutationOpen,
   'files.delete': FileDelete,
   'files.formatText': FileFormatText,
-  'files.list': WorktreeSelector,
+  'files.list': AgentShowToursParams,
   'files.listAll': FileListAll,
-  'files.listMarkdownDocuments': WorktreeSelector,
+  'files.listMarkdownDocuments': AgentShowToursParams,
   'files.open': FileOpenTab,
   'files.openDiff': FileOpenDiff,
   'files.pathsExist': FilePathsExist,
@@ -1113,24 +1124,24 @@ export const RPC_PARAMS_BY_METHOD = {
   'folderWorkspace.getPathStatus': FolderWorkspacePathStatus,
   'folderWorkspace.list': null,
   'folderWorkspace.update': FolderWorkspaceUpdate,
-  'git.abortMerge': WorktreeSelectorOfGitParams,
-  'git.abortRebase': WorktreeSelectorOfGitParams,
-  'git.atRiskLocalFiles': WorktreeSelectorOfGitParams,
+  'git.abortMerge': WorktreeSelector,
+  'git.abortRebase': WorktreeSelector,
+  'git.atRiskLocalFiles': WorktreeSelector,
   'git.branchCompare': GitBranchCompare,
   'git.branchDiff': GitBranchDiff,
   'git.bulkDiscard': GitBulkPaths,
   'git.bulkStage': GitBulkStage,
   'git.bulkUnstage': GitBulkPaths,
-  'git.cancelGenerateCommitMessage': WorktreeSelectorOfGitParams,
-  'git.cancelGeneratePullRequestFields': WorktreeSelectorOfGitParams,
+  'git.cancelGenerateCommitMessage': WorktreeSelector,
+  'git.cancelGeneratePullRequestFields': WorktreeSelector,
   'git.checkIgnored': GitCheckIgnored,
   'git.checkout': GitCheckout,
   'git.cherryPick': GitCommitAction,
   'git.commit': GitCommit,
   'git.commitCompare': GitCommitCompare,
   'git.commitDiff': GitCommitDiff,
-  'git.completeMerge': WorktreeSelectorOfGitParams,
-  'git.conflictOperation': WorktreeSelectorOfGitParams,
+  'git.completeMerge': WorktreeSelector,
+  'git.conflictOperation': WorktreeSelector,
   'git.createBranch': GitCreateBranch,
   'git.diff': GitDiff,
   'git.discard': GitFilePath,
@@ -1141,8 +1152,8 @@ export const RPC_PARAMS_BY_METHOD = {
   'git.generateCommitMessage': GitGenerateCommitMessage,
   'git.generatePullRequestFields': GitGeneratePullRequestFields,
   'git.history': GitHistory,
-  'git.localBranches': WorktreeSelectorOfGitParams,
-  'git.mutationInFlight': WorktreeSelectorOfGitParams,
+  'git.localBranches': WorktreeSelector,
+  'git.mutationInFlight': WorktreeSelector,
   'git.pull': GitTargetedRemote,
   'git.push': GitPush,
   'git.rebaseFromBase': GitRebaseFromBase,

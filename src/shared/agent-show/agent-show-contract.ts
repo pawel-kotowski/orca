@@ -79,6 +79,33 @@ export const AgentShowTourStageRequest = z.discriminatedUnion('kind', [
 ])
 export type AgentShowTourStageRequest = z.infer<typeof AgentShowTourStageRequest>
 
+export const AGENT_SHOW_TOUR_FRESHNESS = [
+  'fresh',
+  'moved',
+  'stale',
+  'unchecked',
+  'unstamped'
+] as const
+
+/** How a step's code compares with the commit its tour was stamped at. */
+export const AgentShowTourFreshness = z.object({
+  state: z.enum(AGENT_SHOW_TOUR_FRESHNESS),
+  /** In words: what moved where, or what changed. */
+  detail: z.string().max(1200).optional(),
+  /** The step's requests whose code changed; "as it was" shows those at the stamped commit. */
+  staleRequests: z.array(z.number().int().nonnegative()).max(12).optional()
+})
+export type AgentShowTourFreshness = z.infer<typeof AgentShowTourFreshness>
+
+/** The commit a tour was stamped at, as the strip and the panel name it. */
+export const AgentShowTourCommit = z.object({
+  sha: z.string().min(7).max(64),
+  subject: z.string().max(400),
+  /** Commit time, ms since the epoch; null when the commit is not in this repository. */
+  committedAt: z.number().nullable()
+})
+export type AgentShowTourCommit = z.infer<typeof AgentShowTourCommit>
+
 export const AGENT_SHOW_TOUR_ACTIONS = [
   'start',
   'next',
@@ -108,11 +135,14 @@ export const AgentShowTourRequest = z.object({
             title: z.string().min(1).max(200),
             caption: z.string().max(1200),
             holdMs: z.number().int().positive().max(120_000).nullable(),
-            requests: z.array(AgentShowTourStageRequest).max(12)
+            requests: z.array(AgentShowTourStageRequest).max(12),
+            freshness: AgentShowTourFreshness.optional()
           })
         )
         .min(1)
-        .max(40)
+        .max(40),
+      /** Absent or null: the tour carries no stamp. */
+      commit: AgentShowTourCommit.nullable().optional()
     })
     .optional()
 })
@@ -164,6 +194,10 @@ export type AgentShowTourInfo = {
   stepTitle: string
   playing: boolean
   problems: string[]
+  /** The commit the tour was stamped at; null when it has no stamp. */
+  commit: AgentShowTourCommit | null
+  /** Each step's freshness against that commit, in words ("step 2: moved: …"). */
+  freshness: string[]
 }
 
 /** How a shown range fits its pane: the font it got and how many of its lines are on screen. */

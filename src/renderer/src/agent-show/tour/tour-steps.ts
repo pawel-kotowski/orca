@@ -1,11 +1,15 @@
-import type { AgentShowRequest } from '../../../../shared/agent-show/agent-show-contract'
+import type {
+  AgentShowRequest,
+  AgentShowTourFreshness
+} from '../../../../shared/agent-show/agent-show-contract'
 
-/** One tour step as Orca plays it: its words and the shows that stage it. */
+/** One tour step as Orca plays it: its words, the shows that stage it, and how fresh they are. */
 export type TourStep = {
   title: string
   caption: string
   holdMs: number | null
   requests: Extract<AgentShowRequest, { kind: 'code' | 'tree' | 'file' | 'ui' }>[]
+  freshness?: AgentShowTourFreshness
 }
 
 const MIN_HOLD_MS = 6000

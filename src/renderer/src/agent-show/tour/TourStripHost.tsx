@@ -7,7 +7,8 @@ import { worktreeDrawn, windowShown } from '../window-drawn'
 import { TourCaptionStrip } from './TourCaptionStrip'
 import { TourAwayPill } from './TourAwayPill'
 import { stripAndPills, tourStripSize } from './tour-strip-placement'
-import { dockBox } from './tour-strip-spot'
+import { dockBox, stepClearOf } from './tour-strip-spot'
+import { useFloatingChipRects } from './use-floating-chip-rects'
 import { subscribeTourStripSpot, tourStripSpot } from './tour-strip-spot-store'
 import { useTourDockDrag } from './use-tour-dock-drag'
 import {
@@ -92,7 +93,9 @@ function TourStrips(): React.JSX.Element | null {
     tours,
     (tour) => drawn[tours.indexOf(tour)] === '1'
   )
-  const box = dockBox(spot, dock, size, stripTour !== undefined)
+  const chips = useFloatingChipRects(tours.length > 0)
+  // Why after the stored spot: the user's spot stays theirs; only the drawn box steps aside.
+  const box = stepClearOf(dockBox(spot, dock, size, stripTour !== undefined), dock, size, chips)
   const { dragBox, handle } = useTourDockDrag(box, dock, size)
   const at = dragBox ?? box
   if (!stripTour && away.length === 0) {
@@ -121,6 +124,7 @@ function TourStrips(): React.JSX.Element | null {
           playing={stripTour.playing}
           advanceAt={stripTour.advanceAt}
           warning={stripTour.warnings[stripTour.index] ?? null}
+          asItWas={stripTour.asItWas}
           size={tourStripSize(size)}
           version={version}
           handle={handle}

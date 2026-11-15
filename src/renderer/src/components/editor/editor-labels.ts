@@ -1,11 +1,19 @@
 import type { OpenFile } from '@/store/slices/editor/types/open-file'
 import { basename, dirname } from '@/lib/path'
+import { tourSnapshotOrigin } from '../../../../shared/agent-show/tour-snapshot-path'
 import { translate } from '@/i18n/i18n'
 import type { Translate } from '@/i18n/use-translate'
 
 type EditorLabelVariant = 'fileName' | 'relativePath' | 'fullPath'
 
 function getBaseLabel(file: OpenFile, variant: EditorLabelVariant): string {
+  // Why: a tour's "as it was" copy lives in a temp folder; name the repo file and commit instead.
+  const snapshot = file.readOnly ? tourSnapshotOrigin(file.filePath) : null
+  if (snapshot) {
+    return variant === 'fileName'
+      ? `${basename(snapshot.path)} at ${snapshot.commit}`
+      : `${snapshot.path} at ${snapshot.commit}${variant === 'fullPath' ? ', read-only' : ''}`
+  }
   switch (variant) {
     case 'fullPath':
       return file.filePath

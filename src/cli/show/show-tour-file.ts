@@ -1,3 +1,5 @@
+import { isTourStampLine } from '../../shared/agent-show/tour-stamp'
+
 /** One step of a tour file before its commands are checked: title, caption, and command words. */
 export type TourFileStep = {
   title: string
@@ -103,6 +105,9 @@ export function parseTourFile(text: string): TourFile {
     }
     if (FENCE.test(line.trim())) {
       inBlock = true
+      return
+    }
+    if (isTourStampLine(line)) {
       return
     }
     const hold = HOLD.exec(line.trim())

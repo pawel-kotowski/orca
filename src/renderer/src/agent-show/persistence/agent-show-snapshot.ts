@@ -1,5 +1,7 @@
 import { z } from 'zod'
 import {
+  AgentShowTourCommit,
+  AgentShowTourFreshness,
   AgentShowTourStageRequest,
   AgentShowUiRequest
 } from '../../../../shared/agent-show/agent-show-contract'
@@ -45,9 +47,11 @@ export const OwnerShowSnapshot = z.object({
           title: z.string(),
           caption: z.string(),
           holdMs: z.number().nullable(),
-          requests: z.array(AgentShowTourStageRequest)
+          requests: z.array(AgentShowTourStageRequest),
+          freshness: AgentShowTourFreshness.optional()
         })
-      )
+      ),
+      commit: AgentShowTourCommit.nullable().optional()
     })
     .nullable()
     .default(null)

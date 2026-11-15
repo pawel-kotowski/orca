@@ -6,6 +6,7 @@ import { getOpenFileRevealOwner } from '@/lib/files/os-open/reveal-in-file-manag
 import { canShowWorkspaceFileBrowserAction } from '@/lib/browser/documents/file-preview'
 import { openEditorHtmlPreview } from './open-editor-html-preview'
 import { getEditorHeaderCopyState } from './editor-header'
+import { tourSnapshotRepoPathsOf } from '@/agent-show/tour/tour-snapshot-tab'
 import { getRuntimeTargetForFileOwner } from '@/lib/files/access/file-owner-runtime-target'
 import { exportActiveMarkdownToPdf } from './export-active-markdown'
 import type { EditorToggleValue } from './view-mode/EditorViewToggle'
@@ -197,7 +198,8 @@ function EditorPanelInner({
     }
     try {
       const owner = getOpenFileRevealOwner(useAppStore.getState(), activeFile)
-      await window.api.ui.writeClipboardText(formatClipboardFilePath(copyState.copyText, owner))
+      const copyText = tourSnapshotRepoPathsOf(activeFile)?.absolute ?? copyState.copyText
+      await window.api.ui.writeClipboardText(formatClipboardFilePath(copyText, owner))
       if (!pathCopyMountedRef.current) {
         return
       }

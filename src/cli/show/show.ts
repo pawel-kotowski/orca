@@ -1,25 +1,19 @@
 import { resolve as resolvePath } from 'node:path'
-import type { AgentShowRequest, AgentShowResult } from '../../shared/agent-show/agent-show-contract'
+import type {
+  AgentShowRequest,
+  AgentShowResult,
+  AgentShowTourStageRequest
+} from '../../shared/agent-show/agent-show-contract'
 import type { AgentShowSnapResult } from '../../shared/agent-show/agent-show-window-relay'
 import type { CommandHandler, HandlerContext } from '../dispatch/dispatch'
-import {
-  getOptionalStringFlag,
-  getRepeatedStringFlag,
-  getRequiredStringFlag
-} from '../arguments/flags'
+import { getOptionalStringFlag } from '../arguments/flags'
 import { printResult } from '../output/command-result-output'
 import { RuntimeClientError } from '../runtime/types'
 import { isRendererUnavailable } from '../files/file-open-call'
 import { getFileWorktreeSelector } from '../files/file-worktree-target'
 import { resolveShowPath } from './show-path'
-import {
-  getClearScope,
-  getPlacement,
-  getUiTarget,
-  parseCodeRef,
-  parseLineRange,
-  treeEntriesFor
-} from './show-request-args'
+import { getClearScope } from './show-request-args'
+import { resolveStagePaths, SHOW_STAGE_BUILDERS } from './show-request-build'
 import { formatShowResult } from './show-result-format'
 import { showOwnerTabId } from './show-owner-tab'
 
@@ -61,71 +55,20 @@ function showHandler(build: BuildRequest): CommandHandler {
   }
 }
 
-type Flags = HandlerContext['flags']
-
-// The contract treats an absent note or mark differently from an empty one.
-function noteAndMark(flags: Flags): { note?: string; mark?: string } {
-  const note = getOptionalStringFlag(flags, 'note')
-  const mark = getOptionalStringFlag(flags, 'mark')
-  return { ...(note ? { note } : {}), ...(mark ? { mark } : {}) }
-}
-
-/** How each staging subcommand turns flags into a request; tours reuse them line by line. */
-export const SHOW_REQUEST_BUILDERS = {
-  code: (async (ctx, worktree) => ({
-    kind: 'code',
-    filePath: await resolveShowPath(ctx, worktree, getRequiredStringFlag(ctx.flags, 'path')),
-    range: parseLineRange(getRequiredStringFlag(ctx.flags, 'lines')),
-    ...noteAndMark(ctx.flags),
-    place: getPlacement(ctx.flags) ?? 'beside',
-    keepOthers: ctx.flags.get('keep') === true
-  })) satisfies BuildRequest,
-  file: (async (ctx, worktree) => ({
-    kind: 'file',
-    filePath: await resolveShowPath(ctx, worktree, getRequiredStringFlag(ctx.flags, 'path')),
-    preview: ctx.flags.get('preview') === true,
-    place: getPlacement(ctx.flags) ?? 'beside'
-  })) satisfies BuildRequest,
-  tree: (async (ctx, worktree) => {
-    const typed = getRepeatedStringFlag(ctx.flags, 'path')
-    if (typed.length === 0) {
-      throw new RuntimeClientError('invalid_argument', 'Name at least one path to show.')
-    }
-    const entries = treeEntriesFor(typed, getRepeatedStringFlag(ctx.flags, 'label'))
-    return {
-      kind: 'tree',
-      entries: await Promise.all(
-        entries.map(async (entry) => ({
-          ...entry,
-          path: await resolveShowPath(ctx, worktree, entry.path)
-        }))
-      ),
-      expand: ctx.flags.get('no-expand') !== true,
-      dimOthers: ctx.flags.get('dim-others') === true
-    }
-  }) satisfies BuildRequest,
-  ui: (async (ctx, worktree) => {
-    const target = getUiTarget(ctx.flags)
-    const pageId = getOptionalStringFlag(ctx.flags, 'page')
-    const codeRef = getOptionalStringFlag(ctx.flags, 'code')
-    const code = codeRef === undefined ? undefined : parseCodeRef(codeRef)
-    return {
-      kind: 'ui',
-      target,
-      ...(pageId ? { pageId } : {}),
-      ...noteAndMark(ctx.flags),
-      ...(code
-        ? { code: { ...code, filePath: await resolveShowPath(ctx, worktree, code.filePath) } }
-        : {})
-    }
-  }) satisfies BuildRequest
+/** A staging subcommand: its flags as a request, each path resolved from the shell folder. */
+function stageHandler(kind: AgentShowTourStageRequest['kind']): CommandHandler {
+  return showHandler((ctx, worktree) =>
+    resolveStagePaths(SHOW_STAGE_BUILDERS[kind](ctx.flags), (path) =>
+      resolveShowPath(ctx, worktree, path)
+    )
+  )
 }
 
 export const SHOW_HANDLERS: Record<string, CommandHandler> = {
-  'show code': showHandler(SHOW_REQUEST_BUILDERS.code),
-  'show file': showHandler(SHOW_REQUEST_BUILDERS.file),
-  'show tree': showHandler(SHOW_REQUEST_BUILDERS.tree),
-  'show ui': showHandler(SHOW_REQUEST_BUILDERS.ui),
+  'show code': stageHandler('code'),
+  'show file': stageHandler('file'),
+  'show tree': stageHandler('tree'),
+  'show ui': stageHandler('ui'),
   'show clear': showHandler(async (ctx) => ({ kind: 'clear', scope: getClearScope(ctx.flags) })),
   'show state': showHandler(async () => ({ kind: 'state' })),
   'show snap': async (ctx) => {
