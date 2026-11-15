@@ -1,9 +1,10 @@
 import { access, mkdir, writeFile, chmod } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { basename, dirname, extname, join } from 'node:path'
+import { dirname, join } from 'node:path'
 import type { AgentShowTourCommit } from '../../../shared/agent-show/agent-show-contract'
 import { parseUnifiedDiff, type DiffFile } from '../../../shared/agent-show/tour-diff-hunks'
 import type { StampedView } from '../../../shared/agent-show/tour-freshness'
+import { tourSnapshotPath } from '../../../shared/agent-show/tour-snapshot-path'
 import { gitExecFileAsync } from '../../git/command-runner/git-exec-file'
 import { gitReadOptionsForWorktree } from '../../git/command-runner/git-runtime-options'
 import { literalPathspec } from '../../git/source-control/git-pathspec'
@@ -156,10 +157,7 @@ export async function writeFileAtCommit(
   if (!blob.exists || blob.isBinary) {
     return null
   }
-  const short = commit.slice(0, 7)
-  const extension = extname(path)
-  const name = `${basename(path, extension)}@${short}${extension}`
-  const target = join(tmpdir(), 'orca-tour-snapshots', short, dirname(path), name)
+  const target = tourSnapshotPath(tmpdir(), commit, path)
   await mkdir(dirname(target), { recursive: true })
   await chmod(target, 0o644).catch(() => undefined)
   await writeFile(target, blob.content)
