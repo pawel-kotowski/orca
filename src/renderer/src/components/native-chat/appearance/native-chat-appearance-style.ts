@@ -185,11 +185,12 @@ function applyChatPaletteHues(style: NativeChatAppearanceStyle, theme: PaletteTh
   }
   // Inline code's chip (native-chat-colors.css): in a dark theme the theme's background darkened,
   // below the chat's own surface, so the cyan words stand out (Paweł, 2026-11-15: "not distinct
-  // enough ... background should be a bit darker"); in a light one, lifted toward the text colour.
+  // enough ... background should be a bit darker", then 72% was "a bit too dark"); in a light one,
+  // lifted toward the text colour.
   // Set only while the chat is in colour.
   if (theme.foreground && theme.background) {
     style['--chat-code-chip-surface'] = dark
-      ? `color-mix(in oklab, ${theme.background} 72%, black)`
+      ? `color-mix(in oklab, ${theme.background} 86%, black)`
       : `color-mix(in oklab, ${theme.foreground} 8%, ${theme.background})`
     style['--chat-code-chip-border'] =
       `color-mix(in oklab, ${theme.foreground} ${dark ? 18 : 16}%, ${theme.background})`
