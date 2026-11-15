@@ -45,6 +45,51 @@ export function clampDockBox(box: DockBox, dock: Size, window: Size): DockBox {
   }
 }
 
+/** A rect in window pixels, as `getBoundingClientRect` gives it. */
+export type ClearRect = { left: number; top: number; right: number; bottom: number }
+
+/** How far the dock keeps from a chip it steps around. */
+const CLEAR_GAP_PX = 6
+
+const overlaps = (box: DockBox, dock: Size, rect: ClearRect): boolean =>
+  box.left < rect.right + CLEAR_GAP_PX &&
+  box.left + dock.width > rect.left - CLEAR_GAP_PX &&
+  box.top < rect.bottom + CLEAR_GAP_PX &&
+  box.top + dock.height > rect.top - CLEAR_GAP_PX
+
+/**
+ * The dock moved just clear of the chips floating over the window (above a chip first, then
+ * below, left, right), so neither hides the other; where it already is when nothing overlaps or
+ * no spot inside the window is clear.
+ */
+export function stepClearOf(
+  box: DockBox,
+  dock: Size,
+  window: Size,
+  chips: readonly ClearRect[]
+): DockBox {
+  const hit = chips.find((chip) => overlaps(box, dock, chip))
+  if (!hit) {
+    return box
+  }
+  const candidates: DockBox[] = [
+    { left: box.left, top: hit.top - CLEAR_GAP_PX - dock.height },
+    { left: box.left, top: hit.bottom + CLEAR_GAP_PX },
+    { left: hit.left - CLEAR_GAP_PX - dock.width, top: box.top },
+    { left: hit.right + CLEAR_GAP_PX, top: box.top }
+  ].map((candidate) => ({ left: Math.round(candidate.left), top: Math.round(candidate.top) }))
+  return (
+    candidates.find((candidate) => {
+      const inside = clampDockBox(candidate, dock, window)
+      return (
+        inside.left === candidate.left &&
+        inside.top === candidate.top &&
+        !chips.some((chip) => overlaps(candidate, dock, chip))
+      )
+    }) ?? box
+  )
+}
+
 /** The spot a dock drawn at `box` stands for. */
 export function spotOfBox(box: DockBox, dock: Size, window: Size): TourStripSpot {
   return {

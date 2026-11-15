@@ -1,8 +1,11 @@
 import type {
   AgentShowContext,
   AgentShowHandler,
+  AgentShowRequestOf,
+  AgentShowResult,
   AgentShowVisibleEditor
 } from '../../../../shared/agent-show/agent-show-contract'
+import { detectLanguage } from '../../../../shared/editor-language/editor-language-detect'
 import { EditorOption } from 'monaco-editor/esm/vs/editor/common/standalone/standaloneEnums.js'
 import { useAppStore } from '@/store'
 import { scheduleEditorLineReveal } from '@/store/slices/editor/focus/editor-focus-reveal'
@@ -25,7 +28,8 @@ import {
   contextWantsFocus,
   missingFileResult,
   outsideWorktreeResult,
-  resolveShowRequestFile
+  resolveShowRequestFile,
+  type ShowRequestFile
 } from './show-request-file'
 
 export { showFile } from './show-file'
@@ -87,6 +91,33 @@ export const showCode: AgentShowHandler<'code'> = async (request, context) => {
   if (missing) {
     return missing
   }
+  return stageCodeFile(request, context, file)
+}
+
+/**
+ * Stages a read-only copy of a file (a tour step's code as it was at the tour's commit) exactly
+ * as `showCode` stages the file itself: same pane, marks and fit.
+ */
+export function showCodeSnapshot(
+  request: AgentShowRequestOf<'code'>,
+  context: AgentShowContext,
+  snapshotPath: string
+): Promise<AgentShowResult> {
+  return stageCodeFile(request, context, {
+    // Why relativePath = filePath: an absolute read-only tab is read as this computer's file.
+    filePath: snapshotPath,
+    relativePath: snapshotPath,
+    worktreeId: context.worktreeId,
+    language: detectLanguage(snapshotPath),
+    readOnly: true
+  })
+}
+
+async function stageCodeFile(
+  request: AgentShowRequestOf<'code'>,
+  context: AgentShowContext,
+  file: ShowRequestFile & { readOnly?: true }
+): Promise<AgentShowResult> {
   const focus = contextWantsFocus(context)
   const target = resolveCodeTarget(
     context,

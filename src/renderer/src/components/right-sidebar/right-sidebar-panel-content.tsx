@@ -15,6 +15,7 @@ const FolderWorkspacePrChecksPanel = lazy(
   () => import('./hosted-review/folder-checks/FolderWorkspacePrChecksPanel')
 )
 const PluginPanel = lazy(() => import('./plugin-panels/PluginPanel'))
+const ToursPanel = lazy(() => import('./tours/ToursPanel'))
 
 type RightSidebarPanelContentProps = {
   effectiveTab: ActiveRightSidebarTab
@@ -50,6 +51,9 @@ export function RightSidebarPanelContent({
         {/* SSH forwarding needs raw ports.detect data absent from the workspace-scoped status popover. */}
         {effectiveTab === 'ports' && (
           <PortsPanel isVisible={rightSidebarOpen && effectiveTab === 'ports'} />
+        )}
+        {effectiveTab === 'tours' && (
+          <ToursPanel isVisible={rightSidebarOpen && effectiveTab === 'tours'} />
         )}
         {effectiveTab === 'vault' && (
           <AiVaultSidebarPanel

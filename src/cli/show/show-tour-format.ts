@@ -14,6 +14,7 @@ export function formatTourResult(result: Shown): string {
   for (const problem of tour.problems) {
     lines.push(`- ${problem}`)
   }
+  lines.push(...tour.freshness)
   if (result.detail) {
     lines.push(result.detail)
   }

@@ -76,16 +76,18 @@ export const SHOW_COMMAND_SPECS: CommandSpec[] = [
     summary:
       'Play a tour: steps of words and shows, captioned on a strip floating over the window with Back, Play and Next',
     usage:
-      'orca show tour <file.md> [--check] [--step <n>] [--play] | orca show tour next|back|play|pause|stop|state | orca show tour step --step <n> [--worktree <selector>] [--json]',
-    allowedFlags: [...SHOW_FLAGS, 'target', 'step', 'play', 'check'],
+      'orca show tour <file.md> [--stamp | --check] [--step <n>] [--play] | orca show tour next|back|play|pause|stop|state | orca show tour step --step <n> [--worktree <selector>] [--json]',
+    allowedFlags: [...SHOW_FLAGS, 'target', 'step', 'play', 'check', 'stamp'],
     positionalArgs: ['target'],
     notes: [
       'A tour file is Markdown: "# Title", then per step "## Step title", 1-3 sentences, and one ```orca-show block of show subcommands without the "orca show" prefix (code, tree, file, ui), one per line. Paths are worktree-relative. Optional <!-- hold: 12s --> sets the auto-play time.',
       'Every line is checked before anything is shown; all problems are listed at once. --check shows nothing: it predicts each step from the window as drawn (where each range would go, at what font) and reports what would not fit (a range cut off, a pane that would be reused, a mark not on screen); folder marks, page marks and file previews are listed as not predicted. Run it until clean, then start the tour without --check. When the user reaches a step, it is measured for real; anything the check missed shows as a warning on the strip and in orca show tour state. Each step is staged from scratch, so Back and Next show the same screen however the user got there.',
+      "--stamp writes the worktree's HEAD commit under the title (<!-- tour-commit: <sha> -->) and plays nothing; run it after writing a tour and again after refreshing one. It warns when a file the tour points at differs from HEAD on disk: commit first, or the lines are not HEAD's. A stamped tour is checked against that commit whenever it is started, checked or listed: a step is fresh (its lines are unchanged), moved (edits above shifted them; it plays at the new lines, worked out each time, never written back) or stale (the lines themselves changed, or the file is gone). Stale steps play as written and the strip offers the code as it was at the commit. Start, --check and state print each step's state; page marks are not checked. Tours in docs/tours are listed in the Tours tab of the right sidebar.",
       'The strip floats above everything, centred near the bottom by default, and takes no room: it may cover the bottom of a pane. The user can drag it anywhere (it stays there across steps, workspaces and restarts) and double-click its title to put it back. In another workspace it shrinks to a "Tour paused in <workspace>" pill that goes back. The user can use the strip; you can drive it with next, back, step --step <n>, play, pause, from any folder. stop (or orca show clear) ends it. A tour survives a reload and a restart while your tab is open.',
       OWNER_NOTE
     ],
     examples: [
+      'orca show tour docs/tours/file-open.md --stamp',
       'orca show tour docs/tours/file-open.md',
       'orca show tour "$ORCA_CHAT_SCRATCH_DIR/tour.md" --play',
       'orca show tour next',

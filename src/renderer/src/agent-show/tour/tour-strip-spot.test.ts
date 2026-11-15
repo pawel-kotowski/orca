@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { clampDockBox, dockBox, parseTourStripSpot, spotOfBox } from './tour-strip-spot'
+import {
+  clampDockBox,
+  dockBox,
+  parseTourStripSpot,
+  spotOfBox,
+  stepClearOf
+} from './tour-strip-spot'
 
 const strip = { width: 600, height: 80 }
 const small = { width: 1280, height: 800 }
@@ -58,5 +64,37 @@ describe('parseTourStripSpot', () => {
     expect(parseTourStripSpot('{"x":"0.2","y":0.28}')).toBeNull()
     expect(parseTourStripSpot('not json')).toBeNull()
     expect(parseTourStripSpot(null)).toBeNull()
+  })
+})
+
+describe('stepClearOf', () => {
+  // A 64x30 chip centred on the bottom edge of a 1280x800 window, as the dev toolbar sits.
+  const chip = { left: 608, top: 762, right: 672, bottom: 792 }
+
+  it('lifts the default strip just above a chip under it, keeping it centred', () => {
+    expect(stepClearOf({ left: 340, top: 712 }, strip, small, [chip])).toEqual({
+      left: 340,
+      top: 676
+    })
+  })
+
+  it('leaves the dock alone when no chip is near it', () => {
+    expect(stepClearOf({ left: 20, top: 144 }, strip, small, [chip])).toEqual({
+      left: 20,
+      top: 144
+    })
+  })
+
+  it('goes below a chip near the top, then beside one when above and below do not fit', () => {
+    const topChip = { left: 600, top: 10, right: 680, bottom: 40 }
+    expect(stepClearOf({ left: 340, top: 4 }, strip, small, [topChip])).toEqual({
+      left: 340,
+      top: 46
+    })
+    const tallChip = { left: 40, top: 4, right: 100, bottom: 796 }
+    expect(stepClearOf({ left: 20, top: 300 }, strip, small, [tallChip])).toEqual({
+      left: 106,
+      top: 300
+    })
   })
 })

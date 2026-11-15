@@ -6,6 +6,7 @@ import type {
 } from '../../../../shared/agent-show/agent-show-contract'
 import { ensureTourStrips, tourStripShown } from './TourStripHost'
 import { windowShown } from '../window-drawn'
+import { describeTourFreshness } from '../../../../shared/agent-show/tour-freshness'
 import { checkTour, describeTourCheck } from './tour-check'
 import {
   endTour,
@@ -37,7 +38,9 @@ function tourResult(tour: PlayingTour, detail?: string): AgentShowResult {
       steps: tour.steps.length,
       stepTitle: tour.steps[tour.index]!.title,
       playing: tour.playing,
-      problems
+      problems,
+      commit: tour.commit,
+      freshness: describeTourFreshness(tour.commit, tour.steps)
     }
   }
 }
@@ -57,14 +60,20 @@ export const showTour: AgentShowHandler<'tour'> = async (request, context) => {
     const check = await checkTour(context, request.tour.steps)
     if (request.check) {
       // Why nothing staged: the user should not watch every step flash by while the agent checks.
-      return { ok: true, visible: false, detail: describeTourCheck(request.tour.title, check) }
+      const freshness = describeTourFreshness(request.tour.commit, request.tour.steps)
+      return {
+        ok: true,
+        visible: false,
+        detail: [describeTourCheck(request.tour.title, check), ...freshness].join('\n')
+      }
     }
     ensureTourStrips()
     const tour = await startTour(context, {
       ...request.tour,
       step: (request.step ?? 1) - 1,
       play: request.play,
-      predictions: check.measured ? check.steps : null
+      predictions: check.measured ? check.steps : null,
+      commit: request.tour.commit ?? null
     })
     return tourResult(tour)
   }
