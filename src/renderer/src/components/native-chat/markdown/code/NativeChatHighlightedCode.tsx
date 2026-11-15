@@ -1,5 +1,6 @@
 import { memo } from 'react'
 import { useHighlightedSyntax } from '@/hooks/use-highlighted-syntax'
+import { useNativeChatTerminalSyntaxThemes } from './use-native-chat-terminal-syntax-themes'
 import type { SyntaxLine } from '@/lib/syntax-highlighting/incremental-syntax-tokenizer'
 import { SYNTAX_FONT_STYLE, type SyntaxToken } from '@/lib/syntax-highlighting/syntax-highlighter'
 
@@ -67,6 +68,7 @@ export const NativeChatHighlightedCode = memo(function NativeChatHighlightedCode
   code: string
   language: string
 }): React.ReactNode {
+  useNativeChatTerminalSyntaxThemes()
   const progress = useHighlightedSyntax(code, language)
   if (!progress) {
     return code

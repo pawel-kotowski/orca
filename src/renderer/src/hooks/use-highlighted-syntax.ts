@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useReducer, useRef, useState } from 'react'
+import { useEffect, useMemo, useReducer, useRef, useState, useSyncExternalStore } from 'react'
 import {
   createIncrementalSyntaxTokenizer,
   type SyntaxProgress
@@ -8,6 +8,10 @@ import {
   loadedSyntaxHighlighter,
   loadSyntaxLanguage
 } from '@/lib/syntax-highlighting/syntax-highlighter'
+import {
+  subscribeSyntaxThemes,
+  syntaxThemeGeneration
+} from '@/lib/syntax-highlighting/syntax-terminal-themes'
 import { recomputeOn } from '@/lib/recompute-on'
 import { BoundedMap } from '../../../shared/bounded-map'
 
@@ -53,8 +57,9 @@ const finished = new BoundedMap<string, SyntaxProgress>({
   sizeOf: finishedBytes
 })
 
-function finishedKey(language: string, source: string): string {
-  return `${language}\n${source}`
+// Local build: the theme generation is in the key, so a terminal theme change re-colours finished blocks.
+function finishedKey(language: string, source: string, themeGeneration: number): string {
+  return `${themeGeneration}\n${language}\n${source}`
 }
 
 /** Tokens cover the highlighted prefix; code.slice(highlightedLength) stays plain until later renders. */
@@ -63,6 +68,7 @@ export function useHighlightedSyntax(code: string, language: string): SyntaxProg
     code.length > MAX_HIGHLIGHTED_CODE_LENGTH ? code.slice(0, MAX_HIGHLIGHTED_CODE_LENGTH) : code
   const [loadedCount, rerender] = useReducer((count: number) => count + 1, 0)
   const highlighter = recomputeOn([loadedCount], () => loadedSyntaxHighlighter(language))
+  const themeGeneration = useSyncExternalStore(subscribeSyntaxThemes, syntaxThemeGeneration)
 
   // Why: `source` is a dependency so a block still streaming asks again after a failed load.
   useEffect(() => {
@@ -81,15 +87,19 @@ export function useHighlightedSyntax(code: string, language: string): SyntaxProg
   }, [language, highlighter, source])
 
   const tokenize = useMemo(
-    () => (highlighter ? createIncrementalSyntaxTokenizer(highlighter) : null),
-    [highlighter]
+    // themeGeneration: a fresh tokenizer, so nothing resumes from the old theme's tokens.
+    () =>
+      recomputeOn([themeGeneration], () =>
+        highlighter ? createIncrementalSyntaxTokenizer(highlighter) : null
+      ),
+    [highlighter, themeGeneration]
   )
   // Short blocks finish here and paint in color at once; longer ones continue below.
   const started = useMemo(
     () =>
-      finished.get(finishedKey(language, source)) ??
+      finished.get(finishedKey(language, source, themeGeneration)) ??
       (tokenize ? tokenize(source, remainingRenderBudgetMs()) : null),
-    [language, source, tokenize]
+    [language, source, tokenize, themeGeneration]
   )
   const [continued, setContinued] = useState<{
     after: SyntaxProgress
@@ -108,9 +118,9 @@ export function useHighlightedSyntax(code: string, language: string): SyntaxProg
     })
   }, [source, started, tokenize])
 
-  const latest = useRef({ language, source, progress })
+  const latest = useRef({ language, source, progress, themeGeneration })
   useEffect(() => {
-    latest.current = { language, source, progress }
+    latest.current = { language, source, progress, themeGeneration }
   })
   // Why: remembered on unmount, not on every streamed chunk, which would fill the cache with prefixes.
   useEffect(
@@ -122,7 +132,7 @@ export function useHighlightedSyntax(code: string, language: string): SyntaxProg
         !last.progress.degraded &&
         last.progress.highlightedLength >= last.source.length
       ) {
-        finished.set(finishedKey(last.language, last.source), last.progress)
+        finished.set(finishedKey(last.language, last.source, last.themeGeneration), last.progress)
       }
     },
     []

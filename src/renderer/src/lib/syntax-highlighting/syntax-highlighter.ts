@@ -8,6 +8,11 @@ import {
   type TextMateCore
 } from './textmate-core'
 import { withVueTemplateInjections } from './vue-template-injections'
+import {
+  selectedSyntaxThemes,
+  setSelectedSyntaxThemes,
+  shikiThemeForTerminalTheme
+} from './syntax-terminal-themes'
 
 export type SyntaxToken = {
   content: string
@@ -47,7 +52,6 @@ export type SyntaxHighlighter = (
 /** `unsupported`: no grammar for the language. `failed`: the grammar could not load. */
 export type SyntaxLanguageStatus = 'ready' | 'unsupported' | 'failed'
 
-const THEMES = { light: 'light-plus', dark: 'dark-plus' } as const
 const MAX_LOAD_ATTEMPTS = 3
 const LOAD_RETRY_DELAY_MS = 2000
 // Arbitrary fence labels must not grow the table without limit.
@@ -215,10 +219,12 @@ function createSyntaxHighlighter(
       const lines = splitLines(code)
       const text = lines.map(({ line }) => line)
       const { INITIAL } = highlighter.textmate
+      // Local build: the terminal theme's syntax colours where shiki has them (syntax-terminal-themes.ts).
+      const themes = selectedSyntaxThemes()
       const light = tokenizeWithTheme(
         highlighter,
         grammar,
-        THEMES.light,
+        themes.light,
         text,
         state?.stacks?.light ?? INITIAL
       )
@@ -226,7 +232,7 @@ function createSyntaxHighlighter(
       const dark = tokenizeWithTheme(
         highlighter,
         grammar,
-        THEMES.dark,
+        themes.dark,
         text.slice(0, light.tokens.length),
         state?.stacks?.dark ?? INITIAL
       )
@@ -313,4 +319,35 @@ export function loadSyntaxLanguage(language: string): Promise<SyntaxLanguageStat
 /** The highlighter for a language that has loaded, so a block can color in the same render. */
 export function loadedSyntaxHighlighter(language: string): SyntaxHighlighter | null {
   return readyLanguages.get(languageKey(language)) ?? null
+}
+
+/**
+ * Local build: colour the chat's code in the terminal theme's own syntax colours where shiki ships
+ * them (null or an unknown name keeps Light+/Dark+). Loads the theme before switching, so no
+ * block tokenizes against a theme the highlighter does not have.
+ */
+export async function applyTerminalSyntaxThemes(names: {
+  light: string | null
+  dark: string | null
+}): Promise<void> {
+  const light = shikiThemeForTerminalTheme(names.light)
+  const dark = shikiThemeForTerminalTheme(names.dark)
+  try {
+    if (light || dark) {
+      const highlighter = await loadHighlighter()
+      const loaded = await Promise.all(
+        [light, dark].flatMap((theme) => (theme ? [theme.load()] : []))
+      )
+      await highlighter.core.loadTheme(
+        ...loaded.map(
+          (module) =>
+            (module as { default: Parameters<typeof highlighter.core.loadTheme>[0] }).default
+        )
+      )
+    }
+    setSelectedSyntaxThemes({ light: light?.id ?? 'light-plus', dark: dark?.id ?? 'dark-plus' })
+  } catch {
+    // A theme that fails to load leaves the code in Light+/Dark+.
+    setSelectedSyntaxThemes({ light: 'light-plus', dark: 'dark-plus' })
+  }
 }
