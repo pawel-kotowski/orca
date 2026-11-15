@@ -35,7 +35,9 @@ function GitGraphLaneContinuation({
   width: number
 }): React.JSX.Element {
   return (
-    <div className="relative shrink-0 self-stretch" style={{ width }}>
+    // overflow-hidden: like the rows' graph cell, lanes past a narrowed graph column are clipped
+    // instead of drawing over the details (Paweł, 2026-11-15: "files overlap with lines").
+    <div className="relative shrink-0 self-stretch overflow-hidden" style={{ width }}>
       {viewModel.outputSwimlanes.map((lane, index) => (
         <div
           key={`${index}-${lane.id}`}

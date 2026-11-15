@@ -3,10 +3,9 @@ import React from 'react'
 import { Tag } from 'lucide-react'
 import { cn } from '@/lib/class-names'
 import { getIntlLocale } from '@/i18n/i18n'
-import {
-  GIT_HISTORY_BASE_REF_COLOR,
-  type GitHistoryGraphColorId,
-  type GitHistoryItemRef
+import type {
+  GitHistoryGraphColorId,
+  GitHistoryItemRef
 } from '../../../../../shared/git/history/git-history-types'
 import {
   getGitHistoryItemColor,
@@ -49,33 +48,26 @@ export function formatGitGraphRelativeTime(timestamp: number | undefined): strin
   return relativeTime().format(0, 'minute')
 }
 
-const MAIN_BRANCH_NAMES = new Set(['main', 'master'])
-
-function isMainBranchName(name: string): boolean {
-  return MAIN_BRANCH_NAMES.has(name.slice(name.lastIndexOf('/') + 1)) && name.split('/').length <= 2
-}
-
 /**
- * A badge's colour (Paweł, 2026-11-10: "my branches and main branch tags should have some
- * colors"): the ref's own colour when the graph gives it one (HEAD, its upstream), main or master
- * (and its remote copy) in the base colour, any other branch in its commit's lane colour; tags stay plain.
+ * A badge's colour: the lane colour of the commit it sits on, so a badge always matches the line
+ * it marks (Paweł, 2026-11-15: "main color is brown and doesnt match branch line color"; main and
+ * master used the base-ref colour, which the lanes here never use). Tags stay plain.
  */
 export function gitGraphRefColor(
   itemRef: GitHistoryItemRef,
   laneColor?: GitHistoryGraphColorId
 ): GitHistoryGraphColorId | undefined {
-  if (itemRef.color) {
-    return itemRef.color
-  }
   if (itemRef.category === 'tags') {
     return undefined
   }
-  if (isMainBranchName(itemRef.name)) {
-    return GIT_HISTORY_BASE_REF_COLOR
-  }
-  return laneColor
+  return laneColor ?? itemRef.color
 }
 
+/**
+ * A ref name, marked quietly (Paweł, 2026-11-15: "dont make branch names all colored, just mark
+ * them with color somehow more delicately"): muted text in a thin neutral outline, with a small
+ * dot in the lane colour. The current branch reads in the normal text colour.
+ */
 export function GitGraphRefBadge({
   itemRef,
   isHead,
@@ -86,22 +78,24 @@ export function GitGraphRefBadge({
   laneColor?: GitHistoryGraphColorId
 }): React.JSX.Element {
   const refColor = gitGraphRefColor(itemRef, laneColor)
-  const color = refColor ? graphColor(refColor) : undefined
   return (
     <span
       title={itemRef.category ? `${itemRef.name} (${itemRef.category})` : itemRef.name}
       className={cn(
-        'max-w-[14rem] shrink-0 truncate rounded border px-1.5 text-[11px] leading-4',
-        isHead && 'font-semibold'
+        'inline-flex max-w-[14rem] min-w-0 shrink items-center gap-1 rounded-full border border-border/70 px-1.5 text-[10.5px] leading-4',
+        isHead ? 'font-medium text-foreground' : 'text-muted-foreground'
       )}
-      style={{
-        borderColor: color ?? 'var(--border)',
-        color: color ?? 'var(--muted-foreground)',
-        background: color ? `color-mix(in srgb, ${color} 12%, transparent)` : undefined
-      }}
     >
-      {itemRef.category === 'tags' && <Tag className="mr-0.5 inline size-2.5 align-[-1px]" />}
-      {itemRef.name}
+      {itemRef.category === 'tags' ? (
+        <Tag className="size-2.5 shrink-0" />
+      ) : (
+        <span
+          aria-hidden
+          className="size-1.5 shrink-0 rounded-full"
+          style={{ background: refColor ? graphColor(refColor) : 'var(--muted-foreground)' }}
+        />
+      )}
+      <span className="truncate">{itemRef.name}</span>
     </span>
   )
 }
@@ -143,18 +137,24 @@ export const GitGraphRow = React.forwardRef<HTMLDivElement, GitGraphRowProps>(fu
       <div className="flex h-full items-stretch overflow-hidden pl-2">
         <GitHistoryGraphSvg viewModel={viewModel} />
       </div>
-      <div className="flex min-w-0 items-center gap-1.5 overflow-hidden">
-        {refs.map((itemRef) => (
-          <GitGraphRefBadge
-            key={itemRef.id}
-            itemRef={itemRef}
-            isHead={itemRef.id === currentRefId}
-            laneColor={laneColor}
-          />
-        ))}
+      {/* The subject always starts at the column's left edge (Paweł, 2026-11-15: "branch name
+          should not make commit msg start more on the right"); refs follow it and give way first. */}
+      <div className="flex min-w-0 items-center gap-2 overflow-hidden">
         <span className="min-w-0 truncate" title={item.message || item.subject}>
           {item.subject}
         </span>
+        {refs.length > 0 && (
+          <span className="flex max-w-[45%] min-w-0 shrink-0 items-center gap-1 overflow-hidden">
+            {refs.map((itemRef) => (
+              <GitGraphRefBadge
+                key={itemRef.id}
+                itemRef={itemRef}
+                isHead={itemRef.id === currentRefId}
+                laneColor={laneColor}
+              />
+            ))}
+          </span>
+        )}
       </div>
       {layout.author && (
         <span className="truncate text-muted-foreground" title={item.authorEmail}>
