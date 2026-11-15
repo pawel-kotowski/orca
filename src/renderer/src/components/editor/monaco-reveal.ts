@@ -21,6 +21,8 @@ export function performReveal(
       ed.focus()
     }
   }
+  // 0 = Monaco's ScrollType.Smooth (honours smoothScrolling), 1 = Immediate.
+  const scrollType = extent.instant ? 1 : 0
   const model = ed.getModel()
   if (!model) {
     focus()
@@ -55,9 +57,9 @@ export function performReveal(
       ed.getBottomForLineNumber(range.endLineNumber) - ed.getTopForLineNumber(range.startLineNumber)
     // Why: centring a range taller than the pane leaves its first line halfway down.
     if (rangeHeight > ed.getLayoutInfo().height) {
-      ed.revealLineNearTop(range.startLineNumber)
+      ed.revealLineNearTop(range.startLineNumber, scrollType)
     } else {
-      ed.revealRangeInCenter(range)
+      ed.revealRangeInCenter(range, scrollType)
     }
   } else {
     ed.setSelection({
@@ -66,7 +68,10 @@ export function performReveal(
       endLineNumber: range.startLineNumber,
       endColumn: range.startColumn
     })
-    ed.revealPositionInCenter({ lineNumber: range.startLineNumber, column: range.startColumn })
+    ed.revealPositionInCenter(
+      { lineNumber: range.startLineNumber, column: range.startColumn },
+      scrollType
+    )
   }
 
   clearTransientRevealHighlight()

@@ -53,6 +53,8 @@ function revealRangeInTab(
       endLine: range.endLine,
       // Why: the user is talking to the agent; keystrokes must stay in the chat, not land in code.
       focus: false,
+      // Why: a tour step lands at once; Monaco's smooth scroll plus the fit's recentre read as drift.
+      instant: true,
       onApplied: () => {
         clearTimeout(timer)
         resolve(mountedCodeEditor(tabId)?.editor.getModel()?.getLineCount() ?? null)

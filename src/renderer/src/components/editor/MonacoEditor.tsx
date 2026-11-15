@@ -275,7 +275,7 @@ export default function MonacoEditor({
         ? () =>
             useAppStore.getState().pendingEditorReveal === reveal && reveal.canApply?.() !== false
         : undefined,
-      { endLine: reveal?.endLine, focus: reveal?.focus }
+      { endLine: reveal?.endLine, focus: reveal?.focus, instant: reveal?.instant }
     )
   }, [
     queueReveal,

@@ -248,7 +248,7 @@ export function useMonacoEditorMount(params: MonacoEditorMountParams): OnMount {
                 useAppStore.getState().pendingEditorReveal === reveal &&
                 reveal.canApply?.() !== false
             : undefined,
-          { endLine: reveal.endLine, focus: reveal.focus }
+          { endLine: reveal.endLine, focus: reveal.focus, instant: reveal.instant }
         )
       } else {
         restoreMonacoViewState(
