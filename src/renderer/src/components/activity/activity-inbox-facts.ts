@@ -5,6 +5,7 @@ import { isRunningActivityState } from './activity-event-state'
 import type { ActivityWorkers } from './activity-workers'
 import type { AgentPaneThread } from './activity-thread-types'
 import { activityThreadTurnStartedAt } from './activity-thread-prompt-time'
+import { activityThreadsAnsweringYou, useYourChatMessageAtByPtyId } from './activity-your-messages'
 
 /**
  * What decides a card's section besides its own state (Paweł, 2026-11-12: an agent with tasks or
@@ -25,13 +26,16 @@ export type ActivityInboxFacts = {
    * box's Slack-task cards, workers of a workspace with no agent, which placement kept standing by).
    */
   sentBack: ReadonlySet<string>
+  /** Cards whose current turn your own chat message started: a worker's reply to you is your news. */
+  answeringYou: ReadonlySet<string>
 }
 
 export const NO_ACTIVITY_INBOX_FACTS: ActivityInboxFacts = {
   reachingOut: new Map(),
   unseenReachOuts: new Set(),
   busyCoordinators: new Set(),
-  sentBack: new Set()
+  sentBack: new Set(),
+  answeringYou: new Set()
 }
 
 /** The agent's latest reach-out, live row first. */
@@ -48,7 +52,8 @@ export function buildActivityInboxFacts(
   workers: ActivityWorkers,
   clearedAtByPaneKey: Readonly<Record<string, number>>,
   acknowledgedAtByPaneKey: Readonly<Record<string, number>>,
-  manuallyUnreadTurnsByPaneKey: Readonly<Record<string, number>> = {}
+  manuallyUnreadTurnsByPaneKey: Readonly<Record<string, number>> = {},
+  answeringYou: ReadonlySet<string> = NO_ACTIVITY_INBOX_FACTS.answeringYou
 ): ActivityInboxFacts {
   const reachingOut = new Map<string, AgentReachOut>()
   const unseenReachOuts = new Set<string>()
@@ -81,10 +86,15 @@ export function buildActivityInboxFacts(
       sentBack.add(thread.paneKey)
     }
   }
-  if (reachingOut.size === 0 && busyCoordinators.size === 0 && sentBack.size === 0) {
+  if (
+    reachingOut.size === 0 &&
+    busyCoordinators.size === 0 &&
+    sentBack.size === 0 &&
+    answeringYou.size === 0
+  ) {
     return NO_ACTIVITY_INBOX_FACTS
   }
-  return { reachingOut, unseenReachOuts, busyCoordinators, sentBack }
+  return { reachingOut, unseenReachOuts, busyCoordinators, sentBack, answeringYou }
 }
 
 export function useActivityInboxFacts(
@@ -94,10 +104,25 @@ export function useActivityInboxFacts(
   const clearedAt = useAppStore((state) => state.activityClearedAtByPaneKey)
   const acknowledgedAt = useAppStore((state) => state.acknowledgedAgentsByPaneKey)
   const manuallyUnread = useAppStore((state) => state.manuallyUnreadTurnsByPaneKey)
-  return useMemo(
-    () => buildActivityInboxFacts(threads, workers, clearedAt, acknowledgedAt, manuallyUnread),
-    [threads, workers, clearedAt, acknowledgedAt, manuallyUnread]
-  )
+  const layouts = useAppStore((state) => state.terminalLayoutsByTabId)
+  const yourMessages = useYourChatMessageAtByPtyId()
+  return useMemo(() => {
+    const ptyIdOfPane = (paneKey: string): string | undefined => {
+      const split = paneKey.lastIndexOf(':')
+      return (
+        layouts[paneKey.slice(0, split)]?.ptyIdsByLeafId?.[paneKey.slice(split + 1)] ?? undefined
+      )
+    }
+    const answering = activityThreadsAnsweringYou(threads, yourMessages, ptyIdOfPane, clearedAt)
+    return buildActivityInboxFacts(
+      threads,
+      workers,
+      clearedAt,
+      acknowledgedAt,
+      manuallyUnread,
+      answering
+    )
+  }, [threads, workers, clearedAt, acknowledgedAt, manuallyUnread, layouts, yourMessages])
 }
 
 export const ActivityInboxFactsContext = createContext<ActivityInboxFacts>(NO_ACTIVITY_INBOX_FACTS)

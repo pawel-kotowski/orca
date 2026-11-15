@@ -170,12 +170,14 @@ export function activityWorkerPlacement(
   const nested = workers.parentByWorker.has(thread.paneKey)
   const worker = isActivityWorkerThread(thread) || workers.lineageWorkers.has(thread.paneKey)
   // Why a reach-out too: a worker that chose to tell you something is not its coordinator's news.
-  // Why sent back: your own Inbox click or mark-unread outranks the worker default.
+  // Why sent back: your own Inbox click or mark-unread outranks the worker default; so does a
+  // turn your own message started.
   if (
     (!nested && !worker) ||
     needsYou(thread) ||
     facts.reachingOut.has(thread.paneKey) ||
-    facts.sentBack.has(thread.paneKey)
+    facts.sentBack.has(thread.paneKey) ||
+    facts.answeringYou.has(thread.paneKey)
   ) {
     return 'card'
   }

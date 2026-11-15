@@ -7,6 +7,7 @@ import { buildActivityInboxFacts } from './activity-inbox-facts'
 import { activityThreadSection, isActivityThreadStandingBy } from './activity-inbox-sections'
 import { activityWorkerPlacement, type ActivityWorkers } from './activity-workers'
 import type { AgentPaneThread } from './activity-thread-types'
+import { activityThreadsAnsweringYou } from './activity-your-messages'
 
 const NO_WORKERS: ActivityWorkers = {
   parentByWorker: new Map(),
@@ -85,6 +86,44 @@ describe('a worker you send back to the Inbox (Paweł, 2026-11-12: the Inbox but
     const sentBack = buildActivityInboxFacts([finished], orphans, {}, {}, { 'w:1': 100 })
     expect(activityWorkerPlacement(finished, orphans, false, sentBack)).toBe('card')
     expect(isActivityThreadStandingBy(finished, {}, null, 1_000, sentBack)).toBe(false)
+  })
+})
+
+describe('a worker answering you (Paweł, 2026-11-16: a Slack-task agent answered his "from scratch?" under Standing by)', () => {
+  const orphans: ActivityWorkers = { ...NO_WORKERS, lineageWorkers: new Set(['w:1']) }
+  const turnAt = (at: number): AgentPaneThread => {
+    const base = thread('w:1', null)
+    const entry = { ...base.paneEntry!, turnStartedAt: at } as AgentPaneThread['paneEntry']
+    return { ...base, paneEntry: entry, latestTimestamp: at + 5_000 } as AgentPaneThread
+  }
+  const ptyOf = (paneKey: string): string | undefined => (paneKey === 'w:1' ? 'pty-1' : undefined)
+
+  it('lists a finished worker as its own card when your message started its turn', () => {
+    const finished = turnAt(10_000)
+    const answering = activityThreadsAnsweringYou(
+      [finished],
+      new Map([['pty-1', 9_000]]),
+      ptyOf,
+      {}
+    )
+    const facts = buildActivityInboxFacts([finished], orphans, {}, {}, {}, answering)
+    expect(activityWorkerPlacement(finished, orphans, false, facts)).toBe('card')
+    expect(activityThreadSection(finished, facts)).toBe('inbox')
+  })
+
+  it('stands it by again when a later turn was not yours, or after you clear it', () => {
+    const later = turnAt(10 * 60_000)
+    expect(activityThreadsAnsweringYou([later], new Map([['pty-1', 9_000]]), ptyOf, {}).size).toBe(
+      0
+    )
+    const finished = turnAt(10_000)
+    expect(
+      activityThreadsAnsweringYou([finished], new Map([['pty-1', 9_000]]), ptyOf, {
+        'w:1': 20_000
+      }).size
+    ).toBe(0)
+    const facts = buildActivityInboxFacts([later], orphans, {}, {})
+    expect(activityWorkerPlacement(later, orphans, false, facts)).toBe('standingBy')
   })
 })
 

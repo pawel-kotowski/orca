@@ -29,6 +29,7 @@ import type { NativeChatPickerState } from '../pickers/use-native-chat-picker-st
 import type { NativeChatSendLifecycle } from '../../session/terminal/send/use-native-chat-send-lifecycle'
 import type { NativeChatPtySessionOptionsSurface } from '../../../../../../shared/native-chat/input/native-chat-pty-session-options'
 import type { NativeChatOptimisticSendOutcome } from '../../session/terminal/delivery/native-chat-optimistic-send-outcome'
+import { noteYourChatMessage } from '../../../activity/activity-your-messages'
 import {
   answerNativeChatCommandInComposer,
   type NativeChatLocalCommandAnswer
@@ -215,6 +216,7 @@ export function useNativeChatPtyComposerSend(args: {
         }
       } else {
         pendingId = args.onOptimisticSend?.(text, imagePaths, retry !== undefined)
+        noteYourChatMessage(target.ptyId)
         if (pendingHandle) {
           args.trackPendingSend(pendingHandle, pendingId)
           if (retry && pendingId) {
