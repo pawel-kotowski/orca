@@ -18,6 +18,7 @@ export type TargetFreshness =
   | { state: 'fresh' }
   | { state: 'moved'; to: TourTarget; detail: string }
   | { state: 'stale'; detail: string }
+  | { state: 'unchecked'; detail: string }
 
 const lines = (range: LineRange): string =>
   range.startLine === range.endLine ? `${range.startLine}` : `${range.startLine}-${range.endLine}`
@@ -38,10 +39,13 @@ function describeMove(from: TourTarget, to: TourTarget): string {
 /** One target against the stamped commit: unchanged, moved (play at the new place), or changed. */
 export function classifyTarget(target: TourTarget, view: StampedView): TargetFreshness {
   if (!view.inCommit(target.path)) {
-    return {
-      state: 'stale',
-      detail: `${target.path} is not in ${view.short} (it was not committed when the tour was stamped)`
-    }
+    // Why not stale: an ignored or never-committed file has nothing to compare with, but still plays.
+    return view.existsNow(target.path)
+      ? {
+          state: 'unchecked',
+          detail: `${target.path} is not in ${view.short}, so it is not compared`
+        }
+      : { state: 'stale', detail: `${target.path} is gone (and was not in ${view.short})` }
   }
   const diff = view.diffs.find((file) => file.oldPath === target.path)
   const movedTo = diff?.newPath && diff.newPath !== target.path ? diff.newPath : null
@@ -83,17 +87,19 @@ export function stepFreshness(
 ): { requests: AgentShowTourStageRequest[]; freshness: AgentShowTourFreshness } {
   const moved: string[] = []
   const stale: string[] = []
+  const unchecked: string[] = []
   const staleRequests: number[] = []
   let checked = false
   const played = requests.map((request, index) => {
-    const targets = requestTargets(request)
-    checked ||= targets.length > 0
-    const results = targets.map((target) => classifyTarget(target, view))
+    const results = requestTargets(request).map((target) => classifyTarget(target, view))
     for (const result of results) {
+      checked ||= result.state !== 'unchecked'
       if (result.state === 'moved') {
         moved.push(result.detail)
       } else if (result.state === 'stale') {
         stale.push(result.detail)
+      } else if (result.state === 'unchecked') {
+        unchecked.push(result.detail)
       }
     }
     if (results.some((result) => result.state === 'stale')) {
@@ -114,7 +120,12 @@ export function stepFreshness(
   if (moved.length > 0) {
     return { requests: played, freshness: { state: 'moved', detail: moved.join('; ') } }
   }
-  return { requests: played, freshness: { state: checked ? 'fresh' : 'unchecked' } }
+  return {
+    requests: played,
+    freshness: checked
+      ? { state: 'fresh' }
+      : { state: 'unchecked', ...(unchecked.length > 0 ? { detail: unchecked.join('; ') } : {}) }
+  }
 }
 
 export type TourFreshnessCounts = Record<AgentShowTourFreshness['state'], number>

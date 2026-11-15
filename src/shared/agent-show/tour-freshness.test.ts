@@ -88,11 +88,24 @@ describe('stepFreshness', () => {
     })
   })
 
-  it('is stale for a file that was not committed when the tour was stamped', () => {
+  it('does not compare a file the commit does not have (ignored, never committed), unless it is gone', () => {
+    const notInCommit = { notInCommit: ['docs/a.md'] }
+    const file: AgentShowTourStageRequest = {
+      kind: 'file',
+      filePath: 'docs/a.md',
+      preview: true,
+      place: 'beside'
+    }
+    expect(stepFreshness([file], view([], notInCommit)).freshness).toEqual({
+      state: 'unchecked',
+      detail: 'docs/a.md is not in abc1234, so it is not compared'
+    })
     expect(
-      stepFreshness([code('src/new.ts', 1, 3)], view([], { notInCommit: ['src/new.ts'] })).freshness
-        .state
+      stepFreshness([file], view([], { ...notInCommit, goneNow: ['docs/a.md'] })).freshness.state
     ).toBe('stale')
+    expect(stepFreshness([file, code('src/b.ts', 1, 2)], view([], notInCommit)).freshness).toEqual({
+      state: 'fresh'
+    })
   })
 
   it('does not check page marks', () => {
