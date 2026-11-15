@@ -102,6 +102,30 @@ describe('ActivityThreadRow corner slot', () => {
     expect(onSelect).not.toHaveBeenCalled()
   })
 
+  // Paweł, 2026-11-15: "clicking bell on inbox card should remove it from inbox".
+  it('takes an unread Inbox card out of the Inbox from its bell, marking it seen', async () => {
+    const thread = createTestThread({ unread: true, currentAgentState: null })
+    const onMarkRead = vi.fn()
+    const onClear = vi.fn()
+    const onSelect = vi.fn()
+
+    await act(async () => {
+      root.render(
+        <Harness thread={thread} onMarkRead={onMarkRead} onClear={onClear} onSelect={onSelect} />
+      )
+    })
+
+    const bell = container.querySelector<HTMLButtonElement>(
+      'button[aria-label="Done with it: move to Standing by"]'
+    )
+    expect(bell).not.toBeNull()
+    act(() => bell?.click())
+
+    expect(onMarkRead).toHaveBeenCalledWith(thread)
+    expect(onClear).toHaveBeenCalledWith(thread)
+    expect(onSelect).not.toHaveBeenCalled()
+  })
+
   // Why two labels (2026-11-12): clearing a finished card stands it by; clearing a running agent's
   // move-to-inbox sends it back to Working.
   it.each([

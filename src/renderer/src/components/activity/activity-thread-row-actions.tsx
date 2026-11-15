@@ -67,7 +67,7 @@ function bellTone(thread: AgentPaneThread): string {
 /**
  * The card's top-right corner, one slot for three things that never need to show at once
  * (Paweł, 2026-11-09: "arent they mutualy exclusive really? maybe they could use one slot?"):
- * an Inbox card you have not seen rings its bell (click: seen, it stays in the Inbox); a seen one
+ * an Inbox card you have not seen rings its bell (click: seen and out of the Inbox, as the X); a seen one
  * shows its state, which turns into X on hover (click: off to Standing by); every other card shows
  * its state only.
  */
@@ -94,12 +94,21 @@ export function ActivityThreadCornerSlot({
   // Why: clearing a running agent's reach-out sends its card back to Working, not Standing by.
   const clearReturnsToWorking =
     isRunningActivityState(thread.currentAgentState) || facts.busyCoordinators.has(thread.paneKey)
+  const clearLabel = clearReturnsToWorking
+    ? translate('components.activity.backToWorking', 'Seen it: back to Working')
+    : translate('components.activity.standBy', 'Done with it: move to Standing by')
   if (inInbox && unread) {
+    // Why both: the bell takes the card out of the Inbox like the X does (Paweł, 2026-11-15:
+    // "clicking bell on inbox card should remove it from inbox"); a card with nowhere to go is
+    // only marked seen.
     return (
       <TooltipProvider delayDuration={800} skipDelayDuration={0}>
         <SlotButton
-          label={translate('components.activity.markSeen', 'Mark as seen')}
-          onClick={() => onMarkRead(thread)}
+          label={onClear ? clearLabel : translate('components.activity.markSeen', 'Mark as seen')}
+          onClick={() => {
+            onMarkRead(thread)
+            onClear?.(thread)
+          }}
         >
           <span ref={observeOffscreenAnimation} className="agent-bell-ring inline-flex">
             <FilledBellIcon className={cn('size-4 shrink-0 drop-shadow-sm', bellTone(thread))} />
@@ -111,9 +120,7 @@ export function ActivityThreadCornerSlot({
   const action =
     inInbox && onClear !== undefined
       ? {
-          label: clearReturnsToWorking
-            ? translate('components.activity.backToWorking', 'Seen it: back to Working')
-            : translate('components.activity.standBy', 'Done with it: move to Standing by'),
+          label: clearLabel,
           run: () => onClear(thread),
           icon: <X className="size-4" />
         }
