@@ -12,6 +12,7 @@ import { stepHoldMs } from './tour-steps'
 import { setTourPlaying, stepTour, endTour, type PlayingTour } from './tour-player'
 import type { StripSize } from './tour-strip-placement'
 import type { DockDragHandle } from './use-tour-dock-drag'
+import { TourStepFreshnessLine } from './TourStepFreshnessLine'
 
 const DOTS_MAX_STEPS = 5
 const DOTS_MIN_WIDTH_PX = 460
@@ -130,6 +131,7 @@ export function TourCaptionStrip({
   playing,
   advanceAt,
   warning,
+  asItWas,
   size,
   version,
   handle
@@ -141,6 +143,8 @@ export function TourCaptionStrip({
   advanceAt: number | null
   /** What this step showed that the check did not predict. */
   warning: string | null
+  /** The step's stale code is shown as it was at the tour's commit. */
+  asItWas: boolean
   size: StripSize
   /** Changes on every tour change, so a memoized strip still redraws. */
   version: number
@@ -230,6 +234,7 @@ export function TourCaptionStrip({
       <div className="scrollbar-sleek min-h-0 overflow-y-auto text-xs leading-snug text-muted-foreground">
         <StackedStepText texts={tour.steps.map((s) => s.caption)} index={index} className="" />
       </div>
+      <TourStepFreshnessLine tour={tour} index={index} asItWas={asItWas} />
       {warning ? (
         <p className="flex shrink-0 items-start gap-1 text-[11px] leading-snug text-muted-foreground">
           <TriangleAlert className="mt-px size-3 shrink-0 text-status-warning" />

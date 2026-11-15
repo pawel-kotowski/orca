@@ -121,6 +121,7 @@ function TourStrips(): React.JSX.Element | null {
           playing={stripTour.playing}
           advanceAt={stripTour.advanceAt}
           warning={stripTour.warnings[stripTour.index] ?? null}
+          asItWas={stripTour.asItWas}
           size={tourStripSize(size)}
           version={version}
           handle={handle}

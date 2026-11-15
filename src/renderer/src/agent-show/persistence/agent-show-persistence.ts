@@ -36,7 +36,15 @@ let awaitingTab: OwnerShowSnapshot[] = []
 
 function tourSnapshotOf(context: AgentShowContext): OwnerShowSnapshot['tour'] {
   const tour = tourOf(context)
-  return tour ? { title: tour.title, file: tour.file, index: tour.index, steps: tour.steps } : null
+  return tour
+    ? {
+        title: tour.title,
+        file: tour.file,
+        index: tour.index,
+        steps: tour.steps,
+        commit: tour.commit
+      }
+    : null
 }
 
 function snapshotOwner(context: AgentShowContext): OwnerShowSnapshot | null {

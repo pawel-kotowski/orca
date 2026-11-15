@@ -1,10 +1,12 @@
 import type {
   AgentShowContext,
-  AgentShowResult
+  AgentShowResult,
+  AgentShowTourCommit
 } from '../../../../shared/agent-show/agent-show-contract'
-import { clearCodeMarks, codeStateFor, showCode, showFile } from '../code/show-code'
-import { clearTreeMarks, showTree } from '../tree/show-tree'
-import { clearUiMarks, showUi } from '../ui/show-ui'
+import { clearCodeMarks, codeStateFor } from '../code/show-code'
+import { clearTreeMarks } from '../tree/show-tree'
+import { clearUiMarks } from '../ui/show-ui'
+import { runShow, runShowAsItWas } from './tour-step-shows'
 import { signalAgentShowChange } from '../persistence/agent-show-change-signal'
 import { REUSED_PANE_DETAIL } from '../code/code-fit-report'
 import { windowShown, worktreeDrawn } from '../window-drawn'
@@ -37,6 +39,10 @@ export type PlayingTour = {
   predictions: StepPrediction[] | null
   /** What a step showed that its prediction missed, shown quietly on the strip. */
   warnings: (string | null)[]
+  /** The commit the tour was stamped at; null when it has no stamp. */
+  commit: AgentShowTourCommit | null
+  /** The current step shows its stale code as it was at `commit`, not as it is now. */
+  asItWas: boolean
 }
 
 const tours = new Map<string, PlayingTour>()
@@ -72,22 +78,6 @@ export function playingTours(): PlayingTour[] {
 
 export function tourOf(context: AgentShowContext): PlayingTour | undefined {
   return findOwnerTour(tours, tourKey(context), context.ownerTabId)
-}
-
-async function runShow(
-  request: TourStep['requests'][number],
-  context: AgentShowContext
-): Promise<AgentShowResult> {
-  switch (request.kind) {
-    case 'code':
-      return showCode(request, context)
-    case 'file':
-      return showFile(request, context)
-    case 'tree':
-      return showTree(request, context)
-    case 'ui':
-      return showUi(request, context)
-  }
 }
 
 function describeProblem(
@@ -127,7 +117,7 @@ function schedule(tour: PlayingTour): void {
 }
 
 /** The step's code ranges no editor on screen shows whole, whatever pushed them out. */
-function offScreenRanges(step: TourStep, context: AgentShowContext): string[] {
+function offScreenRanges(step: Pick<TourStep, 'requests'>, context: AgentShowContext): string[] {
   const editors = codeStateFor(context)
   return stepRequests(step).flatMap((request) => {
     if (request.kind !== 'code') {
@@ -147,12 +137,19 @@ function offScreenRanges(step: TourStep, context: AgentShowContext): string[] {
 }
 
 /** Stages one step from scratch: clears what it replaces, then runs its shows in order. */
-async function enterStep(tour: PlayingTour, index: number): Promise<TourStepOutcome> {
+async function enterStep(
+  tour: PlayingTour,
+  index: number,
+  asItWas: boolean
+): Promise<TourStepOutcome> {
   const step = tour.steps[index]!
   const context = { ...tour.context, focus: true }
   // Why first: the caption should change on the click, not after the code has been staged.
   tour.index = index
+  tour.asItWas = asItWas && tour.commit !== null
   notify()
+  const stale = new Set(tour.asItWas ? (step.freshness?.staleRequests ?? []) : [])
+  const requests = stepRequests(step)
   const clears = stepEntryClears(step)
   if (clears.code) {
     clearCodeMarks(context)
@@ -165,15 +162,20 @@ async function enterStep(tour: PlayingTour, index: number): Promise<TourStepOutc
   }
   const problems: string[] = []
   let visible = true
-  for (const request of stepRequests(step)) {
-    const result = await runShow(request, context)
+  for (const [at, request] of requests.entries()) {
+    const result = stale.has(at)
+      ? await runShowAsItWas(request, context, tour.commit!.sha)
+      : await runShow(request, context)
     const problem = describeProblem(result, request)
     visible &&= result.ok && result.visible
     if (problem) {
       problems.push(problem)
     }
   }
-  problems.push(...offScreenRanges(step, context))
+  // Why: an old copy is a different file, so the current file's ranges are not expected on screen.
+  problems.push(
+    ...offScreenRanges({ requests: requests.filter((_, at) => !stale.has(at)) }, context)
+  )
   tour.outcomes[index] = { visible: visible && problems.length === 0, problems }
   const predicted = tour.predictions?.[index]
   // Why drawn only: in a hidden window or another workspace every range reads as off screen.
@@ -188,11 +190,12 @@ async function enterStep(tour: PlayingTour, index: number): Promise<TourStepOutc
 /** Moves the owner's tour to `index` once any step being staged has finished. */
 export function goToStep(
   context: AgentShowContext,
-  index: number
+  index: number,
+  asItWas = false
 ): Promise<TourStepOutcome | null> {
   const run = entering.then(() => {
     const tour = tourOf(context)
-    return tour && index >= 0 && index < tour.steps.length ? enterStep(tour, index) : null
+    return tour && index >= 0 && index < tour.steps.length ? enterStep(tour, index, asItWas) : null
   })
   entering = run.catch(() => undefined)
   return run
@@ -207,6 +210,7 @@ export async function startTour(
     step: number
     play: boolean
     predictions: StepPrediction[] | null
+    commit: AgentShowTourCommit | null
   }
 ): Promise<PlayingTour> {
   const previous = tourOf(context)
@@ -224,7 +228,9 @@ export async function startTour(
     advanceAt: null,
     outcomes: input.steps.map(() => null),
     predictions: input.predictions,
-    warnings: input.steps.map(() => null)
+    warnings: input.steps.map(() => null),
+    commit: input.commit,
+    asItWas: false
   }
   tours.set(tourKey(context), tour)
   await goToStep(context, Math.min(Math.max(0, input.step), input.steps.length - 1))
@@ -269,7 +275,6 @@ export async function stepTour(
   return target === null ? null : goToStep(tour.context, target)
 }
 
-/** Ends the tour; its marks go with `orca show clear`, which calls this. */
 /** Ends exactly this owner's tour in this worktree: a clear from another folder leaves it be. */
 export function endTour(context: AgentShowContext): void {
   stopTimer(context)
@@ -281,7 +286,13 @@ export function endTour(context: AgentShowContext): void {
 /** Puts back a persisted tour on its step, paused; the marks come back on their own. */
 export function restoreTour(
   context: AgentShowContext,
-  saved: { title: string; file: string; steps: TourStep[]; index: number }
+  saved: {
+    title: string
+    file: string
+    steps: TourStep[]
+    index: number
+    commit?: AgentShowTourCommit | null
+  }
 ): void {
   tours.set(tourKey(context), {
     context: { ...context, focus: false },
@@ -293,7 +304,22 @@ export function restoreTour(
     advanceAt: null,
     outcomes: saved.steps.map(() => null),
     predictions: null,
-    warnings: saved.steps.map(() => null)
+    warnings: saved.steps.map(() => null),
+    commit: saved.commit ?? null,
+    asItWas: false
   })
   notify()
+}
+
+/** Restages the current step with its stale code as it was at the tour's commit, or as it is now. */
+export function showStepAsItWas(
+  context: AgentShowContext,
+  asItWas: boolean
+): Promise<TourStepOutcome | null> {
+  const tour = tourOf(context)
+  if (!tour || tour.asItWas === asItWas) {
+    return Promise.resolve(null)
+  }
+  setTourPlaying(context, false)
+  return goToStep(tour.context, tour.index, asItWas)
 }
