@@ -19,6 +19,7 @@ import { isRevealOrEditorOpenBlocked } from '@/lib/files/os-open/local-path-open
 import { formatClipboardFilePath } from '@/lib/clipboard/clipboard-file-path'
 import { TabWorkspaceLayoutMenuSection } from './TabWorkspaceLayoutMenuSection'
 import { CopyTabIdMenuItem } from './CopyTabIdMenuItem'
+import { tourSnapshotRepoPathsOf } from '@/agent-show/tour/tour-snapshot-tab'
 import { isVirtualEditorFile } from '@/store/slices/editor/tabs/editor-tab-content-type'
 import { CloseSplitPaneMenuItem } from './CloseSplitPaneMenuItem'
 
@@ -89,6 +90,8 @@ export function EditorFileTabContextMenu({
     })
   )
   const revealBlocked = isRevealOrEditorOpenBlocked(revealOwner)
+  // Why: an "as it was" tab is a temp copy; its paths name the repo file and Reveal is left out.
+  const snapshot = tourSnapshotRepoPathsOf(file)
 
   return (
     <ContextMenuContent
@@ -176,7 +179,7 @@ export function EditorFileTabContextMenu({
             inset
             onSelect={() => {
               void window.api.ui.writeClipboardText(
-                formatClipboardFilePath(file.filePath, revealOwner)
+                formatClipboardFilePath(snapshot?.absolute ?? file.filePath, revealOwner)
               )
             }}
           >
@@ -185,20 +188,24 @@ export function EditorFileTabContextMenu({
           <ContextMenuItem
             inset
             onSelect={() => {
-              void window.api.ui.writeClipboardText(file.relativePath)
+              void window.api.ui.writeClipboardText(snapshot?.relative ?? file.relativePath)
             }}
           >
             {t('auto.components.tab.bar.EditorFileTabContextMenu.52ce4f4605', 'Copy Relative Path')}
           </ContextMenuItem>
-          <ContextMenuSeparator />
-          <ContextMenuItem
-            inset
-            disabled={revealBlocked}
-            onSelect={() => void revealInFileManager(file.filePath, revealOwner)}
-          >
-            {getRevealInFileManagerLabel(t)}
-            {revealBlocked ? <LocalOnlyMenuHint /> : null}
-          </ContextMenuItem>
+          {snapshot ? null : (
+            <>
+              <ContextMenuSeparator />
+              <ContextMenuItem
+                inset
+                disabled={revealBlocked}
+                onSelect={() => void revealInFileManager(file.filePath, revealOwner)}
+              >
+                {getRevealInFileManagerLabel(t)}
+                {revealBlocked ? <LocalOnlyMenuHint /> : null}
+              </ContextMenuItem>
+            </>
+          )}
         </>
       )}
     </ContextMenuContent>
