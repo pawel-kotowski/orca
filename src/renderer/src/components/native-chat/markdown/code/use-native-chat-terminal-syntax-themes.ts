@@ -42,9 +42,8 @@ function applyFromSettings(settings: Parameters<typeof terminalSyntaxThemeNames>
 
 /**
  * Local build: the chat's code takes the terminal theme's syntax colours (syntax-terminal-themes.ts).
- * Why the store is read here, not through a hook guarded at module load: the guard ran while this
- * lazily loaded chunk evaluated and left the code in Dark+ (2026-11-15); read on first use, the
- * store is always ready. Some tests stand a plain object in for the store; Light+/Dark+ hold there.
+ * Reads the store when it first runs and follows it from there. Some tests stand a plain object in
+ * for the store; Light+/Dark+ hold there.
  */
 export function useNativeChatTerminalSyntaxThemes(): void {
   useEffect(() => {

@@ -47,10 +47,22 @@ const SHIKI_THEMES: Record<string, { id: string; load: () => Promise<unknown> }>
   'Night Owl': { id: 'night-owl', load: () => import('shiki/themes/night-owl.mjs') }
 }
 
+// Why a key, not the name: a plugin theme is stored by id (`plugin:stablyai.orca-gruvbox-theme/
+// gruvbox-dark`), a built-in one by name (`Gruvbox Dark`); both reduce to `gruvboxdark`
+// (2026-11-15: matching names only left Paweł's Gruvbox plugin theme in Dark+).
+function themeKey(name: string): string {
+  const slug = name.startsWith('plugin:') ? name.slice(name.lastIndexOf('/') + 1) : name
+  return slug.toLowerCase().replace(/[^a-z0-9]/g, '')
+}
+
+const SHIKI_THEMES_BY_KEY = new Map(
+  Object.entries(SHIKI_THEMES).map(([name, theme]) => [themeKey(name), theme])
+)
+
 export function shikiThemeForTerminalTheme(
   name: string | null | undefined
 ): { id: string; load: () => Promise<unknown> } | null {
-  return (name && SHIKI_THEMES[name]) || null
+  return (name && SHIKI_THEMES_BY_KEY.get(themeKey(name))) || null
 }
 
 export type SyntaxThemeIds = { light: string; dark: string }

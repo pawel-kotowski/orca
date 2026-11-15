@@ -2,7 +2,11 @@ import { describe, expect, it, vi } from 'vitest'
 import { loadNodeOniguruma } from './oniguruma-test-harness'
 import { loadedSyntaxHighlighter, loadSyntaxLanguage } from './syntax-highlighter'
 import { applyTerminalSyntaxThemes } from './syntax-terminal-themes-apply'
-import { selectedSyntaxThemes, syntaxThemeGeneration } from './syntax-terminal-themes'
+import {
+  selectedSyntaxThemes,
+  shikiThemeForTerminalTheme,
+  syntaxThemeGeneration
+} from './syntax-terminal-themes'
 import { terminalSyntaxThemeNames } from '../../components/native-chat/markdown/code/use-native-chat-terminal-syntax-themes'
 
 vi.mock('./oniguruma', () => ({ loadOniguruma: () => loadNodeOniguruma() }))
@@ -19,7 +23,10 @@ describe('terminal syntax themes', () => {
     const darkPlus = keyword()?.dark
 
     const before = syntaxThemeGeneration()
-    await applyTerminalSyntaxThemes({ light: null, dark: 'Gruvbox Dark' })
+    await applyTerminalSyntaxThemes({
+      light: null,
+      dark: 'plugin:stablyai.orca-gruvbox-theme/gruvbox-dark'
+    })
     expect(selectedSyntaxThemes()).toEqual({ light: 'light-plus', dark: 'gruvbox-dark-medium' })
     expect(syntaxThemeGeneration()).toBe(before + 1)
     const gruvbox = keyword()?.dark
@@ -31,6 +38,17 @@ describe('terminal syntax themes', () => {
     await applyTerminalSyntaxThemes({ light: null, dark: 'Some Unknown Theme' })
     expect(selectedSyntaxThemes()).toEqual({ light: 'light-plus', dark: 'dark-plus' })
     expect(keyword()?.dark).toBe(darkPlus)
+  })
+
+  it('matches a plugin theme by its id as well as a built-in theme by its name', () => {
+    expect(shikiThemeForTerminalTheme('plugin:stablyai.orca-gruvbox-theme/gruvbox-dark')?.id).toBe(
+      'gruvbox-dark-medium'
+    )
+    expect(shikiThemeForTerminalTheme('Gruvbox Dark')?.id).toBe('gruvbox-dark-medium')
+    expect(
+      shikiThemeForTerminalTheme('plugin:stablyai.orca-github-light-theme/github-light')?.id
+    ).toBe('github-light')
+    expect(shikiThemeForTerminalTheme('plugin:someone.theme/unknown')).toBeNull()
   })
 
   it('follows the terminal themes only while the chat takes colour', () => {
