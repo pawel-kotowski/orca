@@ -5,12 +5,12 @@ export type StripSize = {
   maxHeight: number
 }
 
-const STRIP_WIDTH_PX = 600
+const STRIP_WIDTH_PX = 720
 const SIDE_GAP_PX = 16
 const MAX_HEIGHT_SHARE = 0.3
 const MIN_MAX_HEIGHT_PX = 96
 
-/** The same size whatever the layout: 600 px wide (less on a narrow window). */
+/** The same size whatever the layout: 720 px wide (less on a narrow window), a readable line at the 15 px caption. */
 export function tourStripSize(window: { width: number; height: number }): StripSize {
   return {
     width: Math.max(0, Math.min(STRIP_WIDTH_PX, window.width - 2 * SIDE_GAP_PX)),

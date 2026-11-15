@@ -16,7 +16,7 @@ function ChoiceButton({
       type="button"
       aria-pressed={active}
       onClick={onClick}
-      className={`rounded px-1.5 py-px text-[11px] leading-snug ${active ? 'bg-accent text-foreground' : 'text-muted-foreground hover:bg-accent/60 hover:text-foreground'}`}
+      className={`rounded px-1.5 py-px text-xs leading-snug ${active ? 'bg-accent text-foreground' : 'text-muted-foreground hover:bg-accent/60 hover:text-foreground'}`}
     >
       {children}
     </button>
@@ -46,7 +46,7 @@ export function TourStepFreshnessLine({
     tourSnapshotsAvailable(tour.context.worktreeId, tour.context.worktreePath)
   const Icon = stale ? History : ArrowDownUp
   return (
-    <div className="flex shrink-0 items-start gap-1 text-[11px] leading-snug text-muted-foreground">
+    <div className="flex shrink-0 items-start gap-1 text-xs leading-snug text-muted-foreground">
       <Icon className={`mt-px size-3 shrink-0 ${stale ? 'text-status-warning' : ''}`} />
       <span className="min-w-0 flex-1">
         {/* Why: a stale detail already names the commit ("changed since abc1234"). */}
