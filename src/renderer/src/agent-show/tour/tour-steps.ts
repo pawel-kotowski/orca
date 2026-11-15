@@ -51,18 +51,6 @@ export function stepRequests(step: Pick<TourStep, 'requests'>): TourStep['reques
   })
 }
 
-/**
- * Whether entering the step may split, close or remount stage panes: it shows more than one code
- * range, or the stage has more than one pane to fold away. One range into one pane just moves.
- */
-export function stepReshapesStage(
-  step: Pick<TourStep, 'requests'>,
-  stagePaneCount: number
-): boolean {
-  const codeShows = step.requests.filter((request) => request.kind === 'code').length
-  return codeShows > 1 || (codeShows > 0 && stagePaneCount > 1)
-}
-
 /** The step a control moves to, or null when there is none (Next on the last step). */
 export function tourTargetStep(
   action: 'next' | 'back' | 'step',

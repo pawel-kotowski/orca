@@ -6,16 +6,17 @@ describe('stageHoldRules', () => {
     expect(stageHoldRules([])).toBe('')
   })
 
-  it('hides only the editors inside each held pane body', () => {
+  it("hides each held pane's body and tab strip", () => {
     expect(stageHoldRules(['g1', 'g2'])).toBe(
-      '[data-tab-group-body-id="g1"] .monaco-editor,\n' +
-        '[data-tab-group-body-id="g2"] .monaco-editor { visibility: hidden; }'
+      '[data-tab-group-body-id="g1"],\n[data-tab-group-strip-id="g1"],\n' +
+        '[data-tab-group-body-id="g2"],\n[data-tab-group-strip-id="g2"] { visibility: hidden; }'
     )
   })
 
   it('keeps a quote or backslash in a pane id inside the attribute value', () => {
     expect(stageHoldRules(['a"b\\c'])).toBe(
-      '[data-tab-group-body-id="a\\"b\\\\c"] .monaco-editor { visibility: hidden; }'
+      '[data-tab-group-body-id="a\\"b\\\\c"],\n' +
+        '[data-tab-group-strip-id="a\\"b\\\\c"] { visibility: hidden; }'
     )
   })
 })

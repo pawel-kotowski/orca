@@ -1,11 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import {
-  stepEntryClears,
-  stepHoldMs,
-  stepRequests,
-  stepReshapesStage,
-  tourTargetStep
-} from './tour-steps'
+import { stepEntryClears, stepHoldMs, stepRequests, tourTargetStep } from './tour-steps'
 
 describe('stepHoldMs', () => {
   it('holds a step long enough to read its caption, between 6 and 20 seconds', () => {
@@ -40,31 +34,6 @@ describe('stepEntryClears', () => {
     expect(
       stepRequests({ requests: [tree, code, code] }).map((r) => r.kind === 'code' && r.keepOthers)
     ).toEqual([false, false, true])
-  })
-})
-
-describe('stepReshapesStage', () => {
-  const code = {
-    kind: 'code' as const,
-    filePath: 'a.ts',
-    range: { startLine: 1, endLine: 4 },
-    place: 'beside' as const,
-    keepOthers: false
-  }
-  const tree = { kind: 'tree' as const, entries: [{ path: 'src' }], expand: false, dimOthers: true }
-
-  it('treats one range into a lone pane as a move, not a reshape', () => {
-    expect(stepReshapesStage({ requests: [tree, code] }, 1)).toBe(false)
-    expect(stepReshapesStage({ requests: [code] }, 0)).toBe(false)
-  })
-
-  it('reshapes when the step stacks ranges or the stage has panes to fold away', () => {
-    expect(stepReshapesStage({ requests: [code, code] }, 1)).toBe(true)
-    expect(stepReshapesStage({ requests: [code] }, 2)).toBe(true)
-  })
-
-  it('leaves the stage alone for a step that shows no code', () => {
-    expect(stepReshapesStage({ requests: [tree] }, 2)).toBe(false)
   })
 })
 

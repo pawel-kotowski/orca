@@ -8,9 +8,9 @@ import type {
 import { detectLanguage } from '../../../../shared/editor-language/editor-language-detect'
 import { EditorOption } from 'monaco-editor/esm/vs/editor/common/standalone/standaloneEnums.js'
 import { useAppStore } from '@/store'
-import { scheduleEditorLineReveal } from '@/store/slices/editor/focus/editor-focus-reveal'
 import { clampCodeLineRange, describeClampedRange, type CodeLineRange } from './code-line-range'
 import { mountedCodeEditor, mountedCodeEditors, waitForCodeEditor } from './code-editor-registry'
+import { placeRangeWhenMounted, revealRangeInTab } from './code-range-placement'
 import {
   clearOwnerCodeMarks,
   codeMarkOwnerKey,
@@ -19,7 +19,7 @@ import {
 } from './code-mark-store'
 import { resolveCodeTarget, sizeCodeStageStack, type CodeTarget } from './code-target-group'
 import { holdStagePane, holdStageWhile } from './code-stage-hold'
-import { editorLayoutSettled } from './code-layout-settle'
+import { editorLayoutSettled, editorNotesMeasured } from './code-layout-settle'
 import { clearCodeStage, rememberStageTab, tidyCodeStage } from './code-stage-tabs'
 import { codeFitForTab } from './code-editor-fit'
 import { userCodeTypography } from './code-stage-room'
@@ -38,35 +38,6 @@ export { showFile } from './show-file'
 
 const TAB_WAIT_MS = 5000
 const EDITOR_MOUNT_WAIT_MS = 10000
-const REVEAL_WAIT_MS = 3000
-
-/** Centres the range in exactly this tab without selecting it; resolves with the file's line count. */
-function revealRangeInTab(
-  filePath: string,
-  fileId: string,
-  tabId: string,
-  range: CodeLineRange
-): Promise<number | null> {
-  return new Promise((resolve) => {
-    const timer = setTimeout(() => resolve(null), REVEAL_WAIT_MS)
-    scheduleEditorLineReveal(useAppStore.getState, filePath, range.startLine, 1, fileId, {
-      viewStateId: tabId,
-      endLine: range.endLine,
-      // Why: the user is talking to the agent; keystrokes must stay in the chat, not land in code.
-      focus: false,
-      // Why: a tour step lands at once; Monaco's smooth scroll plus the fit's recentre read as drift.
-      instant: true,
-      onApplied: () => {
-        clearTimeout(timer)
-        const mounted = mountedCodeEditor(tabId)
-        // Why now: the reveal centred the bare range; the fit's place (range + note) must win
-        // before Monaco paints, or the editor visibly jumps between the two.
-        mounted?.refit('restore')
-        resolve(mounted?.editor.getModel()?.getLineCount() ?? null)
-      }
-    })
-  })
-}
 
 /** The reveal and fit a show in a hidden window could not do, run once the window is drawn. */
 async function finishStagingWhenDrawn(
@@ -123,6 +94,7 @@ function stageCodeFile(
 ): Promise<AgentShowResult> {
   // Why a scope: a split made for this show remounts the pane it splits; both stay hidden until done.
   return holdStageWhile(async () => {
+    const layoutBefore = layoutStampOf(context)
     const focus = contextWantsFocus(context)
     const target = resolveCodeTarget(
       context,
@@ -145,8 +117,15 @@ function stageCodeFile(
     ) {
       holdStagePane(target.groupId)
     }
-    return openAndStage(request, context, file, target, showInFront, drawNow)
+    return openAndStage(request, context, file, target, { showInFront, drawNow, layoutBefore })
   })
+}
+
+/** What a show can move: the worktree's panes (their tree and ratios) and either sidebar. */
+function layoutStampOf(context: AgentShowContext): string {
+  const { layoutByWorktree, sidebarOpen, rightSidebarOpen } = useAppStore.getState()
+  // Why the tree's text: swapping a pane's tab rebuilds the layout object with nothing moved.
+  return JSON.stringify([layoutByWorktree[context.worktreeId], sidebarOpen, rightSidebarOpen])
 }
 
 /** The pane's front tab is an editor already drawing this file. */
@@ -166,8 +145,15 @@ async function openAndStage(
   context: AgentShowContext,
   file: ShowRequestFile & { readOnly?: true },
   target: CodeTarget,
-  showInFront: boolean,
-  drawNow: boolean
+  {
+    showInFront,
+    drawNow,
+    layoutBefore
+  }: {
+    showInFront: boolean
+    drawNow: boolean
+    layoutBefore: string
+  }
 ): Promise<AgentShowResult> {
   const before = useAppStore.getState()
   const alreadyOpenTabIds = new Set(
@@ -216,14 +202,17 @@ async function openAndStage(
     )
   }
   const lineCount = drawNow
-    ? (await waitForCodeEditor(tab.id, EDITOR_MOUNT_WAIT_MS)) &&
-      (await revealRangeInTab(openPath, fileId, tab.id, request.range))
+    ? await placeRangeWhenMounted(openPath, fileId, tab.id, request.range)
     : (mountedCodeEditor(tab.id)?.editor.getModel()?.getLineCount() ?? null)
   if (drawNow) {
-    await editorLayoutSettled(tab.id)
-    mountedCodeEditor(tab.id)?.refit('if-cut')
-    // Why after the fit: a pane's share of the stack follows what its range measured as needing.
-    sizeCodeStageStack(context, tab.groupId)
+    // Why: a card first draws at an estimated height; its real one shifts the scroll by a few px.
+    await editorNotesMeasured(tab.id)
+  }
+  // Why after the fit: a pane's share of the stack follows what its range measured as needing.
+  const stackResized = drawNow && sizeCodeStageStack(context, tab.groupId)
+  // Why only then: a fold, split or new ratio lands over a few frames and refits the editor; with
+  // none, it is already in place and the step can show.
+  if (stackResized || (drawNow && layoutStampOf(context) !== layoutBefore)) {
     await editorLayoutSettled(tab.id)
   }
   const clamp = lineCount === null ? null : clampCodeLineRange(request.range, lineCount)

@@ -127,7 +127,8 @@ export function useAgentShowCodeMarks(
           filePath,
           worktreeId,
           tabId,
-          refit: (mode = 'centre') => fit(mode)
+          refit: (mode = 'centre') => fit(mode),
+          notesMeasured: view.notesMeasured
         })
       : undefined
     fit('none')

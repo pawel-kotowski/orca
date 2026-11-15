@@ -9,12 +9,18 @@ export type MountedCodeEditor = {
   tabId: string
   /** Re-fits the font to the editor's marks and scrolls them into place (default: centred). */
   refit: (mode?: CodeRevealMode) => void
+  /** Its note cards have measured their real height (until then the scroll can still shift). */
+  notesMeasured: () => boolean
 }
 
 const editorsByTab = new Map<string, MountedCodeEditor>()
+const firstTabOfEditor = new WeakMap<editor.IStandaloneCodeEditor, string>()
 const mountListeners = new Set<(entry: MountedCodeEditor) => void>()
 
 export function registerCodeEditor(entry: MountedCodeEditor): () => void {
+  if (!firstTabOfEditor.has(entry.editor)) {
+    firstTabOfEditor.set(entry.editor, entry.tabId)
+  }
   editorsByTab.set(entry.tabId, entry)
   for (const listener of mountListeners) {
     listener(entry)
@@ -25,6 +31,11 @@ export function registerCodeEditor(entry: MountedCodeEditor): () => void {
       editorsByTab.delete(entry.tabId)
     }
   }
+}
+
+/** The editor drew another tab first: a pane switching tabs keeps its editor and swaps models. */
+export function editorServedAnotherTab(entry: MountedCodeEditor): boolean {
+  return firstTabOfEditor.get(entry.editor) !== entry.tabId
 }
 
 export function mountedCodeEditor(tabId: string): MountedCodeEditor | undefined {

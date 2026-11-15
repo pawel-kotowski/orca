@@ -10,7 +10,7 @@ import { runShow, runShowAsItWas } from './tour-step-shows'
 import { signalAgentShowChange } from '../persistence/agent-show-change-signal'
 import { REUSED_PANE_DETAIL } from '../code/code-fit-report'
 import { holdStagePane, holdStageWhile } from '../code/code-stage-hold'
-import { stagePanesUsedBy } from '../code/code-stage-tabs'
+import { codeStagePaneIds } from '../code/code-target-group'
 import { windowShown, worktreeDrawn } from '../window-drawn'
 import { useAppStore } from '@/store/index'
 import type { StepPrediction } from './tour-fit-prediction'
@@ -20,7 +20,6 @@ import {
   stepEntryClears,
   stepHoldMs,
   stepRequests,
-  stepReshapesStage,
   tourTargetStep,
   type TourStep
 } from './tour-steps'
@@ -165,11 +164,11 @@ async function enterStep(
   }
   const problems: string[] = []
   let visible = true
-  // Why one hold for the step: a later show (a split below) resizes the panes an earlier one staged.
+  // Why one hold for the step, taken before anything changes: a later show (a split below)
+  // resizes or remounts the panes an earlier one staged; each keeps its old picture until all land.
   await holdStageWhile(async () => {
-    const panes = stagePanesUsedBy(context)
-    if (windowShown() && stepReshapesStage(step, panes.length)) {
-      panes.forEach(holdStagePane)
+    if (windowShown() && requests.some((request) => request.kind === 'code')) {
+      codeStagePaneIds(context).forEach(holdStagePane)
     }
     for (const [at, request] of requests.entries()) {
       const result = stale.has(at)

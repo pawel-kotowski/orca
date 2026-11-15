@@ -35,3 +35,19 @@ export function editorLayoutSettled(tabId: string): Promise<void> {
     requestAnimationFrame(tick)
   })
 }
+
+/** Resolves once the tab's note cards have measured their real height, or after 120 ms. */
+export function editorNotesMeasured(tabId: string): Promise<void> {
+  return new Promise((resolve) => {
+    const started = performance.now()
+    const tick = (): void => {
+      const mounted = mountedCodeEditor(tabId)
+      if (!mounted || mounted.notesMeasured() || performance.now() - started > MAX_SETTLE_MS) {
+        resolve()
+      } else {
+        requestAnimationFrame(tick)
+      }
+    }
+    tick()
+  })
+}
