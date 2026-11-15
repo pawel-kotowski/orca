@@ -19,6 +19,7 @@ import {
 } from './code-mark-store'
 import { resolveCodeTarget, sizeCodeStageStack, type CodeTarget } from './code-target-group'
 import { holdStagePane, holdStageWhile } from './code-stage-hold'
+import { editorLayoutSettled } from './code-layout-settle'
 import { clearCodeStage, rememberStageTab, tidyCodeStage } from './code-stage-tabs'
 import { codeFitForTab } from './code-editor-fit'
 import { userCodeTypography } from './code-stage-room'
@@ -38,7 +39,6 @@ export { showFile } from './show-file'
 const TAB_WAIT_MS = 5000
 const EDITOR_MOUNT_WAIT_MS = 10000
 const REVEAL_WAIT_MS = 3000
-const LAYOUT_SETTLE_MS = 120
 
 /** Centres the range in exactly this tab without selecting it; resolves with the file's line count. */
 function revealRangeInTab(
@@ -68,10 +68,6 @@ function revealRangeInTab(
   })
 }
 
-// Why a timer, not frames: split ratios and Monaco's automatic layout land over a few frames.
-const layoutSettled = (): Promise<void> =>
-  new Promise((resolve) => setTimeout(resolve, LAYOUT_SETTLE_MS))
-
 /** The reveal and fit a show in a hidden window could not do, run once the window is drawn. */
 async function finishStagingWhenDrawn(
   context: AgentShowContext,
@@ -84,7 +80,7 @@ async function finishStagingWhenDrawn(
     return
   }
   await revealRangeInTab(openPath, fileId, tab.id, range)
-  await layoutSettled()
+  await editorLayoutSettled(tab.id)
   mountedCodeEditor(tab.id)?.refit('if-cut')
   sizeCodeStageStack(context, tab.groupId)
 }
@@ -224,11 +220,11 @@ async function openAndStage(
       (await revealRangeInTab(openPath, fileId, tab.id, request.range))
     : (mountedCodeEditor(tab.id)?.editor.getModel()?.getLineCount() ?? null)
   if (drawNow) {
-    await layoutSettled()
+    await editorLayoutSettled(tab.id)
     mountedCodeEditor(tab.id)?.refit('if-cut')
     // Why after the fit: a pane's share of the stack follows what its range measured as needing.
     sizeCodeStageStack(context, tab.groupId)
-    await layoutSettled()
+    await editorLayoutSettled(tab.id)
   }
   const clamp = lineCount === null ? null : clampCodeLineRange(request.range, lineCount)
   const fit = codeFitForTab(tab.id)
