@@ -6,7 +6,13 @@ import type { AppState } from '@/store/types'
 import { useAppStore } from '@/store'
 import { liveLinkOpenGroupIds } from '@/lib/links/placement/link-open-intent'
 import { chooseCodePlacement, currentStagePane } from './code-placement'
-import { findCodeStage, stackSplitRatios, verticalStackAround } from './code-stage'
+import {
+  findCodeStage,
+  layoutNodeAt,
+  stackSplitRatios,
+  verticalStackAround,
+  type LayoutPath
+} from './code-stage'
 import {
   CHAT_SHARE_BESIDE_STAGE,
   markedPaneNeedPx,
@@ -19,6 +25,7 @@ import {
 import { stackPaneShares, type CodePaneNeed } from './code-fit'
 import { ownerOpenedTab, rememberStageGroupCreated, stagePanesUsedBy } from './code-stage-tabs'
 import { makeRoomForStage } from './code-stage-sidebars'
+import { holdStagePane } from './code-stage-hold'
 
 export type CodeTarget = {
   /** undefined: the editor's default group (no owner tab). */
@@ -61,22 +68,34 @@ function ownerGroupOf(state: AppState, context: AgentShowContext): string | null
     : null
 }
 
+/** Every pane in the column beside the owner's chat, whoever opened it; none without a stage. */
+export function codeStagePaneIds(context: AgentShowContext): string[] {
+  const state = useAppStore.getState()
+  const layout = state.layoutByWorktree[context.worktreeId]
+  const ownerGroupId = ownerGroupOf(state, context)
+  return (layout && ownerGroupId ? findCodeStage(layout, ownerGroupId)?.leaves : null) ?? []
+}
+
+// Why: a ratio this close draws the same pixels; resetting it would only wait out a settle.
+const SAME_RATIO = 0.001
+
 /**
  * Sizes the stage panes stacked with `groupId` so each shows its range: floors first, then toward
- * the user's font. `newNeed` stands in for a pane whose editor is not open yet.
+ * the user's font. `newNeed` stands in for a pane whose editor is not open yet. Returns whether
+ * any pane's height changed.
  */
 export function sizeCodeStageStack(
   context: AgentShowContext,
   groupId: string,
   newNeed?: CodePaneNeed
-): void {
+): boolean {
   const state = useAppStore.getState()
   const layout = state.layoutByWorktree[context.worktreeId]
   const ownerGroupId = ownerGroupOf(state, context)
   const stage = layout && ownerGroupId ? findCodeStage(layout, ownerGroupId) : null
   const stack = layout && stage ? verticalStackAround(layout, stage.path, groupId) : null
   if (!layout || !stack || stack.leaves.length < 2) {
-    return
+    return false
   }
   const groups = state.groupsByWorktree[context.worktreeId] ?? []
   const needs = stack.leaves.map((id) =>
@@ -89,13 +108,20 @@ export function sizeCodeStageStack(
   )
   const shares = stackPaneShares(needs, stackHeightPx(stack.leaves), PANE_CHROME_PX)
   const shareOf = new Map(stack.leaves.map((id, index) => [id, shares[index] ?? 0]))
+  let changed = false
   for (const { path, ratio } of stackSplitRatios(
     layout,
     stack.path,
     (id) => shareOf.get(id) ?? 0
   )) {
+    const node = layoutNodeAt(layout, path ? (path.split('.') as LayoutPath) : [])
+    if (node?.type === 'split' && Math.abs((node.ratio ?? 0.5) - ratio) < SAME_RATIO) {
+      continue
+    }
+    changed = true
     state.setTabGroupSplitRatio(context.worktreeId, path, ratio)
   }
+  return changed
 }
 
 /** A new stage takes more of the width than the chat it splits from. */
@@ -178,6 +204,10 @@ export function resolveCodeTarget(
         ? {}
         : { linesPerPaneIfSplit: room.linesPerPaneIfSplit })
     }
+  }
+  // Why: splitting remounts the source pane's editor; its first frames must not be painted.
+  if (placement.sourceGroupId !== ownerGroupId) {
+    holdStagePane(placement.sourceGroupId)
   }
   const created = state.createEmptySplitGroup(
     worktreeId,
