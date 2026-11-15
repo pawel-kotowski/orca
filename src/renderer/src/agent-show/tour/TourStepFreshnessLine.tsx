@@ -49,7 +49,8 @@ export function TourStepFreshnessLine({
     <div className="flex shrink-0 items-start gap-1 text-[11px] leading-snug text-muted-foreground">
       <Icon className={`mt-px size-3 shrink-0 ${stale ? 'text-status-warning' : ''}`} />
       <span className="min-w-0 flex-1">
-        {stale ? `Changed since ${short}` : `Moved since ${short}`}
+        {/* Why: a stale detail already names the commit ("changed since abc1234"). */}
+        {stale ? 'Stale' : `Moved since ${short}`}
         {freshness.detail ? `: ${freshness.detail}` : ''}
       </span>
       {canShowOld ? (
