@@ -1,8 +1,11 @@
+/* eslint-disable max-lines -- Why: a local patch (held-open rows own the idle title) pushes this upstream file two lines over; its helper already lives in held-open-hook-idle-title.ts. */
 import {
   AGENT_STATUS_HYDRATE_MAX_AGE_MS,
   AGENT_STATUS_STALE_AFTER_MS,
-  agentStatusAuthorityObservedAt
+  agentStatusAuthorityObservedAt,
+  agentStatusStaleAfterMs
 } from '../../../../shared/agent-status/contracts/agent-status-freshness'
+import { heldOpenHookOwnsIdleTitle } from './held-open-hook-idle-title'
 import {
   pickHostTurnEnd,
   pickParsedAgentStatusPayload,
@@ -17,7 +20,7 @@ import { codexAsyncQuestionOutlivesWorkingTitle } from './codex-async-question-t
 
 type HookTurnFacts = Pick<
   AgentStatusEntry,
-  'state' | 'agentType' | 'mainAgent' | 'restoredUnconfirmed'
+  'state' | 'agentType' | 'mainAgent' | 'restoredUnconfirmed' | 'workingMode'
 >
 
 function workingHookOwnsIdleTitleInterval(
@@ -29,13 +32,14 @@ function workingHookOwnsIdleTitleInterval(
     status.state === 'working' &&
     pty?.lastAgentStatus === 'idle' &&
     !terminalTitleBlocksExplicitAgentStatus(pty.lastOscTitle) &&
-    (codexHookReportsRunningTurn(status, observedAt, pty) ||
-      observedAt >
-        Math.max(
-          pty.lastAgentStatusRichInvalidatedAtEpochMs ?? 0,
-          pty.lastAgentStatusStartedAtEpochMs ?? 0
-        )) &&
-    Date.now() - observedAt <= AGENT_STATUS_STALE_AFTER_MS
+    (heldOpenHookOwnsIdleTitle(status, observedAt) ||
+      ((codexHookReportsRunningTurn(status, observedAt, pty) ||
+        observedAt >
+          Math.max(
+            pty.lastAgentStatusRichInvalidatedAtEpochMs ?? 0,
+            pty.lastAgentStatusStartedAtEpochMs ?? 0
+          )) &&
+        Date.now() - observedAt <= AGENT_STATUS_STALE_AFTER_MS))
   )
 }
 
@@ -239,7 +243,6 @@ export function selectRuntimeHookAgentRowForPane(
   let restored: AgentStatusIpcPayload | null = null
   let confirmedReceivedAt = -Infinity
   const now = Date.now()
-  const freshAfter = now - AGENT_STATUS_STALE_AFTER_MS
   // Unverifiable lasts as long as hydration keeps the row; going quiet is not exit evidence.
   const restoredAfter = now - AGENT_STATUS_HYDRATE_MAX_AGE_MS
   for (const entry of rows) {
@@ -250,7 +253,7 @@ export function selectRuntimeHookAgentRowForPane(
       entry.agentType &&
       (entry.providerSessionOnly !== true ||
         (entry.agentType === 'pi' && entry.providerSession != null)) &&
-      (entry.evidenceObservedAt ?? entry.receivedAt) >= freshAfter &&
+      (entry.evidenceObservedAt ?? entry.receivedAt) >= now - agentStatusStaleAfterMs(entry) &&
       (!agent || entry.receivedAt > agent.receivedAt)
     ) {
       agent = entry
@@ -262,7 +265,8 @@ export function selectRuntimeHookAgentRowForPane(
       entry.providerSessionOnly !== true &&
       // Restored rows cannot prove liveness because the turn may have ended while offline (#12346).
       entry.restoredUnconfirmed !== true &&
-      (entry.evidenceObservedAt ?? entry.receivedAt) >= freshAfter &&
+      // Why per row: a monitoring row is silent by design until its work ends (24 h window).
+      (entry.evidenceObservedAt ?? entry.receivedAt) >= now - agentStatusStaleAfterMs(entry) &&
       (!live || entry.receivedAt > live.receivedAt)
     ) {
       live = entry
