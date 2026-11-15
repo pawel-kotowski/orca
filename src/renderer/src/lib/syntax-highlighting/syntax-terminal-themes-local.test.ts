@@ -1,10 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { loadNodeOniguruma } from './oniguruma-test-harness'
-import {
-  applyTerminalSyntaxThemes,
-  loadedSyntaxHighlighter,
-  loadSyntaxLanguage
-} from './syntax-highlighter'
+import { loadedSyntaxHighlighter, loadSyntaxLanguage } from './syntax-highlighter'
+import { applyTerminalSyntaxThemes } from './syntax-terminal-themes-apply'
 import { selectedSyntaxThemes, syntaxThemeGeneration } from './syntax-terminal-themes'
 import { terminalSyntaxThemeNames } from '../../components/native-chat/markdown/code/use-native-chat-terminal-syntax-themes'
 

@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useAppStore } from '@/store'
-import { applyTerminalSyntaxThemes } from '@/lib/syntax-highlighting/syntax-highlighter'
+import { applyTerminalSyntaxThemes } from '@/lib/syntax-highlighting/syntax-terminal-themes-apply'
+import { glassDiagnostic } from '@/lib/glass-diagnostic'
 import { nativeChatColors } from '../../../../../../shared/native-chat/native-chat-appearance-settings'
 
 type TerminalThemeNames = { light: string | null; dark: string | null }
@@ -47,6 +48,12 @@ function applyFromSettings(settings: Parameters<typeof terminalSyntaxThemeNames>
  */
 export function useNativeChatTerminalSyntaxThemes(): void {
   useEffect(() => {
+    if (!following) {
+      glassDiagnostic('syntax-theme-follow', {
+        subscribe: typeof useAppStore?.subscribe,
+        names: terminalSyntaxThemeNames(useAppStore?.getState?.().settings)
+      })
+    }
     if (following || typeof useAppStore?.subscribe !== 'function') {
       return
     }

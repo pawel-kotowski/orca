@@ -8,11 +8,8 @@ import {
   type TextMateCore
 } from './textmate-core'
 import { withVueTemplateInjections } from './vue-template-injections'
-import {
-  selectedSyntaxThemes,
-  setSelectedSyntaxThemes,
-  shikiThemeForTerminalTheme
-} from './syntax-terminal-themes'
+import { selectedSyntaxThemes } from './syntax-terminal-themes'
+import { glassDiagnostic } from '@/lib/glass-diagnostic'
 
 export type SyntaxToken = {
   content: string
@@ -202,6 +199,8 @@ function mergeThemeTokens(
   return tokens
 }
 
+let lastLoggedDark: string | null = null
+
 function createSyntaxHighlighter(
   highlighter: TextMateCore,
   grammarName: string
@@ -221,6 +220,10 @@ function createSyntaxHighlighter(
       const { INITIAL } = highlighter.textmate
       // Local build: the terminal theme's syntax colours where shiki has them (syntax-terminal-themes.ts).
       const themes = selectedSyntaxThemes()
+      if (themes.dark !== lastLoggedDark) {
+        lastLoggedDark = themes.dark
+        glassDiagnostic('syntax-tokenize', { grammarName, ...themes })
+      }
       const light = tokenizeWithTheme(
         highlighter,
         grammar,
@@ -321,31 +324,5 @@ export function loadedSyntaxHighlighter(language: string): SyntaxHighlighter | n
   return readyLanguages.get(languageKey(language)) ?? null
 }
 
-/** Local build: the terminal theme's syntax colours where shiki ships them, loaded before switching
- *  so no block tokenizes against a missing theme; null or an unknown name keeps Light+/Dark+. */
-export async function applyTerminalSyntaxThemes(names: {
-  light: string | null
-  dark: string | null
-}): Promise<void> {
-  const light = shikiThemeForTerminalTheme(names.light)
-  const dark = shikiThemeForTerminalTheme(names.dark)
-  try {
-    if (light || dark) {
-      const highlighter = await loadHighlighter()
-      const loaded = await Promise.all(
-        [light, dark].flatMap((theme) => (theme ? [theme.load()] : []))
-      )
-      await highlighter.core.loadTheme(
-        ...loaded.map(
-          (module) =>
-            (module as { default: Parameters<typeof highlighter.core.loadTheme>[0] }).default
-        )
-      )
-    }
-    setSelectedSyntaxThemes({ light: light?.id ?? 'light-plus', dark: dark?.id ?? 'dark-plus' })
-  } catch (error) {
-    // A theme that fails to load leaves the code in Light+/Dark+.
-    console.warn('[syntax] terminal syntax theme failed to load', names, error)
-    setSelectedSyntaxThemes({ light: 'light-plus', dark: 'dark-plus' })
-  }
-}
+/** Local build: the shared highlighter core, so syntax-terminal-themes-apply.ts can load themes. */
+export const loadSyntaxHighlighterCore = (): Promise<TextMateCore> => loadHighlighter()
