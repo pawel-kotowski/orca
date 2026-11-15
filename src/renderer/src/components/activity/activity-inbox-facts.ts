@@ -4,6 +4,7 @@ import type { AgentReachOut } from '../../../../shared/agent-status/contracts/ag
 import { isRunningActivityState } from './activity-event-state'
 import type { ActivityWorkers } from './activity-workers'
 import type { AgentPaneThread } from './activity-thread-types'
+import { activityThreadTurnStartedAt } from './activity-thread-prompt-time'
 
 /**
  * What decides a card's section besides its own state (Paweł, 2026-11-12: an agent with tasks or
@@ -56,6 +57,11 @@ export function buildActivityInboxFacts(
     // Why the host's clock against this machine's: a clear or a look is a person's act, minutes
     // apart from the agent's message; clock skew between machines is far smaller.
     if (!reachOut || reachOut.at <= (clearedAtByPaneKey[thread.paneKey] ?? 0)) {
+      continue
+    }
+    // Why: a message you sent after the reach-out answers it (Paweł, 2026-11-15: "when i send msg
+    // to agent that was in inbox it should disappear from inbox"); a new turn started after it.
+    if (activityThreadTurnStartedAt(thread) > reachOut.at) {
       continue
     }
     reachingOut.set(thread.paneKey, reachOut)

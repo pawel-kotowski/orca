@@ -17,3 +17,9 @@ export function activityThreadPromptAt(thread: AgentPaneThread): number {
 export function byRecentPrompt(a: AgentPaneThread, b: AgentPaneThread): number {
   return activityThreadPromptAt(b) - activityThreadPromptAt(a)
 }
+
+/** When the current turn began (0 if unknown): the person's latest message to this agent. */
+export function activityThreadTurnStartedAt(thread: AgentPaneThread): number {
+  const entry = thread.currentAgentEntry ?? thread.paneEntry ?? thread.latestEvent?.entry
+  return entry?.turnStartedAt ?? 0
+}
