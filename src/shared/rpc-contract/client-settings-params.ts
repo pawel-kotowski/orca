@@ -135,7 +135,10 @@ export const SettingsUpdate = z
     workspaceCleanupPolicy: WorkspaceCleanupRulesParam.optional(),
     /** Whole records (repo id → account id, worktree id → account id), as the composer writes them. */
     claudeAccountDefaultByRepoId: z.record(z.string(), z.string()).optional(),
-    claudeAccountByWorktreeId: z.record(z.string(), z.string()).optional()
+    claudeAccountByWorktreeId: z.record(z.string(), z.string()).optional(),
+    /** Merged into Settings → Chat's appearance: only the keys given change (local build, so an
+     *  agent can set the chat font or Light text without the Settings page). */
+    nativeChatAppearance: z.record(z.string(), z.unknown()).optional()
   })
   .strict()
   .default({})

@@ -1,4 +1,5 @@
 import { publishedLegacyChatPermissionMode } from '../../../../shared/agent-launch/permissions/agent-chat-permission-mode'
+import { normalizeNativeChatAppearanceSettings } from '../../../../shared/native-chat/native-chat-appearance-settings'
 import { getClaudeAgentViewService } from '../../../claude/agent-view/agent-view-service'
 import { getAppEnvironment } from '../../../../shared/app-environment'
 import { isArtifactSharingEnabled } from '../../../../shared/artifacts/artifact-sharing-gate'
@@ -140,7 +141,7 @@ export class RuntimeClientSettingsController {
     }
     const beforeSettings = this.store.getSettings()
     const before = beforeSettings.agentStatusHooksEnabled !== false
-    const { agentDefaultArgs, agentDefaultEnv, ...otherUpdates } = updates
+    const { agentDefaultArgs, agentDefaultEnv, nativeChatAppearance, ...otherUpdates } = updates
     // Legacy clients can select an agent or a shell, but cannot select None.
     this.store.updateSettings(
       {
@@ -153,7 +154,17 @@ export class RuntimeClientSettingsController {
               process.platform
             )
           : {}),
-        ...(updates.defaultTuiAgent !== undefined ? { newWorkspaceSetupOnly: false } : {})
+        ...(updates.defaultTuiAgent !== undefined ? { newWorkspaceSetupOnly: false } : {}),
+        // Merged, so a caller changes one appearance key without resending the rest.
+        ...(nativeChatAppearance !== undefined
+          ? {
+              nativeChatAppearance: normalizeNativeChatAppearanceSettings({
+                // Why the cast: the runtime store's settings type leaves the chat's appearance out.
+                ...(beforeSettings as Partial<GlobalSettings>).nativeChatAppearance,
+                ...nativeChatAppearance
+              })
+            }
+          : {})
       },
       { notifyListeners: true }
     )

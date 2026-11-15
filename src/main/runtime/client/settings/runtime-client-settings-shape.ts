@@ -88,4 +88,5 @@ export type RuntimeClientSettingsUpdate = Pick<
   | 'workspaceCleanupPolicy'
   | 'claudeAccountDefaultByRepoId'
   | 'claudeAccountByWorktreeId'
+  | 'nativeChatAppearance'
 >
