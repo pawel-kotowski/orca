@@ -24,7 +24,10 @@ function CaptionText({ text }: { text: string }): React.JSX.Element {
     <>
       {parts.map((part, index) =>
         part.startsWith('`') ? (
-          <code key={index} className="rounded bg-muted px-1 font-mono text-[11px] text-foreground">
+          <code
+            key={index}
+            className="rounded bg-muted px-1 font-mono text-[0.88em] text-foreground"
+          >
             {part.slice(1, -1)}
           </code>
         ) : part.startsWith('**') ? (
@@ -85,7 +88,7 @@ function StripButton({
       title={label}
       disabled={disabled}
       onClick={onClick}
-      className="flex size-6 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-40 disabled:hover:bg-transparent"
+      className="flex size-7 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-40 disabled:hover:bg-transparent"
     >
       {children}
     </button>
@@ -179,15 +182,15 @@ export function TourCaptionStrip({
         title="Drag to move; double-click to put it back"
         className="-ml-1.5 flex shrink-0 cursor-grab select-none items-start gap-2 active:cursor-grabbing"
       >
-        <GripVertical className="mt-[5px] size-3.5 shrink-0 text-muted-foreground/70" />
+        <GripVertical className="mt-[7px] size-4 shrink-0 text-muted-foreground/70" />
         <StackedStepText
           texts={tour.steps.map((s) => s.title)}
           index={index}
-          className="min-w-0 flex-1 break-words py-[3px] text-[13px] font-medium leading-snug text-foreground"
+          className="min-w-0 flex-1 break-words py-[3px] text-base font-semibold leading-snug text-foreground"
         />
         {tour.steps.length <= DOTS_MAX_STEPS && size.width >= DOTS_MIN_WIDTH_PX ? (
           <div
-            className="flex h-6 items-center gap-1"
+            className="flex h-7 items-center gap-1"
             aria-label={`Step ${index + 1} of ${tour.steps.length}`}
           >
             {tour.steps.map((s, dotIndex) => (
@@ -202,7 +205,7 @@ export function TourCaptionStrip({
             ))}
           </div>
         ) : (
-          <span className="flex h-6 shrink-0 items-center text-xs tabular-nums text-muted-foreground">
+          <span className="flex h-7 shrink-0 items-center text-[13px] tabular-nums text-muted-foreground">
             {index + 1} / {tour.steps.length}
           </span>
         )}
@@ -231,12 +234,12 @@ export function TourCaptionStrip({
           <X className="size-3.5" />
         </StripButton>
       </div>
-      <div className="scrollbar-sleek min-h-0 overflow-y-auto text-xs leading-snug text-muted-foreground">
+      <div className="scrollbar-sleek min-h-0 overflow-y-auto text-[15px] leading-relaxed text-foreground/85">
         <StackedStepText texts={tour.steps.map((s) => s.caption)} index={index} className="" />
       </div>
       <TourStepFreshnessLine tour={tour} index={index} asItWas={asItWas} />
       {warning ? (
-        <p className="flex shrink-0 items-start gap-1 text-[11px] leading-snug text-muted-foreground">
+        <p className="flex shrink-0 items-start gap-1 text-xs leading-snug text-muted-foreground">
           <TriangleAlert className="mt-px size-3 shrink-0 text-status-warning" />
           <span>{warning}</span>
         </p>

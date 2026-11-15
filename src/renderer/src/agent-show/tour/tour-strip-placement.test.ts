@@ -3,9 +3,9 @@ import { stripAndPills, tourStripSize } from './tour-strip-placement'
 import { predictionMiss } from './tour-step-problems'
 
 describe('tourStripSize', () => {
-  it('is 600 px wide whatever the layout, and may grow to 30% of the window', () => {
-    expect(tourStripSize({ width: 1280, height: 800 })).toEqual({ width: 600, maxHeight: 240 })
-    expect(tourStripSize({ width: 1600, height: 1000 })).toEqual({ width: 600, maxHeight: 300 })
+  it('is 720 px wide whatever the layout, and may grow to 30% of the window', () => {
+    expect(tourStripSize({ width: 1280, height: 800 })).toEqual({ width: 720, maxHeight: 240 })
+    expect(tourStripSize({ width: 1600, height: 1000 })).toEqual({ width: 720, maxHeight: 300 })
   })
 
   it('narrows on a small window, keeping 16 px each side', () => {
