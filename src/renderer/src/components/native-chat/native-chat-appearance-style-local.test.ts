@@ -43,4 +43,12 @@ describe('local chat appearance style', () => {
       nativeChatAppearanceStyle({ nativeChatAppearance: { chatColors: false } })
     ).not.toHaveProperty('--chat-code-chip-surface')
   })
+  it('sets the chat light only when Light text is on', () => {
+    expect(
+      nativeChatAppearanceStyle({ nativeChatAppearance: { lightText: true } })['--chat-text-weight']
+    ).toBe(300)
+    expect(nativeChatAppearanceStyle({ nativeChatAppearance: {} })).not.toHaveProperty(
+      '--chat-text-weight'
+    )
+  })
 })

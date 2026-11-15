@@ -10,7 +10,7 @@
 
 /* Match chat headings' semibold; inherited `bolder` resolved to 700 and outweighed them. */
 .native-chat-markdown :is(strong, b) {
-  font-weight: 600;
+  font-weight: var(--chat-strong-weight, 600);
 }
 
 .native-chat-markdown h1 {

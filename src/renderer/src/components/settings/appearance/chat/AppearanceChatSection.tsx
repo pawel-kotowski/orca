@@ -7,6 +7,7 @@ import {
   nativeChatActivityHoverChat,
   nativeChatWorkspaceHoverDetails,
   nativeChatColors,
+  nativeChatLightText,
   nativeChatCompactComposer,
   nativeChatShowsComposerWorkspaceLine,
   nativeChatCtrlEnterSendsNow,
@@ -99,6 +100,15 @@ export function AppearanceChatSection({
         )}
         checked={nativeChatColors(settings)}
         onChange={() => update({ chatColors: !nativeChatColors(settings) })}
+      />
+      <SettingsSwitchRow
+        label={t('settings.chat.appearance.lightText', 'Light text')}
+        description={t(
+          'settings.chat.appearance.lightTextDescription',
+          'Set the chat at a light weight, with bold at medium. Suits wide, airy fonts.'
+        )}
+        checked={nativeChatLightText(settings)}
+        onChange={() => update({ lightText: !nativeChatLightText(settings) })}
       />
       <SettingsSwitchRow
         label={t('settings.chat.appearance.toolStepsOpen', 'Show every tool step')}

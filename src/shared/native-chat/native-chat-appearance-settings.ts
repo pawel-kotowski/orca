@@ -61,6 +61,8 @@ export type NativeChatAppearanceSettings = {
    * code, headings, list markers, the person's bubbles; absent = on.
    */
   chatColors?: boolean
+  /** Whether the chat's text is set at Light weight (bold at Medium); absent = off. */
+  lightText?: boolean
   /**
    * Whether upstream's line under the message box (machine, folder, Worktree, branch) shows; absent =
    * off. The local footer already names the machine, project and workspace.
@@ -85,6 +87,13 @@ export function nativeChatColors(
 ): boolean {
   // Why: until settings load (and in a bare store) the chat keeps upstream's monochrome look.
   return settings != null && settings.nativeChatAppearance?.chatColors !== false
+}
+
+/** Light-weight chat text, when the user turned it on (Paweł, 2026-11-15, with Albert Sans). */
+export function nativeChatLightText(
+  settings: { nativeChatAppearance?: NativeChatAppearanceSettings } | null | undefined
+): boolean {
+  return settings?.nativeChatAppearance?.lightText === true
 }
 
 /** Ctrl+Enter sends a terminal Claude chat's message now, unless the user turned that off. */

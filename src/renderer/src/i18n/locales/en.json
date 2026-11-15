@@ -606,6 +606,8 @@
         "activityHoverChatDescription": "Hovering a card opens its live chat beside the list. When off, a click anywhere on a card opens its workspace.",
         "chatColors": "Colour from the terminal theme",
         "chatColorsDescription": "Step icons by kind, links, code, headings, list markers and your messages take colours from the terminal theme's palette. Off keeps the chat in its text colours.",
+        "lightText": "Light text",
+        "lightTextDescription": "Set the chat at a light weight, with bold at medium. Suits wide, airy fonts.",
         "activityHoverDetails": "Show details when hovering an activity card",
         "activityHoverDetailsDescription": "Hovering a card opens Orca's details card for it. When off, a click anywhere on a card opens its workspace.",
         "workspaceHoverDetails": "Show details when hovering a workspace card",

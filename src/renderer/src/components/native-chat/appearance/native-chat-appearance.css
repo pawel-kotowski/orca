@@ -12,6 +12,8 @@
   /* Icons, gaps and row heights follow the text: 4px at the default 14px. */
   --spacing: calc(var(--chat-ui-size) / 3.5);
   font-family: var(--chat-font-family, var(--font-sans));
+  /* Light text (Settings → Chat): the words' weight; bold and code set their own below. */
+  font-weight: var(--chat-text-weight, normal);
 }
 
 .native-chat-markdown pre {
@@ -30,6 +32,10 @@
 
 .native-chat-appearance :is(.font-mono, code, pre) {
   font-family: var(--chat-code-font-family, var(--font-mono));
+}
+
+.native-chat-appearance :is(code, pre) {
+  font-weight: var(--chat-code-weight, inherit);
 }
 
 /* Not inherited: the run box alone reads it, and an inherited one would restyle every member. */

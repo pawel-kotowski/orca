@@ -6,6 +6,7 @@ import { useShallow } from 'zustand/react/shallow'
 import {
   DEFAULT_NATIVE_CHAT_FONT_SIZE,
   nativeChatColors,
+  nativeChatLightText,
   resolveNativeChatAppearanceSettings
 } from '../../../../../shared/native-chat/native-chat-appearance-settings'
 import {
@@ -185,6 +186,8 @@ function applyChatPaletteHues(style: NativeChatAppearanceStyle, theme: PaletteTh
   // Inline code's chip (native-chat-colors.css): the theme's own background lifted toward its
   // text colour, as Gruvbox's bg2 is, so it sits in any theme; its words take the palette cyan.
   // Set only while the chat is in colour.
+  // Links: sky blue, livelier than most palettes' blue; a deeper one on a light background.
+  style['--chat-sky-link'] = dark ? 'oklch(0.78 0.11 235)' : 'oklch(0.5 0.13 245)'
   if (theme.foreground && theme.background) {
     style['--chat-code-chip-surface'] =
       `color-mix(in oklab, ${theme.foreground} ${dark ? 14 : 8}%, ${theme.background})`
@@ -236,6 +239,10 @@ export function nativeChatAppearanceStyle(
     '--chat-image-overlay-opacity': appearance.imageOverlayOpacity / 100,
     ...(appearance.fontFamily
       ? { '--chat-font-family': buildAppFontFamily(appearance.fontFamily) }
+      : {}),
+    // Light text: words at 300, bold at 500, code at 400 so it stays crisp (native-chat-appearance.css).
+    ...(nativeChatLightText(settings)
+      ? { '--chat-text-weight': 300, '--chat-strong-weight': 500, '--chat-code-weight': 400 }
       : {}),
     ...(textColorLight ? { '--chat-text-color-light': textColorLight } : {}),
     ...(textColorDark ? { '--chat-text-color-dark': textColorDark } : {}),
