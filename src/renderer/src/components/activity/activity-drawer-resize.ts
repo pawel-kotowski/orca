@@ -123,7 +123,7 @@ export function useActivityDrawerHeight(groupKey: string): {
         handle.removeEventListener('pointermove', move)
         handle.removeEventListener('pointerup', end)
         handle.removeEventListener('pointercancel', end)
-        commit(latest)
+        commit(Math.round(latest))
       }
       handle.addEventListener('pointermove', move)
       handle.addEventListener('pointerup', end)
