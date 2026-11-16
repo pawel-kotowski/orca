@@ -225,6 +225,9 @@ export function mergeClaudeSubagents(
   }
   const roster = claudeSubagentRoster(messages, subagents, sessionLive)
   const rostered = new Set(roster.map((entry) => entry.callId))
+  const shown = subagents.filter(
+    (subagent) => !belongsToUnloadedHistory(subagent, rostered, messages)
+  )
   const rosterRows = roster.map(({ block, spawnedAt }): NativeChatMessage => ({
     id: `subagent-roster:${block.id}`,
     role: 'system',
@@ -236,6 +239,31 @@ export function mergeClaudeSubagents(
   return [
     ...withoutRosteredSpawns(messages, rostered),
     ...rosterRows,
-    ...subagents.flatMap((subagent) => withoutRosteredSpawns(subagent.messages, rostered))
+    ...shown.flatMap((subagent) => withoutRosteredSpawns(subagent.messages, rostered))
   ]
+}
+
+/**
+ * A subagent spawned before the oldest loaded row of the session: its spawn call is in history the
+ * chat has not loaded yet, so its rows wait for that history. Why: the chat loads a transcript's
+ * tail, and every older subagent's rows had no roster row to sit under, so each drew as an unnamed
+ * "Subagent" head at the top of the newest turn (Paweł, 2026-11-16: eight of them under a turn
+ * that started one). Once older history loads, its spawn and roster row come back with it.
+ */
+function belongsToUnloadedHistory(
+  subagent: NativeChatSubagentTranscript,
+  rostered: ReadonlySet<string>,
+  messages: readonly NativeChatMessage[]
+): boolean {
+  if (!subagent.toolUseId || rostered.has(subagent.toolUseId)) {
+    return false
+  }
+  const startedAt = subagent.startedAt ?? subagent.messages[0]?.timestamp ?? null
+  let oldest: number | null = null
+  for (const message of messages) {
+    if (message.agentId === undefined && typeof message.timestamp === 'number') {
+      oldest = oldest === null ? message.timestamp : Math.min(oldest, message.timestamp)
+    }
+  }
+  return startedAt !== null && oldest !== null && startedAt < oldest
 }

@@ -60,3 +60,48 @@ it('drops a rostered spawn call and its result, and keeps everything else', () =
   ])
   expect(merged[0]!.blocks).toEqual([{ type: 'text', text: 'Starting a reviewer.' }])
 })
+
+// Paweł, 2026-11-16: a turn that started one subagent drew eight unnamed "Subagent" heads above
+// it, the session's earlier subagents, whose spawns lay before the transcript tail the chat loaded.
+it('leaves out a subagent spawned before the loaded rows until its history loads', () => {
+  const earlier: NativeChatSubagentTranscript = {
+    ...subagent,
+    agentId: 'agent-old',
+    toolUseId: 'call-old',
+    startedAt: 500,
+    updatedAt: 900,
+    messages: [
+      {
+        ...subagent.messages[0]!,
+        id: 'subagent:agent-old:s1',
+        timestamp: 500,
+        agentId: 'agent-old'
+      }
+    ]
+  }
+  const loaded = [
+    row(
+      'a1',
+      [{ type: 'tool-call', name: 'Agent', callId: 'call-x', input: { description: 'Review' } }],
+      2_000
+    )
+  ]
+  expect(mergeClaudeSubagents(loaded, [earlier, subagent], true).map((m) => m.id)).toEqual([
+    'subagent-roster:agent-x',
+    'subagent:agent-x:s1'
+  ])
+  // Older history paged in: the spawn is loaded, so its roster row and rows return.
+  const older = row(
+    'a0',
+    [{ type: 'tool-call', name: 'Agent', callId: 'call-old', input: {} }],
+    400
+  )
+  expect(
+    mergeClaudeSubagents([older, ...loaded], [earlier, subagent], true).map((m) => m.id)
+  ).toEqual([
+    'subagent-roster:agent-old',
+    'subagent-roster:agent-x',
+    'subagent:agent-old:s1',
+    'subagent:agent-x:s1'
+  ])
+})
