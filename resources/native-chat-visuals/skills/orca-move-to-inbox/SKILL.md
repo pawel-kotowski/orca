@@ -31,3 +31,5 @@ orca move-to-inbox --message "Lots 1-4 merged; the deploy is live and the dashbo
 - Not for routine progress, and not instead of asking: a question still goes through your normal
   way of asking the user.
 - It works only in a terminal Orca started for you. If it fails, say so in your reply and carry on.
+- The move is plumbing, not news: do not mention it in your reply ("moved to your Inbox"). The
+  user sees the card; your reply says what happened.
