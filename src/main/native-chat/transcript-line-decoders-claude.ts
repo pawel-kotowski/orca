@@ -166,10 +166,12 @@ export function decodeClaudeTranscriptLine(
   }
 }
 
-/** The model that answered and its token accounting, which say how full the context window is. */
-function isClaudeTaskNotificationRecord(record: Record<string, unknown>): boolean {
+/** A background task's `<task-notification>` user row: Claude starts a turn to read it. */
+export function isClaudeTaskNotificationRecord(record: Record<string, unknown>): boolean {
   return asRecord(record.origin)?.kind === 'task-notification'
 }
+
+/** The model that answered and its token accounting, which say how full the context window is. */
 
 function claudeServing(
   record: Record<string, unknown>,

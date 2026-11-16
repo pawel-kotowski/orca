@@ -100,6 +100,20 @@ export function resolveNativeChatHookState(
   return entry.state === 'working' && entry.workingMode === 'monitoring' ? null : entry.state
 }
 
+/** When the live work began: a row held open by background work stays 'working' across the main
+ *  agent's turns, so a main agent working again (a task notification's turn) dates from its own start;
+ *  the row's start would predate the last turn's end and read the new turn as already settled. */
+export function nativeChatHookWorkingStartedAt(
+  entry: Pick<AgentStatusEntry, 'state' | 'stateStartedAt' | 'mainAgent'> | undefined | null
+): number | null {
+  if (!entry) {
+    return null
+  }
+  return entry.state === 'working' && entry.mainAgent?.state === 'working'
+    ? Math.max(entry.stateStartedAt, entry.mainAgent.stateStartedAt)
+    : entry.stateStartedAt
+}
+
 /** Only children started in this parent epoch may delay settlement; missed stops and reused panes leave stale roster entries. */
 export function nativeChatHookHasWorkingSubagents(
   entry: Pick<AgentStatusEntry, 'stateStartedAt' | 'subagents'> | undefined | null

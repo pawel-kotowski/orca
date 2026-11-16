@@ -3,6 +3,7 @@ import { isAgentStatusFresh } from '../../../../../../shared/agent-status/contra
 import type { AgentStatusState } from '../../../../../../shared/agent-status/contracts/agent-status-types'
 import {
   nativeChatHookHasWorkingSubagents,
+  nativeChatHookWorkingStartedAt,
   resolveNativeChatHookState
 } from '../../../../../../shared/native-chat/native-chat-live-status'
 
@@ -13,8 +14,8 @@ export function useNativeChatHookStatus(
   const state = useAppStore((store) =>
     resolveNativeChatHookState(store.agentStatusByPaneKey[paneKey])
   )
-  const stateStartedAt = useAppStore(
-    (store) => store.agentStatusByPaneKey[paneKey]?.stateStartedAt ?? null
+  const stateStartedAt = useAppStore((store) =>
+    nativeChatHookWorkingStartedAt(store.agentStatusByPaneKey[paneKey])
   )
   const hasWorkingSubagents = useAppStore((store) =>
     nativeChatHookHasWorkingSubagents(store.agentStatusByPaneKey[paneKey])

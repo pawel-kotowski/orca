@@ -7,7 +7,10 @@ import { asRecord } from '../ai-vault/parsing/session-record-fields'
 import { extractString } from '../../shared/trimmed-string'
 import { parseJsonObject } from '../ai-vault/parsing/session-json-object'
 import { timestampMs } from '../ai-vault/parsing/session-record-time'
-import { decodeClaudeTranscriptLine } from './transcript-line-decoders-claude'
+import {
+  decodeClaudeTranscriptLine,
+  isClaudeTaskNotificationRecord
+} from './transcript-line-decoders-claude'
 import {
   claudeInterruptedMessageId,
   CODEX_EVENT_TURN_ABORTED,
@@ -107,6 +110,11 @@ export function decodeClaudeTurnLifecycle(
   if (decoded?.role !== 'user' || decoded.blocks.some((block) => block.type === 'tool-result')) {
     // Tool-result sidecar text continues the turn instead of opening a user generation.
     return null
+  }
+  // Local build: a background task's notification is hidden noise, but Claude starts a turn to read
+  // it; without this mark the chat took the last turn's end for that turn's and hid Stop (2026-11-16).
+  if (isClaudeTaskNotificationRecord(record)) {
+    return { state: 'working', turnId: decoded.id, timestamp }
   }
   // Injected noise must not overwrite terminal markers and restart the spinner.
   if (isNoiseMessage(decoded) || isClaudeBashInputRecord(record)) {
