@@ -74,6 +74,42 @@ describe('running shells from a Claude transcript', () => {
     expect(runningTranscriptBackgroundShells(messages, 2_000)).toEqual([])
   })
 
+  it('lists a foreground Bash call Claude moved to the background at its timeout', () => {
+    const moved = [
+      message('assistant', [
+        call('c6', 'Bash', { command: 'python3 scan.py', description: 'Scan' })
+      ]),
+      message('user', [
+        result(
+          'c6',
+          'Command did not complete within its 120s timeout and was moved to the background (ID: b6). Output is being written to: /tmp/b6.output'
+        )
+      ])
+    ]
+    expect(runningTranscriptBackgroundShells(moved, 2_000)).toEqual([
+      {
+        id: 'b6',
+        kind: 'command',
+        description: 'Scan',
+        command: 'python3 scan.py',
+        state: 'working',
+        startedAt: 1_000,
+        stoppable: false
+      }
+    ])
+    expect(
+      runningTranscriptBackgroundShells([...moved, notification('b6', 'c6', 'completed')], 2_000)
+    ).toEqual([])
+  })
+
+  it('does not take a foreground command printing an ID for a shell', () => {
+    const messages = [
+      message('assistant', [call('c7', 'Bash', { command: 'gh run list' })]),
+      message('user', [result('c7', 'run started with ID: 42 (ID: 43)')])
+    ]
+    expect(runningTranscriptBackgroundShells(messages, 2_000)).toEqual([])
+  })
+
   it('keeps a Monitor through its events and drops it at its timeout', () => {
     const messages = [
       message('assistant', [

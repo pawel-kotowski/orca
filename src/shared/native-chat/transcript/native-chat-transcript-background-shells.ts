@@ -17,12 +17,17 @@ type StartedShell = {
   startedAt?: number
   /** A Monitor stops at its timeout unless it is persistent. */
   expiresAt?: number
+  /** A Bash call run in the foreground: a shell only if Claude moves it to the background. */
+  foreground?: boolean
 }
 
 /** A running shell or watch, with its full command so the strip can show it on hover. */
 export type TranscriptBackgroundShell = AgentSessionBackgroundTask & { command?: string }
 
 const BACKGROUND_ID = /with ID: ([A-Za-z0-9_-]+)/
+// Why anchored: a foreground command's own output may print "ID:"; only Claude's notice starts so.
+// "Command did not complete within its 120s timeout and was moved to the background (ID: x)".
+const MOVED_TO_BACKGROUND_ID = /^Command\b[^\n]*?(?:\(ID: |with ID: )([A-Za-z0-9_-]+)/
 const MONITOR_ID = /\(task ([A-Za-z0-9_-]+)/
 const NOTIFIED_CALL_ID = /<tool-use-id>([^<]+)<\/tool-use-id>/
 const MONITOR_DEFAULT_TIMEOUT_MS = 300_000
@@ -53,14 +58,15 @@ function started(
   const fullCommand = text(input.command)
   const label = text(input.description) ?? firstLine(fullCommand)
   const command = fullCommand ? { command: fullCommand } : {}
-  if (name === 'Bash' && input.run_in_background === true) {
+  if (name === 'Bash') {
     return {
       callId,
       taskId: null,
       kind: 'command',
       label,
       ...command,
-      ...(at ? { startedAt: at } : {})
+      ...(at ? { startedAt: at } : {}),
+      ...(input.run_in_background === true ? {} : { foreground: true })
     }
   }
   if (name === 'Monitor') {
@@ -83,7 +89,8 @@ function started(
 /**
  * The shells and watches a terminal-backed Claude chat still runs, read from its transcript
  * (Paweł, 2026-11-09: "add visualization of running shells in chat ui"): a Bash call told to run
- * in the background, or a Monitor, runs from the result that gives its task id until Claude's
+ * in the background, a foreground Bash call Claude moved there when it hit its timeout (or the
+ * user backgrounded it), or a Monitor, runs from the result that gives its task id until Claude's
  * `<task-notification>` with a status, a TaskStop/KillShell naming it, or a Monitor's timeout.
  * A shell started before the loaded window is not listed.
  */
@@ -115,9 +122,13 @@ export function runningTranscriptBackgroundShells(
         if (!shell || shell.taskId !== null) {
           continue
         }
-        const taskId = (shell.kind === 'monitor' ? MONITOR_ID : BACKGROUND_ID).exec(
-          block.output
-        )?.[1]
+        const idPattern =
+          shell.kind === 'monitor'
+            ? MONITOR_ID
+            : shell.foreground
+              ? MOVED_TO_BACKGROUND_ID
+              : BACKGROUND_ID
+        const taskId = idPattern.exec(block.output.trimStart())?.[1]
         // Why: no task id means it never went to the background (refused, failed, ran inline).
         if (block.isError || !taskId) {
           byCallId.delete(block.callId)
