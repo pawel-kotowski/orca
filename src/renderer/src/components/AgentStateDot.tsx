@@ -120,7 +120,10 @@ export const AgentStateDot = React.memo(function AgentStateDot({
         className={cn('inline-flex shrink-0 items-center justify-center', box, className)}
         aria-label={agentStateLabel(state)}
       >
-        <AgentWorkingSpinner className={inner} />
+        {/* Why a size up (local): the comet ring's tail needs the room to read. */}
+        <AgentWorkingSpinner
+          className={size === 'lg' ? 'size-3.5' : size === 'md' ? 'size-2.5' : 'size-2'}
+        />
       </span>
     )
   } else if (state === 'monitoring') {

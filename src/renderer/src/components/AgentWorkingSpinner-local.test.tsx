@@ -4,11 +4,12 @@ import { describe, expect, it } from 'vitest'
 import { AgentWorkingSpinner } from './AgentWorkingSpinner'
 
 describe('AgentWorkingSpinner (local build)', () => {
-  it('keeps the ring turning under reduced motion, with no filled top', () => {
+  it('keeps the ring turning under reduced motion, drawn by its class alone', () => {
     const markup = renderToStaticMarkup(React.createElement(AgentWorkingSpinner))
 
     expect(markup).toContain('agent-working-spinner')
-    expect(markup).toContain('border-t-transparent')
+    // Why: the comet ring is drawn in main.css; a border arc would show under it.
+    expect(markup).not.toContain('border-2')
     // Why not: the ring keeps turning under reduced motion in this build (main.css).
     expect(markup).not.toContain('motion-reduce:border-t-agent-working')
   })

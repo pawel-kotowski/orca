@@ -1969,8 +1969,41 @@ html.native-shell .app-layout {
   }
 }
 
+/* Local: a comet ring (Paweł, 2026-11-16: "change the look of working spinner, make it more modern and
+   cool"): a faint full track, a tail that brightens into a round head, turning clockwise at 30 steps a
+   second (upstream's 12 read as ticking). Still only a transform on the compositor. */
 .agent-working-spinner {
-  animation: agent-spinner-rotate 86400s steps(1036800, end) infinite;
+  --agent-spinner-ring: 2px;
+  position: relative;
+  border-radius: 9999px;
+  background:
+    conic-gradient(
+      from 0deg,
+      transparent 0turn,
+      color-mix(in oklab, var(--color-agent-working) 0%, transparent) 0.12turn,
+      color-mix(in oklab, var(--color-agent-working) 45%, transparent) 0.6turn,
+      var(--color-agent-working) 1turn
+    ),
+    color-mix(in oklab, var(--color-agent-working) 16%, transparent);
+  mask: radial-gradient(
+    farthest-side,
+    transparent calc(100% - var(--agent-spinner-ring)),
+    #000 calc(100% - var(--agent-spinner-ring) + 0.5px)
+  );
+  animation: agent-spinner-rotate 86400s steps(2592000, end) infinite;
+}
+
+.agent-working-spinner::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: var(--agent-spinner-ring);
+  height: var(--agent-spinner-ring);
+  border-radius: 9999px;
+  background: var(--color-agent-working);
+  box-shadow: 0 0 2px var(--color-agent-working);
+  transform: translateX(-50%);
 }
 
 /* Offscreen subtrees pause their loops; the agent ring drops its animation instead so reveal re-anchors phase. */

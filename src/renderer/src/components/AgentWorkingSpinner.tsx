@@ -40,8 +40,9 @@ export function AgentWorkingSpinner({ className }: { className?: string }): Reac
       onAnimationStart={handleSpinnerAnimationStart}
       data-agent-spinner=""
       className={cn(
-        // Why no reduced-motion fill (local build): the ring keeps turning; see main.css.
-        'agent-working-spinner block rounded-full border-2 border-agent-working border-t-transparent',
+        // Why no reduced-motion fill (local build): the ring keeps turning. The comet look is all in
+        // main.css (`.agent-working-spinner`).
+        'agent-working-spinner block rounded-full',
         className
       )}
     />
