@@ -161,6 +161,13 @@
   animation: pane-focus-rim-flash 1.5s ease-out forwards;
 }
 
+/* Local: no rim on a pane you jump to. With macOS Reduce Motion on, the fade above never runs, so the
+   rim stood as a solid blue frame for its whole 1.5 s after every activity-card click (Paweł,
+   2026-11-16: "blue frame still there, when i switch via activity cards"; "can we get rid of it?"). */
+:root .pane-focus-rim-flash::before {
+  content: none;
+}
+
 .pane[data-terminal-attention] .xterm-container {
   box-shadow: none;
 }
