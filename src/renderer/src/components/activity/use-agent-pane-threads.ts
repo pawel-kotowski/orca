@@ -17,6 +17,7 @@ import {
 } from '../../../../shared/workspace-creator-visibility'
 import { useNow } from '@/hooks/use-now'
 import { buildActivityInboxGroups, isActivityThreadStandingBy } from './activity-inbox-sections'
+import { useMyPromptTimes } from './activity-my-prompt-times'
 import { useActivityInboxFacts, type ActivityInboxFacts } from './activity-inbox-facts'
 import { useActivityAutoStandByHours } from './activity-auto-stand-by'
 import {
@@ -296,6 +297,8 @@ export function useAgentPaneThreads(args: {
   // Why every thread: workers never light the badge, so marking them read too costs nothing.
   const markAllReadThreads = badgeOnly ? EMPTY_THREADS : allThreads
 
+  // Why: Working and Standing by sort by your own last prompt, published as each card reads it.
+  const myPromptTimes = useMyPromptTimes()
   const visibleThreadGroups = useMemo(
     () =>
       badgeOnly
@@ -306,7 +309,8 @@ export function useAgentPaneThreads(args: {
               : buildActivityThreadGroups(visibleThreads, groupBy),
             readOnlyThreads
           ),
-    [visibleThreads, readOnlyThreads, groupBy, badgeOnly, inboxFacts]
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- myPromptTimes is read by byRecentPrompt
+    [visibleThreads, readOnlyThreads, groupBy, badgeOnly, inboxFacts, myPromptTimes]
   )
 
   return {

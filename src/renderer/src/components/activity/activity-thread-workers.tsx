@@ -7,32 +7,49 @@ import { activityThreadRowCopy, activityThreadStatusId } from './activity-thread
 import type { AgentPaneThread } from './activity-thread-types'
 import { useActivityWorkersContext } from './activity-workers'
 import { useActivityThreadConversation } from './use-activity-thread-conversation'
+import { useAppStore } from '@/store'
+import {
+  parseStringList,
+  readLegacyLocalStorage,
+  readViewLayout,
+  writeViewLayout
+} from './view-layout-memory'
 
-const OPEN_KEY = 'orca.activityWorkersOpen'
+const LEGACY_OPEN_KEY = 'orca.activityWorkersOpen'
+const LAYOUT_KEY = 'activityWorkersOpen'
 const listeners = new Set<() => void>()
-let openParents: ReadonlySet<string> = readOpenParents()
+let openParents: ReadonlySet<string> | null = null
 
-function readOpenParents(): ReadonlySet<string> {
-  try {
-    const stored: unknown = JSON.parse(window.localStorage.getItem(OPEN_KEY) ?? '[]')
-    return new Set(Array.isArray(stored) ? stored.filter((key) => typeof key === 'string') : [])
-  } catch {
-    return new Set()
+// Why lazy: settings load after this module, and the saved folds live there (view-layout-memory);
+// until they load, the old localStorage copy stands in.
+function currentOpenParents(): ReadonlySet<string> {
+  if (openParents) {
+    return openParents
   }
+  const loaded = Boolean(useAppStore.getState().settings)
+  const saved = parseStringList(readViewLayout(LAYOUT_KEY))
+  let legacy: string[] = []
+  try {
+    const stored: unknown = JSON.parse(readLegacyLocalStorage(LEGACY_OPEN_KEY) ?? '[]')
+    legacy = Array.isArray(stored) ? stored.filter((key) => typeof key === 'string') : []
+  } catch {
+    legacy = []
+  }
+  const parents = new Set(saved ?? legacy)
+  if (loaded) {
+    openParents = parents
+  }
+  return parents
 }
 
 // Why a module store: the list virtualizes, so a card's own state would forget on scroll.
 function toggleOpen(parentKey: string): void {
-  const next = new Set(openParents)
+  const next = new Set(currentOpenParents())
   if (!next.delete(parentKey)) {
     next.add(parentKey)
   }
   openParents = next
-  try {
-    window.localStorage.setItem(OPEN_KEY, JSON.stringify([...next]))
-  } catch {
-    // Why: without storage the fold still works; it just forgets on reload.
-  }
+  writeViewLayout(LAYOUT_KEY, [...next])
   for (const listener of listeners) {
     listener()
   }
@@ -170,7 +187,7 @@ export function ActivityThreadWorkers({
   const workers = useActivityWorkersContext().workersByParent.get(thread.paneKey)
   const open = useSyncExternalStore(
     subscribe,
-    () => openParents.has(thread.paneKey),
+    () => currentOpenParents().has(thread.paneKey),
     () => false
   )
   if (!workers || workers.length === 0) {

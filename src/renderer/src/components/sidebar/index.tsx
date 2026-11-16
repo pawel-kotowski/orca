@@ -15,6 +15,10 @@ import WorkspaceKanbanDrawer from './workspace-board/surface/WorkspaceKanbanDraw
 import type { VirtualizedScrollAnchor } from '@/hooks/useVirtualizedScrollAnchor'
 import { cn } from '@/lib/class-names'
 import { FolderPlus, Loader2 } from 'lucide-react'
+import {
+  useActivityCollapsedGroups,
+  useRememberedSidebarBody
+} from '../activity/activity-collapsed-groups'
 import { ActivityThreadCollapseContext } from '@/components/activity/activity-thread-collapse-context'
 import { useSidebarProjectDrop } from './project-admission/drop/useSidebarProjectDrop'
 import { useWorkspaceBoardPanel } from './workspace-board/surface/useWorkspaceBoardPanel'
@@ -86,26 +90,10 @@ function Sidebar({
   )
   const [agentBadgeTarget, setAgentBadgeTarget] = React.useState<HTMLSpanElement | null>(null)
   const agentsScrollTopRef = React.useRef(0)
-  // Retain collapse state and scroll geometry across Agents-list unmounts.
-  const [agentsCollapsedGroupKeys, setAgentsCollapsedGroupKeys] = React.useState<
-    ReadonlySet<string>
-  >(() => new Set())
-  const agentsCollapseState = useMemo(
-    () => ({
-      collapsedGroupKeys: agentsCollapsedGroupKeys,
-      onToggleGroupCollapse: (groupKey: string) =>
-        setAgentsCollapsedGroupKeys((prev) => {
-          const next = new Set(prev)
-          if (next.has(groupKey)) {
-            next.delete(groupKey)
-          } else {
-            next.add(groupKey)
-          }
-          return next
-        })
-    }),
-    [agentsCollapsedGroupKeys]
-  )
+  // Retain collapse state and scroll geometry across Agents-list unmounts; the folded sections
+  // (the Inbox among them) are saved in settings, so a restart or a new build keeps them.
+  const agentsCollapseState = useActivityCollapsedGroups()
+  useRememberedSidebarBody()
   const fetchAllWorktrees = useAppStore((s) => s.fetchAllWorktrees)
   const activeModal = useAppStore((s) => s.activeModal)
   const statusBarVisible = useAppStore((s) => s.statusBarVisible)

@@ -1,12 +1,12 @@
-import { useCallback, useMemo, useState, type ComponentProps } from 'react'
+import { useCallback, useMemo, type ComponentProps } from 'react'
 import { ActivityStatusGroupHeader } from './activity-thread-controls'
 import { READ_AGENTS_GROUP_KEY } from './activity-thread-grouping'
 import { WORKING_GROUP_KEY } from './activity-inbox-sections'
 import { useActivityDrawerHeight, useActivityDrawerTakeover } from './activity-drawer-resize'
 import { translate } from '@/i18n/i18n'
-import { cn } from '@/lib/class-names'
 import type { ActivityThreadGroup } from './activity-thread-types'
 import { ActivityThreadVirtualRow } from './activity-thread-virtual-row'
+import { parseBoolean, readLegacyLocalStorage, useViewLayoutValue } from './view-layout-memory'
 
 type RowProps = Omit<ComponentProps<typeof ActivityThreadVirtualRow>, 'item' | 'collapsed'>
 
@@ -26,31 +26,26 @@ export function useActivityPinnedGroupSplit(groups: ActivityThreadGroup[]): {
   )
 }
 
-// Why the old key for Standing by: it keeps the open state Other agents had.
-const OPEN_STORAGE_KEYS: Record<string, { key: string; openByDefault: boolean }> = {
-  [READ_AGENTS_GROUP_KEY]: { key: 'orca.activityOtherAgentsOpen', openByDefault: false },
-  [WORKING_GROUP_KEY]: { key: 'orca.activityWorkingOpen', openByDefault: true }
+// Why the old keys: the first read moves the open state each drawer had in localStorage.
+const OPEN_DEFAULTS: Record<string, { legacyKey: string; openByDefault: boolean }> = {
+  [READ_AGENTS_GROUP_KEY]: { legacyKey: 'orca.activityOtherAgentsOpen', openByDefault: false },
+  [WORKING_GROUP_KEY]: { legacyKey: 'orca.activityWorkingOpen', openByDefault: true }
 }
 
-function readOpen(groupKey: string): boolean {
-  const config = OPEN_STORAGE_KEYS[groupKey]
-  try {
-    const stored = config ? window.localStorage.getItem(config.key) : null
-    return stored === null ? (config?.openByDefault ?? false) : stored === '1'
-  } catch {
-    return config?.openByDefault ?? false
-  }
-}
-
-function writeOpen(groupKey: string, open: boolean): void {
-  const config = OPEN_STORAGE_KEYS[groupKey]
-  try {
-    if (config) {
-      window.localStorage.setItem(config.key, open ? '1' : '0')
-    }
-  } catch {
-    // Why: a page without storage still toggles; it just forgets on reload.
-  }
+/** Whether a drawer is open, saved in settings so it survives restarts and new builds. */
+function useDrawerOpen(groupKey: string): [boolean, (open: boolean) => void] {
+  const config = OPEN_DEFAULTS[groupKey]
+  const legacy = useCallback(() => {
+    const stored = config ? readLegacyLocalStorage(config.legacyKey) : null
+    return stored === null ? undefined : stored === '1'
+  }, [config])
+  const { value, commit } = useViewLayoutValue(
+    `activityDrawerOpen.${groupKey}`,
+    parseBoolean,
+    config?.openByDefault ?? false,
+    legacy
+  )
+  return [value, commit]
 }
 
 /**
@@ -65,18 +60,10 @@ function ActivityPinnedAgentsGroup({
   group: ActivityThreadGroup
   rowProps: RowProps
 }): React.JSX.Element {
-  const [open, setOpen] = useState(() => readOpen(group.key))
-  const toggle = useCallback(() => {
-    setOpen((current) => {
-      writeOpen(group.key, !current)
-      return !current
-    })
-  }, [group.key])
+  const [open, setOpen] = useDrawerOpen(group.key)
+  const toggle = useCallback(() => setOpen(!open), [open, setOpen])
   const { height, listRef, onResizePointerDown, resetHeight } = useActivityDrawerHeight(group.key)
-  useActivityDrawerTakeover(group.key, () => {
-    setOpen(false)
-    writeOpen(group.key, false)
-  })
+  useActivityDrawerTakeover(group.key, () => setOpen(false))
   return (
     // Why `contents`: the header and the cards sit straight in the stack's column, so a header
     // never shrinks and only the card lists share the room (a shrinking drawer slid one header
@@ -99,13 +86,10 @@ function ActivityPinnedAgentsGroup({
       {open ? (
         <div
           ref={listRef}
-          style={height === null ? undefined : { flex: `0 1 ${height}px` }}
-          // Why the caps: a list never grows past its cards, and one not yet sized by hand leaves
-          // the Inbox room however many cards it holds.
-          className={cn(
-            'min-h-0 flex-[0_1_auto] overflow-y-auto overflow-x-hidden px-1.5 pb-1.5 scrollbar-sleek',
-            height === null ? 'max-h-60' : 'max-h-max'
-          )}
+          // Why a fixed basis: the drawer keeps the height Paweł gave it however many cards it holds;
+          // it shrinks only when the window leaves the Inbox too little room.
+          style={{ flex: `0 1 ${height}px` }}
+          className="min-h-0 overflow-y-auto overflow-x-hidden px-1.5 pb-1.5 scrollbar-sleek"
         >
           {group.threads.map((thread) => (
             <ActivityThreadVirtualRow

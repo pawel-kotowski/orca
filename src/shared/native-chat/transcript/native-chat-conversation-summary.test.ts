@@ -34,6 +34,7 @@ describe('summarizeNativeChatConversation', () => {
     ).toEqual({
       firstPrompt: 'plan the coaching reach',
       lastPrompt: 'do it all',
+      lastPromptAt: 1,
       steps: [{ kind: 'said', text: 'Checking the open PRs first.' }],
       finalAnswer: 'All shipped: PR 4361 merged.'
     })

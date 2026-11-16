@@ -1,5 +1,6 @@
 import type { NativeChatMessage } from '../native-chat-types'
 import { normalizedNativeChatUserMessageText } from './native-chat-image-transcript-markers'
+import { orchestrationMailPointerSource } from './native-chat-orchestration-mail-pointer'
 
 /** One thing the agent did in the latest turn, as the chat shows it. */
 export type NativeChatConversationStep = {
@@ -13,6 +14,8 @@ export type NativeChatConversationSummary = {
   /** Null when the loaded window starts after the first prompt. */
   firstPrompt: string | null
   lastPrompt: string | null
+  /** When the person sent `lastPrompt` (provider clock); null when unknown. */
+  lastPromptAt: number | null
   /** The latest turn's narration lines, newest last, at most `stepLimit`. */
   steps: NativeChatConversationStep[]
   /** The agent's last words once the turn is done. */
@@ -27,16 +30,18 @@ function oneLine(text: string): string {
 }
 
 // Messages the harness writes as the user (a background task's notification, a reminder, a slash
-// command's wrapper) are not prompts a person typed.
+// command's wrapper), another agent's message and Orca's mail notice are not prompts a person typed.
 const HARNESS_USER_MESSAGE =
   /^<(?:task-notification|system-reminder|local-command-[a-z-]+|command-[a-z-]+|bash-[a-z-]+|user-prompt-submit-hook)\b/
 
 function userPrompt(message: NativeChatMessage): string | null {
-  if (message.role !== 'user') {
+  if (message.role !== 'user' || message.from) {
     return null
   }
   const text = normalizedNativeChatUserMessageText(message)?.trim()
-  return text && !HARNESS_USER_MESSAGE.test(text) ? text : null
+  return text && !HARNESS_USER_MESSAGE.test(text) && !orchestrationMailPointerSource(text)
+    ? text
+    : null
 }
 
 /**
@@ -54,6 +59,7 @@ export function summarizeNativeChatConversation(
   let firstPrompt: string | null = null
   let lastPrompt: string | null = null
   let lastPromptIndex = -1
+  let lastPromptAt: number | null = null
   for (const [index, message] of messages.entries()) {
     const prompt = userPrompt(message)
     if (prompt === null) {
@@ -62,6 +68,7 @@ export function summarizeNativeChatConversation(
     firstPrompt ??= prompt
     lastPrompt = prompt
     lastPromptIndex = index
+    lastPromptAt = message.timestamp
   }
   const steps: NativeChatConversationStep[] = []
   for (const message of messages.slice(lastPromptIndex + 1)) {
@@ -92,6 +99,7 @@ export function summarizeNativeChatConversation(
   return {
     firstPrompt: startsAtFirstMessage ? firstPrompt : null,
     lastPrompt,
+    lastPromptAt,
     steps: steps.slice(-stepLimit),
     finalAnswer
   }

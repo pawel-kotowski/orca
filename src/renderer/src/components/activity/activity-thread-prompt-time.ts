@@ -1,4 +1,5 @@
 import type { AgentPaneThread } from './activity-thread-types'
+import { myPromptAt } from './activity-my-prompt-times'
 
 /**
  * When the person last prompted this agent: its current turn's opening (`turnStartedAt`), else the
@@ -14,8 +15,17 @@ export function activityThreadPromptAt(thread: AgentPaneThread): number {
   return working?.timestamp ?? thread.latestTimestamp
 }
 
+/**
+ * When you yourself last prompted this agent: the time its transcript gives your last message (see
+ * `activity-my-prompt-times.ts`), else the current turn's opening until its card has read it.
+ */
+export function activityThreadMyPromptAt(thread: AgentPaneThread): number {
+  return myPromptAt(thread.paneKey) ?? activityThreadPromptAt(thread)
+}
+
+/** Working and Standing by: newest of your own prompts first, never a turn another source began. */
 export function byRecentPrompt(a: AgentPaneThread, b: AgentPaneThread): number {
-  return activityThreadPromptAt(b) - activityThreadPromptAt(a)
+  return activityThreadMyPromptAt(b) - activityThreadMyPromptAt(a)
 }
 
 /** When the current turn began (0 if unknown): the person's latest message to this agent. */

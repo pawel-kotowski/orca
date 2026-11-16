@@ -11,6 +11,7 @@ import { createNativeChatRuntimeSelector } from '../native-chat/pane/ownership/n
 import { useNativeChatRetainedSession } from '../native-chat/session/terminal/read/use-native-chat-retained-session'
 import type { NativeChatLiveSession } from '../native-chat/session/terminal/read/native-chat-live-session-contract'
 import type { AgentPaneThread } from './activity-thread-types'
+import { noteMyPromptAt } from './activity-my-prompt-times'
 
 export type ActivityThreadConversation = {
   session: NativeChatLiveSession
@@ -85,6 +86,13 @@ export function useActivityThreadConversation(
     () => summarizeNativeChatConversation(session.messages, { working, startsAtFirstMessage }),
     [session.messages, startsAtFirstMessage, working]
   )
+  // Why published: Working and Standing by sort by your own last prompt, which only the transcript
+  // tells apart from turns a task notification or Orca's mail began.
+  const lastPromptAt = summary.lastPromptAt
+  const paneKey = thread.paneKey
+  useEffect(() => {
+    noteMyPromptAt(paneKey, lastPromptAt)
+  }, [paneKey, lastPromptAt])
   // Past the loaded window, the first prompt comes from the session's file (laptop sessions
   // only); a remote one falls back to the oldest prompt the status history kept.
   const [filePrompt, setFilePrompt] = useState<string | null>(null)

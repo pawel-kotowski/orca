@@ -1608,20 +1608,17 @@ html.native-shell .app-layout {
    agents); after the hover rules so it wins, and never on the active/open row. */
 [data-worktree-card-surface][data-worktree-card-selected]:not([data-worktree-card-active]) {
   border-color: color-mix(in oklab, var(--worktree-sidebar-ring) 35%, transparent);
-  background-color: color-mix(in oklab, var(--worktree-sidebar-accent) 70%, transparent);
+  /* Why no fill (local): a selection shows as its frame only; the card keeps its own colour
+     (Paweł, 2026-11-16: "selection frames should not change card color, only frame is enough"). */
   box-shadow: 0 0 0 1px color-mix(in oklab, var(--worktree-sidebar-ring) 30%, transparent);
 }
 
-/* Why: the brighter border carries the selected state; a translucent wash keeps
-   card text legible instead of lifting the surface toward the foreground color. */
+/* Why: the brighter border carries the selected state. Local: no wash either, the frame alone marks
+   it (Paweł, 2026-11-16: "selection frames should not change card color, only frame is enough"). */
 [data-worktree-card-surface][data-worktree-card-active='primary'] {
   border-color: var(
     --worktree-sidebar-active-border,
     color-mix(in srgb, var(--worktree-sidebar-border) 40%, transparent)
-  );
-  background: var(
-    --worktree-sidebar-active,
-    color-mix(in srgb, var(--worktree-sidebar-foreground) 8%, transparent)
   );
   box-shadow: 0 1px 2px color-mix(in srgb, var(--worktree-sidebar-foreground) 4%, transparent);
 }
@@ -1630,10 +1627,6 @@ html.native-shell .app-layout {
   border-color: var(
     --worktree-sidebar-active-border,
     color-mix(in srgb, var(--worktree-sidebar-foreground) 18%, var(--worktree-sidebar-border))
-  );
-  background: var(
-    --worktree-sidebar-active,
-    color-mix(in srgb, var(--worktree-sidebar-foreground) 10%, transparent)
   );
   box-shadow: 0 1px 2px color-mix(in srgb, var(--worktree-sidebar-foreground) 3%, transparent);
 }
@@ -1651,7 +1644,9 @@ html.native-shell .app-layout {
   ) {
   --activity-open-frame: #ca8a04;
   border-color: color-mix(in srgb, var(--activity-open-frame) 80%, transparent);
-  background-color: color-mix(in srgb, var(--activity-open-frame) 7%, transparent);
+  /* Why transparent: the frame alone marks it; the card keeps the colour it has unselected, its
+     project wash included (Paweł, 2026-11-16: "only frame is enough"). */
+  background-color: transparent;
   box-shadow: none;
 }
 .dark [data-worktree-card-surface][data-worktree-card-active='primary'][data-activity-card-open],
@@ -1664,7 +1659,6 @@ html.native-shell .app-layout {
 
 [data-worktree-card-surface][data-activity-card-previewed]:not([data-activity-card-open]) {
   border-color: color-mix(in srgb, var(--foreground) 18%, transparent);
-  background-color: color-mix(in srgb, var(--foreground) 4%, transparent);
 }
 
 /* #15971: the wash matches the pill's fill, so its border carries the shape. A neutral sidebar tint
@@ -1682,13 +1676,11 @@ html.native-shell .app-layout {
 
 [data-worktree-card-surface][data-worktree-card-active='secondary'] {
   border-color: color-mix(in srgb, var(--sidebar-ring) 25%, transparent);
-  background: color-mix(in srgb, var(--sidebar-accent) 45%, transparent);
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--sidebar-ring) 15%, transparent);
 }
 
 .dark [data-worktree-card-surface][data-worktree-card-active='secondary'] {
   border-color: color-mix(in srgb, var(--sidebar-ring) 28%, transparent);
-  background: color-mix(in srgb, var(--sidebar-accent) 34%, transparent);
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--sidebar-ring) 18%, transparent);
 }
 

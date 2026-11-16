@@ -17,6 +17,7 @@ export function activityThreadFallbackSummary(
   return {
     firstPrompt: prompt,
     lastPrompt: prompt,
+    lastPromptAt: null,
     steps: working && said ? [{ kind: 'said', text: said }] : [],
     finalAnswer: working ? null : said
   }
