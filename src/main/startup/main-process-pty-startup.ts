@@ -134,9 +134,9 @@ async function sweepRestoredStatusesAgainstLocalPtys(): Promise<void> {
     getBoundPtyIdForPaneKey: getPtyIdForPaneKey,
     getPersistedPtyIdForPaneKey: (paneKey) => persistedPtyIdByPaneKey.get(paneKey)
   })
-  // Why: an agent waiting on its own background shell sends no hook until the shell ends; after a
-  // restart its live process is the only proof it still monitors.
-  await agentHookServer.confirmRestoredMonitoringStatuses()
+  // Why: an agent inside a long tool call, or waiting on its own background shell, sends no hook
+  // until that ends; after a restart its live process is the only proof it still works.
+  await agentHookServer.confirmRestoredWorkingStatuses()
   state.runtime?.agentTransitions.seedRestoredRows()
   await state.runtime?.sidebarFacts?.reconcileSortStampTiers(provider)
 }

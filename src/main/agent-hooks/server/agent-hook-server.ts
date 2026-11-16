@@ -132,16 +132,19 @@ export class AgentHookServer extends AgentHookServerLifecycle {
   }
 
   /**
-   * A restored row whose agent waits on its own background work (a shell, a Monitor) gets no hook
-   * until that work ends, so nothing would ever confirm it. When the agent's own process still
-   * runs, the restored claim stands: confirm it live. Returns the pane keys confirmed.
+   * A restored working row gets no hook until its agent's next step: a lead inside one long tool
+   * call reports nothing until the call returns, and one waiting on its own background work (a
+   * shell, a Monitor) nothing until that work ends. Until then the restored claim never counts as
+   * live and the card leaves Working. When the agent's own process still runs, the claim stands:
+   * confirm it live. Returns the pane keys confirmed. Local build (Paweł, 2026-11-16: an install
+   * restarted Orca four minutes into his agent's foreground script, "why i dont see you in
+   * activity cards in working, you are running a script").
    */
-  async confirmRestoredMonitoringStatuses(): Promise<string[]> {
+  async confirmRestoredWorkingStatuses(): Promise<string[]> {
     const candidates = this.listUnconfirmedRestoredStatuses().filter(
       (row) =>
         row.connectionId === null &&
         row.payload.state === 'working' &&
-        row.payload.workingMode === 'monitoring' &&
         row.agentPresence?.process !== undefined &&
         !row.agentPresence.ended
     )
