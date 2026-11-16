@@ -4,6 +4,7 @@ import { cn } from '@/lib/class-names'
 import { translate } from '@/i18n/i18n'
 import CommentMarkdown from '../sidebar/CommentMarkdown'
 import { EventTime } from './activity-thread-controls'
+import { ActivityCompactedMark } from './activity-compacted-mark'
 import type { AgentPaneThread } from './activity-thread-types'
 import type { ActivityThreadConversation } from './use-activity-thread-conversation'
 import { useAgentRowConversationName } from '../dashboard/use-agent-row-conversation-name'
@@ -177,6 +178,7 @@ export function ActivityThreadConversationBody({
             <span className="flex-1" />
           )}
           {actions}
+          <ActivityCompactedMark thread={thread} />
           {shows('time') ? (
             <EventTime
               timestamp={thread.latestTimestamp}

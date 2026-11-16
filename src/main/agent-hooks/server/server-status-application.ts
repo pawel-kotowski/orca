@@ -17,6 +17,7 @@ import { mainAgentState } from '../../../shared/agent-status/lifecycle/main-agen
 import { previousCodexTurnContext } from '../../../shared/agent-hook-listener/providers/codex-session-start'
 import { admitLegacyAgentStatus } from '../../../shared/agent-hook-listener/listener-state'
 import type { EnrichedAgentHookEventPayload } from './server-types'
+import { claudeRestatedDoneStartedAt } from './claude-restated-done-clock'
 import { agentTypeToPromptSentAgentKind } from './server-status-identity'
 import { AgentHookServerStatusDisposition } from './server-status-disposition'
 
@@ -159,7 +160,7 @@ export abstract class AgentHookServerStatusApplication extends AgentHookServerSt
     const stateStartedAt =
       previousTurn && previousTurn.payload.state === payload.payload.state && !commandCodeNewTurn
         ? previousTurn.stateStartedAt
-        : (observedAt ?? now)
+        : (claudeRestatedDoneStartedAt(previousTurn, payload) ?? observedAt ?? now)
     const turnStartedAt = resolveTurnStartedAt(previousTurn, payload, observedAt ?? now)
     // Relay rows carry their execution host's turn-end evidence.
     const { hostTurn, ...turnEnd } = reduceHostTurnEnd(

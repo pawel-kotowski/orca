@@ -122,6 +122,9 @@ export type AgentStatusEntry = {
   mainAgent?: AgentMainAgentStatus
   /** The main agent's latest reach-out to the person; the Inbox lists it until cleared (agent-reach-out.ts). */
   reachOut?: AgentReachOut
+  /** When the agent compacted its conversation after this `done` began (Claude's idle compaction or a
+   *  /compact between turns). The card marks it Compacted and stays where it was; a new turn drops it. */
+  compactedAt?: number
   /** The host's child-work views for this session, when it publishes them; child rows then read
    *  these instead of `subagents`. Absent from older hosts. */
   children?: AgentChildWorkView[]
@@ -176,6 +179,8 @@ export type AgentStatusPayload = {
   claudeTaskWakeupPending?: 'notification' | 'finishing-turn'
   /** The main agent's latest reach-out to the person (agent-reach-out.ts). */
   reachOut?: AgentReachOut
+  /** See the AgentStatusEntry field. Only on `done`. */
+  compactedAt?: number
 }
 
 /** Parsing always supplies prompt (empty if omitted); optional tool/assistant fields distinguish no update from explicit clearing. */
@@ -209,7 +214,8 @@ export function pickParsedAgentStatusPayload(
     ...(row.claudeTaskWakeupPending !== undefined
       ? { claudeTaskWakeupPending: row.claudeTaskWakeupPending }
       : {}),
-    ...(row.reachOut !== undefined ? { reachOut: row.reachOut } : {})
+    ...(row.reachOut !== undefined ? { reachOut: row.reachOut } : {}),
+    ...(row.compactedAt !== undefined ? { compactedAt: row.compactedAt } : {})
   }
 }
 
@@ -319,6 +325,9 @@ function normalizeAgentStatusObject(parsed: unknown): ParsedAgentStatusPayload |
     subagents: normalizeAgentSubagentsField(obj.subagents),
     mainAgent: normalizeMainAgentStatusField(obj.mainAgent),
     ...(reachOut ? { reachOut } : {}),
+    ...(state === 'done' && typeof obj.compactedAt === 'number' && Number.isFinite(obj.compactedAt)
+      ? { compactedAt: obj.compactedAt }
+      : {}),
     ...(obj.agentType === 'claude' &&
     state !== 'done' &&
     (obj.claudeTaskWakeupPending === 'notification' ||

@@ -18,6 +18,9 @@ export type ClaudeLeadTurnState = {
   turnCompletedAt?: number
   /** Claude hook model. Later events that omit it keep the last reported value. */
   model?: string
+  /** Claude compacted the conversation while this `done` lasted (idle compaction, SessionStart
+   *  `compact`). A new turn writes a new record, which drops it. */
+  compactedAt?: number
   /** Restore the lead state displaced by a child wait; inventing working cannot later fold back to done. */
   stateBeforeWait?: Pick<
     ClaudeLeadTurnState,
@@ -30,6 +33,20 @@ export function mainAgentIdleSince(
   record: Pick<ClaudeLeadTurnState, 'state' | 'stateStartedAt'> | undefined
 ): number | undefined {
   return record?.state === 'done' ? record.stateStartedAt : undefined
+}
+
+/** When Claude compacted the conversation during the main agent's current `done`, if it did. */
+export function claudeLeadCompactedAt(
+  record:
+    | Pick<ClaudeLeadTurnState, 'state' | 'stateStartedAt' | 'compactedAt' | 'waitingAgentId'>
+    | undefined
+): number | undefined {
+  return record?.state === 'done' &&
+    record.waitingAgentId === undefined &&
+    record.compactedAt !== undefined &&
+    record.compactedAt >= record.stateStartedAt
+    ? record.compactedAt
+    : undefined
 }
 
 /** Root-only Codex state; child waits live on roster entries and affect only the combined fold. */

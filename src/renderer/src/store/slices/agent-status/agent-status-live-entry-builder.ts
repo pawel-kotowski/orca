@@ -246,6 +246,9 @@ export function buildAgentStatusLiveEntry(
     ...(mainAgent ? { mainAgent } : {}),
     // Why carry it: an OSC or launch write says nothing about a reach-out.
     ...(reachOut ? { reachOut } : {}),
+    ...(payload.state === 'done' && payload.compactedAt !== undefined
+      ? { compactedAt: payload.compactedAt }
+      : {}),
     ...(providerSession ? { providerSession } : {}),
     ...(launchAttested !== undefined ? { launchAttested } : {}),
     ...(metadata?.terminalResumeEligible === false

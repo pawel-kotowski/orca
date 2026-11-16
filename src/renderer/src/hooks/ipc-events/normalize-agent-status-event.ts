@@ -24,7 +24,8 @@ export function normalizeAgentStatusEvent(
     turnCompletedAt: data.turnCompletedAt,
     subagents: data.subagents,
     mainAgent: data.mainAgent,
-    reachOut: data.reachOut
+    reachOut: data.reachOut,
+    compactedAt: data.compactedAt
   })
 }
 

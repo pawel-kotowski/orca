@@ -25,6 +25,7 @@ import { ActivityThreadCornerSlot, ActivityThreadJumpAction } from './activity-t
 import { useActivityInboxFactsContext } from './activity-inbox-facts'
 import { useActivityCardHiddenParts } from './activity-card-parts'
 import { ActivityThreadWorkers, ActivityWorkerOfTag } from './activity-thread-workers'
+import { ActivityCompactedMark } from './activity-compacted-mark'
 
 // Stable thread/callback identities let memoized rows skip query, selection and grouping updates.
 export const ActivityThreadRow = React.memo(function ActivityThreadRow({
@@ -170,6 +171,7 @@ export const ActivityThreadRow = React.memo(function ActivityThreadRow({
               >
                 {taskTitle}
               </button>
+              <ActivityCompactedMark thread={thread} />
               <EventTime
                 timestamp={thread.latestTimestamp}
                 compact

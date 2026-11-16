@@ -22496,6 +22496,8 @@
       "inbox": "Inbox",
       "working": "Working",
       "standingBy": "Standing by",
+      "compacted": "Compacted",
+      "compactedTitle": "Claude compacted this conversation while it was idle. The mark goes when the conversation continues.",
       "inboxEmpty": "Nothing needs you right now.",
       "markSeen": "Mark as seen",
       "standBy": "Done with it: move to Standing by",
