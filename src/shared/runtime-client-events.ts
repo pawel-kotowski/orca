@@ -13,6 +13,7 @@ import type { WorktreeSortOrderUpdate } from './worktree/sort-order-update'
 import type { WorkspaceMetadataSet } from './worktree/workspace-metadata-set'
 import type { SidebarInputsChangedEvent } from './sidebar-list/sidebar-inputs-feed-contract'
 import type { BrowserClientHostRequestEvent } from './browser/client-hosting/browser-client-host-request-protocol'
+import type { AgentShowRelayRequestEvent } from './agent-show/agent-show-client-relay'
 
 export type RuntimeClientEvent =
   | {
@@ -97,6 +98,7 @@ export type RuntimeClientEventStreamMessage =
   | RuntimeClientEvent
   // Addressed to this subscriber only, never broadcast.
   | BrowserClientHostRequestEvent
+  | AgentShowRelayRequestEvent
   | { type: 'end' }
 
 export type RuntimeActivateWorktreeEvent = Extract<RuntimeClientEvent, { type: 'activateWorktree' }>

@@ -325,7 +325,7 @@ ORCA show clear --json
 ORCA show snap --json
 ```
 
-Highlights, notes and labels belong to your own tab (`ORCA_TAB_ID`); `show clear` removes only yours. Check `visible` in each result, or run `show state` (layout, your tab, editors, explorer) or `show snap` (a PNG of the window) to confirm what the user sees. A server with no app window fails with `renderer_unavailable`: give the path and lines in your reply instead.
+Highlights, notes and labels belong to your own tab (`ORCA_TAB_ID`); `show clear` removes only yours. Check `visible` in each result, or run `show state` (layout, your tab, editors, explorer) or `show snap` (a PNG of the window) to confirm what the user sees. On a server with no app window (`orca serve` on a box), `orca show` appears in a connected Orca desktop's window that shows the workspace (snap captures that window); only when no desktop is connected does it fail with `renderer_unavailable`: give the path and lines in your reply instead.
 
 ## Built-In Browser
 

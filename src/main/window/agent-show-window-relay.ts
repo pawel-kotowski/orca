@@ -1,4 +1,8 @@
-import type { BrowserWindow } from 'electron'
+import { ipcMain, type BrowserWindow, type NativeImage } from 'electron'
+import {
+  AGENT_SHOW_RELAY_SHOT_BASE64_BUDGET,
+  type AgentShowRelayShot
+} from '../../shared/agent-show/agent-show-client-relay'
 import type { AgentShowResult } from '../../shared/agent-show/agent-show-contract'
 import type {
   AgentShowWindowReply,
@@ -24,16 +28,64 @@ export async function requestAgentShowFromRenderer(
   return reply.result
 }
 
-export async function captureAgentShowWindowPng(
-  mainWindow: BrowserWindow
-): Promise<{ png: Buffer; width: number; height: number }> {
+async function captureWindowImage(mainWindow: BrowserWindow): Promise<NativeImage> {
   if (mainWindow.isDestroyed() || mainWindow.webContents.isDestroyed()) {
     throw new Error('renderer_unavailable')
   }
   const contents = mainWindow.webContents
-  const image = await withPaintingWhileHidden([contents], () =>
+  return withPaintingWhileHidden([contents], () =>
     contents.capturePage(undefined, { stayHidden: true })
   )
+}
+
+export async function captureAgentShowWindowPng(
+  mainWindow: BrowserWindow
+): Promise<{ png: Buffer; width: number; height: number }> {
+  const image = await captureWindowImage(mainWindow)
   const { width, height } = image.getSize()
   return { png: image.toPNG(), width, height }
+}
+
+const base64Length = (bytes: number): number => Math.ceil(bytes / 3) * 4
+
+/** The PNG when it fits one relay frame, else a smaller JPEG that does. */
+export function fitRelayShot(image: NativeImage): AgentShowRelayShot {
+  const png = image.toPNG()
+  const size = image.getSize()
+  if (base64Length(png.length) <= AGENT_SHOW_RELAY_SHOT_BASE64_BUDGET) {
+    return { mime: 'image/png', base64: png.toString('base64'), ...size }
+  }
+  for (const width of [Math.min(size.width, 2000), 1600, 1280, 960]) {
+    const scaled = width < size.width ? image.resize({ width, quality: 'good' }) : image
+    for (const quality of [85, 70, 55]) {
+      const jpeg = scaled.toJPEG(quality)
+      if (base64Length(jpeg.length) <= AGENT_SHOW_RELAY_SHOT_BASE64_BUDGET) {
+        return { mime: 'image/jpeg', base64: jpeg.toString('base64'), ...scaled.getSize() }
+      }
+    }
+  }
+  throw new Error('agent_show_snap_too_large')
+}
+
+/** The renderer answers a windowless server's `orca show snap` with its own window's capture. */
+let captureHandlerOwner: BrowserWindow | null = null
+
+export function registerAgentShowCaptureHandler(mainWindow: BrowserWindow): void {
+  const contents = mainWindow.webContents
+  captureHandlerOwner = mainWindow
+  ipcMain.removeHandler('agentShow:captureWindow')
+  ipcMain.handle('agentShow:captureWindow', async (event) => {
+    if (event.sender !== contents) {
+      throw new Error('renderer_unavailable')
+    }
+    return fitRelayShot(await captureWindowImage(mainWindow))
+  })
+  mainWindow.on('closed', () => {
+    // A replacement window registered its own handler; a late close must leave it.
+    if (captureHandlerOwner !== mainWindow) {
+      return
+    }
+    captureHandlerOwner = null
+    ipcMain.removeHandler('agentShow:captureWindow')
+  })
 }

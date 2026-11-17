@@ -12,6 +12,7 @@ import { TOURS_FOLDER } from '../../../../../shared/agent-show/agent-show-tour-l
 import { TourListRow } from './TourListRow'
 import { playListedTour, resumeTour } from './tour-panel-play'
 import { useRepoTours, type TourGroup } from './use-repo-tours'
+import { dedupeTourGroups } from './tour-dedupe'
 
 function SectionTitle({ children }: { children: React.ReactNode }): React.JSX.Element {
   return (
@@ -91,7 +92,9 @@ function GroupTours({
 /** The repo's tours: this workspace's, then the other workspaces'; click one to play it. */
 export default function ToursPanel({ isVisible }: { isVisible: boolean }): React.JSX.Element {
   useSyncExternalStore(subscribeTours, toursVersion)
-  const { groups, refresh } = useRepoTours(isVisible)
+  const { groups: listedGroups, refresh } = useRepoTours(isVisible)
+  // Why: every workspace of a repo has its committed tours; list each copy once.
+  const groups = dedupeTourGroups(listedGroups)
   const [notice, setNotice] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const workspaceIds = new Set(groups.map((group) => group.worktreeId))

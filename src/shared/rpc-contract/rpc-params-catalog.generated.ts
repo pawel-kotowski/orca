@@ -2,6 +2,7 @@
 // run `pnpm run generate:rpc-params-catalog`.
 import type { z } from 'zod'
 import { HostAccountLaunchEnvParams } from '../agent-launch/startup/host-account-launch-env'
+import { AgentShowRelayResultParams } from '../agent-show/agent-show-client-relay'
 import { AgentSkillShareRequestSchema } from '../agent-skill-sharing-contract'
 import {
   AiVaultSearchRequestSchema,
@@ -900,6 +901,7 @@ export const RPC_PARAMS_BY_METHOD = {
   'agentSessionAttachment.uploadAppend': AttachmentUploadAppendParams,
   'agentSessionAttachment.uploadCommit': AttachmentUploadIdParams,
   'agentSessionAttachment.uploadStart': AttachmentUploadStartParams,
+  'agentShow.relayResult': AgentShowRelayResultParams,
   'agentShow.request': AgentShowRequestParams,
   'agentShow.snap': AgentShowSnapParams,
   'agentShow.tourLoad': AgentShowTourLoadParams,

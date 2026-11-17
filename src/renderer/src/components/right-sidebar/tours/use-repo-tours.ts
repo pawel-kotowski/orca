@@ -3,7 +3,10 @@ import { useAppStore } from '@/store/index'
 import type { AgentShowTourList } from '../../../../../shared/agent-show/agent-show-tour-library'
 import { fetchWorktreeTours } from '@/agent-show/tour/tour-library-client'
 
-export type ListedTour = AgentShowTourList['tours'][number]
+export type ListedTour = AgentShowTourList['tours'][number] & {
+  /** The other workspaces that have this same tour file, unchanged (see dedupeTourGroups). */
+  alsoIn?: string[]
+}
 
 export type TourGroup = {
   worktreeId: string

@@ -29,7 +29,7 @@ export async function callShowRpc<T>(ctx: HandlerContext, method: string, params
     }
     throw new RuntimeClientError(
       'renderer_unavailable',
-      'This Orca server has no app window, so there is nothing to show code in.',
+      'This Orca server has no app window and no Orca window is connected to it, so there is nothing to show code in.',
       { nextSteps: ['Give the user the path and line range in your reply instead.'] }
     )
   }
