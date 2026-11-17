@@ -2,6 +2,7 @@
 // metadata and the commit's files.
 // A file click opens its diff beside the graph (a preview tab, so browsing replaces it); double click keeps it.
 import React, { useEffect, useState } from 'react'
+import { cn } from '@/lib/class-names'
 import { Copy, FileDiff, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAppStore } from '@/store'
@@ -39,7 +40,8 @@ export function GitGraphCommitDetails({
   item,
   onSelectCommit,
   onClose,
-  laneColor
+  laneColor,
+  showTitle = true
 }: {
   worktreeId: string
   worktreePath: string
@@ -48,6 +50,9 @@ export function GitGraphCommitDetails({
   onSelectCommit: (id: string) => void
   onClose: () => void
   laneColor?: GitHistoryGraphColorId
+  /** The message and branch names on top; off where the row above already shows them in full
+   * (Detailed, Branches: Paweł, 2026-11-17, "commit msg is shown twice"). */
+  showTitle?: boolean
 }): React.JSX.Element {
   const [compare, setCompare] = useState<CompareState>({ status: 'loading' })
   const openCommitDiff = useAppStore((s) => s.openCommitDiff)
@@ -196,23 +201,41 @@ export function GitGraphCommitDetails({
   // narrow. Each property is set by one container variant only: a base class such as flex-col
   // wins over its @2xl: override in this build's CSS order.
   return (
-    <div className="@container flex min-w-0 flex-1 flex-col border-y border-border">
-      <div className="flex shrink-0 items-start gap-2 px-4 pt-2.5 pb-1.5">
-        <div className="min-w-0 flex-1">
-          <div className="text-sm font-semibold break-words text-foreground">{item.subject}</div>
-          {refs.length > 0 && (
-            <div className="mt-1.5 flex flex-wrap gap-1">
-              {refs.map((ref) => (
-                <GitGraphRefBadge key={ref.id} itemRef={ref} laneColor={laneColor} />
-              ))}
-            </div>
-          )}
+    <div className="@container relative flex min-w-0 flex-1 flex-col border-y border-border">
+      {showTitle ? (
+        <div className="flex shrink-0 items-start gap-2 px-4 pt-2.5 pb-1.5">
+          <div className="min-w-0 flex-1">
+            <div className="text-sm font-semibold break-words text-foreground">{item.subject}</div>
+            {refs.length > 0 && (
+              <div className="mt-1.5 flex flex-wrap gap-1">
+                {refs.map((ref) => (
+                  <GitGraphRefBadge key={ref.id} itemRef={ref} laneColor={laneColor} />
+                ))}
+              </div>
+            )}
+          </div>
+          <Button variant="ghost" size="icon-xs" onClick={onClose} aria-label="Close details">
+            <X className="size-3.5" />
+          </Button>
         </div>
-        <Button variant="ghost" size="icon-xs" onClick={onClose} aria-label="Close details">
+      ) : (
+        <Button
+          variant="ghost"
+          size="icon-xs"
+          className="absolute top-1.5 right-1.5 z-10"
+          onClick={onClose}
+          aria-label="Close details"
+        >
           <X className="size-3.5" />
         </Button>
-      </div>
-      <div className="flex max-h-[20rem] min-h-0 scrollbar-sleek @max-2xl:flex-col @max-2xl:overflow-y-auto">
+      )}
+      <div
+        className={cn(
+          'flex max-h-[20rem] min-h-0 scrollbar-sleek @max-2xl:flex-col @max-2xl:overflow-y-auto',
+          // Room for the corner close button when there is no title row.
+          !showTitle && 'pt-1.5 pr-7'
+        )}
+      >
         <div className="min-w-0 border-border pb-2 scrollbar-sleek @max-2xl:border-b @2xl:w-[45%] @2xl:shrink-0 @2xl:overflow-y-auto @2xl:border-r">
           {files}
         </div>

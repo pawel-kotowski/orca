@@ -94,6 +94,8 @@ export function GitGraphList({
           onSelectCommit={onSelectCommit}
           onClose={onClose}
           laneColor={row.nodeColor}
+          // Compact cuts the message short, so its details show it; elsewhere the row shows it.
+          showTitle={density === 'compact'}
         />
       </div>
     )
