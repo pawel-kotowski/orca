@@ -12,6 +12,16 @@ import type {
   GitHistoryRefs
 } from '../../../../../shared/git/history/git-history-types'
 
+/** A branch's name without its remote: `origin/feature/x` → `feature/x`. */
+function branchOf(ref: GitHistoryItemRef): string {
+  return ref.category === 'remote branches' ? ref.name.replace(/^[^/]+\//, '') : ref.name
+}
+
+/** Who a branch is: its newest commit's author, by email when git gave one. */
+function authorKey(ref: GitHistoryItemRef): string {
+  return (ref.authorEmail || ref.author || '').toLowerCase()
+}
+
 const ORDER = { branches: 0, 'remote branches': 1, tags: 2, commits: 3 } as const
 /** The history call takes at most this many named refs (validateHistoryRefs). */
 const MAX_NAMED_REFS = 1000
@@ -41,6 +51,7 @@ export function GitGraphBranchSelect({
     [refs]
   )
   const [draft, setDraft] = useState<Set<string> | null>(null)
+  const [authorPick, setAuthorPick] = useState<string[]>([])
   const [query, setQuery] = useState('')
   const chosen = (current: GitHistoryRefs): Set<string> =>
     new Set(Array.isArray(current) ? current : selectable.map((ref) => ref.id))
@@ -62,19 +73,53 @@ export function GitGraphBranchSelect({
       onChange(next)
     }
   }
-  const set = (ids: Iterable<string>): void => setDraft(new Set(ids))
-  const label = Array.isArray(value)
-    ? `${value.length} of ${selectable.length} branches`
-    : 'All branches'
+  // Any other choice (a quick button, a tick) is no longer "by author".
+  const set = (ids: Iterable<string>): void => {
+    setAuthorPick([])
+    setDraft(new Set(ids))
+  }
+  const label = !Array.isArray(value)
+    ? 'All branches'
+    : authorPick.length > 0
+      ? `Branches by ${authorPick.map((key) => authors.find(([k]) => k === key)?.[1].name ?? key).join(', ')}`
+      : `${value.length} of ${selectable.length} branches`
   const pinnedIds = selectable
-    .filter(
-      (ref) =>
-        ref.id === headRefId ||
-        pinned.includes(
-          ref.category === 'remote branches' ? ref.name.replace(/^[^/]+\//, '') : ref.name
-        )
-    )
+    .filter((ref) => ref.id === headRefId || pinned.includes(branchOf(ref)))
     .map((ref) => ref.id)
+  // By author (Paweł, 2026-11-17: "filter branches by author option but only for non main non
+  // development"): pinned branches always stay; any other branch is its newest commit's author's.
+  const authors = useMemo(() => {
+    const byKey = new Map<string, { name: string; count: number }>()
+    for (const ref of selectable) {
+      if (ref.category === 'tags' || pinned.includes(branchOf(ref)) || !authorKey(ref)) {
+        continue
+      }
+      const entry = byKey.get(authorKey(ref)) ?? { name: ref.author || authorKey(ref), count: 0 }
+      entry.count += 1
+      byKey.set(authorKey(ref), entry)
+    }
+    return [...byKey].sort((a, b) => b[1].count - a[1].count)
+  }, [pinned, selectable])
+  const pickAuthors = (keys: string[]): void => {
+    if (keys.length === 0) {
+      set(selectable.map((ref) => ref.id))
+      return
+    }
+    setAuthorPick(keys)
+    setDraft(
+      new Set([
+        ...pinnedIds,
+        ...selectable
+          .filter(
+            (ref) =>
+              ref.category !== 'tags' &&
+              !pinned.includes(branchOf(ref)) &&
+              keys.includes(authorKey(ref))
+          )
+          .map((ref) => ref.id)
+      ])
+    )
+  }
 
   return (
     <Popover
@@ -141,6 +186,32 @@ export function GitGraphBranchSelect({
             </>
           )}
         </div>
+        {authors.length > 1 && (
+          <div className="mb-1.5 flex flex-wrap items-center gap-1">
+            <span className="mr-1 text-foreground/70">By author</span>
+            {authors.map(([key, { name, count }]) => {
+              const on = authorPick.includes(key)
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  aria-pressed={on}
+                  title={`${name}'s branches (${count}), with main and development always shown`}
+                  className={
+                    on
+                      ? 'rounded-md border border-ring bg-accent px-1.5 py-0.5'
+                      : 'rounded-md border border-border px-1.5 py-0.5 text-foreground/75 hover:text-foreground'
+                  }
+                  onClick={() =>
+                    pickAuthors(on ? authorPick.filter((k) => k !== key) : [...authorPick, key])
+                  }
+                >
+                  {name} <span className="tabular-nums opacity-60">{count}</span>
+                </button>
+              )
+            })}
+          </div>
+        )}
         <div className="max-h-80 overflow-y-auto scrollbar-sleek">
           {shown.map((ref) => (
             <label
@@ -157,6 +228,7 @@ export function GitGraphBranchSelect({
                   } else {
                     next.delete(ref.id)
                   }
+                  setAuthorPick([])
                   setDraft(next)
                 }}
               />
@@ -167,7 +239,10 @@ export function GitGraphBranchSelect({
               ) : (
                 <GitBranch className="mt-0.5 size-3 shrink-0 text-muted-foreground" />
               )}
-              <span className="min-w-0 break-all">{ref.name}</span>
+              <span className="min-w-0 flex-1 break-all">{ref.name}</span>
+              {ref.author && ref.category !== 'tags' && (
+                <span className="shrink-0 text-foreground/55">{ref.author}</span>
+              )}
             </label>
           ))}
         </div>

@@ -33,6 +33,9 @@ export type GitHistoryItemRef = {
   revision?: string
   category?: GitHistoryRefCategory
   worktreePath?: string
+  /** Local (glass build): the author of the commit the ref names, from `git.refs`. */
+  author?: string
+  authorEmail?: string
   description?: string
   color?: GitHistoryGraphColorId
 }

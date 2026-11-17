@@ -25,7 +25,9 @@ export async function loadGitHistoryRefs(
   const { stdout } = await git(
     [
       'for-each-ref',
-      '--format=%(objectname)%00%(objecttype)%00%(*objectname)%00%(*objecttype)%00%(symref)%00%(refname)%00%(worktreepath)',
+      // Local (glass build): the author of the commit a ref names (a tag's: its commit's), so the
+      // Git Graph can pick branches by author (Paweł, 2026-11-17).
+      '--format=%(objectname)%00%(objecttype)%00%(*objectname)%00%(*objecttype)%00%(symref)%00%(refname)%00%(worktreepath)%00%(authorname)%00%(authoremail)%00%(*authorname)%00%(*authoremail)',
       'refs/heads',
       'refs/remotes',
       'refs/tags'
@@ -58,7 +60,19 @@ export async function loadGitHistoryRefs(
       })
   }
   const refs: GitHistoryItemRef[] = []
-  for (const [oid, type, peeledOid, peeledType, symref, name, worktreePath] of rows) {
+  for (const [
+    oid,
+    type,
+    peeledOid,
+    peeledType,
+    symref,
+    name,
+    worktreePath,
+    authorName,
+    authorEmail,
+    peeledAuthorName,
+    peeledAuthorEmail
+  ] of rows) {
     if (!name || symref) {
       continue
     }
@@ -67,9 +81,13 @@ export async function loadGitHistoryRefs(
     if (!revision || !/^(?:[a-f0-9]{40}|[a-f0-9]{64})$/.test(revision)) {
       continue
     }
+    const author = authorName || peeledAuthorName
+    const email = (authorEmail || peeledAuthorEmail || '').replace(/^<|>$/g, '')
     refs.push({
       ...gitHistoryRefFromFullName(name, name, revision),
-      ...(worktreePath ? { worktreePath } : {})
+      ...(worktreePath ? { worktreePath } : {}),
+      ...(author ? { author } : {}),
+      ...(email ? { authorEmail: email } : {})
     })
   }
   return refs
