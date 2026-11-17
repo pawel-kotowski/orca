@@ -181,9 +181,11 @@ export const GitGraphRow = React.forwardRef<HTMLDivElement, GitGraphRowProps>(fu
 export function GitGraphHeaderRow({
   layout,
   onResize,
-  onReset
+  onReset,
+  descriptionLabel = 'Description'
 }: {
   layout: GitGraphLayout
+  descriptionLabel?: string
   onResize: (key: GitGraphColumnKey, width: number) => void
   onReset: (key: GitGraphColumnKey) => void
 }): React.JSX.Element {
@@ -205,7 +207,7 @@ export function GitGraphHeaderRow({
         Graph
         {handle('graph', 'right', 'Graph')}
       </span>
-      <span className="py-1">Description</span>
+      <span className="py-1">{descriptionLabel}</span>
       {layout.author && (
         <span className="relative py-1">
           {handle('author', 'left', 'Author')}
