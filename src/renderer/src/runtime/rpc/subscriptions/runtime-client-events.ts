@@ -9,6 +9,7 @@ import { admitSshConnectionState } from '../../../../../shared/ssh-retained-payl
 import { getRuntimeEnvironmentRevision } from '../environment-revisions/runtime-environment-revision'
 import { subscribeRuntimeEnvironment } from '../environment-revisions/runtime-environment-pairing-refresh'
 import { answerBrowserClientHostRequest } from '../../browser/client-hosting/browser-client-host-request-answer'
+import { answerAgentShowRelayRequest } from '@/agent-show/relay/agent-show-relay-answer'
 
 export type RuntimeClientEventSubscription = {
   unsubscribe: () => void
@@ -28,7 +29,11 @@ export async function subscribeRuntimeClientEvents(
       selector: environmentId,
       method: 'runtime.clientEvents.subscribe',
       // Older servers ignore params; newer ones ask only sockets advertising host requests.
-      ...(options.hostsBrowserPages ? { params: { browserHostRequests: true } } : {}),
+      params: {
+        ...(options.hostsBrowserPages ? { browserHostRequests: true } : {}),
+        // A windowless server shows `orca show` in this window.
+        agentShowRequests: true
+      },
       timeoutMs: 15_000,
       expectedEnvironmentPairingRevision: getRuntimeEnvironmentRevision(environmentId)
     },
@@ -80,6 +85,10 @@ function handleRuntimeClientEventResponse(
   }
   if (message.type === 'browserHostRequested') {
     void answerBrowserClientHostRequest(environmentId, message.requestId)
+    return
+  }
+  if (message.type === 'agentShowRequested') {
+    void answerAgentShowRelayRequest(environmentId, message)
     return
   }
   if (message.type === 'sshStateChanged') {

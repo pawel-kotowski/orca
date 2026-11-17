@@ -19,25 +19,32 @@ import { loadTour, tourPathInWorktree } from '../../../../agent-show/tours/tour-
 import { listWorktreeTours } from '../../../../agent-show/tours/tour-library'
 import { tourStampInfo } from '../../../../agent-show/tours/tour-stamp-info'
 import { writeFileAtCommit } from '../../../../agent-show/tours/tour-git'
+import { getAgentShowClientRelayRegistry } from '../../../../agent-show/relay/agent-show-client-relay-registry'
+import {
+  AGENT_SHOW_CLIENT_RELAY_CAPABILITY,
+  AgentShowRelayResultParams
+} from '../../../../../shared/agent-show/agent-show-client-relay'
 
 async function showInWindow(
   runtime: OrcaRuntimeService,
   params: z.infer<typeof AgentShowRequestParams>
 ): Promise<AgentShowResult> {
   const window = runtime.agentShowWindow()
-  if (!window?.agentShow) {
+  const relay = getAgentShowClientRelayRegistry(runtime)
+  if (!window?.agentShow && !relay.hasVolunteer()) {
     throw new Error('renderer_unavailable')
   }
   const { worktree } = await runtime.resolveRuntimeFileTarget(params.worktree)
-  return window.agentShow({
-    request: params.request,
-    context: {
-      worktreeId: worktree.id,
-      worktreePath: worktree.path,
-      ownerTabId: params.ownerTabId,
-      focus: params.focus
-    }
-  })
+  const context = {
+    worktreeId: worktree.id,
+    worktreePath: worktree.path,
+    ownerTabId: params.ownerTabId,
+    focus: params.focus
+  }
+  // Why: a windowless server (`orca serve`) shows it in a connected desktop's window instead.
+  return window?.agentShow
+    ? window.agentShow({ request: params.request, context })
+    : relay.show({ kind: 'show', request: params.request, context })
 }
 
 async function snapWindow(
@@ -45,17 +52,33 @@ async function snapWindow(
   outPath: string | undefined
 ): Promise<AgentShowSnapResult> {
   const window = runtime.agentShowWindow()
-  if (!window?.captureWindowPng) {
+  const relay = getAgentShowClientRelayRegistry(runtime)
+  if (!window?.captureWindowPng && !relay.hasVolunteer()) {
     throw new Error('renderer_unavailable')
   }
   if (outPath !== undefined && !isAbsolute(outPath)) {
     throw new Error('invalid_argument: --out must be an absolute path')
   }
-  const shot = await window.captureWindowPng()
-  const path = outPath ?? join(tmpdir(), `orca-show-${Date.now()}.png`)
+  const shot = window?.captureWindowPng
+    ? { ...(await window.captureWindowPng()), extension: 'png' }
+    : await relayedShot(relay)
+  const path = outPath ?? join(tmpdir(), `orca-show-${Date.now()}.${shot.extension}`)
   await mkdir(dirname(path), { recursive: true })
   await writeFile(path, shot.png)
   return { path, width: shot.width, height: shot.height }
+}
+
+/** The connected desktop's window; it may come back as a JPEG so it fits one frame. */
+async function relayedShot(
+  relay: ReturnType<typeof getAgentShowClientRelayRegistry>
+): Promise<{ png: Buffer; width: number; height: number; extension: string }> {
+  const shot = await relay.snap()
+  return {
+    png: Buffer.from(shot.base64, 'base64'),
+    width: shot.width,
+    height: shot.height,
+    extension: shot.mime === 'image/jpeg' ? 'jpg' : 'png'
+  }
 }
 
 /** The worktree's path, and whether its files are on this machine for git and the file checks. */
@@ -73,6 +96,23 @@ export const AGENT_SHOW_METHODS = [
     permission: 'workspace',
     params: AgentShowRequestParams,
     handler: async (params, { runtime }) => showInWindow(runtime, params)
+  }),
+  defineMethod({
+    // A connected desktop's answer to a request this windowless server relayed to it.
+    name: 'agentShow.relayResult',
+    permission: 'workspace',
+    params: AgentShowRelayResultParams,
+    handler: (params, { runtime, pairedDeviceId, clientKind, clientCapabilities }) => {
+      if (clientKind !== 'runtime' || !pairedDeviceId) {
+        throw new Error('authenticated_desktop_client_required')
+      }
+      if (!clientCapabilities?.includes(AGENT_SHOW_CLIENT_RELAY_CAPABILITY)) {
+        throw new Error('agent_show_client_relay_capability_required')
+      }
+      return {
+        accepted: getAgentShowClientRelayRegistry(runtime).settle({ pairedDeviceId }, params)
+      }
+    }
   }),
   defineMethod({
     // Captures the window without showing, raising or focusing it.

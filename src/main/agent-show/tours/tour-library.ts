@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { readdir, readFile, stat } from 'node:fs/promises'
 import { join } from 'node:path'
 import {
@@ -34,7 +35,11 @@ export async function listWorktreeTours(
       const text = await readFile(file, 'utf8').catch(() => null)
       return text === null
         ? null
-        : { ...(await loadTour({ worktreePath, local, file, text })), modifiedAt }
+        : {
+            ...(await loadTour({ worktreePath, local, file, text })),
+            modifiedAt,
+            contentHash: createHash('sha256').update(text).digest('hex').slice(0, 16)
+          }
     })
   )
   return { tours: tours.filter((tour) => tour !== null) }

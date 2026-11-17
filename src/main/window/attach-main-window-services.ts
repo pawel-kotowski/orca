@@ -46,6 +46,7 @@ import {
 import { startFolderRepoGitUpgradeWatch } from '../ipc/folder-repo-git-upgrade'
 import { scheduleMainWindowAutoUpdaterSetup } from './main-window-updater'
 import { registerRuntimeWindowLifecycle } from './runtime-window-lifecycle'
+import { registerAgentShowCaptureHandler } from './agent-show-window-relay'
 import { ensureStructuredAgentSessionHostUnlessRefused } from '../runtime/agent-session/structured-agent-session-host-refusal'
 import { getAgentSessionAttachmentStore } from '../native-chat/agent-session-attachments/agent-session-attachment-store-registry'
 import { registerDroppedPathPreparation } from './dropped-path-preparation-ipc'
@@ -83,6 +84,7 @@ export function attachMainWindowServices(
   }
 ): void {
   registerAppReloadHandler(mainWindow, options?.onBeforeRendererReload)
+  registerAgentShowCaptureHandler(mainWindow)
   attachGlassDiagnosticsLog(mainWindow.webContents)
   registerRepoHandlers(mainWindow, store, runtime)
   // Repo IPC mutations must invalidate paired-client catalogs too (#11994).
