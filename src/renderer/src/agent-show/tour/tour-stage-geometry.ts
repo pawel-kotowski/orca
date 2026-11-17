@@ -7,6 +7,7 @@ import { AUTO_LINE_HEIGHT_RATIO, userCodeTypography } from '../code/code-stage-r
 import { mountedCodeEditors } from '../code/code-editor-registry'
 import { worktreeDrawn } from '../window-drawn'
 import type { PredictionGeometry } from './tour-fit-prediction'
+import { isShowOwnerTab } from '../agent-show-owner-tab'
 
 type Box = { left: number; top: number; right: number; bottom: number }
 
@@ -50,8 +51,8 @@ export function measurePredictionGeometry(context: AgentShowContext): Prediction
   if (!ownerTabId || !worktreeDrawn(state, worktreeId)) {
     return null
   }
-  const owner = state.unifiedTabsByWorktree[worktreeId]?.find(
-    (tab) => tab.id === ownerTabId || tab.entityId === ownerTabId
+  const owner = state.unifiedTabsByWorktree[worktreeId]?.find((tab) =>
+    isShowOwnerTab(tab, ownerTabId)
   )
   const ownerBox = owner ? paneBox(owner.groupId) : null
   if (!owner || !ownerBox) {
