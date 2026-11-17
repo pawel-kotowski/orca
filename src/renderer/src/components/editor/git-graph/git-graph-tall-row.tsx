@@ -12,7 +12,11 @@ import { graphColor } from '@/components/right-sidebar/source-control/sync/git-h
 import { GIT_GRAPH_EMPTY_LANE, type GitGraphLaneRow } from './git-graph-branch-layout'
 import { GitGraphLanesSvg, gitGraphLaneStroke } from './git-graph-lanes-svg'
 import type { GitGraphLayout } from './git-graph-columns'
-import { formatGitGraphRelativeTime, GIT_GRAPH_HOVER_FRAME } from './git-graph-row'
+import {
+  formatGitGraphRelativeTime,
+  GIT_GRAPH_HOVER_FRAME,
+  GIT_GRAPH_HOVER_MARK
+} from './git-graph-row'
 import { useGitGraphAuthorProps } from './git-graph-author-color'
 
 // Matches SWIMLANE_WIDTH in git-history-graph-svg.tsx; the graph cell's pl-2 adds 8px.
@@ -180,6 +184,7 @@ export const GitGraphTallRow = React.forwardRef<HTMLDivElement, GitGraphTallRowP
           <>
             <GitGraphLaneFill
               lanes={viewModel.inputSwimlanes}
+              className={cn('rounded-t-md', GIT_GRAPH_HOVER_MARK)}
               style={{ gridRow: 1, gridColumn: 1 }}
             />
             <div
@@ -191,7 +196,11 @@ export const GitGraphTallRow = React.forwardRef<HTMLDivElement, GitGraphTallRowP
           </>
         )}
         <div
-          className="flex min-h-6 flex-col overflow-hidden pl-2"
+          className={cn(
+            'flex min-h-6 flex-col overflow-hidden pl-2',
+            top ? 'rounded-b-md' : 'rounded-md',
+            GIT_GRAPH_HOVER_MARK
+          )}
           style={{ gridRow: lineRow, gridColumn: 1 }}
         >
           <GitGraphLanesSvg row={viewModel} />
