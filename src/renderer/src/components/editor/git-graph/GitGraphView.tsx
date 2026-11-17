@@ -22,8 +22,13 @@ import { GitGraphAuthorHuesProvider } from './git-graph-author-color'
 import { GitGraphBranchColoursProvider } from './git-graph-branch-colour-context'
 import { gitGraphBranchName } from './git-graph-lane-names'
 import { useGitGraphPinnedLanes } from './use-git-graph-pinned-lanes'
-import { GitGraphLaneOrder } from './git-graph-lane-order'
-import { GitGraphBranchSelect } from './git-graph-branch-select'
+import { GitGraphShapeControls, useGitGraphStackNames } from './git-graph-shape-controls'
+import {
+  isGitGraphMergeInto,
+  nextGitGraphMark,
+  useGitGraphMergeMarks
+} from './use-git-graph-merge-marks'
+import { findGitGraphCommit } from './git-graph-find'
 import { useGitGraphRows } from './use-git-graph-rows'
 import { GitGraphList } from './git-graph-list'
 
@@ -116,6 +121,14 @@ export function GitGraphView({ worktreeId }: { worktreeId: string }): React.JSX.
     pinned: lanes.pinned,
     drawnPinned
   })
+  const marks = useGitGraphMergeMarks()
+  const [stackNames, toggleStackNames] = useGitGraphStackNames()
+  const mergeCounts = new Map(
+    lanes.pinned.map((branch) => [
+      branch,
+      model.rows.filter((row) => isGitGraphMergeInto(row, model.laneNames, [branch])).length
+    ])
+  )
   const { layout, setWidth, resetWidth, toggleColumn } = useGitGraphColumns(
     listWidth,
     model.graphWidth + 8
@@ -211,28 +224,9 @@ export function GitGraphView({ worktreeId }: { worktreeId: string }): React.JSX.
 
   // Find searches every loaded commit, folded or not, from the selected one on.
   const findNext = (): void => {
-    const needle = query.trim().toLowerCase()
-    const items = history.items
-    if (!needle || items.length === 0) {
-      return
-    }
-    const from = openCommit ?? selectedId
-    const start = items.findIndex((item) => item.id === from)
-    for (let offset = 1; offset <= items.length; offset += 1) {
-      const item = items[(start + offset) % items.length]!
-      const haystack = [
-        item.subject,
-        item.message,
-        item.author,
-        item.id,
-        ...(item.references ?? []).map((ref) => ref.name)
-      ]
-        .join('\n')
-        .toLowerCase()
-      if (haystack.includes(needle)) {
-        selectCommit(item.id)
-        return
-      }
+    const found = findGitGraphCommit(history.items, query, openCommit ?? selectedId)
+    if (found) {
+      selectCommit(found)
     }
   }
 
@@ -245,8 +239,19 @@ export function GitGraphView({ worktreeId }: { worktreeId: string }): React.JSX.
     setDensity,
     jumps,
     moveSelection,
+    // n / Shift+N: the next or previous highlighted merge.
+    onNextMark: (step) => {
+      const target = nextGitGraphMark(model.rows, model.laneNames, marks.targets, expandedRow, step)
+      if (target) {
+        setSelectedId(target)
+        setOpenCommitId(null)
+        reveal(target)
+      }
+    },
     onEscape: () => {
-      if (focusedBranch) {
+      if (marks.targets.length > 0) {
+        marks.clear()
+      } else if (focusedBranch) {
         setFocusedBranch(null)
       } else if (openCommit) {
         openCommitInRow(null)
@@ -280,23 +285,23 @@ export function GitGraphView({ worktreeId }: { worktreeId: string }): React.JSX.
   return (
     <div className="flex h-full min-h-0 flex-col bg-background text-foreground">
       <GitGraphToolbar
-        branchSelect={
-          <GitGraphBranchSelect
+        controls={
+          <GitGraphShapeControls
             refs={refs}
-            value={refsFilter}
-            pinned={lanes.pinned}
+            refsFilter={refsFilter}
+            onRefsFilter={setRefsFilter}
             headRefId={result?.currentRef?.id}
-            onChange={setRefsFilter}
-          />
-        }
-        laneOrder={
-          <GitGraphLaneOrder
             pinned={lanes.pinned}
-            custom={lanes.custom}
-            branches={branchNames}
+            customPinned={lanes.custom}
+            onPinned={lanes.setPinned}
+            onResetPinned={lanes.reset}
+            branchNames={branchNames}
             colourOf={model.colourOf}
-            onChange={lanes.setPinned}
-            onReset={lanes.reset}
+            mergeTargets={marks.targets}
+            mergeCounts={mergeCounts}
+            onToggleMerge={marks.toggle}
+            stackNames={stackNames}
+            onToggleStackNames={toggleStackNames}
           />
         }
         density={density}
@@ -366,6 +371,8 @@ export function GitGraphView({ worktreeId }: { worktreeId: string }): React.JSX.
                   openCommitId={openCommit}
                   flashId={flashId}
                   focusedBranch={focusedBranch}
+                  mergeTargets={marks.targets}
+                  stackNames={stackNames}
                   onToggleRow={toggleRow}
                   onSelectCommit={selectCommit}
                   onOpenCommit={openCommitInRow}

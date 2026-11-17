@@ -6,6 +6,7 @@ import type {
 import {
   gitGraphLaneNames,
   gitGraphMergedBranchName,
+  gitGraphMergedPullRequest,
   gitGraphMergeTargetName
 } from './git-graph-lane-names'
 import { gitGraphEdgeKey, outlineGitGraphItems } from './git-graph-outline'
@@ -13,6 +14,9 @@ import { findGitGraphTrunk } from './use-git-graph-jump'
 import { groupGitGraphRefs } from './git-graph-ref-chips'
 import { buildGitGraphBranchViewModels, gitGraphBranchColours } from './git-graph-branch-layout'
 import { defaultGitGraphPinnedLanes } from './use-git-graph-pinned-lanes'
+import { gitGraphBranchRuns } from './git-graph-branch-frames'
+import { isGitGraphMergeInto, nextGitGraphMark } from './use-git-graph-merge-marks'
+import { findGitGraphCommit } from './git-graph-find'
 
 const branch = (name: string): GitHistoryItemRef => ({
   id: `refs/heads/${name}`,
@@ -83,8 +87,8 @@ describe('outlineGitGraphItems', () => {
     expect(outline.items.map((item) => item.id)).toEqual(['t1', 'M', 'm2', 'F', 'root'])
     const merge = outline.items.find((item) => item.id === 'M')!
     expect(merge.parentIds).toEqual(['m2', 'F'])
-    expect(outline.foldedByEdge.get(gitGraphEdgeKey('M', 'F'))).toEqual(['f2', 'f1'])
-    expect(outline.foldedByEdge.get(gitGraphEdgeKey('M', 'm2'))).toEqual([])
+    expect(outline.foldedByEdge.get(gitGraphEdgeKey('M', 1))).toEqual(['f2', 'f1'])
+    expect(outline.foldedByEdge.get(gitGraphEdgeKey('M', 0))).toEqual([])
   })
 
   it('folds a plain run into the commit above it', () => {
@@ -96,7 +100,22 @@ describe('outlineGitGraphItems', () => {
     ]
     const outline = outlineGitGraphItems(run)
     expect(outline.items.map((item) => item.id)).toEqual(['a', 'd'])
-    expect(outline.foldedByEdge.get(gitGraphEdgeKey('a', 'd'))).toEqual(['b', 'c'])
+    expect(outline.foldedByEdge.get(gitGraphEdgeKey('a', 0))).toEqual(['b', 'c'])
+  })
+})
+
+describe('a PR merged with a merge commit', () => {
+  it('stays a merge when both its lines fold down to the same commit', () => {
+    // main: M (#12) ─ P, with the PR's one commit f off P; then P ─ root.
+    const outline = outlineGitGraphItems([
+      commit('M', ['P', 'f'], 'feat: walks in My Day (#12)', [branch('main')]),
+      commit('f', ['P'], 'feat: walks'),
+      commit('P', ['root'], 'previous (#11)'),
+      commit('root', [])
+    ])
+    expect(outline.items.find((item) => item.id === 'M')!.parentIds).toEqual(['P', 'P'])
+    expect(outline.foldedByEdge.get(gitGraphEdgeKey('M', 1))).toEqual(['f'])
+    expect(gitGraphMergedPullRequest('feat: walks in My Day (#12)')).toBe('#12')
   })
 })
 
@@ -206,5 +225,49 @@ describe('defaultGitGraphPinnedLanes', () => {
       'development'
     ])
     expect(defaultGitGraphPinnedLanes([branch('feature')])).toEqual([])
+  })
+})
+
+describe('gitGraphBranchRuns', () => {
+  it('frames a branch from its tip down its line until another name or its line leaves', () => {
+    const items = [
+      commit('a2', ['a1'], 'a2', [branch('feature/a')]),
+      commit('a1', ['b2'], 'a1'),
+      commit('b2', ['m1'], 'b2', [branch('feature/b')]),
+      commit('m1', [], 'm1', [branch('main')])
+    ]
+    const laneNames = gitGraphLaneNames(items, ['main'])
+    const colourOf = gitGraphBranchColours(items, laneNames, ['main'], undefined)
+    const rows = buildGitGraphBranchViewModels(items, { laneNames, pinned: ['main'], colourOf })
+    expect(
+      gitGraphBranchRuns(rows, laneNames, ['main']).map(({ start, end }) => [start, end])
+    ).toEqual([
+      [0, 1],
+      [2, 2]
+    ])
+  })
+})
+
+describe('merges into a branch', () => {
+  it('finds merges on the target line and steps through them, wrapping', () => {
+    const items = [
+      commit('M2', ['M1', 'f2'], "Merge branch 'f2' into main", [branch('main')]),
+      commit('f2', ['M1'], 'f2'),
+      commit('M1', ['m0', 'f1'], "Merge branch 'f1' into main"),
+      commit('f1', ['m0'], 'f1'),
+      commit('m0', [], 'root')
+    ]
+    const laneNames = gitGraphLaneNames(items, ['main'])
+    const colourOf = gitGraphBranchColours(items, laneNames, ['main'], undefined)
+    const rows = buildGitGraphBranchViewModels(items, { laneNames, pinned: ['main'], colourOf })
+    expect(
+      rows
+        .filter((row) => isGitGraphMergeInto(row, laneNames, ['main']))
+        .map((row) => row.historyItem.id)
+    ).toEqual(['M2', 'M1'])
+    expect(nextGitGraphMark(rows, laneNames, ['main'], 'M2', 1)).toBe('M1')
+    expect(nextGitGraphMark(rows, laneNames, ['main'], 'M1', 1)).toBe('M2')
+    expect(nextGitGraphMark(rows, laneNames, ['main'], null, -1)).toBe('M1')
+    expect(findGitGraphCommit(items, 'F1', 'M2')).toBe('M1')
   })
 })

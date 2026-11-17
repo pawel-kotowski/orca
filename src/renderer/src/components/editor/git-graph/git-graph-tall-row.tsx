@@ -75,6 +75,34 @@ export function GitGraphSelectionFrame({
   )
 }
 
+/**
+ * A merge into a highlighted branch (the toolbar's "Merges into" toggles): framed in that
+ * branch's colour, a little stronger than a selection, while every other row fades.
+ */
+export function GitGraphMergeMark({
+  color,
+  children
+}: {
+  color: GitHistoryGraphColorId
+  children: React.ReactNode
+}): React.JSX.Element {
+  return (
+    <div data-git-graph-merge-mark className="relative isolate">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 -z-10 rounded-md opacity-10"
+        style={{ background: graphColor(color) }}
+      />
+      {children}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 rounded-md border-[1.5px]"
+        style={{ borderColor: graphColor(color) }}
+      />
+    </div>
+  )
+}
+
 type GitGraphTallRowProps = Omit<React.HTMLAttributes<HTMLDivElement>, 'onSelect'> & {
   viewModel: GitGraphLaneRow
   layout: GitGraphLayout
@@ -83,7 +111,6 @@ type GitGraphTallRowProps = Omit<React.HTMLAttributes<HTMLDivElement>, 'onSelect
   dimmed?: boolean
   /** Just jumped to: outlined for a moment. */
   flashing?: boolean
-  laneName?: string
   /** The line above the commit (its branch names), across every column but the graph. */
   top?: React.ReactNode
   /** The commit's own line: its message, or the Branches view's summary. */
@@ -102,7 +129,6 @@ export const GitGraphTallRow = React.forwardRef<HTMLDivElement, GitGraphTallRowP
       selected,
       dimmed,
       flashing,
-      laneName,
       top,
       main,
       mainClassName = 'py-1 leading-4',
@@ -167,7 +193,6 @@ export const GitGraphTallRow = React.forwardRef<HTMLDivElement, GitGraphTallRowP
         <div
           className="flex min-h-6 flex-col overflow-hidden pl-2"
           style={{ gridRow: lineRow, gridColumn: 1 }}
-          title={laneName ? `On ${laneName}` : undefined}
         >
           <GitGraphLanesSvg row={viewModel} />
           <GitGraphLaneFill lanes={viewModel.outputSwimlanes} className="-ml-2 flex-1" />

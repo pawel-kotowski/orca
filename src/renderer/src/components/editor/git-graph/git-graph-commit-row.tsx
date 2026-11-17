@@ -19,12 +19,19 @@ type GitGraphCommitRowProps = Omit<React.HTMLAttributes<HTMLDivElement>, 'onSele
   density: GitGraphDensity
   selected: boolean
   flashing: boolean
+  /** Merges highlighted: this row is not one of them, so it fades. */
+  faded?: boolean
+  /** Several names on this commit show as one and +N until the +N is clicked. */
+  stackNames?: boolean
   focusedBranch: string | null
   laneName?: string
   currentRefId?: string
   /** Branches view: what the row stands for, and the name of the branch a merge took in. */
   segments?: GitGraphSegment[]
   mergedName?: string
+  /** Branches view: the branches whose lines leave this commit. */
+  starts?: string[]
+  pinned?: string[]
   onSelect: () => void
   onOpen: () => void
   onFocusBranch: (name: string) => void
@@ -38,24 +45,30 @@ export const GitGraphCommitRow = React.forwardRef<HTMLDivElement, GitGraphCommit
       density,
       selected,
       flashing,
+      faded,
+      stackNames,
       focusedBranch,
       laneName,
       currentRefId,
       segments,
       mergedName,
+      starts,
+      pinned,
       onFocusBranch,
       ...rowProps
     },
     ref
   ): React.JSX.Element {
     const item = viewModel.historyItem
+    const [expanded, setExpanded] = React.useState(false)
     const groups = groupGitGraphRefs(item.references ?? [], currentRefId)
     // Following a branch is a Detailed and Compact thing; Branches rows open their commits.
     const dimmed =
-      density !== 'branches' &&
-      !!focusedBranch &&
-      laneName !== focusedBranch &&
-      !groups.some((group) => group.name === focusedBranch)
+      !!faded ||
+      (density !== 'branches' &&
+        !!focusedBranch &&
+        laneName !== focusedBranch &&
+        !groups.some((group) => group.name === focusedBranch))
     if (density === 'compact') {
       return (
         <GitGraphRow
@@ -76,7 +89,15 @@ export const GitGraphCommitRow = React.forwardRef<HTMLDivElement, GitGraphCommit
       )
     }
     const branches = density === 'branches'
-    const chips = groups.map((group) => (
+    // Stacked: the name that matters here leads (the current branch, else this line's own
+    // branch), the rest wait behind "+N".
+    const lead =
+      groups.find((group) => group.isHead) ??
+      groups.find((group) => group.name === laneName) ??
+      groups[0]
+    const stacked = !!stackNames && !expanded && groups.length > 1 && lead
+    const shownGroups = stacked ? [lead] : groups
+    const chips = shownGroups.map((group) => (
       <GitGraphRefChip
         key={group.key}
         group={group}
@@ -87,6 +108,23 @@ export const GitGraphCommitRow = React.forwardRef<HTMLDivElement, GitGraphCommit
         onFocusBranch={branches ? undefined : onFocusBranch}
       />
     ))
+    if (stacked) {
+      const others = groups.filter((group) => group !== lead)
+      chips.push(
+        <button
+          key="more"
+          type="button"
+          title={`Also here:\n${others.map((group) => (group.remote ? `${group.remote}/` : '') + group.name).join('\n')}\nClick: show them`}
+          className="rounded-md border border-dashed border-border px-1.5 text-[11px] leading-[18px] text-muted-foreground tabular-nums hover:border-ring hover:text-foreground"
+          onClick={(event) => {
+            event.stopPropagation()
+            setExpanded(true)
+          }}
+        >
+          +{others.length}
+        </button>
+      )
+    }
     let main: React.ReactNode = (
       <span className="break-words whitespace-pre-wrap" title={item.message || item.subject}>
         {item.subject}
@@ -100,6 +138,8 @@ export const GitGraphCommitRow = React.forwardRef<HTMLDivElement, GitGraphCommit
             row={viewModel}
             laneName={laneName}
             mergedName={mergedName}
+            starts={starts ?? []}
+            pinned={pinned ?? []}
             segments={segments ?? []}
             hasRefs={groups.length > 0}
           />
@@ -116,7 +156,6 @@ export const GitGraphCommitRow = React.forwardRef<HTMLDivElement, GitGraphCommit
         selected={selected}
         dimmed={dimmed}
         flashing={flashing}
-        laneName={laneName}
         top={density === 'detailed' && chips.length > 0 ? chips : undefined}
         main={main}
         // A Branches row leads with 20px name chips: 2px above them puts their middle on the node.

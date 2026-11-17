@@ -25,6 +25,8 @@ import type { GitGraphDensity } from './git-graph-toolbar'
 
 export type GitGraphRows = {
   rows: GitGraphLaneRow[]
+  /** The pinned branches, leftmost first. */
+  pinned: string[]
   laneNames: Map<string, string>
   itemById: Map<string, GitHistoryItem>
   authorHues: Map<string, number>
@@ -36,6 +38,8 @@ export type GitGraphRows = {
   /** Branches view: the commits each row stands for, and the branch a merge took in. */
   segmentsOf: (row: GitGraphLaneRow) => GitGraphSegment[]
   mergedNameOf: (row: GitGraphLaneRow) => string | undefined
+  /** Branches view: the branches whose lines leave this commit (a fork point's own story). */
+  startsOf: (row: GitGraphLaneRow) => string[]
   /** Branches view: the row a folded commit belongs to. */
   rowOf: Map<string, string>
   graphWidth: number
@@ -115,17 +119,34 @@ export function useGitGraphRows({
       ),
     [rows]
   )
+  const childrenOf = useMemo(() => {
+    const children = new Map<string, string[]>()
+    for (const item of items) {
+      for (const parent of item.parentIds) {
+        children.set(parent, [...(children.get(parent) ?? []), item.id])
+      }
+    }
+    return children
+  }, [items])
+  const startsOf = (row: GitGraphLaneRow): string[] => {
+    const own = laneNames.get(row.historyItem.id)
+    const names = (childrenOf.get(row.historyItem.id) ?? [])
+      .map((child) => laneNames.get(child))
+      .filter((name): name is string => !!name && name !== own)
+    return [...new Set(names)]
+  }
   const mergedNameOf = (row: GitGraphLaneRow): string | undefined => {
     const merged = row.historyItem.parentIds[1]
     if (!merged) {
       return undefined
     }
     // The first commit the merge took in carries the merged branch's name.
-    const firstIn = outline?.foldedByEdge.get(gitGraphEdgeKey(row.historyItem.id, merged))?.[0]
+    const firstIn = outline?.foldedByEdge.get(gitGraphEdgeKey(row.historyItem.id, 1))?.[0]
     return gitGraphMergedBranchName(row.historyItem.subject) ?? laneNames.get(firstIn ?? merged)
   }
   return {
     rows,
+    pinned,
     laneNames,
     itemById,
     authorHues,
@@ -140,6 +161,7 @@ export function useGitGraphRows({
         mergedNameOf(row)
       ),
     mergedNameOf,
+    startsOf,
     rowOf,
     graphWidth
   }

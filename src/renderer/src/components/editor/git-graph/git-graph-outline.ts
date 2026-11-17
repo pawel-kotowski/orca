@@ -6,12 +6,15 @@ import type { GitHistoryItem } from '../../../../../shared/git/history/git-histo
 
 export type GitGraphOutline = {
   items: GitHistoryItem[]
-  /** Commits folded into the line from a kept commit to its parent, newest first, keyed `child>parent`. */
+  /**
+   * Commits folded into the line from a kept commit to its parent, newest first, keyed
+   * `child>parent index`: a merge whose two lines fold down to the same commit has two edges.
+   */
   foldedByEdge: Map<string, string[]>
 }
 
-export function gitGraphEdgeKey(childId: string, parentId: string): string {
-  return `${childId}>${parentId}`
+export function gitGraphEdgeKey(childId: string, parentIndex: number): string {
+  return `${childId}>${parentIndex}`
 }
 
 export function outlineGitGraphItems(
@@ -42,8 +45,10 @@ export function outlineGitGraphItems(
     if (!keptIds.has(item.id)) {
       continue
     }
-    const parentIds: string[] = []
-    for (const parent of item.parentIds) {
+    // Every parent stays, even when two lines fold down to the same commit: a short PR merged
+    // with a merge commit is still a merge (a bubble), not a plain commit (Paweł, 2026-11-17:
+    // three PR merges read "fork on main" once their one-commit branches had folded away).
+    const parentIds = item.parentIds.map((parent, index) => {
       // A folded commit has exactly one parent and one child, so its line is a plain chain.
       let id = parent
       const folded: string[] = []
@@ -53,11 +58,9 @@ export function outlineGitGraphItems(
         id = next.parentIds[0]!
         next = byId.get(id)
       }
-      if (!parentIds.includes(id)) {
-        parentIds.push(id)
-        foldedByEdge.set(gitGraphEdgeKey(item.id, id), folded)
-      }
-    }
+      foldedByEdge.set(gitGraphEdgeKey(item.id, index), folded)
+      return id
+    })
     outlined.push({ ...item, parentIds })
   }
   return { items: outlined, foldedByEdge }

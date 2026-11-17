@@ -140,8 +140,7 @@ function JumpButton({
 }
 
 export function GitGraphToolbar({
-  branchSelect,
-  laneOrder,
+  controls,
   density,
   onDensity,
   zoom,
@@ -164,10 +163,8 @@ export function GitGraphToolbar({
   commitCount,
   hasMore
 }: {
-  /** Which branches are drawn (GitGraphBranchSelect). */
-  branchSelect: React.ReactNode
-  /** Which branches sit leftmost (GitGraphLaneOrder). */
-  laneOrder: React.ReactNode
+  /** Which branches are drawn and how (GitGraphShapeControls). */
+  controls: React.ReactNode
   density: GitGraphDensity
   onDensity: (value: GitGraphDensity) => void
   zoom: number
@@ -198,7 +195,6 @@ export function GitGraphToolbar({
         <span className="shrink-0 text-sm font-semibold whitespace-nowrap">
           {translate('local.gitGraph.title', 'Git Graph')}
         </span>
-        {branchSelect}
         <Segmented
           value={density}
           onChange={onDensity}
@@ -216,7 +212,7 @@ export function GitGraphToolbar({
             }
           ]}
         />
-        {laneOrder}
+        {controls}
         <div className="ml-auto flex shrink-0 items-center gap-1">
           <Button
             variant="ghost"

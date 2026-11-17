@@ -23,11 +23,11 @@ export function gitGraphSegments(
   const segments: GitGraphSegment[] = [
     {
       title: laneName ? `On ${laneName}` : 'On this line',
-      ids: [item.id, ...(first ? (foldedByEdge.get(gitGraphEdgeKey(item.id, first)) ?? []) : [])]
+      ids: [item.id, ...(first ? (foldedByEdge.get(gitGraphEdgeKey(item.id, 0)) ?? []) : [])]
     }
   ]
-  merged.forEach((parent, index) => {
-    const ids = foldedByEdge.get(gitGraphEdgeKey(item.id, parent)) ?? []
+  merged.forEach((_parent, index) => {
+    const ids = foldedByEdge.get(gitGraphEdgeKey(item.id, index + 1)) ?? []
     if (ids.length > 0) {
       segments.push({
         title: `Merged in${index === 0 && mergedName ? ` from ${mergedName}` : ''}`,

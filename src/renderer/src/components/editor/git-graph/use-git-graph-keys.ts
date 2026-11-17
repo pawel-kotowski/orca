@@ -1,6 +1,7 @@
 // Local (glass build): keys in the Git Graph list. ↑/↓ move the selection; h, m and d jump to
 // HEAD, main and development; b switches the Branches view on and off, v cycles the three views;
-// / goes to Find; Esc stops following a branch, then closes the selected commit.
+// n and Shift+N step through highlighted merges; / goes to Find; Esc drops the merge highlight,
+// then stops following a branch, then closes the selected commit.
 import type React from 'react'
 import type { GitGraphDensity } from './git-graph-toolbar'
 import type { GitGraphJumpTarget } from './use-git-graph-jump'
@@ -12,6 +13,7 @@ export function useGitGraphKeys({
   setDensity,
   jumps,
   moveSelection,
+  onNextMark,
   onEscape
 }: {
   density: GitGraphDensity
@@ -23,10 +25,16 @@ export function useGitGraphKeys({
     jump: (target: GitGraphJumpTarget) => void
   }
   moveSelection: (step: number) => void
+  onNextMark: (step: 1 | -1) => void
   onEscape: () => void
 }): (event: React.KeyboardEvent<HTMLDivElement>) => void {
   return (event) => {
     if (event.metaKey || event.ctrlKey || event.altKey) {
+      return
+    }
+    if (event.key === 'n' || event.key === 'N') {
+      event.preventDefault()
+      onNextMark(event.shiftKey ? -1 : 1)
       return
     }
     const jumpTo = (target?: GitGraphJumpTarget): void => {

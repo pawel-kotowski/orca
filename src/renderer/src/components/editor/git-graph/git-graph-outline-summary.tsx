@@ -1,6 +1,8 @@
 // Local (glass build): what a Branches-view row says instead of a commit message (Paweł,
 // 2026-11-17: "an easy way to see just branches without commit messages to understand the big
-// merging picture"). A merge names the branch it took in, a fork point the line it is on, and a
+// merging picture"). A merge names the branch it took in, a fork point the branches that start
+// there (or nothing, when no name is known: Paweł, 2026-11-17, of "fork on main" three times
+// running, "what does it even mean, is it necessary?"; the line already says it is main), and a
 // quiet number says how many commits the row stands for ("the number of commits could stay
 // visible always ... but not with word commits - it repeats too much"). Nothing here is a button:
 // the whole row opens its commits.
@@ -11,6 +13,7 @@ import { graphColor } from '@/components/right-sidebar/source-control/sync/git-h
 import type { GitGraphLaneRow } from './git-graph-branch-layout'
 import { useGitGraphBranchColour } from './git-graph-branch-colour-context'
 import type { GitGraphSegment } from './git-graph-segment-commits'
+import { gitGraphMergedPullRequest } from './git-graph-lane-names'
 
 export function GitGraphCount({
   count,
@@ -54,20 +57,27 @@ export function GitGraphOutlineSummary({
   row,
   laneName,
   mergedName,
+  starts,
+  pinned,
   segments,
   hasRefs
 }: {
   row: GitGraphLaneRow
   laneName?: string
   mergedName?: string
+  starts: string[]
+  /** A merge into a pinned branch needs no "into": its line already says so. */
+  pinned: string[]
   segments: GitGraphSegment[]
   hasRefs: boolean
 }): React.JSX.Element {
   const branchColour = useGitGraphBranchColour()
   const merged = row.historyItem.parentIds.length > 1
+  // The merged line's lane: the last one to that parent (a short PR's line ends where main's does).
   const mergedColor = merged
-    ? row.outputSwimlanes.find((lane) => lane.id === row.historyItem.parentIds[1])?.color
+    ? row.outputSwimlanes.findLast((lane) => lane.id === row.historyItem.parentIds[1])?.color
     : undefined
+  const pullRequest = merged ? gitGraphMergedPullRequest(row.historyItem.subject) : undefined
   const [own, ...mergedIn] = segments
   const mergedCount = mergedIn.reduce((sum, segment) => sum + segment.ids.length, 0)
   return (
@@ -79,28 +89,26 @@ export function GitGraphOutlineSummary({
           {mergedName ? (
             <BranchName name={mergedName} color={branchColour(mergedName, mergedColor)} />
           ) : (
-            'a branch'
+            (pullRequest ?? 'a branch')
           )}
+          {mergedName && pullRequest && <span>{pullRequest}</span>}
           {mergedCount > 0 && (
             <GitGraphCount count={mergedCount} title={`${mergedCount} commits merged in`} />
           )}
-          {laneName && !hasRefs && (
+          {laneName && !hasRefs && !pinned.includes(laneName) && (
             <>
               into <BranchName name={laneName} color={row.nodeColor} />
             </>
           )}
         </span>
       )}
-      {!merged && !hasRefs && (
-        <span className="inline-flex items-center gap-1">
+      {!merged && !hasRefs && starts.length > 0 && (
+        <span className="inline-flex flex-wrap items-center gap-1">
           <GitFork className="size-3.5 shrink-0" />
-          {laneName ? (
-            <>
-              fork on <BranchName name={laneName} color={row.nodeColor} />
-            </>
-          ) : (
-            'fork point'
-          )}
+          start of
+          {starts.map((name) => (
+            <BranchName key={name} name={name} color={branchColour(name)} />
+          ))}
         </span>
       )}
       {/* A lone commit needs no count: a "1" on every stacked branch is noise. */}

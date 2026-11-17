@@ -54,6 +54,13 @@ export function gitGraphMergedBranchName(subject: string): string | undefined {
   return gitlab?.[1]
 }
 
+/** A merge's pull request, when its message ends the way GitHub writes it: "… (#5137)". */
+export function gitGraphMergedPullRequest(subject: string): string | undefined {
+  const number =
+    /\(#(\d+)\)\s*$/.exec(subject)?.[1] ?? /^Merge pull request #(\d+)/.exec(subject)?.[1]
+  return number ? `#${number}` : undefined
+}
+
 /** The branch a merge went into, when its message says ("… into 'main'"). */
 export function gitGraphMergeTargetName(subject: string): string | undefined {
   return / into '?([^'\s]+)'?\s*$/.exec(subject)?.[1]
