@@ -5,6 +5,7 @@ import {
   AgentShowTourStageRequest,
   AgentShowUiRequest
 } from '../../../../shared/agent-show/agent-show-contract'
+import { isShowOwnerTab } from '../agent-show-owner-tab'
 
 const LineMark = z.object({
   mark: z.string(),
@@ -87,9 +88,7 @@ export function restorableShows(
   tabsByWorktree: Readonly<Record<string, readonly { id: string; entityId: string }[] | undefined>>
 ): OwnerShowSnapshot[] {
   return owners.filter((owner) =>
-    (tabsByWorktree[owner.worktreeId] ?? []).some(
-      (tab) => tab.id === owner.ownerTabId || tab.entityId === owner.ownerTabId
-    )
+    (tabsByWorktree[owner.worktreeId] ?? []).some((tab) => isShowOwnerTab(tab, owner.ownerTabId))
   )
 }
 
