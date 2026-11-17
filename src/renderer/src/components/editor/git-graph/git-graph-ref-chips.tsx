@@ -111,8 +111,11 @@ export function GitGraphRefChip({
           style={{ background: laneColor ? graphColor(laneColor) : 'var(--muted-foreground)' }}
         />
       )}
-      {group.remote && <span className="text-muted-foreground">{group.remote}/</span>}
-      <span className="break-all">{group.name}</span>
+      {/* One piece: a flex gap between remote and name read as "origin/ x". */}
+      <span className="break-all">
+        {group.remote && <span className="text-muted-foreground">{group.remote}/</span>}
+        {group.name}
+      </span>
       {group.isHead && (
         <span className="rounded-sm bg-foreground/10 px-1 text-[9.5px] font-semibold tracking-wide">
           HEAD

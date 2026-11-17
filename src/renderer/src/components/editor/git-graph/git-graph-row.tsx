@@ -24,8 +24,9 @@ import {
 
 export const GIT_GRAPH_ROW_HEIGHT = 24
 
+// Narrow ("46m ago", "3h ago") so the date fits a narrow column; the full date is its tooltip.
 const relativeTime = (): Intl.RelativeTimeFormat =>
-  new Intl.RelativeTimeFormat(getIntlLocale(), { numeric: 'auto' })
+  new Intl.RelativeTimeFormat(getIntlLocale(), { numeric: 'auto', style: 'narrow' })
 const RELATIVE_STEPS: [Intl.RelativeTimeFormatUnit, number][] = [
   ['year', 365 * 24 * 3600],
   ['month', 30 * 24 * 3600],

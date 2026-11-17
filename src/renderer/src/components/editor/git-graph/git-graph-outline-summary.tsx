@@ -4,7 +4,7 @@
 // commits came with it; a fork point names the line it is on. "+N commits" opens those commits in
 // the Detailed view.
 import React from 'react'
-import { GitFork, GitMerge } from 'lucide-react'
+import { ChevronsDown, GitFork, GitMerge } from 'lucide-react'
 import type { GitHistoryItemViewModel } from '../../../../../shared/git/history/git-history-graph'
 import type { GitHistoryGraphColorId } from '../../../../../shared/git/history/git-history-types'
 import { graphColor } from '@/components/right-sidebar/source-control/sync/git-history-graph-svg'
@@ -84,14 +84,15 @@ export function GitGraphOutlineSummary({
       {below > 0 && (
         <button
           type="button"
-          className="rounded px-1 tabular-nums hover:bg-accent hover:text-foreground"
-          title="Show these commits in the Detailed view"
+          className="inline-flex items-center gap-0.5 rounded border border-dashed border-border px-1.5 tabular-nums hover:border-ring hover:bg-accent hover:text-foreground"
+          title={`${plural(below)} further down this line before its next branch point. Click: show them in the Detailed view`}
           onClick={(event) => {
             event.stopPropagation()
             onShowCommits()
           }}
         >
-          +{plural(below)}
+          <ChevronsDown className="size-3" />
+          {plural(below)}
         </button>
       )}
     </span>

@@ -124,7 +124,7 @@ function JumpButton({
       type="button"
       title={`Go to ${target.label} (key ${keyHint})`}
       className={cn(
-        'inline-flex h-6 max-w-[18rem] min-w-0 items-center gap-1.5 rounded-md border border-border px-2 text-xs hover:border-ring hover:bg-accent',
+        'inline-flex min-h-6 max-w-full min-w-0 items-center gap-1.5 rounded-md border border-border px-2 py-0.5 text-left text-xs hover:border-ring hover:bg-accent',
         busy && 'animate-pulse'
       )}
       onClick={() => onJump(target)}
@@ -134,7 +134,7 @@ function JumpButton({
           {hint}
         </span>
       )}
-      <span className="truncate font-medium">{target.label}</span>
+      <span className="font-medium break-all">{target.label}</span>
     </button>
   )
 }
