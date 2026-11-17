@@ -16,7 +16,13 @@ export type AgentShowLoadedTour = TourPayload & {
   notes: string[]
 }
 
-export type AgentShowTourList = { tours: (AgentShowLoadedTour & { modifiedAt: number })[] }
+export type AgentShowTourList = {
+  tours: (AgentShowLoadedTour & {
+    modifiedAt: number
+    /** A hash of the file's text, so the panel shows one copy of a tour every workspace has. */
+    contentHash?: string
+  })[]
+}
 
 /** What `--stamp` writes: the commit, and the files that differ from it on disk right now. */
 export type AgentShowTourStampInfo = {

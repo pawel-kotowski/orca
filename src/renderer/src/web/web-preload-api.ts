@@ -114,7 +114,11 @@ function createWebPreloadApi(): Omit<Partial<PreloadApi>, 'settings' | 'plugins'
         }))
     },
     // Desktop only: a web client has no main process to run `orca show` in it.
-    agentShow: { onRequest: () => () => {}, reply: () => {} },
+    agentShow: {
+      onRequest: () => () => {},
+      reply: () => {},
+      captureWindow: () => Promise.reject(new Error('renderer_unavailable'))
+    },
     memory: {
       getSnapshot: () => Promise.resolve(createEmptyMemorySnapshot()),
       // Browser pages have no native-window veto; document visibility owns admission.

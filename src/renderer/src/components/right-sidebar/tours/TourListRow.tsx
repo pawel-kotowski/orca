@@ -75,6 +75,20 @@ function StampedTime({ tour }: { tour: ListedTour }): React.JSX.Element | null {
   )
 }
 
+/** The other workspaces with this same tour; it plays in the one it is listed under. */
+function AlsoIn({ workspaces }: { workspaces: string[] }): React.JSX.Element {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="shrink-0 text-2xs text-muted-foreground">also in {workspaces.length}</span>
+      </TooltipTrigger>
+      <TooltipContent side="top" sideOffset={4}>
+        The same tour is in {workspaces.join(', ')}
+      </TooltipContent>
+    </Tooltip>
+  )
+}
+
 /** One tour: click plays it from step 1; the chevron lists its steps, each playable. */
 export function TourListRow({
   tour,
@@ -112,6 +126,7 @@ export function TourListRow({
             {tour.steps.length} {tour.steps.length === 1 ? 'step' : 'steps'}
           </span>
         </button>
+        {tour.alsoIn?.length ? <AlsoIn workspaces={tour.alsoIn} /> : null}
         <StampedTime tour={tour} />
         <StateText {...state} />
       </div>

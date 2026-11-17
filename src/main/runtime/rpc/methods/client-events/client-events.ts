@@ -10,6 +10,8 @@ import {
 } from '../../../../../shared/rpc-contract/client-events-params'
 import { BROWSER_CLIENT_HOST_REQUEST_CAPABILITY } from '../../../../../shared/browser/client-hosting/browser-client-host-request-protocol'
 import { getBrowserHostRequestRegistry } from '../../../browser-host/leases/browser-host-request-registry'
+import { AGENT_SHOW_CLIENT_RELAY_CAPABILITY } from '../../../../../shared/agent-show/agent-show-client-relay'
+import { getAgentShowClientRelayRegistry } from '../../../../agent-show/relay/agent-show-client-relay-registry'
 import {
   STRUCTURED_CHAT_START_TELEMETRY_CLIENT_CAPABILITY,
   STRUCTURED_CHAT_PROMPT_TELEMETRY_CLIENT_CAPABILITY
@@ -41,6 +43,14 @@ export const CLIENT_EVENT_METHODS = [
           clientCapabilities?.includes(BROWSER_CLIENT_HOST_REQUEST_CAPABILITY)
             ? getBrowserHostRequestRegistry(runtime).register({ pairedDeviceId, emit })
             : undefined
+        // A windowless server shows `orca show` in this desktop's window (its renderer answers).
+        const unregisterShowVolunteer =
+          params.agentShowRequests === true &&
+          clientKind === 'runtime' &&
+          pairedDeviceId &&
+          clientCapabilities?.includes(AGENT_SHOW_CLIENT_RELAY_CAPABILITY)
+            ? getAgentShowClientRelayRegistry(runtime).register({ pairedDeviceId, emit })
+            : undefined
         const readsStarts = clientCapabilities?.includes(
           STRUCTURED_CHAT_START_TELEMETRY_CLIENT_CAPABILITY
         )
@@ -67,6 +77,7 @@ export const CLIENT_EVENT_METHODS = [
           () => {
             unsubscribe()
             unregisterHostVolunteer?.()
+            unregisterShowVolunteer?.()
             unsubscribeTelemetry?.()
             emit({ type: 'end' })
             resolve()

@@ -7,7 +7,7 @@ const PATH_NOTE =
 const OWNER_NOTE =
   "Marks belong to the agent's tab (ORCA_TAB_ID), so `orca show clear` removes only your own. Showing brings the user to it; --no-focus leaves the view alone."
 const NO_WINDOW_NOTE =
-  'A server with no app window (`orca serve`) cannot show anything, so this fails with renderer_unavailable.'
+  'On a server with no app window (`orca serve`), this shows in a connected Orca desktop window that shows the workspace; with none connected it fails with renderer_unavailable.'
 
 export const SHOW_COMMAND_SPECS: CommandSpec[] = [
   {
