@@ -63,13 +63,13 @@ export function GitGraphBranchFrame({
     <div data-git-graph-branch-frame className="relative isolate">
       <div
         aria-hidden
-        className="pointer-events-none absolute -z-10 rounded-lg opacity-[0.06]"
+        className="pointer-events-none absolute -z-10 rounded-lg opacity-[0.09]"
         style={{ ...inset, background: graphColor(color) }}
       />
       {children}
       <div
         aria-hidden
-        className="pointer-events-none absolute rounded-lg border opacity-55"
+        className="pointer-events-none absolute rounded-lg border opacity-80"
         style={{ ...inset, borderColor: graphColor(color) }}
       />
     </div>

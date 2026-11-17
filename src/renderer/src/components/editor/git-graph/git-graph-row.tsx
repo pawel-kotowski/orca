@@ -92,7 +92,7 @@ export function GitGraphRefBadge({
       title={itemRef.category ? `${itemRef.name} (${itemRef.category})` : itemRef.name}
       className={cn(
         'inline-flex max-w-[14rem] min-w-0 shrink items-center gap-1 rounded-full border border-border/70 px-1.5 text-[10.5px] leading-4',
-        isHead ? 'font-medium text-foreground' : 'text-muted-foreground'
+        isHead ? 'font-medium text-foreground' : 'text-foreground/80'
       )}
     >
       {itemRef.category === 'tags' ? (
@@ -175,7 +175,7 @@ export const GitGraphRow = React.forwardRef<HTMLDivElement, GitGraphRowProps>(fu
       )}
       {layout.date && (
         <span
-          className="truncate text-muted-foreground"
+          className="truncate text-foreground/70"
           title={
             item.timestamp ? new Date(item.timestamp).toLocaleString(getIntlLocale()) : undefined
           }
@@ -184,7 +184,7 @@ export const GitGraphRow = React.forwardRef<HTMLDivElement, GitGraphRowProps>(fu
         </span>
       )}
       {layout.commit && (
-        <span className="truncate font-mono text-muted-foreground">
+        <span className="truncate font-mono text-foreground/70">
           {isBoundary ? '' : (item.displayId ?? item.id.slice(0, 7))}
         </span>
       )}
@@ -222,7 +222,7 @@ export function GitGraphHeaderRow({
   )
   const header = (
     <div
-      className="grid shrink-0 gap-x-3 border-b border-border pr-3 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase select-none"
+      className="grid shrink-0 gap-x-3 border-b border-border pr-3 text-[11px] font-semibold tracking-wide text-foreground/60 uppercase select-none"
       style={{ gridTemplateColumns: layout.template }}
       title={onToggleColumn ? 'Right-click: choose columns' : undefined}
     >

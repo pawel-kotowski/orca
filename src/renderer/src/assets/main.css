@@ -4068,10 +4068,10 @@ body:has([data-contextual-tour-target='tab-create-menu'][data-state='open'])
    authors in different colors"). The hue comes from the author (gitGraphAuthorHue); lightness and
    chroma follow the theme so every hue reads on its background. */
 [data-git-graph-author] {
-  color: oklch(0.5 0.13 var(--git-graph-author-hue, 0));
+  color: oklch(0.47 0.14 var(--git-graph-author-hue, 0));
 }
 .dark [data-git-graph-author] {
-  color: oklch(0.78 0.1 var(--git-graph-author-hue, 0));
+  color: oklch(0.83 0.12 var(--git-graph-author-hue, 0));
 }
 
 /* Local (glass build): the classic Git Graph colours each branch's lane by the branch

@@ -145,7 +145,7 @@ export const GitGraphTallRow = React.forwardRef<HTMLDivElement, GitGraphTallRowP
     // Author, date and hash sit level with the message's first line (24px tall, like the node).
     const meta = (column: number, content: React.ReactNode, extra?: string, title?: string) => (
       <span
-        className={cn('self-start truncate leading-6 text-muted-foreground', extra)}
+        className={cn('self-start truncate leading-6 text-foreground/70', extra)}
         style={{ gridRow: lineRow, gridColumn: column }}
         title={title}
       >

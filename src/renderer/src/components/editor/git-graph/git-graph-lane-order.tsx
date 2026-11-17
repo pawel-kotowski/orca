@@ -50,7 +50,7 @@ export function GitGraphLaneOrder({
         <Button
           variant="ghost"
           size="xs"
-          className="max-w-[24rem] gap-1 text-muted-foreground"
+          className="max-w-[24rem] gap-1 text-foreground/75"
           title="Branches pinned to the left of the graph, in order"
         >
           <Columns3 className="size-3.5 shrink-0" />

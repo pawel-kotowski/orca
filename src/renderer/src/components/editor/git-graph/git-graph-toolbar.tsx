@@ -1,4 +1,5 @@
-// Local (glass build): the Git Graph tab's two toolbar lines. The first sets what the graph shows:
+// Local (glass build): the Git Graph tab's two toolbar lines (Paweł, 2026-11-17: "top panel is not
+// used well, zoom control takes whole row": zoom and refresh share the second line). The first sets what the graph shows:
 // which branches (all until some are unticked), which sit leftmost, how each commit reads (Detailed: full messages and branch names; Compact: one
 // line each; Branches: only tips, merges and fork points), text size, refresh. The second moves
 // around it: HEAD, main and development one click away (keys h, m, d), any branch by name, the
@@ -213,40 +214,9 @@ export function GitGraphToolbar({
           ]}
         />
         {controls}
-        <div className="ml-auto flex shrink-0 items-center gap-1">
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            aria-label={translate('local.gitGraph.smaller', 'Smaller text')}
-            disabled={zoom <= GIT_GRAPH_ZOOM_STEPS[0]!}
-            onClick={() => onZoom(-1)}
-          >
-            <Minus className="size-3.5" />
-          </Button>
-          <span className="w-9 text-center text-xs tabular-nums text-muted-foreground">
-            {Math.round(zoom * 100)}%
-          </span>
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            aria-label={translate('local.gitGraph.larger', 'Larger text')}
-            disabled={zoom >= GIT_GRAPH_ZOOM_STEPS.at(-1)!}
-            onClick={() => onZoom(1)}
-          >
-            <Plus className="size-3.5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            aria-label={translate('local.gitGraph.refresh', 'Refresh')}
-            onClick={onRefresh}
-          >
-            <RefreshCw className={cn('size-3.5', loading && 'animate-spin')} />
-          </Button>
-        </div>
       </div>
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 px-3 pb-1.5">
-        <span className="text-xs text-muted-foreground">Go to</span>
+        <span className="text-xs text-foreground/70">Go to</span>
         <JumpButton target={head} hint="HEAD" keyHint="h" onJump={onJump} busy={busy(head)} />
         <JumpButton target={main} keyHint="m" onJump={onJump} busy={busy(main)} />
         <JumpButton target={develop} keyHint="d" onJump={onJump} busy={busy(develop)} />
@@ -279,7 +249,7 @@ export function GitGraphToolbar({
         )}
         <div className="ml-auto flex min-w-0 items-center gap-2">
           <div className="flex h-6 min-w-0 items-center gap-1 rounded-md border border-border px-1.5">
-            <Search className="size-3 text-muted-foreground" />
+            <Search className="size-3 text-foreground/60" />
             <input
               value={query}
               onChange={(event) => onQuery(event.target.value)}
@@ -294,10 +264,41 @@ export function GitGraphToolbar({
               className="w-32 min-w-0 bg-transparent text-xs outline-none placeholder:text-muted-foreground lg:w-56"
             />
           </div>
-          <span className="text-xs whitespace-nowrap text-muted-foreground tabular-nums">
+          <span className="text-xs whitespace-nowrap text-foreground/70 tabular-nums">
             {commitCount}
             {hasMore ? '+' : ''} commits
           </span>
+          <div className="flex shrink-0 items-center">
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              aria-label={translate('local.gitGraph.smaller', 'Smaller text')}
+              disabled={zoom <= GIT_GRAPH_ZOOM_STEPS[0]!}
+              onClick={() => onZoom(-1)}
+            >
+              <Minus className="size-3.5" />
+            </Button>
+            <span className="w-9 text-center text-xs tabular-nums text-foreground/70">
+              {Math.round(zoom * 100)}%
+            </span>
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              aria-label={translate('local.gitGraph.larger', 'Larger text')}
+              disabled={zoom >= GIT_GRAPH_ZOOM_STEPS.at(-1)!}
+              onClick={() => onZoom(1)}
+            >
+              <Plus className="size-3.5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              aria-label={translate('local.gitGraph.refresh', 'Refresh')}
+              onClick={onRefresh}
+            >
+              <RefreshCw className={cn('size-3.5', loading && 'animate-spin')} />
+            </Button>
+          </div>
         </div>
       </div>
     </div>

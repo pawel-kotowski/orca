@@ -13,7 +13,7 @@ const RADIUS = 3.5
 
 /** The current branch's line is drawn a little heavier, so it reads as "you are here". */
 export function gitGraphLaneStroke(color: string): number {
-  return color === 'git-graph-branch-head' ? 1.75 : 1
+  return color === 'git-graph-branch-head' ? 2.25 : 1.5
 }
 
 const x = (place: number): number => GIT_GRAPH_LANE_WIDTH * (place + 1)

@@ -56,7 +56,7 @@ function Toggle({
         'inline-flex h-6 items-center gap-1 rounded-md border px-2 text-xs whitespace-nowrap',
         on
           ? 'border-ring bg-accent text-accent-foreground'
-          : 'border-border text-muted-foreground hover:text-foreground'
+          : 'border-border text-foreground/75 hover:text-foreground'
       )}
       onClick={onClick}
     >
@@ -117,7 +117,7 @@ export function GitGraphShapeControls({
         onReset={onResetPinned}
       />
       {pinned.length > 0 && (
-        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+        <span className="inline-flex items-center gap-1 text-xs text-foreground/70">
           <GitMerge className="size-3.5" />
           Merges into
           {pinned.map((branch) => (
@@ -144,7 +144,7 @@ export function GitGraphShapeControls({
         onClick={onToggleStackNames}
       >
         <Layers className="size-3.5" />
-        Stack names
+        Stack
       </Toggle>
     </>
   )
