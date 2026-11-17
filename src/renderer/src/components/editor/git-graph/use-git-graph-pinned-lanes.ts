@@ -4,7 +4,10 @@
 // repo's main (main, master or trunk) and then its development branch (develop, development or
 // dev), whichever exist. An order set in the graph's Lanes menu is kept per project.
 import { useCallback, useMemo, useState } from 'react'
-import type { GitHistoryItemRef } from '../../../../../shared/git/history/git-history-types'
+import type {
+  GitHistoryItemRef,
+  GitHistoryRefs
+} from '../../../../../shared/git/history/git-history-types'
 import { gitGraphBranchName } from './git-graph-lane-names'
 
 const STORAGE_PREFIX = 'orca.gitGraph.pinnedLanes.'
@@ -18,6 +21,21 @@ export function defaultGitGraphPinnedLanes(refs: readonly GitHistoryItemRef[]): 
   return [MAIN_NAMES, DEVELOP_NAMES]
     .map((candidates) => candidates.find((name) => names.has(name)))
     .filter((name): name is string => !!name)
+}
+
+/** The pinned branches the repo has and the branch picker draws: each keeps its column from the top. */
+export function drawnGitGraphPinnedLanes(
+  pinned: readonly string[],
+  refs: readonly GitHistoryItemRef[],
+  refsFilter: GitHistoryRefs
+): string[] {
+  return pinned.filter((name) =>
+    refs.some(
+      (ref) =>
+        gitGraphBranchName(ref) === name &&
+        (refsFilter === 'all' || (Array.isArray(refsFilter) && refsFilter.includes(ref.id)))
+    )
+  )
 }
 
 function readSaved(key: string | null): string[] | null {

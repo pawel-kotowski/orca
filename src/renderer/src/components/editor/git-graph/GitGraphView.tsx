@@ -21,7 +21,7 @@ import { useGitGraphKeys } from './use-git-graph-keys'
 import { GitGraphAuthorHuesProvider } from './git-graph-author-color'
 import { GitGraphBranchColoursProvider } from './git-graph-branch-colour-context'
 import { gitGraphBranchName } from './git-graph-lane-names'
-import { useGitGraphPinnedLanes } from './use-git-graph-pinned-lanes'
+import { drawnGitGraphPinnedLanes, useGitGraphPinnedLanes } from './use-git-graph-pinned-lanes'
 import { GitGraphShapeControls, useGitGraphStackNames } from './git-graph-shape-controls'
 import {
   isGitGraphMergeInto,
@@ -33,6 +33,7 @@ import { useGitGraphRows } from './use-git-graph-rows'
 import { GitGraphList } from './git-graph-list'
 import { useGitGraphThemeColours } from './use-git-graph-theme-colours'
 import { useGitGraphFetch } from './use-git-graph-fetch'
+import { useGitGraphHoverGuard } from './use-git-graph-hover-guard'
 
 // Selection, scroll and the drawn branches survive the tab remounting (a split beside it moves
 // its group).
@@ -114,14 +115,7 @@ export function GitGraphView({ worktreeId }: { worktreeId: string }): React.JSX.
   const lanes = useGitGraphPinnedLanes(repoKey, refs)
   // A pinned branch the repo has and the branch picker draws keeps its column before it loads.
   const drawnPinned = useMemo(
-    () =>
-      lanes.pinned.filter((name) =>
-        refs.some(
-          (ref) =>
-            gitGraphBranchName(ref) === name &&
-            (refsFilter === 'all' || (Array.isArray(refsFilter) && refsFilter.includes(ref.id)))
-        )
-      ),
+    () => drawnGitGraphPinnedLanes(lanes.pinned, refs, refsFilter),
     [lanes.pinned, refs, refsFilter]
   )
   const model = useGitGraphRows({
@@ -273,8 +267,10 @@ export function GitGraphView({ worktreeId }: { worktreeId: string }): React.JSX.
 
   // Load the next page as the list nears its end.
   const { hasMore, loadMore } = history
+  const hoverGuard = useGitGraphHoverGuard()
   const onScroll = (event: React.UIEvent<HTMLDivElement>): void => {
     const el = event.currentTarget
+    hoverGuard.hideHover(el)
     const previous = viewByWorktree.get(worktreeId)
     viewByWorktree.set(worktreeId, {
       selectedId,
@@ -385,8 +381,10 @@ export function GitGraphView({ worktreeId }: { worktreeId: string }): React.JSX.
                   ref={listRef}
                   role="grid"
                   tabIndex={0}
+                  data-git-graph-list
                   className="min-h-0 flex-1 overflow-y-auto outline-none scrollbar-sleek"
                   onScroll={onScroll}
+                  onPointerMove={hoverGuard.onPointerMove}
                   onKeyDown={onKeyDown}
                 >
                   {history.error && (

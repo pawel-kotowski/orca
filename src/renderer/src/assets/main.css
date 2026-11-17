@@ -4105,3 +4105,9 @@ body:has([data-contextual-tour-target='tab-create-menu'][data-state='open'])
   --git-graph-branch-6: #ff7eb6;
   --git-graph-branch-7: #9d7cff;
 }
+
+/* Local (glass build): the Git Graph's hover, a subtle background across the whole row; off while
+   the list scrolls under a still pointer, back once the pointer moves (GitGraphView). */
+[data-git-graph-list]:not([data-git-graph-hover-off]) [data-git-graph-commit]:hover {
+  background: color-mix(in oklab, var(--foreground) 5%, transparent);
+}

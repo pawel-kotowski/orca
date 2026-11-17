@@ -28,14 +28,6 @@ import { GitGraphLanesSvg } from './git-graph-lanes-svg'
 
 export const GIT_GRAPH_ROW_HEIGHT = 24
 
-/**
- * A row under the pointer marks only its graph cell (GIT_GRAPH_HOVER_MARK), never the whole row:
- * a fill and then a frame around the row both read as noise (Paweł, 2026-11-17: "i still find
- * hover row selection annoying maybe just mark graph column as hovered").
- */
-export const GIT_GRAPH_HOVER_FRAME = 'group/row'
-export const GIT_GRAPH_HOVER_MARK = 'group-hover/row:bg-foreground/[0.08]'
-
 // Narrow ("46m ago", "3h ago") so the date fits a narrow column; the full date is its tooltip.
 const relativeTime = (): Intl.RelativeTimeFormat =>
   new Intl.RelativeTimeFormat(getIntlLocale(), { numeric: 'auto', style: 'narrow' })
@@ -140,9 +132,6 @@ export const GitGraphRow = React.forwardRef<HTMLDivElement, GitGraphRowProps>(fu
       data-git-graph-commit={item.id}
       className={cn(
         'grid cursor-default items-center gap-x-3 pr-3 text-xs',
-        // Hover and selection are frames, never fills (Paweł, 2026-11-17: the hover highlight was
-        // "annoying"); the selected commit's frame is GitGraphSelectionFrame.
-        !selected && GIT_GRAPH_HOVER_FRAME,
         isBoundary && 'text-muted-foreground italic',
         className
       )}
@@ -150,12 +139,7 @@ export const GitGraphRow = React.forwardRef<HTMLDivElement, GitGraphRowProps>(fu
       onClick={isBoundary ? undefined : onSelect}
       onDoubleClick={isBoundary ? undefined : onOpen}
     >
-      <div
-        className={cn(
-          'flex h-full items-stretch overflow-hidden rounded-md pl-2',
-          GIT_GRAPH_HOVER_MARK
-        )}
-      >
+      <div className="flex h-full items-stretch overflow-hidden pl-2">
         <GitGraphLanesSvg row={viewModel} />
       </div>
       {/* The subject always starts at the column's left edge (Paweł, 2026-11-15: "branch name
