@@ -22,7 +22,11 @@ export function fetchWorktreeTours(
   )
 }
 
-/** The file as it was at `commit`, as a read-only temp file this computer's editor can open. */
+/**
+ * The file as it was at `commit`, as a read-only file in this computer's temp folder: the
+ * worktree's host (this computer or a box) reads the text, this computer writes the copy, so
+ * local and remote workspaces open it the same way.
+ */
 export async function fetchTourSnapshot(
   worktreeId: string,
   worktreePath: string,
@@ -35,11 +39,5 @@ export async function fetchTourSnapshot(
     { worktree: toRuntimeWorktreeSelector(worktreeId), commit, path },
     { timeoutMs: TOURS_TIMEOUT_MS }
   )
-  return snapshot.filePath
-}
-
-/** "As it was" writes a temp file the editor must open, so it needs the worktree on this computer. */
-export function tourSnapshotsAvailable(worktreeId: string, worktreePath: string): boolean {
-  const context = buildWorkspaceFileContext(worktreeId, worktreePath)
-  return context.target.kind === 'local' && !context.connectionId
+  return window.api.agentShow.writeTourSnapshot(snapshot)
 }

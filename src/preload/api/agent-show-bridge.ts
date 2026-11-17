@@ -10,5 +10,6 @@ export const agentShowApi = {
     return () => ipcRenderer.removeListener('agentShow:request', listener)
   },
   reply: (reply) => ipcRenderer.send('agentShow:reply', reply),
-  captureWindow: () => ipcRenderer.invoke('agentShow:captureWindow')
+  captureWindow: () => ipcRenderer.invoke('agentShow:captureWindow'),
+  writeTourSnapshot: (snapshot) => ipcRenderer.invoke('agentShow:writeTourSnapshot', snapshot)
 } satisfies PreloadApi['agentShow']
