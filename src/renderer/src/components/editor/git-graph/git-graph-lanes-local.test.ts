@@ -302,7 +302,11 @@ describe('gitGraphPeople', () => {
       { author: 'Paweł Kotowski', authorEmail: 'pawel@home.example' },
       { author: 'maciejmajek', authorEmail: 'maciej@work.example' },
       { author: 'Maciej Majek', authorEmail: 'maciej@users.noreply.example' },
-      { author: 'Ann Lee', authorEmail: 'ann@work.example' }
+      { author: 'Ann Lee', authorEmail: 'ann@work.example' },
+      { author: 'Bartek Boczek', authorEmail: 'bartek@work.example' },
+      { author: 'Bartek Boczek', authorEmail: 'bartek@work.example' },
+      // GitHub's merge: the pull request author's name on the merger's address.
+      { author: 'Bartek Boczek', authorEmail: 'maciej@users.noreply.example' }
     ])
     const pawel = personOf('Paweł Kotowski', 'pawel@home.example')
     expect(personOf('Pawel Kotowski', 'pawel@work.example')).toBe(pawel)
@@ -310,5 +314,8 @@ describe('gitGraphPeople', () => {
       personOf('Maciej Majek', 'maciej@users.noreply.example')
     )
     expect(personOf('Ann Lee', 'ann@work.example')).not.toBe(pawel)
+    expect(personOf('Bartek Boczek', 'bartek@work.example')).not.toBe(
+      personOf('maciejmajek', 'maciej@work.example')
+    )
   })
 })

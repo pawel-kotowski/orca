@@ -30,7 +30,7 @@ export type GitGraphRows = {
   pinned: string[]
   laneNames: Map<string, string>
   itemById: Map<string, GitHistoryItem>
-  authorHues: Map<string, number>
+  authorHues: ReturnType<typeof gitGraphAuthorHues>
   /** A branch's lane colour, or undefined for a name no lane carries. */
   branchColour: (name: string) => GitHistoryGraphColorId | undefined
   /** Any branch's colour as the graph would give it (the Left lanes menu). */

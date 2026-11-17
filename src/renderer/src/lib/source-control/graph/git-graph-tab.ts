@@ -120,15 +120,17 @@ export function gitGraphUpdateMessage(worktreeId: string, t: Translate = transla
 export async function openGitGraph(
   worktreeId: string,
   // Lazy so a split is created only when a new tab actually opens.
-  resolveTargetGroupId?: () => string | undefined
-): Promise<void> {
+  resolveTargetGroupId?: () => string | undefined,
+  // Local (glass build): where in its group a restored tab goes back to (restore-git-graph-tabs.ts).
+  groupIndex?: number
+): Promise<boolean> {
   const supported = await probeGitGraphSupport(worktreeId)
   if (!supported) {
-    return
+    return false
   }
   const scope = gitGraphScope(worktreeId)
   if (!scope) {
-    return
+    return false
   }
   const state = useAppStore.getState()
   const existing = state.unifiedTabsByWorktree?.[worktreeId]?.find(
@@ -138,7 +140,7 @@ export async function openGitGraph(
   const label = translate('gitGraph.title', 'Git Graph')
   if (state.openFiles.some((file) => file.id === id)) {
     openWorkspaceEditorItem(state, id, worktreeId, label, 'git-graph')
-    return
+    return true
   }
   state.openFile(
     {
@@ -153,6 +155,12 @@ export async function openGitGraph(
       },
       mode: 'git-graph'
     },
-    { reopenId: id, preview: false, targetGroupId: resolveTargetGroupId?.() }
+    {
+      reopenId: id,
+      preview: false,
+      targetGroupId: resolveTargetGroupId?.(),
+      ...(groupIndex !== undefined ? { groupIndex } : {})
+    }
   )
+  return true
 }

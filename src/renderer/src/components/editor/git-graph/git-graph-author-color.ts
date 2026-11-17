@@ -21,75 +21,58 @@ export function gitGraphNameKey(name: string): string {
     .replace(/[^a-z0-9]/g, '')
 }
 
-function personKeys(author: string | undefined, email: string | undefined): string[] {
-  const keys: string[] = []
-  const mail = (email ?? '').trim().toLowerCase()
-  const name = author ? gitGraphNameKey(author) : ''
-  if (mail) {
-    keys.push(`e:${mail}`)
-  }
-  if (name) {
-    keys.push(`n:${name}`)
-  }
-  return keys
-}
-
 /**
- * Who is who among authors: two authors are one person when they share an email or a name (as
- * gitGraphNameKey compares it). Returns a person id per author, '' when it has neither.
+ * Who is who among authors. Each email belongs to the name it is used with most, and emails whose
+ * main names match are one person: "Paweł Kotowski" at work and at Gmail, "maciejmajek" and
+ * "Maciej Majek" at two addresses. A name seen once on another person's email (GitHub writes the
+ * pull request author's name on the merger's address) does not join the two: linking on any shared
+ * name or email once folded Bartek into Maciej through one such commit (2026-11-17). An author with
+ * no email is known by name. Returns a person id per author, '' when it has neither.
  */
 export function gitGraphPeople(
   authors: Iterable<{ author?: string; authorEmail?: string }>
 ): (author: string | undefined, email: string | undefined) => string {
-  const parent = new Map<string, string>()
-  const find = (key: string): string => {
-    let root = key
-    while (parent.get(root) !== root) {
-      root = parent.get(root)!
-    }
-    return root
-  }
+  const namesByEmail = new Map<string, Map<string, number>>()
   for (const { author, authorEmail } of authors) {
-    const keys = personKeys(author, authorEmail)
-    for (const key of keys) {
-      if (!parent.has(key)) {
-        parent.set(key, key)
-      }
-    }
-    if (keys.length === 2) {
-      const [a, b] = [find(keys[0]!), find(keys[1]!)]
-      if (a !== b) {
-        parent.set(b, a)
-      }
-    }
-  }
-  return (author, email) => {
-    const key = personKeys(author, email).find((k) => parent.has(k))
-    return key ? find(key) : ''
-  }
-}
-
-export function gitGraphAuthorHues(items: readonly GitHistoryItem[]): Map<string, number> {
-  const personOf = gitGraphPeople(items)
-  const byPerson = new Map<string, number>()
-  // Every key of a person (its emails, its names) maps to that person's hue.
-  const hues = new Map<string, number>()
-  for (const item of items) {
-    const person = personOf(item.author, item.authorEmail)
-    if (!person) {
+    const mail = (authorEmail ?? '').trim().toLowerCase()
+    const name = author ? gitGraphNameKey(author) : ''
+    if (!mail || !name) {
       continue
     }
-    if (!byPerson.has(person)) {
-      byPerson.set(person, HUES[byPerson.size % HUES.length]!)
-    }
-    for (const key of personKeys(item.author, item.authorEmail)) {
-      hues.set(key, byPerson.get(person)!)
-    }
+    const names = namesByEmail.get(mail) ?? new Map<string, number>()
+    names.set(name, (names.get(name) ?? 0) + 1)
+    namesByEmail.set(mail, names)
   }
-  return hues
+  const personByEmail = new Map<string, string>()
+  for (const [mail, names] of namesByEmail) {
+    const main = [...names].sort((a, b) => b[1] - a[1])[0]![0]
+    personByEmail.set(mail, `n:${main}`)
+  }
+  return (author, email) => {
+    const mail = (email ?? '').trim().toLowerCase()
+    if (mail) {
+      return personByEmail.get(mail) ?? `e:${mail}`
+    }
+    const name = author ? gitGraphNameKey(author) : ''
+    return name ? `n:${name}` : ''
+  }
 }
 
-const AuthorHues = createContext<Map<string, number>>(new Map())
+export function gitGraphAuthorHues(items: readonly GitHistoryItem[]): {
+  hueOf: (author: string | undefined, email: string | undefined) => number | undefined
+} {
+  const personOf = gitGraphPeople(items)
+  const byPerson = new Map<string, number>()
+  for (const item of items) {
+    const person = personOf(item.author, item.authorEmail)
+    if (person && !byPerson.has(person)) {
+      byPerson.set(person, HUES[byPerson.size % HUES.length]!)
+    }
+  }
+  return { hueOf: (author, email) => byPerson.get(personOf(author, email)) }
+}
+
+const AuthorHues = createContext<ReturnType<typeof gitGraphAuthorHues>>({ hueOf: () => undefined })
 export const GitGraphAuthorHuesProvider = AuthorHues.Provider
 
 /** Props for the element that shows an author's name: `data-git-graph-author` plus its hue. */
@@ -97,10 +80,7 @@ export function useGitGraphAuthorProps(
   author: string | undefined,
   email?: string
 ): { 'data-git-graph-author'?: ''; style?: React.CSSProperties } {
-  const hues = useContext(AuthorHues)
-  const hue = personKeys(author, email)
-    .map((key) => hues.get(key))
-    .find((value) => value !== undefined)
+  const hue = useContext(AuthorHues).hueOf(author, email)
   return hue === undefined
     ? {}
     : {
