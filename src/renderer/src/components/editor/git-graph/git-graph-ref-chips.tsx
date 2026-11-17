@@ -141,7 +141,7 @@ export function GitGraphRefChip({
     group.isHead ? 'font-semibold text-foreground' : 'text-foreground',
     focused
       ? 'border-ring bg-accent'
-      : 'border-foreground/25 bg-foreground/[0.06] dark:bg-black/35',
+      : 'border-foreground/25 bg-foreground/[0.06] dark:bg-black/20',
     clickable && 'cursor-pointer hover:border-ring'
   )
   return clickable ? (

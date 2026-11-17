@@ -283,10 +283,11 @@ export function GitGraphView({ worktreeId }: { worktreeId: string }): React.JSX.
   const hostIgnoresRefs = !!result && (result.refs === undefined || result.refs === 'head')
 
   return (
-    // Dark themes: the graph sits on a surface darker than the theme's base, so its text and lane
-    // colours stand out (Paweł, 2026-11-17: "contrast still too low make all dark colors darker").
-    <div className="h-full min-h-0 bg-background">
-      <div className="flex h-full min-h-0 flex-col text-foreground dark:bg-black/30">
+    // The graph sits on Orca's side panel colour (Paweł, 2026-11-17: "cant you use sidepanel color
+    // of orca", after a black overlay read too dark and then too faint): the theme's own surface,
+    // a step darker than its base in dark themes, in light ones too.
+    <div className="h-full min-h-0 bg-sidebar">
+      <div className="flex h-full min-h-0 flex-col text-foreground">
         <GitGraphToolbar
           controls={
             <GitGraphShapeControls
@@ -305,6 +306,26 @@ export function GitGraphView({ worktreeId }: { worktreeId: string }): React.JSX.
               onToggleMerge={marks.toggle}
               stackNames={stackNames}
               onToggleStackNames={toggleStackNames}
+            />
+          }
+          mergeControls={
+            <GitGraphShapeControls
+              refs={refs}
+              refsFilter={refsFilter}
+              onRefsFilter={setRefsFilter}
+              headRefId={result?.currentRef?.id}
+              pinned={lanes.pinned}
+              customPinned={lanes.custom}
+              onPinned={lanes.setPinned}
+              onResetPinned={lanes.reset}
+              branchNames={branchNames}
+              colourOf={model.colourOf}
+              mergeTargets={marks.targets}
+              mergeCounts={mergeCounts}
+              onToggleMerge={marks.toggle}
+              stackNames={stackNames}
+              onToggleStackNames={toggleStackNames}
+              part="merges"
             />
           }
           density={density}

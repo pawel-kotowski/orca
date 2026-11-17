@@ -80,7 +80,8 @@ export function GitGraphShapeControls({
   mergeCounts,
   onToggleMerge,
   stackNames,
-  onToggleStackNames
+  onToggleStackNames,
+  part = 'shape'
 }: {
   refs: readonly GitHistoryItemRef[]
   refsFilter: GitHistoryRefs
@@ -98,7 +99,37 @@ export function GitGraphShapeControls({
   onToggleMerge: (branch: string) => void
   stackNames: boolean
   onToggleStackNames: () => void
+  /** `shape`: which branches and how (the first toolbar line); `merges`: the "Merges into" toggles. */
+  part?: 'shape' | 'merges'
 }): React.JSX.Element {
+  if (part === 'merges') {
+    return (
+      <>
+        {pinned.length > 0 && (
+          <span className="inline-flex items-center gap-1 text-xs text-foreground/80">
+            <GitMerge className="size-3.5" />
+            Merges into
+            {pinned.map((branch) => (
+              <Toggle
+                key={branch}
+                on={mergeTargets.includes(branch)}
+                title={`Highlight every merge into ${branch}: merge commits and pull requests squashed onto it. n and Shift+N step through them`}
+                onClick={() => onToggleMerge(branch)}
+              >
+                <span
+                  aria-hidden
+                  className="size-1.5 rounded-full"
+                  style={{ background: graphColor(colourOf(branch)) }}
+                />
+                {branch}
+                <span className="tabular-nums opacity-70">{mergeCounts.get(branch) ?? 0}</span>
+              </Toggle>
+            ))}
+          </span>
+        )}
+      </>
+    )
+  }
   return (
     <>
       <GitGraphBranchSelect
@@ -116,28 +147,6 @@ export function GitGraphShapeControls({
         onChange={onPinned}
         onReset={onResetPinned}
       />
-      {pinned.length > 0 && (
-        <span className="inline-flex items-center gap-1 text-xs text-foreground/80">
-          <GitMerge className="size-3.5" />
-          Merges into
-          {pinned.map((branch) => (
-            <Toggle
-              key={branch}
-              on={mergeTargets.includes(branch)}
-              title={`Highlight every merge into ${branch}: merge commits and pull requests squashed onto it. n and Shift+N step through them`}
-              onClick={() => onToggleMerge(branch)}
-            >
-              <span
-                aria-hidden
-                className="size-1.5 rounded-full"
-                style={{ background: graphColor(colourOf(branch)) }}
-              />
-              {branch}
-              <span className="tabular-nums opacity-70">{mergeCounts.get(branch) ?? 0}</span>
-            </Toggle>
-          ))}
-        </span>
-      )}
       <Toggle
         on={stackNames}
         title="Several branch names on one commit show as one name and +N"

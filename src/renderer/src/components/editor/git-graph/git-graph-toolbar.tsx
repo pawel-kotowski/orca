@@ -142,6 +142,7 @@ function JumpButton({
 
 export function GitGraphToolbar({
   controls,
+  mergeControls,
   density,
   onDensity,
   zoom,
@@ -166,6 +167,8 @@ export function GitGraphToolbar({
 }: {
   /** Which branches are drawn and how (GitGraphShapeControls). */
   controls: React.ReactNode
+  /** The "Merges into" toggles (GitGraphShapeControls, part="merges"). */
+  mergeControls: React.ReactNode
   density: GitGraphDensity
   onDensity: (value: GitGraphDensity) => void
   zoom: number
@@ -190,12 +193,12 @@ export function GitGraphToolbar({
 }): React.JSX.Element {
   const busy = (target?: GitGraphJumpTarget) =>
     !!target && pendingJump?.revision === target.revision
+  // Two even lines (Paweł, 2026-11-17: "top panel is not used well", "rearange a bit"): what the
+  // graph shows, then find, count, zoom and refresh at its right; where to go and what to
+  // highlight on the second.
   return (
     <div className="shrink-0 border-b border-border">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-3 py-1.5">
-        <span className="shrink-0 text-sm font-semibold whitespace-nowrap">
-          {translate('local.gitGraph.title', 'Git Graph')}
-        </span>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-3 pt-1.5 pb-1">
         <Segmented
           value={density}
           onChange={onDensity}
@@ -214,39 +217,6 @@ export function GitGraphToolbar({
           ]}
         />
         {controls}
-      </div>
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 px-3 pb-1.5">
-        <span className="text-xs text-foreground/80">Go to</span>
-        <JumpButton target={head} hint="HEAD" keyHint="h" onJump={onJump} busy={busy(head)} />
-        <JumpButton target={main} keyHint="m" onJump={onJump} busy={busy(main)} />
-        <JumpButton target={develop} keyHint="d" onJump={onJump} busy={busy(develop)} />
-        <GitGraphBranchPicker refs={refs} onJump={onJump} />
-        {pendingJump && (
-          <span className="text-xs text-muted-foreground">Loading to {pendingJump.label}…</span>
-        )}
-        {notice && (
-          <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-            {notice}
-            <button type="button" aria-label="Dismiss" onClick={onClearNotice}>
-              <X className="size-3" />
-            </button>
-          </span>
-        )}
-        {focusedBranch && (
-          <span className="inline-flex max-w-full min-w-0 items-center gap-1.5 rounded-md border border-ring bg-accent px-2 py-0.5 text-xs">
-            <Crosshair className="size-3 shrink-0" />
-            <span className="text-muted-foreground">Following</span>
-            <span className="font-medium break-all">{focusedBranch}</span>
-            <button
-              type="button"
-              aria-label="Stop following"
-              title="Stop following (Esc)"
-              onClick={onClearFocus}
-            >
-              <X className="size-3" />
-            </button>
-          </span>
-        )}
         <div className="ml-auto flex min-w-0 items-center gap-2">
           <div className="flex h-6 min-w-0 items-center gap-1 rounded-md border border-border px-1.5">
             <Search className="size-3 text-foreground/72" />
@@ -261,7 +231,7 @@ export function GitGraphToolbar({
               }}
               data-git-graph-find
               placeholder={translate('local.gitGraph.find', 'Find commit (Enter: next)')}
-              className="w-32 min-w-0 bg-transparent text-xs outline-none placeholder:text-muted-foreground lg:w-56"
+              className="w-28 min-w-0 bg-transparent text-xs outline-none placeholder:text-muted-foreground lg:w-44"
             />
           </div>
           <span className="text-xs whitespace-nowrap text-foreground/80 tabular-nums">
@@ -300,6 +270,40 @@ export function GitGraphToolbar({
             </Button>
           </div>
         </div>
+      </div>
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 px-3 pb-1.5">
+        <span className="text-xs text-foreground/80">Go to</span>
+        <JumpButton target={head} hint="HEAD" keyHint="h" onJump={onJump} busy={busy(head)} />
+        <JumpButton target={main} keyHint="m" onJump={onJump} busy={busy(main)} />
+        <JumpButton target={develop} keyHint="d" onJump={onJump} busy={busy(develop)} />
+        <GitGraphBranchPicker refs={refs} onJump={onJump} />
+        {pendingJump && (
+          <span className="text-xs text-foreground/80">Loading to {pendingJump.label}…</span>
+        )}
+        {notice && (
+          <span className="inline-flex items-center gap-1 text-xs text-foreground/80">
+            {notice}
+            <button type="button" aria-label="Dismiss" onClick={onClearNotice}>
+              <X className="size-3" />
+            </button>
+          </span>
+        )}
+        {focusedBranch && (
+          <span className="inline-flex max-w-full min-w-0 items-center gap-1.5 rounded-md border border-ring bg-accent px-2 py-0.5 text-xs">
+            <Crosshair className="size-3 shrink-0" />
+            <span className="text-foreground/80">Following</span>
+            <span className="font-medium break-all">{focusedBranch}</span>
+            <button
+              type="button"
+              aria-label="Stop following"
+              title="Stop following (Esc)"
+              onClick={onClearFocus}
+            >
+              <X className="size-3" />
+            </button>
+          </span>
+        )}
+        <div className="ml-auto flex flex-wrap items-center gap-1">{mergeControls}</div>
       </div>
     </div>
   )

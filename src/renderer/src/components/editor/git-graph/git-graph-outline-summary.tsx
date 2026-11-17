@@ -25,7 +25,7 @@ export function GitGraphCount({
   return (
     <span
       title={title}
-      className="rounded-full bg-foreground/[0.12] px-1.5 dark:bg-black/40 text-[10.5px] leading-4 text-foreground/85 tabular-nums"
+      className="rounded-full bg-foreground/[0.12] px-1.5 dark:bg-black/25 text-[10.5px] leading-4 text-foreground/85 tabular-nums"
     >
       {count}
     </span>
