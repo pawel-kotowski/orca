@@ -6,6 +6,7 @@
 import React from 'react'
 import { cn } from '@/lib/class-names'
 import { getIntlLocale } from '@/i18n/i18n'
+import type { GitHistoryGraphColorId } from '../../../../../shared/git/history/git-history-types'
 import type {
   GitHistoryGraphNode,
   GitHistoryItemViewModel
@@ -15,7 +16,8 @@ import {
   graphColor
 } from '@/components/right-sidebar/source-control/sync/git-history-graph-svg'
 import type { GitGraphLayout } from './git-graph-columns'
-import { formatGitGraphRelativeTime } from './git-graph-row'
+import { formatGitGraphRelativeTime, GIT_GRAPH_HOVER_FRAME } from './git-graph-row'
+import { useGitGraphAuthorProps } from './git-graph-author-color'
 
 // Matches SWIMLANE_WIDTH in git-history-graph-svg.tsx; the graph cell's pl-2 adds 8px.
 const LANE_WIDTH = 11
@@ -43,6 +45,29 @@ export function GitGraphLaneFill({
           }}
         />
       ))}
+    </div>
+  )
+}
+
+/**
+ * The selected commit's frame: a hairline in its lane's colour around the row and the details
+ * open under it, drawn over them (Paweł, 2026-11-17: "row highlight on selection is annoying").
+ */
+export function GitGraphSelectionFrame({
+  laneColor,
+  children
+}: {
+  laneColor: GitHistoryGraphColorId
+  children: React.ReactNode
+}): React.JSX.Element {
+  return (
+    <div data-git-graph-selection className="relative">
+      {children}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 rounded-md border opacity-80"
+        style={{ borderColor: graphColor(laneColor) }}
+      />
     </div>
   )
 }
@@ -86,6 +111,7 @@ export const GitGraphTallRow = React.forwardRef<HTMLDivElement, GitGraphTallRowP
     ref
   ): React.JSX.Element {
     const item = viewModel.historyItem
+    const authorProps = useGitGraphAuthorProps(item.author, item.authorEmail)
     const lineRow = top ? 2 : 1
     // Author, date and hash sit level with the message's first line (24px tall, like the node).
     const meta = (column: number, content: React.ReactNode, extra?: string, title?: string) => (
@@ -110,8 +136,10 @@ export const GitGraphTallRow = React.forwardRef<HTMLDivElement, GitGraphTallRowP
         data-git-graph-commit={item.id}
         className={cn(
           'grid cursor-default gap-x-3 pr-3 text-xs transition-opacity',
-          selected ? 'bg-accent text-accent-foreground' : 'hover:bg-accent/40',
-          flashing && 'bg-accent/70 ring-1 ring-ring ring-inset',
+          // Selection is a frame around the row and its details (GitGraphSelectionFrame), never a
+          // fill: a filled row recoloured its text and washed out the lane colours.
+          !selected && GIT_GRAPH_HOVER_FRAME,
+          flashing && 'ring-1 ring-ring ring-inset',
           dimmed && !selected && 'opacity-35',
           className
         )}
@@ -144,7 +172,21 @@ export const GitGraphTallRow = React.forwardRef<HTMLDivElement, GitGraphTallRowP
         <div className={cn('min-w-0', mainClassName)} style={{ gridRow: lineRow, gridColumn: 2 }}>
           {main}
         </div>
-        {layout.author && meta(authorColumn, item.author, undefined, item.authorEmail)}
+        {layout.author && (
+          <span
+            className="self-start truncate leading-6"
+            title={item.authorEmail}
+            {...authorProps}
+            // The author's hue rides in the same style object as its grid place.
+            style={{
+              ...authorProps.style,
+              gridRow: lineRow,
+              gridColumn: authorColumn
+            }}
+          >
+            {item.author}
+          </span>
+        )}
         {layout.date &&
           meta(
             dateColumn,
@@ -152,7 +194,7 @@ export const GitGraphTallRow = React.forwardRef<HTMLDivElement, GitGraphTallRowP
             undefined,
             item.timestamp ? new Date(item.timestamp).toLocaleString(getIntlLocale()) : undefined
           )}
-        {meta(hashColumn, item.displayId ?? item.id.slice(0, 7), 'font-mono')}
+        {layout.commit && meta(hashColumn, item.displayId ?? item.id.slice(0, 7), 'font-mono')}
       </div>
     )
   }

@@ -20,13 +20,14 @@ import { useClassicGitGraphHistory } from './use-git-graph-history-local'
 import { GIT_GRAPH_ROW_HEIGHT, GitGraphHeaderRow } from './git-graph-row'
 import { useGitGraphColumns } from './git-graph-columns'
 import { GitGraphCommitDetails } from './git-graph-commit-details'
-import { GitGraphLaneFill } from './git-graph-tall-row'
+import { GitGraphLaneFill, GitGraphSelectionFrame } from './git-graph-tall-row'
 import { GitGraphCommitRow } from './git-graph-commit-row'
 import { gitGraphLaneNames } from './git-graph-lane-names'
 import { outlineGitGraphItems } from './git-graph-outline'
 import { useGitGraphJump } from './use-git-graph-jump'
 import { GitGraphToolbar, useGitGraphDensity, useGitGraphZoom } from './git-graph-toolbar'
 import { useGitGraphKeys } from './use-git-graph-keys'
+import { GitGraphAuthorHuesProvider, gitGraphAuthorHues } from './git-graph-author-color'
 
 // Matches SWIMLANE_WIDTH in git-history-graph-svg.tsx: one lane's width in px.
 const LANE_WIDTH = 11
@@ -101,6 +102,7 @@ export function GitGraphView({ worktreeId }: { worktreeId: string }): React.JSX.
 
   const result = history.result
   const laneNames = useMemo(() => gitGraphLaneNames(history.items), [history.items])
+  const authorHues = useMemo(() => gitGraphAuthorHues(history.items), [history.items])
   // The Branches view rewrites parents; details, actions and "+N commits" read the real commit.
   const itemById = useMemo(
     () => new Map(history.items.map((item) => [item.id, item])),
@@ -144,7 +146,10 @@ export function GitGraphView({ worktreeId }: { worktreeId: string }): React.JSX.
     [viewModels]
   )
   // The graph column defaults to the widest row's lanes (plus its left padding) until dragged.
-  const { layout, setWidth, resetWidth } = useGitGraphColumns(listWidth, graphWidth + 8)
+  const { layout, setWidth, resetWidth, toggleColumn } = useGitGraphColumns(
+    listWidth,
+    graphWidth + 8
+  )
 
   const commitRows = useMemo(
     () =>
@@ -336,87 +341,100 @@ export function GitGraphView({ worktreeId }: { worktreeId: string }): React.JSX.
           )}
         </div>
       )}
-      <div className="flex min-h-0 flex-1" style={{ zoom }}>
-        <div ref={columnRef} className="flex min-w-0 flex-1 flex-col">
-          <GitGraphHeaderRow
-            layout={layout}
-            onResize={setWidth}
-            onReset={resetWidth}
-            descriptionLabel={density === 'branches' ? 'Branches and merges' : undefined}
-          />
-          <div
-            ref={listRef}
-            role="grid"
-            tabIndex={0}
-            className="min-h-0 flex-1 overflow-y-auto outline-none scrollbar-sleek"
-            onScroll={onScroll}
-            onKeyDown={onKeyDown}
-          >
-            {history.error && (
-              <div className="px-3 py-2 text-xs text-destructive">{history.error}</div>
-            )}
-            {!history.error && history.loading && viewModels.length === 0 && (
-              <div className="px-3 py-2 text-xs text-muted-foreground">Loading graph…</div>
-            )}
-            {viewModels.map((vm) => {
-              const item = vm.historyItem
-              const row = renderRow(vm)
-              const isBoundary = vm.kind === 'incoming-changes' || vm.kind === 'outgoing-changes'
-              if (isBoundary) {
-                return <React.Fragment key={`${vm.kind}:${item.id}`}>{row}</React.Fragment>
-              }
-              const details = item.id === selectedId && history.worktreePath && (
-                <div
-                  data-git-graph-details
-                  className="flex bg-muted/30"
-                  aria-label="Commit details"
-                >
-                  {/* overflow-hidden: lanes past a narrowed graph column are clipped instead of
+      <GitGraphAuthorHuesProvider value={authorHues}>
+        <div className="flex min-h-0 flex-1" style={{ zoom }}>
+          <div ref={columnRef} className="flex min-w-0 flex-1 flex-col">
+            <GitGraphHeaderRow
+              layout={layout}
+              onResize={setWidth}
+              onReset={resetWidth}
+              onToggleColumn={toggleColumn}
+              descriptionLabel={density === 'branches' ? 'Branches and merges' : undefined}
+            />
+            <div
+              ref={listRef}
+              role="grid"
+              tabIndex={0}
+              className="min-h-0 flex-1 overflow-y-auto outline-none scrollbar-sleek"
+              onScroll={onScroll}
+              onKeyDown={onKeyDown}
+            >
+              {history.error && (
+                <div className="px-3 py-2 text-xs text-destructive">{history.error}</div>
+              )}
+              {!history.error && history.loading && viewModels.length === 0 && (
+                <div className="px-3 py-2 text-xs text-muted-foreground">Loading graph…</div>
+              )}
+              {viewModels.map((vm) => {
+                const item = vm.historyItem
+                const row = renderRow(vm)
+                const isBoundary = vm.kind === 'incoming-changes' || vm.kind === 'outgoing-changes'
+                if (isBoundary) {
+                  return <React.Fragment key={`${vm.kind}:${item.id}`}>{row}</React.Fragment>
+                }
+                const details = item.id === selectedId && history.worktreePath && (
+                  <div
+                    data-git-graph-details
+                    className="flex rounded-b-md bg-muted/30"
+                    aria-label="Commit details"
+                  >
+                    {/* overflow-hidden: lanes past a narrowed graph column are clipped instead of
                       drawing over the details (Paweł, 2026-11-15: "files overlap with lines"). */}
-                  <GitGraphLaneFill
-                    lanes={vm.outputSwimlanes}
-                    className="shrink-0 self-stretch"
-                    style={{ width: layout.graph }}
-                  />
-                  <GitGraphCommitDetails
-                    worktreeId={worktreeId}
-                    worktreePath={history.worktreePath}
-                    ownerTarget={ownerTarget}
-                    item={itemById.get(item.id) ?? item}
-                    onSelectCommit={selectCommit}
-                    onClose={() => setSelectedId(null)}
-                    laneColor={getGitHistoryItemColor(vm)}
-                  />
-                </div>
-              )
-              return (
-                <React.Fragment key={`${vm.kind}:${item.id}`}>
-                  <ContextMenu>
-                    <ContextMenuTrigger asChild>{row}</ContextMenuTrigger>
-                    <GitHistoryCommitContextMenu
-                      item={itemById.get(item.id) ?? item}
-                      onAction={handleCommitAction}
+                    <GitGraphLaneFill
+                      lanes={vm.outputSwimlanes}
+                      className="shrink-0 self-stretch"
+                      style={{ width: layout.graph }}
                     />
-                  </ContextMenu>
-                  {details}
-                </React.Fragment>
-              )
-            })}
-            {history.hasMore && (
-              <div className="px-3 py-2">
-                <Button
-                  variant="ghost"
-                  size="xs"
-                  disabled={history.loading}
-                  onClick={history.loadMore}
-                >
-                  {translate('local.gitGraph.loadMore', 'Load more commits')}
-                </Button>
-              </div>
-            )}
+                    <GitGraphCommitDetails
+                      worktreeId={worktreeId}
+                      worktreePath={history.worktreePath}
+                      ownerTarget={ownerTarget}
+                      item={itemById.get(item.id) ?? item}
+                      onSelectCommit={selectCommit}
+                      onClose={() => setSelectedId(null)}
+                      laneColor={getGitHistoryItemColor(vm)}
+                    />
+                  </div>
+                )
+                const content = (
+                  <>
+                    <ContextMenu>
+                      <ContextMenuTrigger asChild>{row}</ContextMenuTrigger>
+                      <GitHistoryCommitContextMenu
+                        item={itemById.get(item.id) ?? item}
+                        onAction={handleCommitAction}
+                      />
+                    </ContextMenu>
+                    {details}
+                  </>
+                )
+                return item.id === selectedId ? (
+                  <GitGraphSelectionFrame
+                    key={`${vm.kind}:${item.id}`}
+                    laneColor={getGitHistoryItemColor(vm)}
+                  >
+                    {content}
+                  </GitGraphSelectionFrame>
+                ) : (
+                  <React.Fragment key={`${vm.kind}:${item.id}`}>{content}</React.Fragment>
+                )
+              })}
+              {history.hasMore && (
+                <div className="px-3 py-2">
+                  <Button
+                    variant="ghost"
+                    size="xs"
+                    disabled={history.loading}
+                    onClick={history.loadMore}
+                  >
+                    {translate('local.gitGraph.loadMore', 'Load more commits')}
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      </GitGraphAuthorHuesProvider>
     </div>
   )
 }

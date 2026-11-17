@@ -1,6 +1,12 @@
 // Local (glass build): one commit row of the Git Graph tab — graph, subject with refs, author, date, hash.
 import React from 'react'
-import { Tag } from 'lucide-react'
+import { Check, Tag } from 'lucide-react'
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger
+} from '@/components/ui/context-menu'
 import { cn } from '@/lib/class-names'
 import { getIntlLocale } from '@/i18n/i18n'
 import type {
@@ -15,14 +21,20 @@ import { dedupeRemoteTrackingRefs } from '../../../../../shared/git/history/git-
 import {
   GitGraphColumnResizeHandle,
   type GitGraphColumnKey,
-  type GitGraphLayout
+  type GitGraphLayout,
+  type GitGraphOptionalColumn
 } from './git-graph-columns'
+import { useGitGraphAuthorProps } from './git-graph-author-color'
 import {
   GitHistoryGraphSvg,
   graphColor
 } from '@/components/right-sidebar/source-control/sync/git-history-graph-svg'
 
 export const GIT_GRAPH_ROW_HEIGHT = 24
+
+/** A row under the pointer: a hairline frame, no fill, so text and lane colours stay as they are. */
+export const GIT_GRAPH_HOVER_FRAME =
+  'rounded-md hover:ring-1 hover:ring-foreground/20 hover:ring-inset'
 
 // Narrow ("46m ago", "3h ago") so the date fits a narrow column; the full date is its tooltip.
 const relativeTime = (): Intl.RelativeTimeFormat =>
@@ -115,6 +127,7 @@ export const GitGraphRow = React.forwardRef<HTMLDivElement, GitGraphRowProps>(fu
   ref
 ): React.JSX.Element {
   const item = viewModel.historyItem
+  const authorProps = useGitGraphAuthorProps(item.author, item.authorEmail)
   const isBoundary = viewModel.kind === 'incoming-changes' || viewModel.kind === 'outgoing-changes'
   const refs = dedupeRemoteTrackingRefs(item.references ?? [], {})
   const laneColor = isBoundary ? undefined : getGitHistoryItemColor(viewModel)
@@ -127,7 +140,9 @@ export const GitGraphRow = React.forwardRef<HTMLDivElement, GitGraphRowProps>(fu
       data-git-graph-commit={item.id}
       className={cn(
         'grid cursor-default items-center gap-x-3 pr-3 text-xs',
-        selected ? 'bg-accent text-accent-foreground' : 'hover:bg-accent/40',
+        // Hover and selection are frames, never fills (Paweł, 2026-11-17: the hover highlight was
+        // "annoying"); the selected commit's frame is GitGraphSelectionFrame.
+        !selected && GIT_GRAPH_HOVER_FRAME,
         isBoundary && 'text-muted-foreground italic',
         className
       )}
@@ -158,7 +173,7 @@ export const GitGraphRow = React.forwardRef<HTMLDivElement, GitGraphRowProps>(fu
         )}
       </div>
       {layout.author && (
-        <span className="truncate text-muted-foreground" title={item.authorEmail}>
+        <span className="truncate" title={item.authorEmail} {...authorProps}>
           {item.author}
         </span>
       )}
@@ -172,21 +187,31 @@ export const GitGraphRow = React.forwardRef<HTMLDivElement, GitGraphRowProps>(fu
           {formatGitGraphRelativeTime(item.timestamp)}
         </span>
       )}
-      <span className="truncate font-mono text-muted-foreground">
-        {isBoundary ? '' : (item.displayId ?? item.id.slice(0, 7))}
-      </span>
+      {layout.commit && (
+        <span className="truncate font-mono text-muted-foreground">
+          {isBoundary ? '' : (item.displayId ?? item.id.slice(0, 7))}
+        </span>
+      )}
     </div>
   )
 })
+
+const OPTIONAL_COLUMNS: [GitGraphOptionalColumn, string][] = [
+  ['author', 'Author'],
+  ['date', 'Date'],
+  ['commit', 'Commit']
+]
 
 export function GitGraphHeaderRow({
   layout,
   onResize,
   onReset,
+  onToggleColumn,
   descriptionLabel = 'Description'
 }: {
   layout: GitGraphLayout
   descriptionLabel?: string
+  onToggleColumn?: (key: GitGraphOptionalColumn) => void
   onResize: (key: GitGraphColumnKey, width: number) => void
   onReset: (key: GitGraphColumnKey) => void
 }): React.JSX.Element {
@@ -199,10 +224,11 @@ export function GitGraphHeaderRow({
       onReset={() => onReset(key)}
     />
   )
-  return (
+  const header = (
     <div
       className="grid shrink-0 gap-x-3 border-b border-border pr-3 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase select-none"
       style={{ gridTemplateColumns: layout.template }}
+      title={onToggleColumn ? 'Right-click: choose columns' : undefined}
     >
       <span className="relative py-1 pl-2">
         Graph
@@ -221,10 +247,28 @@ export function GitGraphHeaderRow({
           Date
         </span>
       )}
-      <span className="relative py-1">
-        {handle('commit', 'left', 'Commit')}
-        Commit
-      </span>
+      {layout.commit && (
+        <span className="relative py-1">
+          {handle('commit', 'left', 'Commit')}
+          Commit
+        </span>
+      )}
     </div>
+  )
+  if (!onToggleColumn) {
+    return header
+  }
+  return (
+    <ContextMenu>
+      <ContextMenuTrigger asChild>{header}</ContextMenuTrigger>
+      <ContextMenuContent>
+        {OPTIONAL_COLUMNS.map(([key, label]) => (
+          <ContextMenuItem key={key} onSelect={() => onToggleColumn(key)}>
+            <Check className={cn('size-3.5', !layout.shown[key] && 'invisible')} />
+            {label}
+          </ContextMenuItem>
+        ))}
+      </ContextMenuContent>
+    </ContextMenu>
   )
 }

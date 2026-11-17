@@ -4063,3 +4063,13 @@ body:has([data-contextual-tour-target='tab-create-menu'][data-state='open'])
     animation: none;
   }
 }
+
+/* Local (glass build): Git Graph authors each in their own colour (Paweł, 2026-11-17: "make
+   authors in different colors"). The hue comes from the author (gitGraphAuthorHue); lightness and
+   chroma follow the theme so every hue reads on its background. */
+[data-git-graph-author] {
+  color: oklch(0.5 0.13 var(--git-graph-author-hue, 0));
+}
+.dark [data-git-graph-author] {
+  color: oklch(0.78 0.1 var(--git-graph-author-hue, 0));
+}

@@ -13,16 +13,37 @@ export type GitGraphColumnWidths = {
   commit: number
 }
 
+/** Columns you can turn off (right-click the header); Commit is off until turned on. */
+export type GitGraphOptionalColumn = 'author' | 'date' | 'commit'
+export type GitGraphShownColumns = Record<GitGraphOptionalColumn, boolean>
+
 export type GitGraphLayout = {
   graph: number
   author: boolean
   date: boolean
+  commit: boolean
+  shown: GitGraphShownColumns
   widths: GitGraphColumnWidths
   template: string
 }
 
 const DEFAULT_WIDTHS: GitGraphColumnWidths = { graph: null, author: 160, date: 128, commit: 72 }
 const STORAGE_KEY = 'orca.gitGraph.columnWidths'
+// Paweł, 2026-11-17: "hide commit has col by default"; the hash is in a commit's details.
+const DEFAULT_SHOWN: GitGraphShownColumns = { author: true, date: true, commit: false }
+const SHOWN_STORAGE_KEY = 'orca.gitGraph.columnsShown'
+
+function readShown(): GitGraphShownColumns {
+  try {
+    const saved = JSON.parse(window.localStorage.getItem(SHOWN_STORAGE_KEY) ?? 'null') as unknown
+    if (saved && typeof saved === 'object') {
+      return { ...DEFAULT_SHOWN, ...(saved as Partial<GitGraphShownColumns>) }
+    }
+  } catch {
+    // Unreadable or unavailable storage: defaults.
+  }
+  return DEFAULT_SHOWN
+}
 const MIN_WIDTH = 40
 const MAX_WIDTH = 720
 const MIN_DESCRIPTION = 240
@@ -47,20 +68,23 @@ export function clampGitGraphColumnWidth(width: number): number {
 export function gitGraphLayout(
   widths: GitGraphColumnWidths,
   listWidth: number,
-  lanesWidth: number
+  lanesWidth: number,
+  shown: GitGraphShownColumns = DEFAULT_SHOWN
 ): GitGraphLayout {
   const graph = widths.graph ?? lanesWidth
-  const fixed = graph + widths.commit + MIN_DESCRIPTION + GAP * 2 + 12
-  const date = listWidth >= fixed + widths.date + GAP
-  const author = date && listWidth >= fixed + widths.date + widths.author + GAP * 2
+  const commit = shown.commit
+  const fixed = graph + (commit ? widths.commit + GAP : 0) + MIN_DESCRIPTION + GAP + 12
+  const date = shown.date && listWidth >= fixed + widths.date + GAP
+  const author =
+    shown.author && listWidth >= fixed + (date ? widths.date + GAP : 0) + widths.author + GAP
   const template = [
     `${graph}px`,
     'minmax(0,1fr)',
     ...(author ? [`${widths.author}px`] : []),
     ...(date ? [`${widths.date}px`] : []),
-    `${widths.commit}px`
+    ...(commit ? [`${widths.commit}px`] : [])
   ].join(' ')
-  return { graph, author, date, widths, template }
+  return { graph, author, date, commit, shown, widths, template }
 }
 
 export function useGitGraphColumns(
@@ -70,8 +94,20 @@ export function useGitGraphColumns(
   layout: GitGraphLayout
   setWidth: (key: GitGraphColumnKey, width: number) => void
   resetWidth: (key: GitGraphColumnKey) => void
+  toggleColumn: (key: GitGraphOptionalColumn) => void
 } {
   const [widths, setWidths] = useState(readWidths)
+  const [shown, setShown] = useState(readShown)
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(SHOWN_STORAGE_KEY, JSON.stringify(shown))
+    } catch {
+      // Storage unavailable: the choice lasts for this tab only.
+    }
+  }, [shown])
+  const toggleColumn = useCallback((key: GitGraphOptionalColumn) => {
+    setShown((prev) => ({ ...prev, [key]: !prev[key] }))
+  }, [])
   useEffect(() => {
     const timer = window.setTimeout(() => {
       try {
@@ -89,10 +125,10 @@ export function useGitGraphColumns(
     setWidths((prev) => ({ ...prev, [key]: DEFAULT_WIDTHS[key] }))
   }, [])
   const layout = useMemo(
-    () => gitGraphLayout(widths, listWidth, lanesWidth),
-    [lanesWidth, listWidth, widths]
+    () => gitGraphLayout(widths, listWidth, lanesWidth, shown),
+    [lanesWidth, listWidth, shown, widths]
   )
-  return { layout, setWidth, resetWidth }
+  return { layout, setWidth, resetWidth, toggleColumn }
 }
 
 /** A drag handle on a header cell's edge. `edge: 'left'` widens the column as it moves left. */

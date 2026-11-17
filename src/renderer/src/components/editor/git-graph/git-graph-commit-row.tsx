@@ -70,7 +70,7 @@ export const GitGraphCommitRow = React.forwardRef<HTMLDivElement, GitGraphCommit
             dimmed && !selected
               ? 'opacity-35'
               : flashing
-                ? 'bg-accent/70 ring-1 ring-ring ring-inset'
+                ? 'ring-1 ring-ring ring-inset'
                 : undefined
           }
         />
