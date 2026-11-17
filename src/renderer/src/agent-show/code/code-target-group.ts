@@ -26,6 +26,7 @@ import { stackPaneShares, type CodePaneNeed } from './code-fit'
 import { ownerOpenedTab, rememberStageGroupCreated, stagePanesUsedBy } from './code-stage-tabs'
 import { makeRoomForStage } from './code-stage-sidebars'
 import { holdStagePane } from './code-stage-hold'
+import { isShowOwnerTab } from '../agent-show-owner-tab'
 
 export type CodeTarget = {
   /** undefined: the editor's default group (no owner tab). */
@@ -60,8 +61,8 @@ function ownerGroupOf(state: AppState, context: AgentShowContext): string | null
   if (!ownerTabId) {
     return null
   }
-  const ownerTab = state.unifiedTabsByWorktree[worktreeId]?.find(
-    (tab) => tab.id === ownerTabId || tab.entityId === ownerTabId
+  const ownerTab = state.unifiedTabsByWorktree[worktreeId]?.find((tab) =>
+    isShowOwnerTab(tab, ownerTabId)
   )
   return ownerTab && liveLinkOpenGroupIds(state, worktreeId).has(ownerTab.groupId)
     ? ownerTab.groupId

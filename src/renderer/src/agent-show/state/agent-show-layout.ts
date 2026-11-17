@@ -3,6 +3,7 @@ import type {
   AgentShowLayout,
   AgentShowLayoutTab
 } from '../../../../shared/agent-show/agent-show-contract'
+import { isShowOwnerTab } from '../agent-show-owner-tab'
 
 export type AgentShowLayoutSource = {
   layoutByWorktree: Record<string, TabGroupLayoutNode | undefined>
@@ -50,7 +51,7 @@ export function agentShowLayoutFor(
             contentType: tab.contentType,
             label: tab.customLabel ?? tab.label,
             filePath: FILE_TAB_TYPES.has(tab.contentType) ? tab.entityId : null,
-            isOwner: ownerTabId !== null && tab.id === ownerTabId
+            isOwner: isShowOwnerTab(tab, ownerTabId)
           }
         ]
       })
@@ -59,5 +60,11 @@ export function agentShowLayoutFor(
 }
 
 export function ownerTabIsActive(layout: AgentShowLayout, ownerTabId: string | null): boolean {
-  return ownerTabId !== null && layout.groups.some((group) => group.activeTabId === ownerTabId)
+  // Why isOwner: a box agent's tab is mirrored here under another id (isShowOwnerTab).
+  return (
+    ownerTabId !== null &&
+    layout.groups.some((group) =>
+      group.tabs.some((tab) => tab.tabId === group.activeTabId && tab.isOwner)
+    )
+  )
 }
