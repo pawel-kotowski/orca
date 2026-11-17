@@ -32,6 +32,7 @@ import { findGitGraphCommit } from './git-graph-find'
 import { useGitGraphRows } from './use-git-graph-rows'
 import { GitGraphList } from './git-graph-list'
 import { useGitGraphThemeColours } from './use-git-graph-theme-colours'
+import { useGitGraphFetch } from './use-git-graph-fetch'
 
 // Selection, scroll and the drawn branches survive the tab remounting (a split beside it moves
 // its group).
@@ -95,6 +96,12 @@ export function GitGraphView({ worktreeId }: { worktreeId: string }): React.JSX.
   })
 
   const result = history.result
+  const fetcher = useGitGraphFetch({
+    worktreeId,
+    worktreePath: history.worktreePath,
+    ownerTarget,
+    onFetched: history.refresh
+  })
   // Branch colours from the terminal theme's palette (Gruvbox's for Paweł).
   const themeColours = useGitGraphThemeColours()
   const refs = useGitGraphRefList({
@@ -337,14 +344,16 @@ export function GitGraphView({ worktreeId }: { worktreeId: string }): React.JSX.
           onZoom={stepZoom}
           loading={history.loading}
           onRefresh={history.refresh}
+          fetching={fetcher.fetching}
+          onFetch={fetcher.fetch}
           head={jumps.head}
           main={jumps.main}
           develop={jumps.develop}
           refs={refs}
           onJump={jumps.jump}
           pendingJump={jumps.pending}
-          notice={jumps.notice}
-          onClearNotice={jumps.clearNotice}
+          notice={fetcher.error ? `Fetch failed: ${fetcher.error}` : jumps.notice}
+          onClearNotice={fetcher.error ? fetcher.clearError : jumps.clearNotice}
           focusedBranch={density === 'branches' ? null : focusedBranch}
           onClearFocus={() => setFocusedBranch(null)}
           query={query}

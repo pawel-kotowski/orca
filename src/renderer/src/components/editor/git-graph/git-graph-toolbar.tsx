@@ -5,7 +5,7 @@
 // around it: HEAD, main and development one click away (keys h, m, d), any branch by name, the
 // branch being followed, and find.
 import React, { useCallback, useEffect, useState } from 'react'
-import { Crosshair, Minus, Plus, RefreshCw, Search, X } from 'lucide-react'
+import { CloudDownload, Crosshair, Minus, Plus, RefreshCw, Search, X } from 'lucide-react'
 import { cn } from '@/lib/class-names'
 import { isImeOwnedKeyboardEvent } from '@/lib/text-input/ime/ime-composition-keyboard-event'
 import { Button } from '@/components/ui/button'
@@ -149,6 +149,8 @@ export function GitGraphToolbar({
   onZoom,
   loading,
   onRefresh,
+  fetching,
+  onFetch,
   head,
   main,
   develop,
@@ -175,6 +177,9 @@ export function GitGraphToolbar({
   onZoom: (direction: 1 | -1) => void
   loading: boolean
   onRefresh: () => void
+  /** Fetch from the remote, then reload (use-git-graph-fetch.ts). */
+  fetching: boolean
+  onFetch: () => void
   head?: GitGraphJumpTarget
   main?: GitGraphJumpTarget
   develop?: GitGraphJumpTarget
@@ -262,8 +267,20 @@ export function GitGraphToolbar({
             </Button>
             <Button
               variant="ghost"
+              size="xs"
+              className="gap-1 text-foreground/80"
+              title="git fetch --prune from the remote, then redraw"
+              disabled={fetching}
+              onClick={onFetch}
+            >
+              <CloudDownload className={cn('size-3.5', fetching && 'animate-pulse')} />
+              {fetching ? 'Fetching…' : 'Fetch'}
+            </Button>
+            <Button
+              variant="ghost"
               size="icon-xs"
               aria-label={translate('local.gitGraph.refresh', 'Refresh')}
+              title="Reload the graph"
               onClick={onRefresh}
             >
               <RefreshCw className={cn('size-3.5', loading && 'animate-spin')} />
