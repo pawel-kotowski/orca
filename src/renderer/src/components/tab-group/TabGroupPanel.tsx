@@ -45,6 +45,7 @@ export default function TabGroupPanel({
   touchesRightEdge,
   touchesLeftEdge,
   touchesBottomEdge = false,
+  stripHeight,
   suppressLeftBorder = false,
   suppressRightBorder = false,
   suppressBottomBorder = false,
@@ -64,6 +65,8 @@ export default function TabGroupPanel({
   touchesRightEdge: boolean
   touchesLeftEdge: boolean
   touchesBottomEdge?: boolean
+  /** Local (glass build): the top row's strip fills the 36px header; others keep 32px. */
+  stripHeight?: number
   suppressLeftBorder?: boolean
   suppressRightBorder?: boolean
   suppressBottomBorder?: boolean
@@ -286,6 +289,7 @@ export default function TabGroupPanel({
       {tabStrip !== 'attached' ? null : (
         <div
           className="@container/tab-strip h-[32px] shrink-0 border-b border-border bg-tab-bar"
+          style={stripHeight ? { height: stripHeight } : undefined}
           data-tab-group-strip-id={groupId}
           data-terminal-focus-release-surface="true"
           data-worktree-id={worktreeId}

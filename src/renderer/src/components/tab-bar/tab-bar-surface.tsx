@@ -60,8 +60,7 @@ export function renderTabBarSurface(
     terminalOnly = false,
     showAgentLaunchItems = true,
     onNewTerminalTab,
-    onOpenEntry,
-    tabStripChrome = 'default'
+    onOpenEntry
   } = props
   const {
     resolvedGroupId,
@@ -105,7 +104,9 @@ export function renderTabBarSurface(
     subscribeToStripResize
   } = tabStripNavigation
   const singleTab = orderedItems.length + clientHostedBrowserRows.length === 1
-  const includeTopTabBorder = tabStripChrome !== 'floating-panel'
+  // Local (glass build): no tab top border anywhere; with tabs filling the strip it framed them
+  // as boxes against the strip (Paweł, 2026-11-17: "these tabs dont look good").
+  const includeTopTabBorder = false
   const renderedItems = renderTabBarItems({
     items: orderedItems,
     props,

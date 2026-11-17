@@ -157,7 +157,8 @@ function SplitNode({
   suppressRightBorder,
   suppressBottomBorder,
   isTabDragActive,
-  hoveredTabInsertion
+  hoveredTabInsertion,
+  topStripHeight
 }: {
   node: TabGroupLayoutNode
   nodePath: string
@@ -176,6 +177,7 @@ function SplitNode({
   suppressBottomBorder: boolean
   isTabDragActive: boolean
   hoveredTabInsertion: HoveredTabInsertion | null
+  topStripHeight?: number
 }): React.JSX.Element {
   const setTabGroupSplitRatio = useAppStore((state) => state.setTabGroupSplitRatio)
   const recordFeatureInteraction = useAppStore((state) => state.recordFeatureInteraction)
@@ -199,6 +201,7 @@ function SplitNode({
         suppressBottomBorder={suppressBottomBorder}
         reserveClosedExplorerToggleSpace={touchesTopEdge && touchesRightEdge}
         reserveCollapsedSidebarHeaderSpace={touchesTopEdge && touchesLeftEdge}
+        stripHeight={touchesTopEdge ? topStripHeight : undefined}
         isTabDragActive={isTabDragActive}
         hoveredTabInsertion={
           hoveredTabInsertion?.groupId === node.groupId ? hoveredTabInsertion : null
@@ -235,6 +238,7 @@ function SplitNode({
           suppressBottomBorder={isHorizontal ? suppressBottomBorder : true}
           isTabDragActive={isTabDragActive}
           hoveredTabInsertion={hoveredTabInsertion}
+          topStripHeight={topStripHeight}
         />
       </div>
       <ResizeHandle
@@ -265,6 +269,7 @@ function SplitNode({
           suppressBottomBorder={suppressBottomBorder}
           isTabDragActive={isTabDragActive}
           hoveredTabInsertion={hoveredTabInsertion}
+          topStripHeight={topStripHeight}
         />
       </div>
     </div>
@@ -281,7 +286,8 @@ export function TabGroupSplitNodeTree({
   hoveredTabInsertion,
   tabStrip = 'attached',
   markdownAnnotationsEnabled = true,
-  rootTouchesBottomEdge = false
+  rootTouchesBottomEdge = false,
+  topStripHeight
 }: {
   layout: TabGroupLayoutNode
   worktreeId: string
@@ -294,6 +300,8 @@ export function TabGroupSplitNodeTree({
   markdownAnnotationsEnabled?: boolean
   /** True when the host's own chrome bounds the tree's bottom edge (no border-b to paint). */
   rootTouchesBottomEdge?: boolean
+  /** Local (glass build): the top row's tab strip height, when the host has no header band of its own. */
+  topStripHeight?: number
 }): React.JSX.Element {
   return (
     <SplitNode
@@ -314,6 +322,7 @@ export function TabGroupSplitNodeTree({
       suppressBottomBorder={false}
       isTabDragActive={isTabDragActive}
       hoveredTabInsertion={hoveredTabInsertion}
+      topStripHeight={topStripHeight}
     />
   )
 }
