@@ -10,7 +10,8 @@ import { gitGraphEdgeKey } from './git-graph-outline'
 import { formatGitGraphRelativeTime } from './git-graph-row'
 import { useGitGraphAuthorProps } from './git-graph-author-color'
 
-export type GitGraphSegment = { title: string; ids: string[] }
+/** `title` is absent for the row's own line: the row right above names it and counts it. */
+export type GitGraphSegment = { key: string; title?: string; ids: string[] }
 
 /** The commits a Branches row stands for, as titled groups: its line, then each merged line. */
 export function gitGraphSegments(
@@ -22,7 +23,9 @@ export function gitGraphSegments(
   const [first, ...merged] = item.parentIds
   const segments: GitGraphSegment[] = [
     {
-      title: laneName ? `On ${laneName}` : 'On this line',
+      // No heading: the row's own branch label and count sit right above (Paweł, 2026-11-17:
+      // "redundant branch reference").
+      key: `line:${laneName ?? ''}`,
       ids: [item.id, ...(first ? (foldedByEdge.get(gitGraphEdgeKey(item.id, 0)) ?? []) : [])]
     }
   ]
@@ -30,7 +33,8 @@ export function gitGraphSegments(
     const ids = foldedByEdge.get(gitGraphEdgeKey(item.id, index + 1)) ?? []
     if (ids.length > 0) {
       segments.push({
-        title: `Merged in${index === 0 && mergedName ? ` from ${mergedName}` : ''}`,
+        key: `merged:${index}`,
+        title: `merged in${index === 0 && mergedName ? ` from ${mergedName}` : ''}`,
         ids
       })
     }
@@ -96,10 +100,12 @@ export function GitGraphSegmentCommits({
     <div className="flex min-w-0 flex-col gap-1.5">
       {segments.map((segment) => {
         return (
-          <div key={segment.title} className="min-w-0">
-            <div className="px-2 pb-0.5 text-[10.5px] font-semibold tracking-wide text-foreground/60 uppercase">
-              {segment.title} · {segment.ids.length}
-            </div>
+          <div key={segment.key} className="min-w-0">
+            {segment.title && (
+              <div className="mt-1 border-t border-foreground/10 px-2 pt-1.5 pb-0.5 text-xs text-foreground/65">
+                {segment.title} · {segment.ids.length}
+              </div>
+            )}
             {segment.ids.map((id) => {
               const item = itemById.get(id)
               if (!item) {
