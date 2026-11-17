@@ -139,9 +139,9 @@ export function GitGraphRefChip({
     'inline-flex max-w-full min-w-0 items-center gap-1.5 rounded-md border text-left',
     size === 'lg' ? 'px-2 text-[12.5px] leading-[18px]' : 'px-1.5 text-[11.5px] leading-[18px]',
     group.isHead ? 'font-semibold text-foreground' : 'text-foreground',
-    focused
-      ? 'border-ring bg-accent'
-      : 'border-foreground/25 bg-foreground/[0.06] dark:bg-black/20',
+    // No fill: the branch's colour is its dot alone (Paweł, 2026-11-17: "no background for branch
+    // badge! only dot"); the outline is the theme's.
+    focused ? 'border-ring bg-accent' : 'border-border',
     clickable && 'cursor-pointer hover:border-ring'
   )
   return clickable ? (

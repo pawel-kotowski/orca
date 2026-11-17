@@ -31,6 +31,7 @@ import {
 import { findGitGraphCommit } from './git-graph-find'
 import { useGitGraphRows } from './use-git-graph-rows'
 import { GitGraphList } from './git-graph-list'
+import { useGitGraphThemeColours } from './use-git-graph-theme-colours'
 
 // Selection, scroll and the drawn branches survive the tab remounting (a split beside it moves
 // its group).
@@ -94,6 +95,8 @@ export function GitGraphView({ worktreeId }: { worktreeId: string }): React.JSX.
   })
 
   const result = history.result
+  // Branch colours from the terminal theme's palette (Gruvbox's for Paweł).
+  const themeColours = useGitGraphThemeColours()
   const refs = useGitGraphRefList({
     worktreeId,
     worktreePath: history.worktreePath,
@@ -286,7 +289,7 @@ export function GitGraphView({ worktreeId }: { worktreeId: string }): React.JSX.
     // The graph sits on Orca's side panel colour (Paweł, 2026-11-17: "cant you use sidepanel color
     // of orca", after a black overlay read too dark and then too faint): the theme's own surface,
     // a step darker than its base in dark themes, in light ones too.
-    <div className="h-full min-h-0 bg-sidebar">
+    <div className="h-full min-h-0 bg-sidebar" style={themeColours}>
       <div className="flex h-full min-h-0 flex-col text-foreground">
         <GitGraphToolbar
           controls={

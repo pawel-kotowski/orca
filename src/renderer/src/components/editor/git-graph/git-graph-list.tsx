@@ -74,7 +74,7 @@ export function GitGraphList({
     worktreePath && (
       <div
         data-git-graph-details
-        className="flex rounded-b-md bg-muted/30 dark:bg-black/18"
+        className="flex rounded-b-md bg-background/70"
         aria-label="Commit details"
       >
         {/* overflow-hidden: lanes past a narrowed graph column are clipped instead of drawing
