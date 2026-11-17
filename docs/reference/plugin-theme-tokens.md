@@ -53,6 +53,7 @@ Every key an app theme may set in `tokens` (see [plugin themes](plugin-themes.md
 | `--tab-active-indicator` | Line under the active tab | no | same as `--tab-active-foreground` |
 | `--tab-inactive` | Inactive tabs | no | light: `--foreground` mixed 4% into `--tab-bar`; dark: same as `--tab-bar` |
 | `--tab-inactive-foreground` | Inactive tab text | no | same as `--muted-foreground` |
+| `--status-bar` | Status bar along the bottom of the window | no | same as `--card` |
 | `--split-divider` | Divider between split tab groups | no | Orca's built-in color |
 | `--split-divider-hover` | Split divider while hovered or dragged | no | Orca's built-in color |
 | `--chat-user-message` | Your messages in chat; may be translucent, it paints over the chat | no | `--foreground` mixed lightly into the chat background |

@@ -207,13 +207,19 @@ export function GitGraphToolbar({
         <Segmented
           value={density}
           onChange={onDensity}
+          // One line, then Full text beside Branches (Paweł, 2026-11-17: "detailed view as second
+          // so its next to branches"; "Compact" and "Detailed" did not say what they show).
           options={[
             {
-              value: 'detailed',
-              label: 'Detailed',
-              title: 'Full commit messages and branch names (key v cycles views)'
+              value: 'compact',
+              label: 'One line',
+              title: 'One line per commit, cut to fit (key v cycles views)'
             },
-            { value: 'compact', label: 'Compact', title: 'One line per commit' },
+            {
+              value: 'detailed',
+              label: 'Full text',
+              title: 'Full commit messages and branch names, wrapped; each branch framed'
+            },
             {
               value: 'branches',
               label: 'Branches',

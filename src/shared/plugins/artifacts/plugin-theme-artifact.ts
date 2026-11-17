@@ -57,6 +57,8 @@ export const PLUGIN_APP_THEME_TOKENS = [
   '--tab-active-indicator',
   '--tab-inactive',
   '--tab-inactive-foreground',
+  // Local (glass build): the status bar had no token and always painted --card (2026-11-17).
+  '--status-bar',
   '--split-divider',
   '--split-divider-hover',
   '--chat-user-message',

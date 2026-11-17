@@ -18,19 +18,19 @@ export const ACTIVE_TAB_INDICATOR_CLASSES =
 export function getTabRootStateClasses(isActive: boolean): string {
   return isActive
     ? 'bg-tab-active text-tab-active-foreground'
-    : 'bg-tab-inactive text-tab-inactive-foreground hover:text-tab-active-foreground'
+    : // Local (glass build): a faint lift on hover, as rows and buttons elsewhere in Orca.
+      'bg-tab-inactive text-tab-inactive-foreground hover:text-tab-active-foreground hover:bg-foreground/[0.05]'
 }
 
+/**
+ * Local (glass build): tabs round their top corners like the rest of Orca's controls and draw no
+ * dividing lines, which square-cornered tabs needed and rounded ones do not (Paweł, 2026-11-17:
+ * "should tabs be sharp corners? everything in orca is a bit rounded"). The arguments stay for
+ * the callers; the top border they controlled is gone with the lines.
+ */
 export function getTabStripBorderClasses(
-  hasTabsToRight: boolean,
-  options?: { includeTopBorder?: boolean }
+  _hasTabsToRight: boolean,
+  _options?: { includeTopBorder?: boolean }
 ): string {
-  const includeTopBorder = options?.includeTopBorder ?? true
-  return [
-    includeTopBorder ? 'border-t' : '',
-    'border-r border-border',
-    hasTabsToRight ? '' : 'border-r-transparent'
-  ]
-    .filter(Boolean)
-    .join(' ')
+  return 'rounded-t-[7px]'
 }

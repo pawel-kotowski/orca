@@ -60,6 +60,7 @@ const TOKEN_ROLES: Record<PluginAppThemeToken, string> = {
   '--tab-active-indicator': 'Line under the active tab',
   '--tab-inactive': 'Inactive tabs',
   '--tab-inactive-foreground': 'Inactive tab text',
+  '--status-bar': 'Status bar along the bottom of the window',
   '--split-divider': 'Divider between split tab groups',
   '--split-divider-hover': 'Split divider while hovered or dragged',
   '--chat-user-message': 'Your messages in chat; may be translucent, it paints over the chat',

@@ -6,7 +6,7 @@ import type React from 'react'
 import type { GitGraphDensity } from './git-graph-toolbar'
 import type { GitGraphJumpTarget } from './use-git-graph-jump'
 
-const VIEWS: GitGraphDensity[] = ['detailed', 'compact', 'branches']
+const VIEWS: GitGraphDensity[] = ['compact', 'detailed', 'branches']
 
 export function useGitGraphKeys({
   density,

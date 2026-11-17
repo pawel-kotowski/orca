@@ -69,6 +69,7 @@ const CONTRAST_RULE_DEFINITIONS: readonly ContrastRule[] = [
   { ...textPair('--host-badge', '--host-badge-foreground'), over: '--worktree-sidebar' },
   textPair('--tab-active', '--tab-active-foreground'),
   textPair('--tab-inactive', '--tab-inactive-foreground'),
+  textPair('--status-bar', '--foreground'),
   // Hovered inactive tabs take the active text color.
   textPair('--tab-inactive', '--tab-active-foreground'),
   chatPair('--chat-user-message', '--chat-foreground-strong', ['--chat-user-message']),
