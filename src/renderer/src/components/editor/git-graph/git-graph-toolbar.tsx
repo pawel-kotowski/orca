@@ -1,5 +1,5 @@
 // Local (glass build): the Git Graph tab's two toolbar lines. The first sets what the graph shows:
-// which branches, how each commit reads (Detailed: full messages and branch names; Compact: one
+// which branches (all until some are unticked), which sit leftmost, how each commit reads (Detailed: full messages and branch names; Compact: one
 // line each; Branches: only tips, merges and fork points), text size, refresh. The second moves
 // around it: HEAD, main and development one click away (keys h, m, d), any branch by name, the
 // branch being followed, and find.
@@ -140,8 +140,8 @@ function JumpButton({
 }
 
 export function GitGraphToolbar({
-  allRefs,
-  onAllRefs,
+  branchSelect,
+  laneOrder,
   density,
   onDensity,
   zoom,
@@ -164,8 +164,10 @@ export function GitGraphToolbar({
   commitCount,
   hasMore
 }: {
-  allRefs: boolean
-  onAllRefs: (value: boolean) => void
+  /** Which branches are drawn (GitGraphBranchSelect). */
+  branchSelect: React.ReactNode
+  /** Which branches sit leftmost (GitGraphLaneOrder). */
+  laneOrder: React.ReactNode
   density: GitGraphDensity
   onDensity: (value: GitGraphDensity) => void
   zoom: number
@@ -196,14 +198,7 @@ export function GitGraphToolbar({
         <span className="shrink-0 text-sm font-semibold whitespace-nowrap">
           {translate('local.gitGraph.title', 'Git Graph')}
         </span>
-        <Segmented
-          value={allRefs}
-          onChange={onAllRefs}
-          options={[
-            { value: true, label: translate('local.gitGraph.allBranches', 'All branches') },
-            { value: false, label: translate('local.gitGraph.currentBranch', 'Current branch') }
-          ]}
-        />
+        {branchSelect}
         <Segmented
           value={density}
           onChange={onDensity}
@@ -221,6 +216,7 @@ export function GitGraphToolbar({
             }
           ]}
         />
+        {laneOrder}
         <div className="ml-auto flex shrink-0 items-center gap-1">
           <Button
             variant="ghost"

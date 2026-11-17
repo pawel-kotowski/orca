@@ -4073,3 +4073,35 @@ body:has([data-contextual-tour-target='tab-create-menu'][data-state='open'])
 .dark [data-git-graph-author] {
   color: oklch(0.78 0.1 var(--git-graph-author-hue, 0));
 }
+
+/* Local (glass build): the classic Git Graph colours each branch's lane by the branch
+   (git-graph-branch-layout.ts; Paweł, 2026-11-17: "development is both blue and yellow"). The
+   pinned branches (main, development by default) keep fixed colours, the current branch is drawn
+   in the text colour so it stands apart from every palette colour, every other branch takes the
+   next palette colour, a line no branch names stays grey. */
+:root {
+  --git-graph-branch-head: var(--foreground);
+  --git-graph-branch-pin-1: #0969da;
+  --git-graph-branch-pin-2: #1a7f37;
+  --git-graph-branch-pin-3: #8250df;
+  --git-graph-branch-1: #d4a000;
+  --git-graph-branch-2: #dc267f;
+  --git-graph-branch-3: #e36209;
+  --git-graph-branch-4: #2aa198;
+  --git-graph-branch-5: #a0522d;
+  --git-graph-branch-6: #c2185b;
+  --git-graph-branch-7: #6f42c1;
+  --git-graph-branch-none: var(--muted-foreground);
+}
+.dark {
+  --git-graph-branch-pin-1: #4c9aff;
+  --git-graph-branch-pin-2: #3fb950;
+  --git-graph-branch-pin-3: #b48eff;
+  --git-graph-branch-1: #ffb000;
+  --git-graph-branch-2: #f0569a;
+  --git-graph-branch-3: #ff8c42;
+  --git-graph-branch-4: #40b0a6;
+  --git-graph-branch-5: #ce9178;
+  --git-graph-branch-6: #ff7eb6;
+  --git-graph-branch-7: #9d7cff;
+}

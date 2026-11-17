@@ -7,6 +7,8 @@ export type GitHistoryGraphColorId =
   | 'git-graph-lane-3'
   | 'git-graph-lane-4'
   | 'git-graph-lane-5'
+  // Local (glass build): the classic Git Graph colours lanes by branch (git-graph-branch-layout.ts).
+  | `git-graph-branch-${string}`
 
 export const GIT_HISTORY_REF_COLOR: GitHistoryGraphColorId = 'git-graph-ref'
 export const GIT_HISTORY_REMOTE_REF_COLOR: GitHistoryGraphColorId = 'git-graph-remote-ref'

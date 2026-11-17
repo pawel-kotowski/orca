@@ -11,6 +11,7 @@ import {
 } from '@/components/right-sidebar/source-control/sync/worktree-git-owner-target'
 import type {
   GitHistoryItem,
+  GitHistoryRefs,
   GitHistoryResult
 } from '../../../../../shared/git/history/git-history-types'
 
@@ -39,7 +40,8 @@ const EMPTY: GitGraphHistoryState = {
 
 export function useClassicGitGraphHistory(
   worktreeId: string,
-  allRefs: boolean
+  /** 'all', or the full names of the branches and tags to draw. */
+  refs: GitHistoryRefs
 ): GitGraphHistoryState & {
   worktreePath: string | null
   refresh: () => void
@@ -49,7 +51,8 @@ export function useClassicGitGraphHistory(
   const worktreePath = worktree?.path ?? null
   const ownerTarget = useWorktreeGitOwnerTarget(worktreeId)
   const head = useAppStore((s) => s.gitStatusHeadByWorktree[worktreeId] ?? null)
-  const cacheKey = `${worktreeId}|${allRefs ? 'all' : 'head'}`
+  const refsKey = typeof refs === 'string' ? refs : JSON.stringify(refs)
+  const cacheKey = `${worktreeId}|${refsKey}`
   const [state, setState] = useState<GitGraphHistoryState>(() => loadedByKey.get(cacheKey) ?? EMPTY)
   const [stateKey, setStateKey] = useState(cacheKey)
   if (stateKey !== cacheKey) {
@@ -81,7 +84,8 @@ export function useClassicGitGraphHistory(
           {
             limit: GIT_GRAPH_PAGE_SIZE,
             skip,
-            refs: allRefs ? 'all' : 'head',
+            // Read back from refsKey, so a new array naming the same refs never reloads.
+            refs: (refsKey.startsWith('[') ? JSON.parse(refsKey) : refsKey) as GitHistoryRefs,
             ...(historyToken ? { historyToken } : {}),
             wakeWslDistro: true
           }
@@ -116,7 +120,7 @@ export function useClassicGitGraphHistory(
         }))
       }
     },
-    [allRefs, cacheKey, head, ownerTarget, worktreeId, worktreePath]
+    [refsKey, cacheKey, head, ownerTarget, worktreeId, worktreePath]
   )
   const loadRef = useRef(load)
   loadRef.current = load

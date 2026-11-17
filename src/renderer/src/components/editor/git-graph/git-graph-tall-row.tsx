@@ -7,14 +7,10 @@ import React from 'react'
 import { cn } from '@/lib/class-names'
 import { getIntlLocale } from '@/i18n/i18n'
 import type { GitHistoryGraphColorId } from '../../../../../shared/git/history/git-history-types'
-import type {
-  GitHistoryGraphNode,
-  GitHistoryItemViewModel
-} from '../../../../../shared/git/history/git-history-graph'
-import {
-  GitHistoryGraphSvg,
-  graphColor
-} from '@/components/right-sidebar/source-control/sync/git-history-graph-svg'
+import type { GitHistoryGraphNode } from '../../../../../shared/git/history/git-history-graph'
+import { graphColor } from '@/components/right-sidebar/source-control/sync/git-history-graph-svg'
+import type { GitGraphLaneRow } from './git-graph-branch-layout'
+import { GitGraphLanesSvg, gitGraphLaneStroke } from './git-graph-lanes-svg'
 import type { GitGraphLayout } from './git-graph-columns'
 import { formatGitGraphRelativeTime, GIT_GRAPH_HOVER_FRAME } from './git-graph-row'
 import { useGitGraphAuthorProps } from './git-graph-author-color'
@@ -35,16 +31,20 @@ export function GitGraphLaneFill({
 }): React.JSX.Element {
   return (
     <div aria-hidden className={cn('relative overflow-hidden', className)} style={style}>
-      {lanes.map((lane, index) => (
-        <div
-          key={`${index}-${lane.id}`}
-          className="absolute inset-y-0 w-px"
-          style={{
-            left: GRAPH_PADDING + LANE_WIDTH * (index + 1) - 0.5,
-            background: graphColor(lane.color)
-          }}
-        />
-      ))}
+      {lanes.map((lane, index) => {
+        const width = gitGraphLaneStroke(lane.color)
+        return (
+          <div
+            key={`${index}-${lane.id}`}
+            className="absolute inset-y-0"
+            style={{
+              left: GRAPH_PADDING + LANE_WIDTH * (index + 1) - width / 2,
+              width,
+              background: graphColor(lane.color)
+            }}
+          />
+        )
+      })}
     </div>
   )
 }
@@ -73,7 +73,7 @@ export function GitGraphSelectionFrame({
 }
 
 type GitGraphTallRowProps = Omit<React.HTMLAttributes<HTMLDivElement>, 'onSelect'> & {
-  viewModel: GitHistoryItemViewModel
+  viewModel: GitGraphLaneRow
   layout: GitGraphLayout
   selected: boolean
   /** Off the followed branch: drawn faint. */
@@ -166,7 +166,7 @@ export const GitGraphTallRow = React.forwardRef<HTMLDivElement, GitGraphTallRowP
           style={{ gridRow: lineRow, gridColumn: 1 }}
           title={laneName ? `On ${laneName}` : undefined}
         >
-          <GitHistoryGraphSvg viewModel={viewModel} />
+          <GitGraphLanesSvg row={viewModel} />
           <GitGraphLaneFill lanes={viewModel.outputSwimlanes} className="-ml-2 flex-1" />
         </div>
         <div className={cn('min-w-0', mainClassName)} style={{ gridRow: lineRow, gridColumn: 2 }}>

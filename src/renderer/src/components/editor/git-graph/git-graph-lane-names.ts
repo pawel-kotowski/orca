@@ -8,19 +8,19 @@ import type {
   GitHistoryItemRef
 } from '../../../../../shared/git/history/git-history-types'
 
-/** Branches that live for the whole project: they own a fork point over any feature branch. */
-const TRUNK_NAMES = new Set(['main', 'master', 'trunk', 'develop', 'development', 'dev'])
+/**
+ * Branches that live for the whole project, in order: they own a fork point over any feature
+ * branch, and an earlier one over a later one. The Git Graph's pinned lanes replace this list.
+ */
+export const GIT_GRAPH_DEFAULT_TRUNKS = ['main', 'master', 'trunk', 'develop', 'development', 'dev']
 
-/** How strongly a name claims a commit: a trunk's line beats a branch tip's, which beats a merge's guess. */
-const enum Claim {
-  Merge = 1,
-  Ref = 2,
-  Trunk = 3
-}
-
-export function isGitGraphTrunkName(name: string): boolean {
-  return TRUNK_NAMES.has(name)
-}
+/**
+ * How strongly a name claims a commit: a trunk's line beats a branch tip's, which beats a merge's
+ * guess; trunks rank among themselves by their order.
+ */
+const MERGE_CLAIM = 1
+const REF_CLAIM = 2
+const TRUNK_CLAIM = 3
 
 /** A branch name without its remote: `origin/feature/x` → `feature/x`. Local names stay as they are. */
 export function gitGraphBranchName(ref: GitHistoryItemRef): string | undefined {
@@ -59,18 +59,27 @@ export function gitGraphMergeTargetName(subject: string): string | undefined {
   return / into '?([^'\s]+)'?\s*$/.exec(subject)?.[1]
 }
 
-function claimOf(name: string, fromRef: boolean): Claim {
-  return isGitGraphTrunkName(name) ? Claim.Trunk : fromRef ? Claim.Ref : Claim.Merge
+type Claim = number
+
+function claimOf(name: string, fromRef: boolean, trunks: readonly string[]): Claim {
+  const trunk = trunks.indexOf(name)
+  if (trunk !== -1) {
+    return TRUNK_CLAIM + trunks.length - trunk
+  }
+  return fromRef ? REF_CLAIM : MERGE_CLAIM
 }
 
-function ownBranch(item: GitHistoryItem): { name: string; claim: Claim } | undefined {
+function ownBranch(
+  item: GitHistoryItem,
+  trunks: readonly string[]
+): { name: string; claim: Claim } | undefined {
   let best: { name: string; claim: Claim } | undefined
   for (const ref of item.references ?? []) {
     const name = gitGraphBranchName(ref)
     if (!name) {
       continue
     }
-    const claim = claimOf(name, true)
+    const claim = claimOf(name, true, trunks)
     // A local branch wins a tie with a remote one of another name; a trunk wins over both.
     if (!best || claim > best.claim || (claim === best.claim && ref.category === 'branches')) {
       best = { name, claim }
@@ -83,7 +92,10 @@ function ownBranch(item: GitHistoryItem): { name: string; claim: Claim } | undef
  * Names every commit by the branch whose line it is on. Items come newest first, children before
  * parents, as the graph draws them; a commit nothing names is left out.
  */
-export function gitGraphLaneNames(items: readonly GitHistoryItem[]): Map<string, string> {
+export function gitGraphLaneNames(
+  items: readonly GitHistoryItem[],
+  trunks: readonly string[] = GIT_GRAPH_DEFAULT_TRUNKS
+): Map<string, string> {
   const claims = new Map<string, { name: string; claim: Claim }>()
   const names = new Map<string, string>()
   const offer = (id: string, name: string, claim: Claim): void => {
@@ -93,12 +105,12 @@ export function gitGraphLaneNames(items: readonly GitHistoryItem[]): Map<string,
     }
   }
   for (const item of items) {
-    const own = ownBranch(item)
+    const own = ownBranch(item, trunks)
     const inherited = claims.get(item.id)
     const mergeTarget =
       item.parentIds.length > 1 ? gitGraphMergeTargetName(item.subject) : undefined
     const fromTarget = mergeTarget
-      ? { name: mergeTarget, claim: claimOf(mergeTarget, false) }
+      ? { name: mergeTarget, claim: claimOf(mergeTarget, false, trunks) }
       : undefined
     const lane = [own, inherited, fromTarget].reduce<{ name: string; claim: Claim } | undefined>(
       (best, next) => (next && (!best || next.claim > best.claim) ? next : best),
@@ -114,7 +126,7 @@ export function gitGraphLaneNames(items: readonly GitHistoryItem[]): Map<string,
     const merged = others.length > 0 ? gitGraphMergedBranchName(item.subject) : undefined
     if (merged) {
       // Only the first merged parent is the named branch; an octopus merge's others stay unnamed.
-      offer(others[0]!, merged, claimOf(merged, false))
+      offer(others[0]!, merged, claimOf(merged, false, trunks))
     }
   }
   return names

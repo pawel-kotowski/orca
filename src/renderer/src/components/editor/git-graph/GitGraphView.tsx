@@ -1,48 +1,38 @@
 // Local (glass build): the Git Graph tab — every branch's history as a full-size graph. Three ways
 // to read it (Detailed: full messages and branch names, rows as tall as they need; Compact: one
-// line per commit; Branches: only tips, merges and fork points), one-click jumps to HEAD, main and
-// development, and a followed branch that fades every commit off its line. A clicked commit's
+// line per commit; Branches: only tips, merges and fork points, each opening the commits it stands
+// for). Lanes are coloured and placed by branch, pinned branches (main, development) leftmost; a
+// picker chooses which branches are drawn; one-click jumps go to HEAD, main and development; in
+// Detailed and Compact a followed branch fades every commit off its line. A clicked commit's
 // details open under its row, and their files open as diffs beside the graph.
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { ContextMenu, ContextMenuTrigger } from '@/components/ui/context-menu'
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { translate } from '@/i18n/i18n'
+import { useWorktreeById } from '@/store/workspaces/selection/use-selected-worktree'
 import { useWorktreeGitOwnerTarget } from '@/components/right-sidebar/source-control/sync/worktree-git-owner-target'
 import { useGitHistoryCommitActions } from '@/components/right-sidebar/source-control/sync/use-git-history-commit-actions'
-import { GitHistoryCommitContextMenu } from '@/components/right-sidebar/source-control/sync/git-history-commit-context-menu'
-import {
-  buildDefaultGitHistoryColorMap,
-  buildGitHistoryViewModels,
-  getGitHistoryItemColor,
-  type GitHistoryItemViewModel
-} from '../../../../../shared/git/history/git-history-graph'
+import type { GitHistoryRefs } from '../../../../../shared/git/history/git-history-types'
 import { useClassicGitGraphHistory } from './use-git-graph-history-local'
 import { GIT_GRAPH_ROW_HEIGHT, GitGraphHeaderRow } from './git-graph-row'
 import { useGitGraphColumns } from './git-graph-columns'
-import { GitGraphCommitDetails } from './git-graph-commit-details'
-import { GitGraphLaneFill, GitGraphSelectionFrame } from './git-graph-tall-row'
-import { GitGraphCommitRow } from './git-graph-commit-row'
-import { gitGraphLaneNames } from './git-graph-lane-names'
-import { outlineGitGraphItems } from './git-graph-outline'
-import { useGitGraphJump } from './use-git-graph-jump'
+import { useGitGraphJump, useGitGraphRefList } from './use-git-graph-jump'
 import { GitGraphToolbar, useGitGraphDensity, useGitGraphZoom } from './git-graph-toolbar'
 import { useGitGraphKeys } from './use-git-graph-keys'
-import { GitGraphAuthorHuesProvider, gitGraphAuthorHues } from './git-graph-author-color'
+import { GitGraphAuthorHuesProvider } from './git-graph-author-color'
+import { GitGraphBranchColoursProvider } from './git-graph-branch-colour-context'
+import { gitGraphBranchName } from './git-graph-lane-names'
+import { useGitGraphPinnedLanes } from './use-git-graph-pinned-lanes'
+import { GitGraphLaneOrder } from './git-graph-lane-order'
+import { GitGraphBranchSelect } from './git-graph-branch-select'
+import { useGitGraphRows } from './use-git-graph-rows'
+import { GitGraphList } from './git-graph-list'
 
-// Matches SWIMLANE_WIDTH in git-history-graph-svg.tsx: one lane's width in px.
-const LANE_WIDTH = 11
-const ALL_REFS_STORAGE_KEY = 'orca.gitGraph.allRefs'
-
-// Selection and scroll survive the tab remounting (a split beside it moves its group).
-const viewByWorktree = new Map<string, { selectedId: string | null; scrollTop: number }>()
-
-function readAllRefsPreference(): boolean {
-  try {
-    return window.localStorage.getItem(ALL_REFS_STORAGE_KEY) !== 'false'
-  } catch {
-    return true
-  }
-}
+// Selection, scroll and the drawn branches survive the tab remounting (a split beside it moves
+// its group).
+const viewByWorktree = new Map<
+  string,
+  { selectedId: string | null; scrollTop: number; refs: GitHistoryRefs }
+>()
 
 /** Runs after React has drawn the next state (a view switch re-renders every row first). */
 function afterPaint(run: () => void): void {
@@ -50,18 +40,23 @@ function afterPaint(run: () => void): void {
 }
 
 export function GitGraphView({ worktreeId }: { worktreeId: string }): React.JSX.Element {
-  const [allRefs, setAllRefs] = useState(readAllRefsPreference)
+  const saved = viewByWorktree.get(worktreeId)
+  const [refsFilter, setRefsFilter] = useState<GitHistoryRefs>(saved?.refs ?? 'all')
   const [density, setDensity] = useGitGraphDensity()
   const [zoom, stepZoom] = useGitGraphZoom()
-  const history = useClassicGitGraphHistory(worktreeId, allRefs)
+  const history = useClassicGitGraphHistory(worktreeId, refsFilter)
   const ownerTarget = useWorktreeGitOwnerTarget(worktreeId)
-  const [selectedId, setSelectedId] = useState<string | null>(
-    () => viewByWorktree.get(worktreeId)?.selectedId ?? null
-  )
+  const repoKey = useWorktreeById(worktreeId)?.repoId ?? null
+  const [selectedId, setSelectedId] = useState<string | null>(saved?.selectedId ?? null)
+  const [openCommitId, setOpenCommitId] = useState<string | null>(null)
   useEffect(() => {
-    const saved = viewByWorktree.get(worktreeId)
-    viewByWorktree.set(worktreeId, { scrollTop: saved?.scrollTop ?? 0, selectedId })
-  }, [selectedId, worktreeId])
+    const previous = viewByWorktree.get(worktreeId)
+    viewByWorktree.set(worktreeId, {
+      scrollTop: previous?.scrollTop ?? 0,
+      selectedId,
+      refs: refsFilter
+    })
+  }, [refsFilter, selectedId, worktreeId])
   const [query, setQuery] = useState('')
   const [focusedBranch, setFocusedBranch] = useState<string | null>(null)
   const [flashId, setFlashId] = useState<string | null>(null)
@@ -86,13 +81,6 @@ export function GitGraphView({ worktreeId }: { worktreeId: string }): React.JSX.
     restoredScrollRef.current = true
     listRef.current.scrollTop = viewByWorktree.get(worktreeId)?.scrollTop ?? 0
   }, [hasRows, worktreeId])
-  useEffect(() => {
-    try {
-      window.localStorage.setItem(ALL_REFS_STORAGE_KEY, String(allRefs))
-    } catch {
-      // Storage unavailable: the choice lasts for this tab only.
-    }
-  }, [allRefs])
   const { handleCommitAction } = useGitHistoryCommitActions({
     activeWorktreeId: worktreeId,
     worktreePath: history.worktreePath,
@@ -101,126 +89,110 @@ export function GitGraphView({ worktreeId }: { worktreeId: string }): React.JSX.
   })
 
   const result = history.result
-  const laneNames = useMemo(() => gitGraphLaneNames(history.items), [history.items])
-  const authorHues = useMemo(() => gitGraphAuthorHues(history.items), [history.items])
-  // The Branches view rewrites parents; details, actions and "+N commits" read the real commit.
-  const itemById = useMemo(
-    () => new Map(history.items.map((item) => [item.id, item])),
-    [history.items]
-  )
-  const outline = useMemo(
-    () =>
-      density === 'branches'
-        ? outlineGitGraphItems(history.items, result?.currentRef?.revision)
-        : null,
-    [density, history.items, result?.currentRef?.revision]
-  )
-  const shownItems = outline?.items ?? history.items
-  const viewModels = useMemo(() => {
-    if (!result) {
-      return []
-    }
-    return buildGitHistoryViewModels(
-      shownItems,
-      buildDefaultGitHistoryColorMap(result),
-      result.currentRef,
-      result.remoteRef,
-      result.baseRef,
-      // With every branch drawn, upstream commits are rows of their own; no summary rows.
-      allRefs || outline ? false : result.hasIncomingChanges,
-      allRefs || outline ? false : result.hasOutgoingChanges,
-      result.mergeBase
-    )
-  }, [allRefs, outline, result, shownItems])
-
-  const graphWidth = useMemo(
-    () =>
-      viewModels.reduce(
-        (max, vm) =>
-          Math.max(
-            max,
-            LANE_WIDTH * (Math.max(vm.inputSwimlanes.length, vm.outputSwimlanes.length, 1) + 1)
-          ),
-        LANE_WIDTH * 2
-      ),
-    [viewModels]
-  )
-  // The graph column defaults to the widest row's lanes (plus its left padding) until dragged.
+  const refs = useGitGraphRefList({
+    worktreeId,
+    worktreePath: history.worktreePath,
+    ownerTarget,
+    historyToken: result?.historyToken,
+    items: history.items
+  })
+  const lanes = useGitGraphPinnedLanes(repoKey, refs)
+  const model = useGitGraphRows({
+    items: history.items,
+    result,
+    density,
+    pinned: lanes.pinned
+  })
   const { layout, setWidth, resetWidth, toggleColumn } = useGitGraphColumns(
     listWidth,
-    graphWidth + 8
+    model.graphWidth + 8
   )
 
-  const commitRows = useMemo(
-    () =>
-      viewModels.filter((vm) => vm.kind !== 'incoming-changes' && vm.kind !== 'outgoing-changes'),
-    [viewModels]
-  )
-  const shownIds = useMemo(() => new Set(commitRows.map((vm) => vm.historyItem.id)), [commitRows])
+  // In Branches a selected commit that folded into a row opens that row, at the commit; moving
+  // between views keeps the commit you were on. `openCommitId` is only for a row's own commit.
+  const branches = density === 'branches'
+  const foldedOwner = branches && selectedId ? model.rowOf.get(selectedId) : undefined
+  const expandedRow = foldedOwner ?? selectedId
+  const openCommit = branches ? (foldedOwner ? selectedId : openCommitId) : null
+  const openCommitInRow = (commit: string | null): void => {
+    setSelectedId(commit ?? expandedRow)
+    setOpenCommitId(commit && !model.rowOf.has(commit) ? commit : null)
+  }
 
-  // Brings the commit and the details under it into view; the row wins when both don't fit.
-  const scrollToCommit = useCallback((id: string, block: ScrollLogicalPosition = 'nearest') => {
+  const scrollTo = useCallback((id: string, block: ScrollLogicalPosition = 'nearest') => {
     const list = listRef.current
     list?.querySelector('[data-git-graph-details]')?.scrollIntoView({ block: 'nearest' })
-    list?.querySelector(`[data-git-graph-commit="${CSS.escape(id)}"]`)?.scrollIntoView({ block })
+    const target =
+      list?.querySelector(`[data-git-graph-commit-line="${CSS.escape(id)}"]`) ??
+      list?.querySelector(`[data-git-graph-commit="${CSS.escape(id)}"]`)
+    target?.scrollIntoView({ block })
   }, [])
 
-  // A commit folded away in the Branches view is shown in the Detailed one.
-  const ensureShown = useCallback(
-    (id: string): boolean => {
-      if (shownIds.has(id) || density !== 'branches') {
-        return false
-      }
-      setDensity('detailed')
-      return true
+  // Shows a commit: its row's details, or in Branches the row it belongs to, opened at it.
+  const selectCommit = useCallback(
+    (id: string, block: ScrollLogicalPosition = 'nearest') => {
+      setSelectedId(id)
+      setOpenCommitId(density === 'branches' ? id : null)
+      afterPaint(() => scrollTo(id, block))
     },
-    [density, setDensity, shownIds]
+    [density, scrollTo]
   )
 
-  const selectCommit = useCallback(
-    (id: string) => {
-      const switched = ensureShown(id)
+  const toggleRow = (id: string): void => {
+    if (id === expandedRow) {
+      setSelectedId(null)
+      setOpenCommitId(null)
+    } else if (branches) {
       setSelectedId(id)
-      ;(switched ? afterPaint : requestAnimationFrame)(() => scrollToCommit(id))
-    },
-    [ensureShown, scrollToCommit]
-  )
+      setOpenCommitId(null)
+    } else {
+      selectCommit(id)
+    }
+  }
 
   const flashTimer = useRef<number | undefined>(undefined)
   const reveal = useCallback(
     (id: string) => {
-      const switched = ensureShown(id)
       setFlashId(id)
       window.clearTimeout(flashTimer.current)
       flashTimer.current = window.setTimeout(() => setFlashId(null), 1600)
-      ;(switched ? afterPaint : requestAnimationFrame)(() => {
-        scrollToCommit(id, 'center')
+      if (density === 'branches' && model.rowOf.has(id)) {
+        selectCommit(id, 'center')
+        return
+      }
+      afterPaint(() => {
+        scrollTo(id, 'center')
         listRef.current?.focus({ preventScroll: true })
       })
     },
-    [ensureShown, scrollToCommit]
+    [density, model.rowOf, scrollTo, selectCommit]
   )
   useEffect(() => () => window.clearTimeout(flashTimer.current), [])
 
   const jumps = useGitGraphJump({
-    worktreeId,
-    worktreePath: history.worktreePath,
-    ownerTarget,
+    refs,
+    pinned: lanes.pinned,
     result,
     items: history.items,
     hasMore: history.hasMore,
     loading: history.loading,
     loadMore: history.loadMore,
-    allRefs,
-    setAllRefs,
+    refsFilter,
+    showAllRefs: () => setRefsFilter('all'),
     reveal
   })
 
   const moveSelection = (step: number): void => {
-    const index = commitRows.findIndex((vm) => vm.historyItem.id === selectedId)
-    const next = commitRows[Math.max(0, Math.min(commitRows.length - 1, index + step))]
+    const index = model.rows.findIndex((row) => row.historyItem.id === expandedRow)
+    const next = model.rows[Math.max(0, Math.min(model.rows.length - 1, index + step))]
     if (next) {
-      selectCommit(next.historyItem.id)
+      if (density === 'branches') {
+        setSelectedId(next.historyItem.id)
+        setOpenCommitId(null)
+        afterPaint(() => scrollTo(next.historyItem.id))
+      } else {
+        selectCommit(next.historyItem.id)
+      }
     }
   }
 
@@ -231,7 +203,8 @@ export function GitGraphView({ worktreeId }: { worktreeId: string }): React.JSX.
     if (!needle || items.length === 0) {
       return
     }
-    const start = items.findIndex((item) => item.id === selectedId)
+    const from = openCommit ?? selectedId
+    const start = items.findIndex((item) => item.id === from)
     for (let offset = 1; offset <= items.length; offset += 1) {
       const item = items[(start + offset) % items.length]!
       const haystack = [
@@ -262,6 +235,8 @@ export function GitGraphView({ worktreeId }: { worktreeId: string }): React.JSX.
     onEscape: () => {
       if (focusedBranch) {
         setFocusedBranch(null)
+      } else if (openCommit) {
+        openCommitInRow(null)
       } else {
         setSelectedId(null)
       }
@@ -272,45 +247,45 @@ export function GitGraphView({ worktreeId }: { worktreeId: string }): React.JSX.
   const { hasMore, loadMore } = history
   const onScroll = (event: React.UIEvent<HTMLDivElement>): void => {
     const el = event.currentTarget
-    viewByWorktree.set(worktreeId, { selectedId, scrollTop: el.scrollTop })
+    const previous = viewByWorktree.get(worktreeId)
+    viewByWorktree.set(worktreeId, {
+      selectedId,
+      scrollTop: el.scrollTop,
+      refs: previous?.refs ?? refsFilter
+    })
     if (hasMore && el.scrollHeight - el.scrollTop - el.clientHeight < GIT_GRAPH_ROW_HEIGHT * 40) {
       loadMore()
     }
   }
 
-  const renderRow = (vm: GitHistoryItemViewModel): React.JSX.Element => {
-    const id = vm.historyItem.id
-    return (
-      <GitGraphCommitRow
-        viewModel={vm}
-        layout={layout}
-        density={density}
-        selected={id === selectedId}
-        flashing={flashId === id}
-        focusedBranch={focusedBranch}
-        laneNames={laneNames}
-        currentRefId={result?.currentRef?.id}
-        foldedByEdge={outline?.foldedByEdge}
-        onSelect={() => (id === selectedId ? setSelectedId(null) : selectCommit(id))}
-        onOpen={() => selectCommit(id)}
-        onFocusBranch={followBranch}
-        onShowCommits={() => {
-          // The real first parent is the newest of the commits the Branches view folded.
-          const first = itemById.get(id)?.parentIds[0]
-          setDensity('detailed')
-          if (first) {
-            afterPaint(() => reveal(first))
-          }
-        }}
-      />
-    )
-  }
+  const branchNames = [
+    ...new Set(refs.map((ref) => gitGraphBranchName(ref)).filter((name) => !!name))
+  ] as string[]
+  // A host that predates named refs draws only HEAD's history whatever is asked.
+  const hostIgnoresRefs = !!result && (result.refs === undefined || result.refs === 'head')
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-background text-foreground">
       <GitGraphToolbar
-        allRefs={allRefs}
-        onAllRefs={setAllRefs}
+        branchSelect={
+          <GitGraphBranchSelect
+            refs={refs}
+            value={refsFilter}
+            pinned={lanes.pinned}
+            headRefId={result?.currentRef?.id}
+            onChange={setRefsFilter}
+          />
+        }
+        laneOrder={
+          <GitGraphLaneOrder
+            pinned={lanes.pinned}
+            custom={lanes.custom}
+            branches={branchNames}
+            colourOf={model.colourOf}
+            onChange={lanes.setPinned}
+            onReset={lanes.reset}
+          />
+        }
         density={density}
         onDensity={setDensity}
         zoom={zoom}
@@ -320,12 +295,12 @@ export function GitGraphView({ worktreeId }: { worktreeId: string }): React.JSX.
         head={jumps.head}
         main={jumps.main}
         develop={jumps.develop}
-        refs={jumps.refs}
+        refs={refs}
         onJump={jumps.jump}
         pendingJump={jumps.pending}
         notice={jumps.notice}
         onClearNotice={jumps.clearNotice}
-        focusedBranch={focusedBranch}
+        focusedBranch={density === 'branches' ? null : focusedBranch}
         onClearFocus={() => setFocusedBranch(null)}
         query={query}
         onQuery={setQuery}
@@ -333,7 +308,7 @@ export function GitGraphView({ worktreeId }: { worktreeId: string }): React.JSX.
         commitCount={history.items.length}
         hasMore={history.hasMore}
       />
-      {allRefs && result && result.refs !== 'all' && (
+      {hostIgnoresRefs && (
         <div className="shrink-0 border-b border-border px-3 py-1 text-xs text-muted-foreground">
           {translate(
             'local.gitGraph.olderHost',
@@ -341,99 +316,66 @@ export function GitGraphView({ worktreeId }: { worktreeId: string }): React.JSX.
           )}
         </div>
       )}
-      <GitGraphAuthorHuesProvider value={authorHues}>
-        <div className="flex min-h-0 flex-1" style={{ zoom }}>
-          <div ref={columnRef} className="flex min-w-0 flex-1 flex-col">
-            <GitGraphHeaderRow
-              layout={layout}
-              onResize={setWidth}
-              onReset={resetWidth}
-              onToggleColumn={toggleColumn}
-              descriptionLabel={density === 'branches' ? 'Branches and merges' : undefined}
-            />
-            <div
-              ref={listRef}
-              role="grid"
-              tabIndex={0}
-              className="min-h-0 flex-1 overflow-y-auto outline-none scrollbar-sleek"
-              onScroll={onScroll}
-              onKeyDown={onKeyDown}
-            >
-              {history.error && (
-                <div className="px-3 py-2 text-xs text-destructive">{history.error}</div>
-              )}
-              {!history.error && history.loading && viewModels.length === 0 && (
-                <div className="px-3 py-2 text-xs text-muted-foreground">Loading graph…</div>
-              )}
-              {viewModels.map((vm) => {
-                const item = vm.historyItem
-                const row = renderRow(vm)
-                const isBoundary = vm.kind === 'incoming-changes' || vm.kind === 'outgoing-changes'
-                if (isBoundary) {
-                  return <React.Fragment key={`${vm.kind}:${item.id}`}>{row}</React.Fragment>
-                }
-                const details = item.id === selectedId && history.worktreePath && (
-                  <div
-                    data-git-graph-details
-                    className="flex rounded-b-md bg-muted/30"
-                    aria-label="Commit details"
-                  >
-                    {/* overflow-hidden: lanes past a narrowed graph column are clipped instead of
-                      drawing over the details (Paweł, 2026-11-15: "files overlap with lines"). */}
-                    <GitGraphLaneFill
-                      lanes={vm.outputSwimlanes}
-                      className="shrink-0 self-stretch"
-                      style={{ width: layout.graph }}
-                    />
-                    <GitGraphCommitDetails
-                      worktreeId={worktreeId}
-                      worktreePath={history.worktreePath}
-                      ownerTarget={ownerTarget}
-                      item={itemById.get(item.id) ?? item}
-                      onSelectCommit={selectCommit}
-                      onClose={() => setSelectedId(null)}
-                      laneColor={getGitHistoryItemColor(vm)}
-                    />
+      <GitGraphAuthorHuesProvider value={model.authorHues}>
+        <GitGraphBranchColoursProvider value={model.branchColour}>
+          <div className="flex min-h-0 flex-1" style={{ zoom }}>
+            <div ref={columnRef} className="flex min-w-0 flex-1 flex-col">
+              <GitGraphHeaderRow
+                layout={layout}
+                onResize={setWidth}
+                onReset={resetWidth}
+                onToggleColumn={toggleColumn}
+                descriptionLabel={density === 'branches' ? 'Branches and merges' : undefined}
+              />
+              <div
+                ref={listRef}
+                role="grid"
+                tabIndex={0}
+                className="min-h-0 flex-1 overflow-y-auto outline-none scrollbar-sleek"
+                onScroll={onScroll}
+                onKeyDown={onKeyDown}
+              >
+                {history.error && (
+                  <div className="px-3 py-2 text-xs text-destructive">{history.error}</div>
+                )}
+                {!history.error && history.loading && model.rows.length === 0 && (
+                  <div className="px-3 py-2 text-xs text-muted-foreground">Loading graph…</div>
+                )}
+                <GitGraphList
+                  model={model}
+                  layout={layout}
+                  density={density}
+                  worktreeId={worktreeId}
+                  worktreePath={history.worktreePath}
+                  ownerTarget={ownerTarget}
+                  currentRefId={result?.currentRef?.id}
+                  selectedId={expandedRow}
+                  openCommitId={openCommit}
+                  flashId={flashId}
+                  focusedBranch={focusedBranch}
+                  onToggleRow={toggleRow}
+                  onSelectCommit={selectCommit}
+                  onOpenCommit={openCommitInRow}
+                  onCloseCommit={() => setSelectedId(null)}
+                  onFocusBranch={followBranch}
+                  onCommitAction={handleCommitAction}
+                />
+                {history.hasMore && (
+                  <div className="px-3 py-2">
+                    <Button
+                      variant="ghost"
+                      size="xs"
+                      disabled={history.loading}
+                      onClick={history.loadMore}
+                    >
+                      {translate('local.gitGraph.loadMore', 'Load more commits')}
+                    </Button>
                   </div>
-                )
-                const content = (
-                  <>
-                    <ContextMenu>
-                      <ContextMenuTrigger asChild>{row}</ContextMenuTrigger>
-                      <GitHistoryCommitContextMenu
-                        item={itemById.get(item.id) ?? item}
-                        onAction={handleCommitAction}
-                      />
-                    </ContextMenu>
-                    {details}
-                  </>
-                )
-                return item.id === selectedId ? (
-                  <GitGraphSelectionFrame
-                    key={`${vm.kind}:${item.id}`}
-                    laneColor={getGitHistoryItemColor(vm)}
-                  >
-                    {content}
-                  </GitGraphSelectionFrame>
-                ) : (
-                  <React.Fragment key={`${vm.kind}:${item.id}`}>{content}</React.Fragment>
-                )
-              })}
-              {history.hasMore && (
-                <div className="px-3 py-2">
-                  <Button
-                    variant="ghost"
-                    size="xs"
-                    disabled={history.loading}
-                    onClick={history.loadMore}
-                  >
-                    {translate('local.gitGraph.loadMore', 'Load more commits')}
-                  </Button>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
-        </div>
+        </GitGraphBranchColoursProvider>
       </GitGraphAuthorHuesProvider>
     </div>
   )

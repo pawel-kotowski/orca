@@ -1,13 +1,13 @@
 // Local (glass build): the Git Graph's Branches view. Only the commits that shape the history stay:
 // branch and tag tips, merges, fork points (a commit two lines grew from), roots and HEAD. Every
 // plain commit between them folds into the line it sits on, so the graph shows how branches split
-// and came back together, and each kept commit knows how many commits it folded.
+// and came back together, and each kept commit knows which commits it folded.
 import type { GitHistoryItem } from '../../../../../shared/git/history/git-history-types'
 
 export type GitGraphOutline = {
   items: GitHistoryItem[]
-  /** Commits folded into the line from a kept commit to its parent, keyed `child>parent`. */
-  foldedByEdge: Map<string, number>
+  /** Commits folded into the line from a kept commit to its parent, newest first, keyed `child>parent`. */
+  foldedByEdge: Map<string, string[]>
 }
 
 export function gitGraphEdgeKey(childId: string, parentId: string): string {
@@ -36,7 +36,7 @@ export function outlineGitGraphItems(
     keptIds.add(items[0].id)
   }
 
-  const foldedByEdge = new Map<string, number>()
+  const foldedByEdge = new Map<string, string[]>()
   const outlined: GitHistoryItem[] = []
   for (const item of items) {
     if (!keptIds.has(item.id)) {
@@ -46,10 +46,10 @@ export function outlineGitGraphItems(
     for (const parent of item.parentIds) {
       // A folded commit has exactly one parent and one child, so its line is a plain chain.
       let id = parent
-      let folded = 0
+      const folded: string[] = []
       let next = byId.get(id)
       while (next && !keptIds.has(id)) {
-        folded += 1
+        folded.push(id)
         id = next.parentIds[0]!
         next = byId.get(id)
       }

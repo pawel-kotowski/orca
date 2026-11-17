@@ -1,60 +1,43 @@
 // Local (glass build): what a Branches-view row says instead of a commit message (Paweł,
 // 2026-11-17: "an easy way to see just branches without commit messages to understand the big
-// merging picture"). A tip names its branches; a merge names the branch it took in and how many
-// commits came with it; a fork point names the line it is on. "+N commits" opens those commits in
-// the Detailed view.
+// merging picture"). A merge names the branch it took in, a fork point the line it is on, and a
+// quiet number says how many commits the row stands for ("the number of commits could stay
+// visible always ... but not with word commits - it repeats too much"). Nothing here is a button:
+// the whole row opens its commits.
 import React from 'react'
-import { ChevronsDown, GitFork, GitMerge } from 'lucide-react'
-import type { GitHistoryItemViewModel } from '../../../../../shared/git/history/git-history-graph'
+import { GitFork, GitMerge } from 'lucide-react'
 import type { GitHistoryGraphColorId } from '../../../../../shared/git/history/git-history-types'
 import { graphColor } from '@/components/right-sidebar/source-control/sync/git-history-graph-svg'
-import { gitGraphMergedBranchName } from './git-graph-lane-names'
-import { gitGraphEdgeKey } from './git-graph-outline'
+import type { GitGraphLaneRow } from './git-graph-branch-layout'
+import { useGitGraphBranchColour } from './git-graph-branch-colour-context'
+import type { GitGraphSegment } from './git-graph-segment-commits'
 
-function plural(count: number): string {
-  return `${count} commit${count === 1 ? '' : 's'}`
+export function GitGraphCount({
+  count,
+  title
+}: {
+  count: number
+  title: string
+}): React.JSX.Element {
+  return (
+    <span
+      title={title}
+      className="rounded-full bg-foreground/[0.07] px-1.5 text-[10.5px] leading-4 text-muted-foreground tabular-nums"
+    >
+      {count}
+    </span>
+  )
 }
 
-export function GitGraphOutlineSummary({
-  viewModel,
-  laneName,
-  laneNames,
-  foldedByEdge,
-  hasRefs,
-  onFocusBranch,
-  onShowCommits
+function BranchName({
+  name,
+  color
 }: {
-  viewModel: GitHistoryItemViewModel
-  laneName?: string
-  laneNames: Map<string, string>
-  foldedByEdge: Map<string, number>
-  hasRefs: boolean
-  onFocusBranch: (name: string) => void
-  onShowCommits: () => void
+  name: string
+  color?: GitHistoryGraphColorId
 }): React.JSX.Element {
-  const item = viewModel.historyItem
-  const [first, ...merged] = item.parentIds
-  const below = first === undefined ? 0 : (foldedByEdge.get(gitGraphEdgeKey(item.id, first)) ?? 0)
-  const mergedName = merged.length
-    ? (gitGraphMergedBranchName(item.subject) ?? laneNames.get(merged[0]!))
-    : undefined
-  const mergedColor = merged.length
-    ? viewModel.outputSwimlanes.find((lane) => lane.id === merged[0])?.color
-    : undefined
-  const mergedFolded = merged.reduce(
-    (sum, parent) => sum + (foldedByEdge.get(gitGraphEdgeKey(item.id, parent)) ?? 0),
-    0
-  )
-  const name = (text: string, color?: GitHistoryGraphColorId) => (
-    <button
-      type="button"
-      className="inline-flex items-center gap-1 rounded px-1 font-medium text-foreground hover:bg-accent"
-      title={`Follow ${text}`}
-      onClick={(event) => {
-        event.stopPropagation()
-        onFocusBranch(text)
-      }}
-    >
+  return (
+    <span className="inline-flex items-center gap-1 font-medium text-foreground">
       {color && (
         <span
           aria-hidden
@@ -62,38 +45,70 @@ export function GitGraphOutlineSummary({
           style={{ background: graphColor(color) }}
         />
       )}
-      <span className="break-all">{text}</span>
-    </button>
+      <span className="break-all">{name}</span>
+    </span>
   )
+}
+
+export function GitGraphOutlineSummary({
+  row,
+  laneName,
+  mergedName,
+  segments,
+  hasRefs
+}: {
+  row: GitGraphLaneRow
+  laneName?: string
+  mergedName?: string
+  segments: GitGraphSegment[]
+  hasRefs: boolean
+}): React.JSX.Element {
+  const branchColour = useGitGraphBranchColour()
+  const merged = row.historyItem.parentIds.length > 1
+  const mergedColor = merged
+    ? row.outputSwimlanes.find((lane) => lane.id === row.historyItem.parentIds[1])?.color
+    : undefined
+  const [own, ...mergedIn] = segments
+  const mergedCount = mergedIn.reduce((sum, segment) => sum + segment.ids.length, 0)
   return (
-    <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-muted-foreground">
-      {merged.length > 0 && (
+    <span className="inline-flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-muted-foreground">
+      {merged && (
         <span className="inline-flex flex-wrap items-center gap-1">
           <GitMerge className="size-3.5 shrink-0" />
-          merged {mergedName ? name(mergedName, mergedColor) : 'a branch'}
-          {mergedFolded > 0 && <span>({plural(mergedFolded)})</span>}
-          {laneName && !hasRefs && <>into {name(laneName)}</>}
+          merged{' '}
+          {mergedName ? (
+            <BranchName name={mergedName} color={branchColour(mergedName, mergedColor)} />
+          ) : (
+            'a branch'
+          )}
+          {mergedCount > 0 && (
+            <GitGraphCount count={mergedCount} title={`${mergedCount} commits merged in`} />
+          )}
+          {laneName && !hasRefs && (
+            <>
+              into <BranchName name={laneName} color={row.nodeColor} />
+            </>
+          )}
         </span>
       )}
-      {merged.length === 0 && !hasRefs && (
+      {!merged && !hasRefs && (
         <span className="inline-flex items-center gap-1">
           <GitFork className="size-3.5 shrink-0" />
-          {laneName ? <>fork on {name(laneName)}</> : 'fork point'}
+          {laneName ? (
+            <>
+              fork on <BranchName name={laneName} color={row.nodeColor} />
+            </>
+          ) : (
+            'fork point'
+          )}
         </span>
       )}
-      {below > 0 && (
-        <button
-          type="button"
-          className="inline-flex items-center gap-0.5 rounded border border-dashed border-border px-1.5 tabular-nums hover:border-ring hover:bg-accent hover:text-foreground"
-          title={`${plural(below)} further down this line before its next branch point. Click: show them in the Detailed view`}
-          onClick={(event) => {
-            event.stopPropagation()
-            onShowCommits()
-          }}
-        >
-          <ChevronsDown className="size-3" />
-          {plural(below)}
-        </button>
+      {/* A lone commit needs no count: a "1" on every stacked branch is noise. */}
+      {own && own.ids.length > 1 && (
+        <GitGraphCount
+          count={own.ids.length}
+          title={`${own.ids.length} commit${own.ids.length === 1 ? '' : 's'} on this line down to the next branch point. Hover or click the row to see them.`}
+        />
       )}
     </span>
   )

@@ -11,6 +11,8 @@ import {
 import { gitGraphEdgeKey, outlineGitGraphItems } from './git-graph-outline'
 import { findGitGraphTrunk } from './use-git-graph-jump'
 import { groupGitGraphRefs } from './git-graph-ref-chips'
+import { buildGitGraphBranchViewModels, gitGraphBranchColours } from './git-graph-branch-layout'
+import { defaultGitGraphPinnedLanes } from './use-git-graph-pinned-lanes'
 
 const branch = (name: string): GitHistoryItemRef => ({
   id: `refs/heads/${name}`,
@@ -81,8 +83,8 @@ describe('outlineGitGraphItems', () => {
     expect(outline.items.map((item) => item.id)).toEqual(['t1', 'M', 'm2', 'F', 'root'])
     const merge = outline.items.find((item) => item.id === 'M')!
     expect(merge.parentIds).toEqual(['m2', 'F'])
-    expect(outline.foldedByEdge.get(gitGraphEdgeKey('M', 'F'))).toBe(2)
-    expect(outline.foldedByEdge.get(gitGraphEdgeKey('M', 'm2'))).toBe(0)
+    expect(outline.foldedByEdge.get(gitGraphEdgeKey('M', 'F'))).toEqual(['f2', 'f1'])
+    expect(outline.foldedByEdge.get(gitGraphEdgeKey('M', 'm2'))).toEqual([])
   })
 
   it('folds a plain run into the commit above it', () => {
@@ -94,7 +96,7 @@ describe('outlineGitGraphItems', () => {
     ]
     const outline = outlineGitGraphItems(run)
     expect(outline.items.map((item) => item.id)).toEqual(['a', 'd'])
-    expect(outline.foldedByEdge.get(gitGraphEdgeKey('a', 'd'))).toBe(2)
+    expect(outline.foldedByEdge.get(gitGraphEdgeKey('a', 'd'))).toEqual(['b', 'c'])
   })
 })
 
@@ -119,5 +121,57 @@ describe('jumps and labels', () => {
       expect.objectContaining({ name: 'main', syncedRemotes: ['origin'], isHead: true }),
       expect.objectContaining({ kind: 'remote', name: 'x', remote: 'upstream' })
     ])
+  })
+})
+
+describe('buildGitGraphBranchViewModels', () => {
+  // A feature tip newer than main's: plain layout would open the feature's lane first (left).
+  const items = [
+    commit('x2', ['x1'], 'feature work', [branch('feature/x')]),
+    commit('d1', ['m1'], 'development work', [branch('development')]),
+    commit('x1', ['m1'], 'feature start'),
+    commit('m1', ['m0'], 'main tip', [branch('main')]),
+    commit('m0', [], 'root')
+  ]
+  const pinned = ['main', 'development']
+  const laneNames = gitGraphLaneNames(items, pinned)
+  const colourOf = gitGraphBranchColours(items, laneNames, pinned, 'feature/x')
+  const rows = buildGitGraphBranchViewModels(items, { laneNames, pinned, colourOf })
+  const byId = new Map(rows.map((row) => [row.historyItem.id, row]))
+
+  it('puts pinned branches leftmost, in order, and others after them', () => {
+    // After development's tip: its lane sits left of the feature's.
+    expect(byId.get('d1')!.outputSwimlanes.map((lane) => lane.color)).toEqual([
+      'git-graph-branch-pin-2',
+      'git-graph-branch-head'
+    ])
+    expect(byId.get('m1')!.circleIndex).toBe(0)
+  })
+
+  it('gives each branch one colour, pinned ones fixed and the current branch its own', () => {
+    expect(byId.get('x2')!.nodeColor).toBe('git-graph-branch-head')
+    expect(byId.get('x1')!.nodeColor).toBe('git-graph-branch-head')
+    expect(byId.get('d1')!.nodeColor).toBe('git-graph-branch-pin-2')
+    expect(byId.get('m1')!.nodeColor).toBe('git-graph-branch-pin-1')
+    // The feature's last commit still draws the feature's line down to where it forked.
+    const toFork = byId.get('x1')!.edges.find((edge) => edge.from === 'node')!
+    expect(toFork.color).toBe('git-graph-branch-head')
+  })
+
+  it('connects every lane of a row from where it was to where it goes', () => {
+    for (const row of rows) {
+      const into = row.edges.filter((edge) => edge.to !== 'node').map((edge) => edge.to)
+      expect(into).toEqual(row.outputSwimlanes.map((_, index) => index))
+    }
+  })
+})
+
+describe('defaultGitGraphPinnedLanes', () => {
+  it('pins the repo main branch, then its development branch', () => {
+    expect(defaultGitGraphPinnedLanes([remote('origin/development'), branch('master')])).toEqual([
+      'master',
+      'development'
+    ])
+    expect(defaultGitGraphPinnedLanes([branch('feature')])).toEqual([])
   })
 })

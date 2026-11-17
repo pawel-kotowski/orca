@@ -12,6 +12,7 @@ import type {
 } from '../../../../../shared/git/history/git-history-types'
 import { graphColor } from '@/components/right-sidebar/source-control/sync/git-history-graph-svg'
 import { gitGraphBranchName } from './git-graph-lane-names'
+import { useGitGraphBranchColour } from './git-graph-branch-colour-context'
 
 export type GitGraphRefGroup = {
   key: string
@@ -99,6 +100,8 @@ export function GitGraphRefChip({
   focused?: boolean
   onFocusBranch?: (name: string) => void
 }): React.JSX.Element {
+  const branchColour = useGitGraphBranchColour()
+  const dotColor = group.kind === 'tag' ? undefined : branchColour(group.name, laneColor)
   const clickable = group.kind !== 'tag' && onFocusBranch
   const content = (
     <>
@@ -108,7 +111,7 @@ export function GitGraphRefChip({
         <span
           aria-hidden
           className={cn('shrink-0 rounded-full', size === 'lg' ? 'size-2' : 'size-1.5')}
-          style={{ background: laneColor ? graphColor(laneColor) : 'var(--muted-foreground)' }}
+          style={{ background: dotColor ? graphColor(dotColor) : 'var(--muted-foreground)' }}
         />
       )}
       {/* One piece: a flex gap between remote and name read as "origin/ x". */}

@@ -9,6 +9,7 @@ import type { RuntimeClientTarget } from '../../../../../shared/runtime-client-t
 import type {
   GitHistoryItem,
   GitHistoryItemRef,
+  GitHistoryRefs,
   GitHistoryResult
 } from '../../../../../shared/git/history/git-history-types'
 import { gitGraphBranchName } from './git-graph-lane-names'
@@ -60,34 +61,24 @@ function refsOfItems(items: readonly GitHistoryItem[]): GitHistoryItemRef[] {
   return [...refs.values()]
 }
 
-export function useGitGraphJump({
+/**
+ * The repo's branches and tags, read from git: the branch picker, the jumps and the pinned-lane
+ * defaults use them. Read again whenever the history reloads (Refresh, a moved HEAD).
+ */
+export function useGitGraphRefList({
   worktreeId,
   worktreePath,
   ownerTarget,
-  result,
-  items,
-  hasMore,
-  loading,
-  loadMore,
-  allRefs,
-  setAllRefs,
-  reveal
+  historyToken,
+  items
 }: {
   worktreeId: string
   worktreePath: string | null
   ownerTarget: RuntimeClientTarget | null
-  result: GitHistoryResult | null
+  historyToken: string | undefined
   items: readonly GitHistoryItem[]
-  hasMore: boolean
-  loading: boolean
-  loadMore: () => void
-  allRefs: boolean
-  setAllRefs: (value: boolean) => void
-  reveal: (id: string) => void
-}) {
+}): GitHistoryItemRef[] {
   const [gitRefs, setGitRefs] = useState<GitHistoryItemRef[] | null>(null)
-  const historyToken = result?.historyToken
-  // Read the branch list again whenever the history reloads (Refresh, a moved HEAD).
   useEffect(() => {
     if (!worktreePath || !ownerTarget) {
       return
@@ -106,8 +97,33 @@ export function useGitGraphJump({
       live = false
     }
   }, [historyToken, ownerTarget, worktreeId, worktreePath])
+  return useMemo(() => gitRefs ?? refsOfItems(items), [gitRefs, items])
+}
 
-  const refs = useMemo(() => gitRefs ?? refsOfItems(items), [gitRefs, items])
+export function useGitGraphJump({
+  refs,
+  pinned,
+  result,
+  items,
+  hasMore,
+  loading,
+  loadMore,
+  refsFilter,
+  showAllRefs,
+  reveal
+}: {
+  refs: readonly GitHistoryItemRef[]
+  /** The pinned lanes, leftmost first: the first two are the m and d jumps. */
+  pinned: readonly string[]
+  result: GitHistoryResult | null
+  items: readonly GitHistoryItem[]
+  hasMore: boolean
+  loading: boolean
+  loadMore: () => void
+  refsFilter: GitHistoryRefs
+  showAllRefs: () => void
+  reveal: (id: string) => void
+}) {
   const head: GitGraphJumpTarget | undefined = result?.currentRef?.revision
     ? {
         label: result.currentRef.name,
@@ -115,8 +131,15 @@ export function useGitGraphJump({
         ref: result.currentRef
       }
     : undefined
-  const main = useMemo(() => findGitGraphTrunk(refs, MAIN_NAMES), [refs])
-  const develop = useMemo(() => findGitGraphTrunk(refs, DEVELOP_NAMES), [refs])
+  const [firstPin, secondPin] = pinned
+  const main = useMemo(
+    () => findGitGraphTrunk(refs, firstPin ? [firstPin] : MAIN_NAMES),
+    [firstPin, refs]
+  )
+  const develop = useMemo(
+    () => findGitGraphTrunk(refs, secondPin ? [secondPin] : DEVELOP_NAMES),
+    [refs, secondPin]
+  )
 
   const [pending, setPending] = useState<GitGraphJumpTarget | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
@@ -129,12 +152,12 @@ export function useGitGraphJump({
         reveal(target.revision)
         return
       }
-      if (!allRefs && target.revision !== result?.currentRef?.revision) {
-        setAllRefs(true)
+      if (Array.isArray(refsFilter) && !(target.ref && refsFilter.includes(target.ref.id))) {
+        showAllRefs()
       }
       setPending(target)
     },
-    [allRefs, loaded, result?.currentRef?.revision, reveal, setAllRefs]
+    [loaded, refsFilter, reveal, showAllRefs]
   )
 
   useEffect(() => {

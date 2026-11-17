@@ -13,10 +13,6 @@ import type {
   GitHistoryGraphColorId,
   GitHistoryItemRef
 } from '../../../../../shared/git/history/git-history-types'
-import {
-  getGitHistoryItemColor,
-  type GitHistoryItemViewModel
-} from '../../../../../shared/git/history/git-history-graph'
 import { dedupeRemoteTrackingRefs } from '../../../../../shared/git/history/git-history-ref-display'
 import {
   GitGraphColumnResizeHandle,
@@ -25,10 +21,10 @@ import {
   type GitGraphOptionalColumn
 } from './git-graph-columns'
 import { useGitGraphAuthorProps } from './git-graph-author-color'
-import {
-  GitHistoryGraphSvg,
-  graphColor
-} from '@/components/right-sidebar/source-control/sync/git-history-graph-svg'
+import { useGitGraphRefColour } from './git-graph-branch-colour-context'
+import { graphColor } from '@/components/right-sidebar/source-control/sync/git-history-graph-svg'
+import type { GitGraphLaneRow } from './git-graph-branch-layout'
+import { GitGraphLanesSvg } from './git-graph-lanes-svg'
 
 export const GIT_GRAPH_ROW_HEIGHT = 24
 
@@ -90,7 +86,7 @@ export function GitGraphRefBadge({
   isHead?: boolean
   laneColor?: GitHistoryGraphColorId
 }): React.JSX.Element {
-  const refColor = gitGraphRefColor(itemRef, laneColor)
+  const refColor = useGitGraphRefColour(itemRef, gitGraphRefColor(itemRef, laneColor))
   return (
     <span
       title={itemRef.category ? `${itemRef.name} (${itemRef.category})` : itemRef.name}
@@ -114,7 +110,7 @@ export function GitGraphRefBadge({
 }
 
 type GitGraphRowProps = Omit<React.HTMLAttributes<HTMLDivElement>, 'onSelect'> & {
-  viewModel: GitHistoryItemViewModel
+  viewModel: GitGraphLaneRow
   layout: GitGraphLayout
   selected: boolean
   currentRefId?: string
@@ -130,7 +126,7 @@ export const GitGraphRow = React.forwardRef<HTMLDivElement, GitGraphRowProps>(fu
   const authorProps = useGitGraphAuthorProps(item.author, item.authorEmail)
   const isBoundary = viewModel.kind === 'incoming-changes' || viewModel.kind === 'outgoing-changes'
   const refs = dedupeRemoteTrackingRefs(item.references ?? [], {})
-  const laneColor = isBoundary ? undefined : getGitHistoryItemColor(viewModel)
+  const laneColor = isBoundary ? undefined : viewModel.nodeColor
   return (
     <div
       {...rootProps}
@@ -151,7 +147,7 @@ export const GitGraphRow = React.forwardRef<HTMLDivElement, GitGraphRowProps>(fu
       onDoubleClick={isBoundary ? undefined : onOpen}
     >
       <div className="flex h-full items-stretch overflow-hidden pl-2">
-        <GitHistoryGraphSvg viewModel={viewModel} />
+        <GitGraphLanesSvg row={viewModel} />
       </div>
       {/* The subject always starts at the column's left edge (Paweł, 2026-11-15: "branch name
           should not make commit msg start more on the right"); refs follow it and give way first. */}
