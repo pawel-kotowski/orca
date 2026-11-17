@@ -17,6 +17,7 @@ import { defaultGitGraphPinnedLanes } from './use-git-graph-pinned-lanes'
 import { gitGraphBranchRuns } from './git-graph-branch-frames'
 import { isGitGraphMergeInto, nextGitGraphMark } from './use-git-graph-merge-marks'
 import { findGitGraphCommit } from './git-graph-find'
+import { gitGraphPeople } from './git-graph-author-color'
 
 const branch = (name: string): GitHistoryItemRef => ({
   id: `refs/heads/${name}`,
@@ -290,5 +291,24 @@ describe('merges into a branch', () => {
     )
     const outline = outlineGitGraphItems(items, undefined, (item) => /\(#\d+\)$/.test(item.subject))
     expect(outline.items.map((item) => item.id)).toEqual(['s2', 's1', 's0'])
+  })
+})
+
+describe('gitGraphPeople', () => {
+  it('makes one person of authors sharing an email or a name', () => {
+    const personOf = gitGraphPeople([
+      { author: 'Paweł Kotowski', authorEmail: 'pawel@work.example' },
+      { author: 'Pawel Kotowski', authorEmail: 'pawel@work.example' },
+      { author: 'Paweł Kotowski', authorEmail: 'pawel@home.example' },
+      { author: 'maciejmajek', authorEmail: 'maciej@work.example' },
+      { author: 'Maciej Majek', authorEmail: 'maciej@users.noreply.example' },
+      { author: 'Ann Lee', authorEmail: 'ann@work.example' }
+    ])
+    const pawel = personOf('Paweł Kotowski', 'pawel@home.example')
+    expect(personOf('Pawel Kotowski', 'pawel@work.example')).toBe(pawel)
+    expect(personOf('maciejmajek', 'maciej@work.example')).toBe(
+      personOf('Maciej Majek', 'maciej@users.noreply.example')
+    )
+    expect(personOf('Ann Lee', 'ann@work.example')).not.toBe(pawel)
   })
 })

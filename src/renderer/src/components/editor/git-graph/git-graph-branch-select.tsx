@@ -11,15 +11,11 @@ import type {
   GitHistoryItemRef,
   GitHistoryRefs
 } from '../../../../../shared/git/history/git-history-types'
+import { gitGraphPeople } from './git-graph-author-color'
 
 /** A branch's name without its remote: `origin/feature/x` → `feature/x`. */
 function branchOf(ref: GitHistoryItemRef): string {
   return ref.category === 'remote branches' ? ref.name.replace(/^[^/]+\//, '') : ref.name
-}
-
-/** Who a branch is: its newest commit's author, by email when git gave one. */
-function authorKey(ref: GitHistoryItemRef): string {
-  return (ref.authorEmail || ref.author || '').toLowerCase()
 }
 
 const ORDER = { branches: 0, 'remote branches': 1, tags: 2, commits: 3 } as const
@@ -83,18 +79,29 @@ export function GitGraphBranchSelect({
     .map((ref) => ref.id)
   // By author (Paweł, 2026-11-17: "filter branches by author option but only for non main non
   // development"): pinned branches always stay; any other branch is its newest commit's author's.
+  // One person under two emails or two spellings is one chip (gitGraphPeople).
+  const personOf = useMemo(() => gitGraphPeople(selectable), [selectable])
+  const authorKey = (ref: GitHistoryItemRef): string => personOf(ref.author, ref.authorEmail)
   const authors = useMemo(() => {
-    const byKey = new Map<string, { name: string; count: number }>()
+    const byKey = new Map<string, { name: string; count: number; names: Map<string, number> }>()
     for (const ref of selectable) {
-      if (ref.category === 'tags' || pinned.includes(branchOf(ref)) || !authorKey(ref)) {
+      const key = personOf(ref.author, ref.authorEmail)
+      if (ref.category === 'tags' || pinned.includes(branchOf(ref)) || !key) {
         continue
       }
-      const entry = byKey.get(authorKey(ref)) ?? { name: ref.author || authorKey(ref), count: 0 }
+      const entry = byKey.get(key) ?? { name: '', count: 0, names: new Map<string, number>() }
       entry.count += 1
-      byKey.set(authorKey(ref), entry)
+      if (ref.author) {
+        entry.names.set(ref.author, (entry.names.get(ref.author) ?? 0) + 1)
+      }
+      byKey.set(key, entry)
+    }
+    for (const entry of byKey.values()) {
+      // The spelling the person uses most.
+      entry.name = [...entry.names].sort((a, b) => b[1] - a[1])[0]?.[0] ?? '?'
     }
     return [...byKey].sort((a, b) => b[1].count - a[1].count)
-  }, [pinned, selectable])
+  }, [personOf, pinned, selectable])
   // After `authors`: the label names the picked ones (reading it earlier crashed the tab, 2026-11-17).
   const label = !Array.isArray(value)
     ? 'All branches'
