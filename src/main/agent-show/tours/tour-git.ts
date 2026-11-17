@@ -1,10 +1,8 @@
-import { access, mkdir, writeFile, chmod } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
-import { dirname, join } from 'node:path'
+import { access } from 'node:fs/promises'
+import { join } from 'node:path'
 import type { AgentShowTourCommit } from '../../../shared/agent-show/agent-show-contract'
 import { parseUnifiedDiff, type DiffFile } from '../../../shared/agent-show/tour-diff-hunks'
 import type { StampedView } from '../../../shared/agent-show/tour-freshness'
-import { tourSnapshotPath } from '../../../shared/agent-show/tour-snapshot-path'
 import { gitExecFileAsync } from '../../git/command-runner/git-exec-file'
 import { gitReadOptionsForWorktree } from '../../git/command-runner/git-runtime-options'
 import { literalPathspec } from '../../git/source-control/git-pathspec'
@@ -147,20 +145,18 @@ export async function stampedView(
   }
 }
 
-/** Writes the file as it was at `commit` to a read-only temp file; its name says which commit. */
-export async function writeFileAtCommit(
+// Why a cap: the text crosses one RPC reply to the desktop that shows it (a box's reply is 4 MiB).
+const MAX_SNAPSHOT_CHARS = 2_000_000
+
+/** The file's text as it was at `commit`; null when it was not a text file there (or too large). */
+export async function readFileTextAtCommit(
   worktreePath: string,
   commit: string,
   path: string
 ): Promise<string | null> {
   const blob = await readGitBlobAtOidPath(worktreePath, commit, path)
-  if (!blob.exists || blob.isBinary) {
+  if (!blob.exists || blob.isBinary || blob.content.length > MAX_SNAPSHOT_CHARS) {
     return null
   }
-  const target = tourSnapshotPath(tmpdir(), commit, path)
-  await mkdir(dirname(target), { recursive: true })
-  await chmod(target, 0o644).catch(() => undefined)
-  await writeFile(target, blob.content)
-  await chmod(target, 0o444)
-  return target
+  return blob.content
 }

@@ -32,8 +32,16 @@ export type AgentShowTourStampInfo = {
   problems: string[]
 }
 
-/** The file as it was at the stamped commit, written read-only where the editor can open it. */
-export type AgentShowTourSnapshot = { filePath: string }
+/**
+ * The file as it was at the stamped commit. Its text, not a path: the desktop showing the tour
+ * may not be the machine that has the worktree (a box), so the desktop writes its own copy.
+ */
+export type AgentShowTourSnapshot = {
+  commit: string
+  /** Worktree-relative, `/`-separated. */
+  path: string
+  text: string
+}
 
 /** Where tours live in a worktree; `/explain` writes them here. */
 export const TOURS_FOLDER = 'docs/tours'

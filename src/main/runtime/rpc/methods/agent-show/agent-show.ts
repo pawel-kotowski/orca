@@ -6,6 +6,7 @@ import { defineMethod } from '../../core'
 import type { OrcaRuntimeService } from '../../../orca-runtime'
 import type { AgentShowResult } from '../../../../../shared/agent-show/agent-show-contract'
 import type { AgentShowSnapResult } from '../../../../../shared/agent-show/agent-show-window-relay'
+import type { AgentShowTourSnapshot } from '../../../../../shared/agent-show/agent-show-tour-library'
 import {
   AgentShowRequestParams,
   AgentShowSnapParams,
@@ -18,7 +19,7 @@ import { LOCAL_EXECUTION_HOST_ID } from '../../../../../shared/execution-host'
 import { loadTour, tourPathInWorktree } from '../../../../agent-show/tours/tour-load'
 import { listWorktreeTours } from '../../../../agent-show/tours/tour-library'
 import { tourStampInfo } from '../../../../agent-show/tours/tour-stamp-info'
-import { writeFileAtCommit } from '../../../../agent-show/tours/tour-git'
+import { readFileTextAtCommit } from '../../../../agent-show/tours/tour-git'
 import { getAgentShowClientRelayRegistry } from '../../../../agent-show/relay/agent-show-client-relay-registry'
 import {
   AGENT_SHOW_CLIENT_RELAY_CAPABILITY,
@@ -169,11 +170,11 @@ export const AGENT_SHOW_METHODS = [
       if (path.split('/').includes('..')) {
         throw new Error('invalid_argument: the path must stay inside the worktree')
       }
-      const filePath = await writeFileAtCommit(worktree.path, params.commit, path)
-      if (!filePath) {
+      const text = await readFileTextAtCommit(worktree.path, params.commit, path)
+      if (text === null) {
         throw new Error(`not_found: ${path} is not a text file in ${params.commit.slice(0, 7)}`)
       }
-      return { filePath }
+      return { commit: params.commit, path, text } satisfies AgentShowTourSnapshot
     }
   })
 ]

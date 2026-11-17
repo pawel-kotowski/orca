@@ -78,19 +78,21 @@ export function showCodeSnapshot(
   snapshotPath: string
 ): Promise<AgentShowResult> {
   return stageCodeFile(request, context, {
-    // Why relativePath = filePath: an absolute read-only tab is read as this computer's file.
+    // Why relativePath = filePath and no owner: the copy is in this computer's temp folder, even
+    // for a box's workspace, so the editor reads it here, never on the worktree's host.
     filePath: snapshotPath,
     relativePath: snapshotPath,
     worktreeId: context.worktreeId,
     language: detectLanguage(snapshotPath),
-    readOnly: true
+    readOnly: true,
+    runtimeEnvironmentId: null
   })
 }
 
 function stageCodeFile(
   request: AgentShowRequestOf<'code'>,
   context: AgentShowContext,
-  file: ShowRequestFile & { readOnly?: true }
+  file: ShowRequestFile & { readOnly?: true; runtimeEnvironmentId?: null }
 ): Promise<AgentShowResult> {
   // Why a scope: a split made for this show remounts the pane it splits; both stay hidden until done.
   return holdStageWhile(async () => {
@@ -143,7 +145,7 @@ function showsFileNow(
 async function openAndStage(
   request: AgentShowRequestOf<'code'>,
   context: AgentShowContext,
-  file: ShowRequestFile & { readOnly?: true },
+  file: ShowRequestFile & { readOnly?: true; runtimeEnvironmentId?: null },
   target: CodeTarget,
   {
     showInFront,
