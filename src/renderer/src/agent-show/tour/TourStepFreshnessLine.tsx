@@ -1,6 +1,5 @@
 import { ArrowDownUp, History } from 'lucide-react'
 import { showStepAsItWas, type PlayingTour } from './tour-player'
-import { tourSnapshotsAvailable } from './tour-library-client'
 
 function ChoiceButton({
   active,
@@ -41,9 +40,7 @@ export function TourStepFreshnessLine({
   const stale = freshness.state === 'stale'
   const step = tour.steps[index]!
   const canShowOld =
-    stale &&
-    (freshness.staleRequests ?? []).some((at) => step.requests[at]?.kind === 'code') &&
-    tourSnapshotsAvailable(tour.context.worktreeId, tour.context.worktreePath)
+    stale && (freshness.staleRequests ?? []).some((at) => step.requests[at]?.kind === 'code')
   const Icon = stale ? History : ArrowDownUp
   return (
     <div className="flex shrink-0 items-start gap-1 text-xs leading-snug text-muted-foreground">

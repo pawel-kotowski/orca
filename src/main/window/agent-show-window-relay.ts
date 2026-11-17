@@ -1,4 +1,7 @@
+import { tmpdir } from 'node:os'
 import { ipcMain, type BrowserWindow, type NativeImage } from 'electron'
+import type { AgentShowTourSnapshot } from '../../shared/agent-show/agent-show-tour-library'
+import { writeTourSnapshotFile } from '../agent-show/tours/tour-snapshot-file'
 import {
   AGENT_SHOW_RELAY_SHOT_BASE64_BUDGET,
   type AgentShowRelayShot
@@ -74,6 +77,15 @@ export function registerAgentShowCaptureHandler(mainWindow: BrowserWindow): void
   const contents = mainWindow.webContents
   captureHandlerOwner = mainWindow
   ipcMain.removeHandler('agentShow:captureWindow')
+  ipcMain.removeHandler('agentShow:writeTourSnapshot')
+  // Why here: a tour's "as it was" copy is read on the worktree's host (maybe a box) and opened
+  // from this computer's temp folder, so the editor reads it as a local read-only file.
+  ipcMain.handle('agentShow:writeTourSnapshot', async (event, snapshot: AgentShowTourSnapshot) => {
+    if (event.sender !== contents) {
+      throw new Error('renderer_unavailable')
+    }
+    return writeTourSnapshotFile(tmpdir(), snapshot)
+  })
   ipcMain.handle('agentShow:captureWindow', async (event) => {
     if (event.sender !== contents) {
       throw new Error('renderer_unavailable')
@@ -87,5 +99,6 @@ export function registerAgentShowCaptureHandler(mainWindow: BrowserWindow): void
     }
     captureHandlerOwner = null
     ipcMain.removeHandler('agentShow:captureWindow')
+    ipcMain.removeHandler('agentShow:writeTourSnapshot')
   })
 }

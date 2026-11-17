@@ -117,7 +117,8 @@ function createWebPreloadApi(): Omit<Partial<PreloadApi>, 'settings' | 'plugins'
     agentShow: {
       onRequest: () => () => {},
       reply: () => {},
-      captureWindow: () => Promise.reject(new Error('renderer_unavailable'))
+      captureWindow: () => Promise.reject(new Error('renderer_unavailable')),
+      writeTourSnapshot: () => Promise.reject(new Error('renderer_unavailable'))
     },
     memory: {
       getSnapshot: () => Promise.resolve(createEmptyMemorySnapshot()),
