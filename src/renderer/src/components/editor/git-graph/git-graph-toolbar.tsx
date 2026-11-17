@@ -216,7 +216,7 @@ export function GitGraphToolbar({
         {controls}
       </div>
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 px-3 pb-1.5">
-        <span className="text-xs text-foreground/70">Go to</span>
+        <span className="text-xs text-foreground/80">Go to</span>
         <JumpButton target={head} hint="HEAD" keyHint="h" onJump={onJump} busy={busy(head)} />
         <JumpButton target={main} keyHint="m" onJump={onJump} busy={busy(main)} />
         <JumpButton target={develop} keyHint="d" onJump={onJump} busy={busy(develop)} />
@@ -249,7 +249,7 @@ export function GitGraphToolbar({
         )}
         <div className="ml-auto flex min-w-0 items-center gap-2">
           <div className="flex h-6 min-w-0 items-center gap-1 rounded-md border border-border px-1.5">
-            <Search className="size-3 text-foreground/60" />
+            <Search className="size-3 text-foreground/72" />
             <input
               value={query}
               onChange={(event) => onQuery(event.target.value)}
@@ -264,7 +264,7 @@ export function GitGraphToolbar({
               className="w-32 min-w-0 bg-transparent text-xs outline-none placeholder:text-muted-foreground lg:w-56"
             />
           </div>
-          <span className="text-xs whitespace-nowrap text-foreground/70 tabular-nums">
+          <span className="text-xs whitespace-nowrap text-foreground/80 tabular-nums">
             {commitCount}
             {hasMore ? '+' : ''} commits
           </span>
@@ -278,7 +278,7 @@ export function GitGraphToolbar({
             >
               <Minus className="size-3.5" />
             </Button>
-            <span className="w-9 text-center text-xs tabular-nums text-foreground/70">
+            <span className="w-9 text-center text-xs tabular-nums text-foreground/80">
               {Math.round(zoom * 100)}%
             </span>
             <Button

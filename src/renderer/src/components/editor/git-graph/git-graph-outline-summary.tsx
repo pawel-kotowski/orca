@@ -25,7 +25,7 @@ export function GitGraphCount({
   return (
     <span
       title={title}
-      className="rounded-full bg-foreground/[0.12] px-1.5 text-[10.5px] leading-4 text-foreground/85 tabular-nums"
+      className="rounded-full bg-foreground/[0.12] px-1.5 dark:bg-black/40 text-[10.5px] leading-4 text-foreground/85 tabular-nums"
     >
       {count}
     </span>
@@ -84,7 +84,7 @@ export function GitGraphOutlineSummary({
   const [own, ...mergedIn] = segments
   const mergedCount = mergedIn.reduce((sum, segment) => sum + segment.ids.length, 0)
   return (
-    <span className="inline-flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-foreground/70">
+    <span className="inline-flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-foreground/80">
       {merged && (
         <span className="inline-flex flex-wrap items-center gap-1">
           <GitMerge className="size-3.5 shrink-0" />

@@ -78,11 +78,6 @@ export function GitGraphBranchSelect({
     setAuthorPick([])
     setDraft(new Set(ids))
   }
-  const label = !Array.isArray(value)
-    ? 'All branches'
-    : authorPick.length > 0
-      ? `Branches by ${authorPick.map((key) => authors.find(([k]) => k === key)?.[1].name ?? key).join(', ')}`
-      : `${value.length} of ${selectable.length} branches`
   const pinnedIds = selectable
     .filter((ref) => ref.id === headRefId || pinned.includes(branchOf(ref)))
     .map((ref) => ref.id)
@@ -100,6 +95,12 @@ export function GitGraphBranchSelect({
     }
     return [...byKey].sort((a, b) => b[1].count - a[1].count)
   }, [pinned, selectable])
+  // After `authors`: the label names the picked ones (reading it earlier crashed the tab, 2026-11-17).
+  const label = !Array.isArray(value)
+    ? 'All branches'
+    : authorPick.length > 0
+      ? `Branches by ${authorPick.map((key) => authors.find(([k]) => k === key)?.[1].name ?? key).join(', ')}`
+      : `${value.length} of ${selectable.length} branches`
   const pickAuthors = (keys: string[]): void => {
     if (keys.length === 0) {
       set(selectable.map((ref) => ref.id))
@@ -188,7 +189,7 @@ export function GitGraphBranchSelect({
         </div>
         {authors.length > 1 && (
           <div className="mb-1.5 flex flex-wrap items-center gap-1">
-            <span className="mr-1 text-foreground/70">By author</span>
+            <span className="mr-1 text-foreground/80">By author</span>
             {authors.map(([key, { name, count }]) => {
               const on = authorPick.includes(key)
               return (
@@ -200,7 +201,7 @@ export function GitGraphBranchSelect({
                   className={
                     on
                       ? 'rounded-md border border-ring bg-accent px-1.5 py-0.5'
-                      : 'rounded-md border border-border px-1.5 py-0.5 text-foreground/75 hover:text-foreground'
+                      : 'rounded-md border border-border px-1.5 py-0.5 text-foreground/85 hover:text-foreground'
                   }
                   onClick={() =>
                     pickAuthors(on ? authorPick.filter((k) => k !== key) : [...authorPick, key])
@@ -241,7 +242,7 @@ export function GitGraphBranchSelect({
               )}
               <span className="min-w-0 flex-1 break-all">{ref.name}</span>
               {ref.author && ref.category !== 'tags' && (
-                <span className="shrink-0 text-foreground/55">{ref.author}</span>
+                <span className="shrink-0 text-foreground/85">{ref.author}</span>
               )}
             </label>
           ))}

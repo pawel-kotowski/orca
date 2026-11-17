@@ -58,7 +58,7 @@ function CommitLine({
       <span className="max-w-[10rem] shrink-0 truncate" {...author}>
         {item.author}
       </span>
-      <span className="w-16 shrink-0 text-right text-foreground/70 tabular-nums">
+      <span className="w-16 shrink-0 text-right text-foreground/80 tabular-nums">
         {formatGitGraphRelativeTime(item.timestamp)}
       </span>
     </>
@@ -102,7 +102,7 @@ export function GitGraphSegmentCommits({
         return (
           <div key={segment.key} className="min-w-0">
             {segment.title && (
-              <div className="mt-1 border-t border-foreground/10 px-2 pt-1.5 pb-0.5 text-xs text-foreground/65">
+              <div className="mt-1 border-t border-foreground/10 px-2 pt-1.5 pb-0.5 text-xs text-foreground/85">
                 {segment.title} · {segment.ids.length}
               </div>
             )}

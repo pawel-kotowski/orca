@@ -175,7 +175,7 @@ export const GitGraphRow = React.forwardRef<HTMLDivElement, GitGraphRowProps>(fu
       )}
       {layout.date && (
         <span
-          className="truncate text-foreground/70"
+          className="truncate text-foreground/80"
           title={
             item.timestamp ? new Date(item.timestamp).toLocaleString(getIntlLocale()) : undefined
           }
@@ -184,7 +184,7 @@ export const GitGraphRow = React.forwardRef<HTMLDivElement, GitGraphRowProps>(fu
         </span>
       )}
       {layout.commit && (
-        <span className="truncate font-mono text-foreground/70">
+        <span className="truncate font-mono text-foreground/80">
           {isBoundary ? '' : (item.displayId ?? item.id.slice(0, 7))}
         </span>
       )}
@@ -222,7 +222,7 @@ export function GitGraphHeaderRow({
   )
   const header = (
     <div
-      className="grid shrink-0 gap-x-3 border-b border-border pr-3 text-[11px] font-semibold tracking-wide text-foreground/60 uppercase select-none"
+      className="grid shrink-0 gap-x-3 border-b border-border pr-3 text-[11px] font-semibold tracking-wide text-foreground/72 uppercase select-none"
       style={{ gridTemplateColumns: layout.template }}
       title={onToggleColumn ? 'Right-click: choose columns' : undefined}
     >

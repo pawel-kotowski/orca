@@ -106,7 +106,7 @@ export function GitGraphRefChip({
   const content = (
     <>
       {group.kind === 'tag' ? (
-        <Tag className="size-3 shrink-0 text-foreground/70" />
+        <Tag className="size-3 shrink-0 text-foreground/80" />
       ) : (
         <span
           aria-hidden
@@ -116,7 +116,7 @@ export function GitGraphRefChip({
       )}
       {/* One piece: a flex gap between remote and name read as "origin/ x". */}
       <span className="break-all">
-        {group.remote && <span className="text-foreground/60">{group.remote}/</span>}
+        {group.remote && <span className="text-foreground/72">{group.remote}/</span>}
         {group.name}
       </span>
       {group.isHead && (
@@ -126,7 +126,7 @@ export function GitGraphRefChip({
       )}
       {group.syncedRemotes.length > 0 && (
         <span
-          className="inline-flex items-center gap-0.5 text-foreground/60"
+          className="inline-flex items-center gap-0.5 text-foreground/72"
           title={`Also on ${group.syncedRemotes.join(', ')} at this commit`}
         >
           <Cloud className="size-3" />
@@ -139,7 +139,9 @@ export function GitGraphRefChip({
     'inline-flex max-w-full min-w-0 items-center gap-1.5 rounded-md border text-left',
     size === 'lg' ? 'px-2 text-[12.5px] leading-[18px]' : 'px-1.5 text-[11.5px] leading-[18px]',
     group.isHead ? 'font-semibold text-foreground' : 'text-foreground',
-    focused ? 'border-ring bg-accent' : 'border-foreground/25 bg-foreground/[0.06]',
+    focused
+      ? 'border-ring bg-accent'
+      : 'border-foreground/25 bg-foreground/[0.06] dark:bg-black/35',
     clickable && 'cursor-pointer hover:border-ring'
   )
   return clickable ? (

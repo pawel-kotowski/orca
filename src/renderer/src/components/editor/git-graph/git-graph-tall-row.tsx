@@ -90,7 +90,7 @@ export function GitGraphMergeMark({
     <div data-git-graph-merge-mark className="relative isolate">
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 -z-10 rounded-md opacity-10"
+        className="pointer-events-none absolute inset-0 -z-10 rounded-md opacity-[0.07]"
         style={{ background: graphColor(color) }}
       />
       {children}
@@ -145,7 +145,7 @@ export const GitGraphTallRow = React.forwardRef<HTMLDivElement, GitGraphTallRowP
     // Author, date and hash sit level with the message's first line (24px tall, like the node).
     const meta = (column: number, content: React.ReactNode, extra?: string, title?: string) => (
       <span
-        className={cn('self-start truncate leading-6 text-foreground/70', extra)}
+        className={cn('self-start truncate leading-6 text-foreground/80', extra)}
         style={{ gridRow: lineRow, gridColumn: column }}
         title={title}
       >
