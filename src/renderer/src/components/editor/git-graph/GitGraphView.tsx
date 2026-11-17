@@ -5,7 +5,7 @@
 // picker chooses which branches are drawn; one-click jumps go to HEAD, main and development; in
 // Detailed and Compact a followed branch fades every commit off its line. A clicked commit's
 // details open under its row, and their files open as diffs beside the graph.
-import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { translate } from '@/i18n/i18n'
 import { useWorktreeById } from '@/store/workspaces/selection/use-selected-worktree'
@@ -97,11 +97,24 @@ export function GitGraphView({ worktreeId }: { worktreeId: string }): React.JSX.
     items: history.items
   })
   const lanes = useGitGraphPinnedLanes(repoKey, refs)
+  // A pinned branch the repo has and the branch picker draws keeps its column before it loads.
+  const drawnPinned = useMemo(
+    () =>
+      lanes.pinned.filter((name) =>
+        refs.some(
+          (ref) =>
+            gitGraphBranchName(ref) === name &&
+            (refsFilter === 'all' || (Array.isArray(refsFilter) && refsFilter.includes(ref.id)))
+        )
+      ),
+    [lanes.pinned, refs, refsFilter]
+  )
   const model = useGitGraphRows({
     items: history.items,
     result,
     density,
-    pinned: lanes.pinned
+    pinned: lanes.pinned,
+    drawnPinned
   })
   const { layout, setWidth, resetWidth, toggleColumn } = useGitGraphColumns(
     listWidth,

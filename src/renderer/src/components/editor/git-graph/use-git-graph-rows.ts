@@ -45,12 +45,15 @@ export function useGitGraphRows({
   items,
   result,
   density,
-  pinned
+  pinned,
+  drawnPinned = []
 }: {
   items: GitHistoryItem[]
   result: GitHistoryResult | null
   density: GitGraphDensity
   pinned: string[]
+  /** Pinned branches the repo has and the graph draws, loaded yet or not. */
+  drawnPinned?: string[]
 }): GitGraphRows {
   const headRevision = result?.currentRef?.revision
   const headBranch =
@@ -78,10 +81,11 @@ export function useGitGraphRows({
             laneNames,
             pinned,
             colourOf,
-            headRevision
+            headRevision,
+            drawn: drawnPinned
           })
         : [],
-    [colourOf, headRevision, items, laneNames, outline, pinned, result]
+    [colourOf, drawnPinned, headRevision, items, laneNames, outline, pinned, result]
   )
   const rowOf = useMemo(() => {
     const owners = new Map<string, string>()

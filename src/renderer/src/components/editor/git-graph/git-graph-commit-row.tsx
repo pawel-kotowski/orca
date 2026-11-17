@@ -1,18 +1,16 @@
 // Local (glass build): one commit of the Git Graph in the chosen view. Compact is the classic one
 // line; Detailed puts the commit's branch names on their own line above its full message, and a
 // click on a name follows that branch; Branches shows the names and what the commit did to the
-// branches (merged, forked) with how many commits the row stands for, which a hover shows in a
-// card and a click opens under the row.
+// branches (merged, forked) with how many commits the row stands for, which a click opens under
+// the row (a hover card was tried and removed, 2026-11-17: Paweł, "remove hover on branch").
 import React from 'react'
-import type { GitHistoryItem } from '../../../../../shared/git/history/git-history-types'
-import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card'
 import type { GitGraphLaneRow } from './git-graph-branch-layout'
 import type { GitGraphLayout } from './git-graph-columns'
 import { GitGraphRow } from './git-graph-row'
 import { GitGraphTallRow } from './git-graph-tall-row'
 import { GitGraphRefChip, groupGitGraphRefs } from './git-graph-ref-chips'
 import { GitGraphOutlineSummary } from './git-graph-outline-summary'
-import { GitGraphSegmentCommits, type GitGraphSegment } from './git-graph-segment-commits'
+import type { GitGraphSegment } from './git-graph-segment-commits'
 import type { GitGraphDensity } from './git-graph-toolbar'
 
 type GitGraphCommitRowProps = Omit<React.HTMLAttributes<HTMLDivElement>, 'onSelect'> & {
@@ -27,13 +25,10 @@ type GitGraphCommitRowProps = Omit<React.HTMLAttributes<HTMLDivElement>, 'onSele
   /** Branches view: what the row stands for, and the name of the branch a merge took in. */
   segments?: GitGraphSegment[]
   mergedName?: string
-  itemById?: ReadonlyMap<string, GitHistoryItem>
   onSelect: () => void
   onOpen: () => void
   onFocusBranch: (name: string) => void
 }
-
-const HOVER_LIMIT = 12
 
 export const GitGraphCommitRow = React.forwardRef<HTMLDivElement, GitGraphCommitRowProps>(
   function GitGraphCommitRow(
@@ -48,7 +43,6 @@ export const GitGraphCommitRow = React.forwardRef<HTMLDivElement, GitGraphCommit
       currentRefId,
       segments,
       mergedName,
-      itemById,
       onFocusBranch,
       ...rowProps
     },
@@ -111,20 +105,7 @@ export const GitGraphCommitRow = React.forwardRef<HTMLDivElement, GitGraphCommit
           />
         </span>
       )
-      // An open row already lists its commits under it; a card would repeat them.
-      main =
-        selected || !segments || !itemById ? (
-          summary
-        ) : (
-          <HoverCard openDelay={450} closeDelay={80}>
-            <HoverCardTrigger asChild>
-              <span className="inline-flex max-w-full">{summary}</span>
-            </HoverCardTrigger>
-            <HoverCardContent align="start" className="w-[36rem] max-w-[80vw] p-2">
-              <GitGraphSegmentCommits segments={segments} itemById={itemById} limit={HOVER_LIMIT} />
-            </HoverCardContent>
-          </HoverCard>
-        )
+      main = summary
     }
     return (
       <GitGraphTallRow

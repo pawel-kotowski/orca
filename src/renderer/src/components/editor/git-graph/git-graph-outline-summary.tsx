@@ -107,7 +107,7 @@ export function GitGraphOutlineSummary({
       {own && own.ids.length > 1 && (
         <GitGraphCount
           count={own.ids.length}
-          title={`${own.ids.length} commit${own.ids.length === 1 ? '' : 's'} on this line down to the next branch point. Hover or click the row to see them.`}
+          title={`${own.ids.length} commit${own.ids.length === 1 ? '' : 's'} on this line down to the next branch point. Click the row to see them.`}
         />
       )}
     </span>

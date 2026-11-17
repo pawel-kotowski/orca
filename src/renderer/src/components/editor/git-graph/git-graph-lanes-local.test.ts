@@ -139,13 +139,31 @@ describe('buildGitGraphBranchViewModels', () => {
   const rows = buildGitGraphBranchViewModels(items, { laneNames, pinned, colourOf })
   const byId = new Map(rows.map((row) => [row.historyItem.id, row]))
 
-  it('puts pinned branches leftmost, in order, and others after them', () => {
-    // After development's tip: its lane sits left of the feature's.
-    expect(byId.get('d1')!.outputSwimlanes.map((lane) => lane.color)).toEqual([
+  it('keeps a column for each pinned branch from the top, others to the right of them', () => {
+    // Above main's and development's tips their columns are already there, empty: the feature
+    // starts in column 3 and never moves (Paweł: "start one col to the right, not curve").
+    const colours = (id: string) => byId.get(id)!.outputSwimlanes.map((lane) => lane.color)
+    expect(colours('x2')).toEqual([
+      'git-graph-branch-empty',
+      'git-graph-branch-empty',
+      'git-graph-branch-head'
+    ])
+    expect(colours('d1')).toEqual([
+      'git-graph-branch-empty',
       'git-graph-branch-pin-2',
       'git-graph-branch-head'
     ])
+    expect(byId.get('x2')!.circleIndex).toBe(2)
+    expect(byId.get('d1')!.circleIndex).toBe(1)
     expect(byId.get('m1')!.circleIndex).toBe(0)
+    // Nothing bends: every lane that goes on stays in its column.
+    for (const row of rows) {
+      for (const edge of row.edges) {
+        if (typeof edge.from === 'number' && typeof edge.to === 'number') {
+          expect(edge.to).toBe(edge.from)
+        }
+      }
+    }
   })
 
   it('gives each branch one colour, pinned ones fixed and the current branch its own', () => {
@@ -161,8 +179,23 @@ describe('buildGitGraphBranchViewModels', () => {
   it('connects every lane of a row from where it was to where it goes', () => {
     for (const row of rows) {
       const into = row.edges.filter((edge) => edge.to !== 'node').map((edge) => edge.to)
-      expect(into).toEqual(row.outputSwimlanes.map((_, index) => index))
+      const drawn = row.outputSwimlanes
+        .map((lane, index) => (lane.color === 'git-graph-branch-empty' ? -1 : index))
+        .filter((index) => index !== -1)
+      expect(into).toEqual(drawn)
     }
+  })
+})
+
+describe('a pinned branch whose tip is not loaded yet', () => {
+  it('keeps its column when the graph draws it, so loading it moves nothing', () => {
+    const items = [commit('a', ['b'], 'a', [branch('feature')]), commit('b', [], 'b')]
+    const laneNames = gitGraphLaneNames(items, ['main'])
+    const colourOf = gitGraphBranchColours(items, laneNames, ['main'], undefined)
+    const build = (drawn: string[]) =>
+      buildGitGraphBranchViewModels(items, { laneNames, pinned: ['main'], colourOf, drawn })[0]!
+    expect(build(['main']).circleIndex).toBe(1)
+    expect(build([]).circleIndex).toBe(0)
   })
 })
 

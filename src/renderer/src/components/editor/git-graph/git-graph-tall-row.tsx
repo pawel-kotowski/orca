@@ -9,7 +9,7 @@ import { getIntlLocale } from '@/i18n/i18n'
 import type { GitHistoryGraphColorId } from '../../../../../shared/git/history/git-history-types'
 import type { GitHistoryGraphNode } from '../../../../../shared/git/history/git-history-graph'
 import { graphColor } from '@/components/right-sidebar/source-control/sync/git-history-graph-svg'
-import type { GitGraphLaneRow } from './git-graph-branch-layout'
+import { GIT_GRAPH_EMPTY_LANE, type GitGraphLaneRow } from './git-graph-branch-layout'
 import { GitGraphLanesSvg, gitGraphLaneStroke } from './git-graph-lanes-svg'
 import type { GitGraphLayout } from './git-graph-columns'
 import { formatGitGraphRelativeTime, GIT_GRAPH_HOVER_FRAME } from './git-graph-row'
@@ -32,6 +32,9 @@ export function GitGraphLaneFill({
   return (
     <div aria-hidden className={cn('relative overflow-hidden', className)} style={style}>
       {lanes.map((lane, index) => {
+        if (lane.id === GIT_GRAPH_EMPTY_LANE) {
+          return null
+        }
         const width = gitGraphLaneStroke(lane.color)
         return (
           <div

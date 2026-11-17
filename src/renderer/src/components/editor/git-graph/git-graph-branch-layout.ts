@@ -3,7 +3,8 @@
 // branches? that is a natural project development flow", "development is both blue and yellow").
 // A lane is the line to the next commit it reaches, so it takes that commit's branch (its lane
 // name): its colour, and its place. Pinned branches (main, then development, by default) sit
-// leftmost in their order, every other lane keeps the order it opened in. Colours: pinned
+// leftmost in their order, each in a column of its own from the top of the graph, and every other
+// lane keeps the order it opened in to the right of them. Colours: pinned
 // branches fixed ones, the current branch the text colour, other branches the next palette colour
 // in the order they first appear, a line no branch names grey.
 import type {
@@ -16,6 +17,10 @@ import type {
 } from '../../../../../shared/git/history/git-history-graph'
 
 const PALETTE_SIZE = 7
+
+/** A reserved column above its pinned branch's tip: drawn as nothing, matched by no commit. */
+export const GIT_GRAPH_EMPTY_LANE = '\0empty'
+export const GIT_GRAPH_EMPTY_COLOR: GitHistoryGraphColorId = 'git-graph-branch-empty'
 const PINNED_COLOURS = 3
 
 export type GitGraphBranchColours = (branch: string | undefined) => GitHistoryGraphColorId
@@ -69,12 +74,15 @@ export function buildGitGraphBranchViewModels(
     laneNames,
     pinned,
     colourOf,
-    headRevision
+    headRevision,
+    drawn = []
   }: {
     laneNames: ReadonlyMap<string, string>
     pinned: readonly string[]
     colourOf: GitGraphBranchColours
     headRevision?: string
+    /** Pinned branches the graph draws though their tips may not be loaded yet. */
+    drawn?: readonly string[]
   }
 ): GitGraphLaneRow[] {
   // A lane belongs to the branch whose line it draws: a first-parent lane to its child's branch
@@ -86,43 +94,63 @@ export function buildGitGraphBranchViewModels(
     branch,
     color: colourOf(branch)
   })
-  const rank = (entry: Lane): number => {
-    const pin = entry.branch === undefined ? -1 : pinned.indexOf(entry.branch)
-    return pin === -1 ? pinned.length : pin
-  }
+  // Paweł, 2026-11-17: "when main is behind then above it all branches should start one col to
+  // the right, not curve into free slot". Every pinned branch the loaded history holds owns its
+  // column from the top: above its tip the column stays empty, so other branches never shift. A
+  // drawn branch whose tip is pages away keeps its column too, so loading it moves nothing.
+  const present = new Set(laneNames.values())
+  const reserved = pinned.filter((name) => present.has(name) || drawn.includes(name))
+  const empty = (): Lane => ({ id: GIT_GRAPH_EMPTY_LANE, color: GIT_GRAPH_EMPTY_COLOR })
   let frontier: Lane[] = []
   const rows: GitGraphLaneRow[] = []
   for (const item of items) {
     const input = frontier
     // Each output lane remembers where it came from: an input place, or the commit's dot.
-    const output: { lane: Lane; from: number | 'node' }[] = []
+    const output: { lane: Lane; from: number | 'node'; first?: true }[] = []
     const [first, ...merged] = item.parentIds
     const branch = laneNames.get(item.id)
     const own = input.findIndex((entry) => entry.id === item.id)
     let firstPlaced = false
     input.forEach((entry, index) => {
+      if (entry.id === GIT_GRAPH_EMPTY_LANE) {
+        return
+      }
       if (entry.id !== item.id) {
         output.push({ lane: entry, from: index })
       } else if (!firstPlaced && first !== undefined) {
         // The commit's own lane goes on to its first parent, in the same place.
-        output.push({ lane: lane(first, branch), from: 'node' })
+        output.push({ lane: lane(first, branch), from: 'node', first: true })
         firstPlaced = true
       }
     })
     if (!firstPlaced && first !== undefined) {
-      output.push({ lane: lane(first, branch), from: 'node' })
+      output.push({ lane: lane(first, branch), from: 'node', first: true })
     }
     for (const parent of merged) {
       output.push({ lane: lane(parent, laneNames.get(parent)), from: 'node' })
     }
-    // Stable: lanes of equal rank keep their order, so only a pinned lane moves others aside.
-    const placed = output
-      .map((entry, index) => ({ ...entry, index, rank: rank(entry.lane) }))
-      .sort((a, b) => a.rank - b.rank || a.index - b.index)
+    // A pinned branch's first lane takes its reserved column; everything else (other branches, a
+    // pinned branch's extra lanes) follows the reserved block in the order it opened in.
+    type Placed = { lane: Lane; from: number | 'node' | 'none'; first?: true }
+    const slots: (Placed | undefined)[] = reserved.map(() => undefined)
+    const rest: Placed[] = []
+    for (const entry of output) {
+      const slot = entry.lane.branch === undefined ? -1 : reserved.indexOf(entry.lane.branch)
+      if (slot !== -1 && !slots[slot]) {
+        slots[slot] = entry
+      } else {
+        rest.push(entry)
+      }
+    }
+    const placed: Placed[] = [
+      ...slots.map((entry) => entry ?? { lane: empty(), from: 'none' as const }),
+      ...rest
+    ]
     const nodeColor = colourOf(branch)
-    // A new tip's dot sits where its first parent's lane leaves, so it needs no bend.
-    const firstOut = placed.findIndex((entry) => entry.from === 'node')
-    const circleIndex = own !== -1 ? own : firstOut !== -1 ? firstOut : input.length
+    // The dot sits where the commit's own line goes on (its first parent's column): a pinned
+    // branch's commit in its column even where other lines ran into it, a new tip without a bend.
+    const firstOut = placed.findIndex((entry) => entry.first)
+    const circleIndex = firstOut !== -1 ? firstOut : own !== -1 ? own : input.length
     const edges: GitGraphEdge[] = []
     input.forEach((entry, index) => {
       if (entry.id === item.id) {
@@ -130,7 +158,9 @@ export function buildGitGraphBranchViewModels(
       }
     })
     placed.forEach((entry, index) => {
-      edges.push({ from: entry.from, to: index, color: entry.lane.color })
+      if (entry.from !== 'none') {
+        edges.push({ from: entry.from, to: index, color: entry.lane.color })
+      }
     })
     frontier = placed.map((entry) => entry.lane)
     rows.push({

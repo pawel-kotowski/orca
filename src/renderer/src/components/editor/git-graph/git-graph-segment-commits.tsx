@@ -1,8 +1,8 @@
 // Local (glass build): the commits behind one row of the Branches view (Paweł, 2026-11-17: "when
 // i hover on branch it could show commits, same when clicked actualy ... we always should stay in
 // branches view"). A row stands for its own commit and the plain commits folded under it on its
-// line; a merge also for the commits it took in. Hovering the row shows them in a card; clicking
-// opens them under the row, where a commit opens its own details.
+// line; a merge also for the commits it took in. Clicking the row opens them under it, where a
+// commit opens its own details.
 import React from 'react'
 import { cn } from '@/lib/class-names'
 import type { GitHistoryItem } from '../../../../../shared/git/history/git-history-types'
@@ -82,15 +82,12 @@ function CommitLine({
 export function GitGraphSegmentCommits({
   segments,
   itemById,
-  limit,
   openId,
   onOpenCommit,
   renderDetails
 }: {
   segments: GitGraphSegment[]
   itemById: ReadonlyMap<string, GitHistoryItem>
-  /** At most this many commits per group, with "and N more" (the hover card). */
-  limit?: number
   openId?: string | null
   onOpenCommit?: (id: string) => void
   renderDetails?: (item: GitHistoryItem) => React.ReactNode
@@ -98,13 +95,12 @@ export function GitGraphSegmentCommits({
   return (
     <div className="flex min-w-0 flex-col gap-1.5">
       {segments.map((segment) => {
-        const shown = limit === undefined ? segment.ids : segment.ids.slice(0, limit)
         return (
           <div key={segment.title} className="min-w-0">
             <div className="px-2 pb-0.5 text-[10.5px] font-semibold tracking-wide text-muted-foreground uppercase">
               {segment.title} · {segment.ids.length}
             </div>
-            {shown.map((id) => {
+            {segment.ids.map((id) => {
               const item = itemById.get(id)
               if (!item) {
                 return null
@@ -120,11 +116,6 @@ export function GitGraphSegmentCommits({
                 </React.Fragment>
               )
             })}
-            {shown.length < segment.ids.length && (
-              <div className="px-2 text-xs text-muted-foreground">
-                and {segment.ids.length - shown.length} more — click the row to see all
-              </div>
-            )}
           </div>
         )
       })}
