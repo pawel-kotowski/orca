@@ -10,7 +10,8 @@ import type {
 import {
   GIT_GRAPH_DEFAULT_TRUNKS,
   gitGraphLaneNames,
-  gitGraphMergedBranchName
+  gitGraphMergedBranchName,
+  gitGraphMergedPullRequest
 } from './git-graph-lane-names'
 import { gitGraphEdgeKey, outlineGitGraphItems, type GitGraphOutline } from './git-graph-outline'
 import {
@@ -75,8 +76,19 @@ export function useGitGraphRows({
   )
   const laneBranches = useMemo(() => new Set(laneNames.values()), [laneNames])
   const outline = useMemo(
-    () => (density === 'branches' ? outlineGitGraphItems(items, headRevision) : null),
-    [density, headRevision, items]
+    () =>
+      density === 'branches'
+        ? outlineGitGraphItems(items, headRevision, (item) => {
+            // A squash-merged pull request is the merge in a squash workflow: keep it as a row.
+            const lane = laneNames.get(item.id)
+            return (
+              lane !== undefined &&
+              pinned.includes(lane) &&
+              !!gitGraphMergedPullRequest(item.subject)
+            )
+          })
+        : null,
+    [density, headRevision, items, laneNames, pinned]
   )
   const rows = useMemo(
     () =>

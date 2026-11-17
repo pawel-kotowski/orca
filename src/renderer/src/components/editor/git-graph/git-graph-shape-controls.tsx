@@ -124,7 +124,7 @@ export function GitGraphShapeControls({
             <Toggle
               key={branch}
               on={mergeTargets.includes(branch)}
-              title={`Highlight every merge into ${branch}; n and Shift+N step through them`}
+              title={`Highlight every merge into ${branch}: merge commits and pull requests squashed onto it. n and Shift+N step through them`}
               onClick={() => onToggleMerge(branch)}
             >
               <span

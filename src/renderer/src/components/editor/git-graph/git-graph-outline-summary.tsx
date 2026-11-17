@@ -7,7 +7,7 @@
 // visible always ... but not with word commits - it repeats too much"). Nothing here is a button:
 // the whole row opens its commits.
 import React from 'react'
-import { GitFork, GitMerge } from 'lucide-react'
+import { GitFork, GitMerge, GitPullRequestArrow } from 'lucide-react'
 import type { GitHistoryGraphColorId } from '../../../../../shared/git/history/git-history-types'
 import { graphColor } from '@/components/right-sidebar/source-control/sync/git-history-graph-svg'
 import type { GitGraphLaneRow } from './git-graph-branch-layout'
@@ -77,7 +77,10 @@ export function GitGraphOutlineSummary({
   const mergedColor = merged
     ? row.outputSwimlanes.findLast((lane) => lane.id === row.historyItem.parentIds[1])?.color
     : undefined
-  const pullRequest = merged ? gitGraphMergedPullRequest(row.historyItem.subject) : undefined
+  const pullRequest = gitGraphMergedPullRequest(row.historyItem.subject)
+  // A pull request squashed onto a pinned branch is that branch's merge in a squash workflow.
+  const landed =
+    !merged && pullRequest && laneName && pinned.includes(laneName) ? pullRequest : undefined
   const [own, ...mergedIn] = segments
   const mergedCount = mergedIn.reduce((sum, segment) => sum + segment.ids.length, 0)
   return (
@@ -102,7 +105,13 @@ export function GitGraphOutlineSummary({
           )}
         </span>
       )}
-      {!merged && !hasRefs && starts.length > 0 && (
+      {landed && (
+        <span className="inline-flex items-center gap-1" title={row.historyItem.subject}>
+          <GitPullRequestArrow className="size-3.5 shrink-0" />
+          landed <span className="font-medium text-foreground">{landed}</span>
+        </span>
+      )}
+      {!merged && !landed && !hasRefs && starts.length > 0 && (
         <span className="inline-flex flex-wrap items-center gap-1">
           <GitFork className="size-3.5 shrink-0" />
           start of

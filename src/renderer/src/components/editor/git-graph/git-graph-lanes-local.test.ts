@@ -270,4 +270,25 @@ describe('merges into a branch', () => {
     expect(nextGitGraphMark(rows, laneNames, ['main'], null, -1)).toBe('M1')
     expect(findGitGraphCommit(items, 'F1', 'M2')).toBe('M1')
   })
+
+  it('counts a pull request squashed onto the branch, and the Branches view keeps it', () => {
+    const items = [
+      commit('s2', ['s1'], 'ci: skip docs-only runs (#1145)', [branch('development')]),
+      commit('s1', ['s0'], 'fix(webui): ribbon (#1143)'),
+      commit('w', ['s0'], 'wip on development'),
+      commit('s0', [], 'root')
+    ].filter((item) => item.id !== 'w')
+    const laneNames = gitGraphLaneNames(items, ['development'])
+    const colourOf = gitGraphBranchColours(items, laneNames, ['development'], undefined)
+    const rows = buildGitGraphBranchViewModels(items, {
+      laneNames,
+      pinned: ['development'],
+      colourOf
+    })
+    expect(rows.filter((row) => isGitGraphMergeInto(row, laneNames, ['development'])).length).toBe(
+      2
+    )
+    const outline = outlineGitGraphItems(items, undefined, (item) => /\(#\d+\)$/.test(item.subject))
+    expect(outline.items.map((item) => item.id)).toEqual(['s2', 's1', 's0'])
+  })
 })

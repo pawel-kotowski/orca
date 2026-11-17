@@ -4,14 +4,23 @@
 // framed in that branch's colour and every other row fades; n and Shift+N step through them.
 import { useCallback, useState } from 'react'
 import type { GitGraphLaneRow } from './git-graph-branch-layout'
+import { gitGraphMergedPullRequest } from './git-graph-lane-names'
 
-/** A merge commit on one of the target branches' lines. */
+/**
+ * A merge on one of the target branches' lines: a merge commit, or a pull request squashed into
+ * one commit ("… (#1145)"; aikros lands every PR that way and has no merge commits at all, so
+ * "Merges into development" found nothing there, 2026-11-17).
+ */
 export function isGitGraphMergeInto(
   row: GitGraphLaneRow,
   laneNames: ReadonlyMap<string, string>,
   targets: readonly string[]
 ): boolean {
-  if (targets.length === 0 || row.historyItem.parentIds.length < 2) {
+  const item = row.historyItem
+  if (
+    targets.length === 0 ||
+    (item.parentIds.length < 2 && !gitGraphMergedPullRequest(item.subject))
+  ) {
     return false
   }
   const lane = laneNames.get(row.historyItem.id)

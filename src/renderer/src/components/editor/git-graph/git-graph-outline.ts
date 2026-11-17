@@ -19,7 +19,9 @@ export function gitGraphEdgeKey(childId: string, parentIndex: number): string {
 
 export function outlineGitGraphItems(
   items: readonly GitHistoryItem[],
-  headRevision?: string
+  headRevision?: string,
+  /** More commits that shape the history: pull requests squashed onto a pinned branch. */
+  alsoKeep?: (item: GitHistoryItem) => boolean
 ): GitGraphOutline {
   const byId = new Map(items.map((item) => [item.id, item]))
   const children = new Map<string, number>()
@@ -32,7 +34,8 @@ export function outlineGitGraphItems(
     item.id === headRevision ||
     (item.references?.length ?? 0) > 0 ||
     item.parentIds.length !== 1 ||
-    (children.get(item.id) ?? 0) > 1
+    (children.get(item.id) ?? 0) > 1 ||
+    !!alsoKeep?.(item)
   const keptIds = new Set(items.filter(kept).map((item) => item.id))
   // A list whose first rows fold (paged in mid-line) still starts somewhere.
   if (items[0]) {
