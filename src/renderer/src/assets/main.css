@@ -1202,9 +1202,11 @@ html.native-shell .app-layout {
 }
 
 /* Why: when the sidebar is collapsed this header floats over the tab strip,
-   so keep the standard titlebar surface instead of the sidebar tint. */
+   so keep the standard titlebar surface instead of the sidebar tint.
+   Local (glass build): the same fallback as .titlebar, through the theme's --tab-bar; skipping it
+   left the header on --card beside a themed strip (Paweł, 2026-11-17: "this still not dark"). */
 .titlebar-left-floating {
-  background: var(--bg-titlebar, var(--card));
+  background: var(--bg-titlebar, var(--tab-bar, var(--card)));
 }
 
 .titlebar-traffic-light-pad {
