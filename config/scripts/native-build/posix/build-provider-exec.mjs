@@ -18,7 +18,7 @@ import {
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import glibcVerification from '../linux/verify-linux-glibc-floor.cjs'
-import { linuxNativeToolchainImage } from '../linux/build-wayland-clipboard.mjs'
+import { dockerIsRootless, linuxNativeToolchainImage } from '../linux/build-wayland-clipboard.mjs'
 
 const PROVIDER_EXEC_EXECUTABLE = 'orca-provider-exec'
 // Equals the desktop's minimumSystemVersion; the pinned server Node needs a newer macOS anyway.
@@ -128,7 +128,8 @@ export function buildProviderExec({
   target,
   hostCompiler = false,
   root = resolve(import.meta.dirname, '../../../..'),
-  run = spawnSync
+  run = spawnSync,
+  rootless
 }) {
   const parsed = parseProviderExecTarget(target)
   const toolchain = toolchainFor(parsed, hostCompiler)
@@ -177,12 +178,15 @@ export function buildProviderExec({
   } else {
     const docker = (args) => invoke('docker', args)
     const image = linuxNativeToolchainImage(root, docker)
+    // Why: under rootless Docker `--user <uid>` maps to a subordinate uid that cannot write the
+    // bind-mounted output; container root maps to the invoking user (as the Wayland helper does).
+    const asRoot = rootless ?? (run === spawnSync ? dockerIsRootless() : false)
     // Compile against the desktop glibc floor, including when packaging another architecture.
     docker([
       'run',
       '--rm',
       '--user',
-      `${process.getuid?.() ?? 0}:${process.getgid?.() ?? 0}`,
+      asRoot ? '0:0' : `${process.getuid?.() ?? 0}:${process.getgid?.() ?? 0}`,
       '-v',
       `${nativeDir}:/source:ro`,
       '-v',
