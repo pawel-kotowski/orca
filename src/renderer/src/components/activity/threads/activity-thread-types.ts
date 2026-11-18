@@ -73,6 +73,13 @@ export type ActivityThreadGroup = {
   label: string
   state?: AgentDotState
   threads: AgentPaneThread[]
+  /** Slack and other agents in the section before either is hidden (activity-slack-agents.ts). */
+  kindCounts?: {
+    slack: number
+    other: number
+    slackShown: boolean
+    otherShown: boolean
+  }
 }
 
 export type ActivityTerminalPortalReadiness = {

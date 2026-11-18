@@ -17,6 +17,7 @@ import {
 } from '../../../../../shared/workspace-view/workspace-creator-visibility'
 import { useNow } from '@/lib/window-activity/use-now'
 import { buildActivityInboxGroups, isActivityThreadStandingBy } from '../activity-inbox-sections'
+import { useActivitySectionKindFilter } from '../activity-slack-agents'
 import { useMyPromptTimes } from '../activity-my-prompt-times'
 import { useActivityInboxFacts, type ActivityInboxFacts } from '../activity-inbox-facts'
 import { useActivityAutoStandByHours } from '../activity-auto-stand-by'
@@ -301,7 +302,7 @@ export function useAgentPaneThreads(args: {
 
   // Why: Working and Standing by sort by your own last prompt, published as each card reads it.
   const myPromptTimes = useMyPromptTimes()
-  const visibleThreadGroups = useMemo(
+  const allVisibleThreadGroups = useMemo(
     () =>
       badgeOnly
         ? EMPTY_GROUPS
@@ -314,13 +315,24 @@ export function useAgentPaneThreads(args: {
     // oxlint-disable-next-line react-hooks/exhaustive-deps -- myPromptTimes is read by byRecentPrompt
     [visibleThreads, readOnlyThreads, groupBy, badgeOnly, inboxFacts, myPromptTimes]
   )
+  // Why after grouping: each section bar counts its Slack and other agents before hiding either,
+  // and bulk actions (Clear completed) act only on the cards still shown.
+  const { groups: visibleThreadGroups, hiddenPaneKeys } =
+    useActivitySectionKindFilter(allVisibleThreadGroups)
+  const shownThreads = useMemo(
+    () =>
+      hiddenPaneKeys.size === 0
+        ? visibleThreads
+        : visibleThreads.filter((thread) => !hiddenPaneKeys.has(thread.paneKey)),
+    [visibleThreads, hiddenPaneKeys]
+  )
 
   return {
     storeData,
     allThreads,
     selectedPaneKeyIsLive,
     effectiveSelectedPaneKey,
-    visibleThreads,
+    visibleThreads: shownThreads,
     markAllReadThreads,
     visibleThreadGroups,
     workers,

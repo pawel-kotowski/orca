@@ -23191,7 +23191,11 @@
         "of": "Worker of {{name}}",
         "workerOf": "Worker of"
       },
-      "resizeSection": "Resize section"
+      "resizeSection": "Resize section",
+      "hideSlackAgents": "Slack agents: click to hide",
+      "showSlackAgents": "Slack agents hidden: click to show",
+      "hideOtherAgents": "Other agents: click to hide",
+      "showOtherAgents": "Other agents hidden: click to show"
     },
     "sidebar": {
       "ForgetSshWorkspaceDialog": {

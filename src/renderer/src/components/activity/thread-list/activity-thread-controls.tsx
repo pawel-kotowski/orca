@@ -1,5 +1,5 @@
 import React from 'react'
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown, Slack } from 'lucide-react'
 import { AgentStateDot } from '@/components/agent/status/AgentStateDot'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useNow } from '@/lib/window-activity/use-now'
@@ -15,6 +15,7 @@ import {
 } from '../threads/activity-thread-presentation'
 import type { ActivityThreadGroup, AgentPaneThread } from '../threads/activity-thread-types'
 import { useIntlLocale, useTranslate } from '@/i18n/use-translate'
+import { useToggleActivitySectionKind, type ActivitySectionKind } from '../activity-slack-agents'
 
 import './activity-thread-options-menu'
 
@@ -156,9 +157,91 @@ export function ActivityStatusGroupHeader({
         {group.label}
       </span>
       {extra}
-      <span className="rounded-full border border-border/80 bg-muted/80 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums leading-none text-foreground/80 shadow-xs">
-        {group.threads.length}
-      </span>
+      {group.kindCounts ? (
+        <ActivitySectionKindBadges groupKey={group.key} counts={group.kindCounts} />
+      ) : (
+        <span className={SECTION_COUNT_CLASS}>{group.threads.length}</span>
+      )}
     </div>
+  )
+}
+
+const SECTION_COUNT_CLASS =
+  'rounded-full border border-border/80 bg-muted/80 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums leading-none text-foreground/80 shadow-xs'
+
+/**
+ * The section's Slack agents and its other agents, each a badge with its count that shows or
+ * hides them in this section (activity-slack-agents.ts). The Slack badge shows only while the
+ * section has Slack agents.
+ */
+function ActivitySectionKindBadges({
+  groupKey,
+  counts
+}: {
+  groupKey: string
+  counts: NonNullable<ActivityThreadGroup['kindCounts']>
+}): React.JSX.Element {
+  const t = useTranslate()
+  const toggle = useToggleActivitySectionKind(groupKey)
+  const badge = (
+    kind: ActivitySectionKind,
+    count: number,
+    shown: boolean,
+    label: string,
+    icon: React.ReactNode
+  ): React.JSX.Element => (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          aria-pressed={shown}
+          aria-label={label}
+          data-activity-section-kind={kind}
+          // Why stop: the bar itself folds the section on click, Enter and Space.
+          onClick={(event) => {
+            event.stopPropagation()
+            toggle(kind)
+          }}
+          onKeyDown={(event) => event.stopPropagation()}
+          className={cn(
+            SECTION_COUNT_CLASS,
+            'inline-flex items-center gap-1 transition-opacity focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none',
+            shown
+              ? 'hover:bg-accent hover:text-foreground'
+              : 'border-dashed bg-transparent text-muted-foreground/70 opacity-60 shadow-none hover:opacity-100'
+          )}
+        >
+          {icon}
+          {count}
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="top" sideOffset={4}>
+        {label}
+      </TooltipContent>
+    </Tooltip>
+  )
+  return (
+    <span className="flex shrink-0 items-center gap-1">
+      {counts.slack > 0 || !counts.slackShown
+        ? badge(
+            'slack',
+            counts.slack,
+            counts.slackShown,
+            counts.slackShown
+              ? t('components.activity.hideSlackAgents', 'Slack agents: click to hide')
+              : t('components.activity.showSlackAgents', 'Slack agents hidden: click to show'),
+            <Slack className="size-2.5" aria-hidden />
+          )
+        : null}
+      {badge(
+        'other',
+        counts.other,
+        counts.otherShown,
+        counts.otherShown
+          ? t('components.activity.hideOtherAgents', 'Other agents: click to hide')
+          : t('components.activity.showOtherAgents', 'Other agents hidden: click to show'),
+        null
+      )}
+    </span>
   )
 }
