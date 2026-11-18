@@ -10,6 +10,7 @@ import type * as HttpLinkDestinations from '@/lib/browser/navigation/http-link-d
 import type * as TerminalLinkOpenHints from '@/components/terminal-pane/links/terminal-link-open-hints'
 
 const mocks = vi.hoisted(() => ({
+  linkPlainClick: undefined as 'orca' | 'chrome' | undefined,
   identity: null as { email: string | null; name: string | null } | null,
   projectAccount: null as { email: string } | null
 }))
@@ -49,7 +50,11 @@ vi.mock('../../../../store/index', () => ({
       selector({ openSettingsPage: vi.fn(), openSettingsTarget: vi.fn() }),
     {
       getState: () => ({
-        settings: { openLinksInApp: true, terminalLinkActionPopoverEnabled: true }
+        settings: {
+          openLinksInApp: true,
+          terminalLinkActionPopoverEnabled: true,
+          nativeChatAppearance: { linkPlainClick: mocks.linkPlainClick }
+        }
       })
     }
   )
@@ -95,9 +100,31 @@ afterEach(() => {
   vi.clearAllMocks()
   mocks.identity = null
   mocks.projectAccount = null
+  mocks.linkPlainClick = undefined
 })
 
 describe('native chat links in a Chrome profile (local)', () => {
+  it('swaps the two clicks when Settings says a plain click opens Chrome', async () => {
+    const openUrl = vi.fn(async () => {})
+    Object.assign(window, { api: { shell: { openUrl } } })
+    mocks.linkPlainClick = 'chrome'
+    mocks.projectAccount = { email: 'pawel@project.example' }
+    render(<Transcript markdown="See [the PR](https://github.com/o/r/pull/1)." />)
+    const link = await screen.findByRole('link', { name: 'the PR' })
+    fireEvent.click(link)
+    expect(openUrl).toHaveBeenCalledWith('https://github.com/o/r/pull/1', {
+      email: 'pawel@project.example',
+      name: 'pawel'
+    })
+    expect(openRoutedHttpLink).not.toHaveBeenCalled()
+    fireEvent.click(link, { metaKey: true })
+    expect(openRoutedHttpLink).toHaveBeenCalledWith(
+      'https://github.com/o/r/pull/1',
+      expect.objectContaining({ forceDestination: 'orca' })
+    )
+    expect(openUrl).toHaveBeenCalledTimes(1)
+  })
+
   it("opens a plain click in Orca's browser, not Chrome", async () => {
     const openUrl = vi.fn(async () => {})
     Object.assign(window, { api: { shell: { openUrl } } })

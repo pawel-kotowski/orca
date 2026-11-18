@@ -8,6 +8,7 @@ import {
   nativeChatWorkspaceHoverDetails,
   nativeChatColors,
   nativeChatLightText,
+  nativeChatLinkPlainClick,
   nativeChatCompactComposer,
   nativeChatShowsComposerWorkspaceLine,
   nativeChatCtrlEnterSendsNow,
@@ -22,6 +23,7 @@ import {
 } from '../../../../../../shared/native-chat/settings/native-chat-appearance-settings'
 import { useAppStore } from '../../../../store/index'
 import { formatPrimaryShortcutLabel } from '@/lib/keyboard/useShortcutLabel'
+import { isMacPlatform } from '@/components/terminal-pane/links/terminal-link-open-hints'
 import { useTranslate } from '@/i18n/use-translate'
 import { AppearanceChatContrastControls } from './AppearanceChatContrastControls'
 import { AppearanceChatImageOverlaySetting } from './AppearanceChatImageOverlaySetting'
@@ -108,6 +110,32 @@ export function AppearanceChatSection({
         )}
         checked={nativeChatLightText(settings)}
         onChange={() => update({ lightText: !nativeChatLightText(settings) })}
+      />
+      <SettingsRow
+        label={t('settings.chat.appearance.linkPlainClick', 'Link click opens')}
+        description={t(
+          'settings.chat.appearance.linkPlainClickDescription',
+          "Where a plain click on a web link opens: Orca's browser, or Chrome in the profile of the project's default Claude account. {{shortcut}}-click opens the other.",
+          { shortcut: isMacPlatform() ? 'Cmd' : 'Ctrl' }
+        )}
+        control={
+          <SettingsSegmentedControl
+            size="sm"
+            ariaLabel={t('settings.chat.appearance.linkPlainClick', 'Link click opens')}
+            value={nativeChatLinkPlainClick(settings)}
+            onChange={(linkPlainClick) => update({ linkPlainClick })}
+            options={[
+              {
+                value: 'orca',
+                label: t('settings.chat.appearance.linkPlainClickOrca', 'Orca browser')
+              },
+              {
+                value: 'chrome',
+                label: t('settings.chat.appearance.linkPlainClickChrome', 'Chrome profile')
+              }
+            ]}
+          />
+        }
       />
       <SettingsSwitchRow
         label={t('settings.chat.appearance.toolStepsOpen', 'Show every tool step')}

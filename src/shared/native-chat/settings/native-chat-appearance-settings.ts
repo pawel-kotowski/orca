@@ -64,6 +64,11 @@ export type NativeChatAppearanceSettings = {
   /** Whether the chat's text is set at Light weight (bold at Medium); absent = off. */
   lightText?: boolean
   /**
+   * Where a plain click on a web link in a chat opens: Orca's browser (absent) or the Chrome profile
+   * of the project's default subscription; Cmd/Ctrl-click opens the other one.
+   */
+  linkPlainClick?: 'orca' | 'chrome'
+  /**
    * Whether upstream's line under the message box (machine, folder, Worktree, branch) shows; absent =
    * off. The local footer already names the machine, project and workspace.
    */
@@ -94,6 +99,13 @@ export function nativeChatLightText(
   settings: { nativeChatAppearance?: NativeChatAppearanceSettings } | null | undefined
 ): boolean {
   return settings?.nativeChatAppearance?.lightText === true
+}
+
+/** Where a plain link click in a chat opens; Cmd/Ctrl-click opens the other (Paweł, 2026-11-18). */
+export function nativeChatLinkPlainClick(
+  settings: { nativeChatAppearance?: NativeChatAppearanceSettings } | null | undefined
+): 'orca' | 'chrome' {
+  return settings?.nativeChatAppearance?.linkPlainClick === 'chrome' ? 'chrome' : 'orca'
 }
 
 /** Ctrl+Enter sends a terminal Claude chat's message now, unless the user turned that off. */

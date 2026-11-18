@@ -12,6 +12,7 @@ import { handleNativeChatWebLink, openNativeChatWebLink } from './native-chat-we
 import { httpLinkDirectClickDestination } from '@/lib/browser/navigation/http-link-destinations'
 import { isTerminalLinkDirectActivation } from '@/components/terminal-pane/links/gestures/terminal-link-activation'
 import { nativeChatPlainLinkClickBehavior } from './native-chat-link-click-behavior'
+import { nativeChatLinkPlainClick } from '../../../../../../shared/native-chat/settings/native-chat-appearance-settings'
 import { useNativeChatFileLinkClick } from './use-native-chat-file-link-click'
 import { accountShortName, useNativeChatClaudeIdentity } from '../../native-chat-account-usage'
 import { projectDefaultClaudeAccount } from '@/lib/project-default-claude-identity'
@@ -61,10 +62,9 @@ export function useNativeChatLinkActions(
       if (route.kind !== 'web' || !/^https?:/i.test(route.url)) {
         return
       }
-      // Why: a plain click opens the link in Orca's browser, as a Cmd/Ctrl-click did before, whose
-      // tabs take the project's account profile; Cmd/Ctrl-click opens it in the Chrome profile of
-      // the project's default subscription (Paweł, 2026-11-18: "when i click link in terminal based
-      // chat ui it opens chrome, cmd + click opens orca browser, reverse it"). The Chrome profile
+      // Why: a plain click opens the link in Orca's browser, whose tabs take the project's account
+      // profile, and Cmd/Ctrl-click in the Chrome profile of the project's default subscription, or
+      // the reverse when Settings says so (Paweł, 2026-11-18: "reverse it", then a setting for it). The Chrome profile
       // is the project's, whatever account this chat runs on (Paweł, 2026-11-10: "I always have to
       // open chrome in profile that is default for given project"); a project without one is the
       // owner's own, so a Claude chat there opens Chrome's first profile, never the chat's account
@@ -79,12 +79,18 @@ export function useNativeChatLinkActions(
       const leftButton = (event.button ?? 0) === 0
       const plain =
         leftButton && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey
-      if (isTerminalLinkDirectActivation(event) && !event.shiftKey && chromeAccount) {
+      const primary = isTerminalLinkDirectActivation(event) && !event.shiftKey
+      // Settings → Chat → Link click opens: which of the two the plain click takes.
+      const plainOpensChrome =
+        nativeChatLinkPlainClick(useAppStore.getState().settings) === 'chrome'
+      const chromeClick = plainOpensChrome ? plain : primary
+      const orcaClick = plainOpensChrome ? primary : plain
+      if (chromeClick && chromeAccount) {
         event.preventDefault()
         void window.api.shell.openUrl(route.url, chromeAccount)
         return
       }
-      if (plain) {
+      if (orcaClick) {
         event.preventDefault()
         const routing = resolveNativeChatHttpLinkRouting(useAppStore.getState(), context.worktreeId)
         openNativeChatWebLink(
