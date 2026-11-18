@@ -11,13 +11,19 @@
      was "a bit too sad for my theme", sky blue "too bright"); under Gruvbox, its orange. */
   --chat-tint-link: color-mix(in oklab, var(--chat-tint-orange) 80%, var(--chat-source-foreground));
   --chat-tint-link-line: color-mix(in oklab, var(--chat-tint-link) 45%, transparent);
-  /* Inline code takes the theme's own look (Paweł, 2026-11-15: "more fitting my theme", replacing
-     the fixed chocolate browns of 2026-11-13): words in the palette cyan, which is how Gruvbox
-     colours inline code, on a chip darker than the chat in a dark theme (lifted in a light one).
-     native-chat-appearance-style.ts sets the chip only while the chat takes colour. */
+  /* Inline code is a golden brown from the theme's own palette (Paweł, 2026-11-18, picked from six
+     previews over the 11-15 palette cyan: "yes agree 4"): the palette yellow brought down to
+     Gruvbox's normal yellow (the chat takes the bright one in a dark theme: #fabd2f → ~#d79921),
+     65% against the muted text (Gruvbox's taupe #a89984). The chip stays darker than the chat in a
+     dark theme (lifted in a light one); native-chat-appearance-style.ts sets it only while the chat
+     takes colour. */
   --chat-tint-code-border: var(--chat-code-chip-border);
   --chat-tint-code-surface: var(--chat-code-chip-surface);
-  --chat-tint-inline-code: var(--chat-hue-cyan);
+  --chat-tint-inline-code: color-mix(
+    in oklab,
+    oklch(from var(--chat-hue-yellow) calc(l * 0.87) calc(c * 0.9) calc(h - 5)) 65%,
+    var(--muted-foreground)
+  );
   --chat-tint-quote: color-mix(in oklab, var(--chat-hue-cyan) 60%, transparent);
   /* The palette's yellow, a touch dimmer (Paweł, 2026-11-13). */
   --chat-tint-yellow: oklch(from var(--chat-hue-yellow) calc(l * 0.94) c h);
