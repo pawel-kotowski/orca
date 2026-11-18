@@ -18,12 +18,19 @@ import {
   type ExecutionHostId
 } from '../../../../../../shared/execution-host/execution-host'
 import {
+  accountBrowserProfileOwner,
   getManagedBrowserProfileOwner,
   type ManagedBrowserProfileOwner
 } from '../../../../../../shared/browser/profiles/browser-profile-scope'
+import { claudeAccountOrgName } from '../../../../../../shared/agent-accounts/claude-account-org-name'
+import { projectDefaultClaudeAccount } from '../../../../lib/project-default-claude-identity'
 import { getRepoIdFromWorktreeId } from '../../../../../../shared/worktree/id'
 
-/** Profile a new tab gets when its caller names none: the repo's pick, else the workspace's own under a repo or workspace scope, else the host default. */
+/**
+ * Profile a new tab gets when its caller names none: the repo's pick, else under the account scope
+ * the profile of the project's default Claude subscription (the Mac owner's own when it has none),
+ * else the workspace's own under a repo or workspace scope, else the host default.
+ */
 export function resolveNewBrowserTabProfile(
   state: AppState,
   worktreeId: string,
@@ -35,10 +42,16 @@ export function resolveNewBrowserTabProfile(
   }
   const hostKind = parseExecutionHostId(hostId)?.kind
   // Why local and SSH only: those pages render on this desktop's profiles; a paired host's pages use its own.
-  const owner =
-    hostKind === 'local' || hostKind === 'ssh'
-      ? getManagedBrowserProfileOwner(state.settings?.browserProfileScope, worktreeId)
-      : null
+  const onThisDesktop = hostKind === 'local' || hostKind === 'ssh'
+  const scope = state.settings?.browserProfileScope
+  if (onThisDesktop && scope === 'account') {
+    const email = projectDefaultClaudeAccount(state, worktreeId)?.email ?? null
+    return state.ensureManagedBrowserSessionProfile(
+      accountBrowserProfileOwner(email),
+      accountProfileLabel(email)
+    )
+  }
+  const owner = onThisDesktop ? getManagedBrowserProfileOwner(scope, worktreeId) : null
   if (owner) {
     return state.ensureManagedBrowserSessionProfile(
       owner,
@@ -103,4 +116,12 @@ function managedProfileLabel(
   return translate('settings.browser.profileScope.worktreeProfileLabel', 'Workspace: {{name}}', {
     name
   })
+}
+
+/** An account profile is named like the chat's subscription: its organisation, else its email, else Personal. */
+function accountProfileLabel(email: string | null): string {
+  if (!email) {
+    return translate('settings.browser.profileScope.macOwnerProfileLabel', 'Personal')
+  }
+  return claudeAccountOrgName(email) ?? email
 }

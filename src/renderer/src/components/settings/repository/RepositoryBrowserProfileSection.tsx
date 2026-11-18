@@ -72,8 +72,11 @@ export function RepositoryBrowserProfileSection({
   // A real listing always has Default; a cache holding only an adopted managed profile is not one.
   const loaded = Boolean(profiles?.some((profile) => profile.id === 'default'))
   const picked = repo.browserProfileId
-  // Orca-managed repo/workspace profiles go away with their owner, so they're offered only when already picked.
-  const choices = (profiles ?? []).filter((profile) => !profile.owner || profile.id === picked)
+  // Orca-managed repo/workspace profiles go away with their owner, so they're offered only when already
+  // picked; account profiles outlive every repo, so they stay offered.
+  const choices = (profiles ?? []).filter(
+    (profile) => !profile.owner || profile.owner.kind === 'account' || profile.id === picked
+  )
   const pickMissing = Boolean(picked) && loaded && !choices.some((p) => p.id === picked)
   const value = picked || INHERIT_VALUE
   const scopeLabel =
@@ -81,7 +84,9 @@ export function RepositoryBrowserProfileSection({
       ? t('settings.browser.profileScope.optionRepo', 'Per repo')
       : scope === 'worktree'
         ? t('settings.browser.profileScope.optionWorktree', 'Per workspace')
-        : t('settings.browser.profileScope.optionShared', 'Shared')
+        : scope === 'account'
+          ? t('settings.browser.profileScope.optionAccount', 'Per account')
+          : t('settings.browser.profileScope.optionShared', 'Shared')
 
   return (
     <SearchableSetting

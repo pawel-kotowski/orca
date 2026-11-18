@@ -1,9 +1,11 @@
 import type { BrowserSessionProfile } from '../../../../shared/browser/workspaces/browser-workspace-types'
 import {
   isManagedBrowserProfileOf,
+  isManagedBrowserProfileOwnerKind,
   managedBrowserProfileOwnerKey,
   type ManagedBrowserProfileOwner
 } from '../../../../shared/browser/profiles/browser-profile-scope'
+import { importAccountChromeCookies } from './browser-account-profile-chrome-import'
 import { InFlightPromiseDedupe } from '../../../../shared/concurrency/in-flight-promise-dedupe'
 import { browserSessionRegistry } from './browser-session-registry'
 
@@ -21,7 +23,7 @@ export async function ensureManagedBrowserProfile(
   label: string
 ): Promise<BrowserSessionProfile | null> {
   if (
-    (owner?.kind !== 'repo' && owner?.kind !== 'worktree') ||
+    !isManagedBrowserProfileOwnerKind(owner?.kind) ||
     typeof owner.id !== 'string' ||
     typeof label !== 'string'
   ) {
@@ -30,9 +32,13 @@ export async function ensureManagedBrowserProfile(
   const { kind, id } = owner
   return (
     findManagedProfile(owner) ??
-    creations.run(managedBrowserProfileOwnerKey(owner), () =>
-      browserSessionRegistry.createProfile('isolated', label, { kind, id })
-    )
+    creations.run(managedBrowserProfileOwnerKey(owner), async () => {
+      const profile = await browserSessionRegistry.createProfile('isolated', label, { kind, id })
+      // Why before answering: the tab waits on this profile, so its first page loads signed in.
+      return profile && kind === 'account'
+        ? await importAccountChromeCookies(profile, owner, label)
+        : profile
+    })
   )
 }
 

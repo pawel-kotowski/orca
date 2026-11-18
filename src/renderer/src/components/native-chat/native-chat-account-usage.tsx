@@ -13,6 +13,7 @@ import { clampUsedPercent } from '../../../../shared/agent-usage/display/usage-p
 import { NativeChatMeter } from './native-chat-meter'
 import { NativeChatAccountSwitch } from './native-chat-account-switch'
 import { workspaceClaudeAccountId } from '../../../../shared/claude-workspace-account'
+import { claudeAccountOrgName } from '../../../../shared/agent-accounts/claude-account-org-name'
 import { getExecutionHostIdForWorktree } from '@/lib/workspace/ownership/worktree-runtime-owner'
 import { runtimeRpcTargetForAuthorityKey } from '@/runtime/rpc/targets/runtime-client-target'
 import type { ProviderAccountsSnapshot } from '@/runtime/provider-accounts/observations/runtime-provider-accounts-client'
@@ -61,33 +62,11 @@ export function accountIdFromTranscriptPath(transcriptPath: string | null): stri
   return transcriptPath ? (PROFILE_PATH.exec(transcriptPath)?.[1]?.toLowerCase() ?? null) : null
 }
 
-// A mailbox anyone can have says nothing about the subscription; the account is the person's own.
-const PERSONAL_MAIL_DOMAINS = new Set([
-  'gmail.com',
-  'googlemail.com',
-  'outlook.com',
-  'hotmail.com',
-  'live.com',
-  'icloud.com',
-  'me.com',
-  'yahoo.com',
-  'proton.me',
-  'protonmail.com',
-  'aol.com',
-  'gmx.com',
-  'wp.pl',
-  'o2.pl',
-  'onet.pl',
-  'interia.pl'
-])
-
 /** A short name for a subscription: its organisation's domain ("moshealth"), or "personal". */
 export function accountShortName(email: string): string {
-  const domain = email.split('@')[1]?.toLowerCase() ?? ''
-  if (!domain || PERSONAL_MAIL_DOMAINS.has(domain)) {
-    return translate('components.native-chat.account.personal', 'personal')
-  }
-  return domain.split('.')[0] ?? domain
+  return (
+    claudeAccountOrgName(email) ?? translate('components.native-chat.account.personal', 'personal')
+  )
 }
 
 /** The chat's account: its transcript's home, else its workspace's account, else the active one. */

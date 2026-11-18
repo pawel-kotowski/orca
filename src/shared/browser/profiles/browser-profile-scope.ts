@@ -2,10 +2,33 @@ import { FLOATING_TERMINAL_WORKTREE_ID } from '../../workspace/identity/floating
 import { getRepoIdFromWorktreeId } from '../../worktree/id'
 import { parseWorkspaceKey } from '../../workspace/identity/workspace-scope'
 
-/** Which browser profile new tabs in a workspace use: the shared Default, or one Orca manages per repo or per workspace. */
-export type BrowserProfileScope = 'shared' | 'repo' | 'worktree'
+/**
+ * Which browser profile new tabs in a workspace use: the shared Default, or one Orca manages per
+ * repo, per workspace, or per Claude account (the project's default subscription, else the Mac
+ * owner's own), filled from that account's Chrome profile.
+ */
+export type BrowserProfileScope = 'shared' | 'repo' | 'worktree' | 'account'
 
-export type ManagedBrowserProfileOwner = { kind: 'repo' | 'worktree'; id: string }
+/**
+ * `account` profiles are keyed by the subscription's lowercased email, or by
+ * `ACCOUNT_BROWSER_PROFILE_MAC_OWNER` for projects with no default subscription. They outlive
+ * any repo or workspace, so nothing deletes them with an owner.
+ */
+export type ManagedBrowserProfileOwner = { kind: 'repo' | 'worktree' | 'account'; id: string }
+
+export const ACCOUNT_BROWSER_PROFILE_MAC_OWNER = 'mac-owner'
+
+export function isManagedBrowserProfileOwnerKind(
+  kind: unknown
+): kind is ManagedBrowserProfileOwner['kind'] {
+  return kind === 'repo' || kind === 'worktree' || kind === 'account'
+}
+
+/** The account owner for a project's default subscription email, or the Mac owner's when there is none. */
+export function accountBrowserProfileOwner(email: string | null): ManagedBrowserProfileOwner {
+  const id = email?.trim().toLowerCase()
+  return { kind: 'account', id: id || ACCOUNT_BROWSER_PROFILE_MAC_OWNER }
+}
 
 export function getManagedBrowserProfileOwner(
   scope: BrowserProfileScope | undefined,

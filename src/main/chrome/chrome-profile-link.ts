@@ -65,7 +65,8 @@ export function pickChromeProfileDir(
   return containing.length === 1 ? containing[0]![0] : null
 }
 
-async function readInfoCache(): Promise<InfoCache | null> {
+/** Chrome's own list of profiles (`Local State` → `profile.info_cache`), or null when Chrome is missing. */
+export async function readChromeProfileInfoCache(): Promise<InfoCache | null> {
   try {
     const localState = JSON.parse(
       await readFile(
@@ -92,7 +93,7 @@ export async function openUrlInChromeProfile(
   if (process.platform !== 'darwin') {
     return false
   }
-  const infoCache = await readInfoCache()
+  const infoCache = await readChromeProfileInfoCache()
   const dir = infoCache ? pickChromeProfileDir(infoCache, account) : null
   if (!dir) {
     return false

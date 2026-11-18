@@ -55,6 +55,14 @@ export function BrowserProfileScopeSetting({
                   'settings.browser.profileScope.optionWorktreeTooltip',
                   'Each workspace gets its own profile, deleted with the workspace.'
                 )
+              },
+              {
+                value: 'account',
+                label: t('settings.browser.profileScope.optionAccount', 'Per account'),
+                tooltip: t(
+                  'settings.browser.profileScope.optionAccountTooltip',
+                  "One profile per project's default Claude account (Personal without one), filled on first use from the Chrome profile signed in as that account."
+                )
               }
             ]}
           />
