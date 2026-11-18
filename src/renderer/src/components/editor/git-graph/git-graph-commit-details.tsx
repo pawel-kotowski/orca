@@ -2,7 +2,6 @@
 // metadata and the commit's files.
 // A file click opens its diff beside the graph (a preview tab, so browsing replaces it); double click keeps it.
 import React, { useEffect, useState } from 'react'
-import { cn } from '@/lib/class-names'
 import { Copy, FileDiff, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAppStore } from '@/store'
@@ -18,14 +17,9 @@ import { requireGitOwnerTarget } from '@/components/right-sidebar/source-control
 import { formatGitHistoryTimestamp } from '@/components/right-sidebar/source-control/sync/git-history-format'
 import { STATUS_LABELS } from '../../../../../shared/git/status/git-status-labels'
 import type { GitFileStatus } from '../../../../../shared/git/status/git-status-types'
-import type {
-  GitHistoryGraphColorId,
-  GitHistoryItem
-} from '../../../../../shared/git/history/git-history-types'
+import type { GitHistoryItem } from '../../../../../shared/git/history/git-history-types'
 import type { GitCommitCompareResult } from '../../../../../shared/git/diff/git-diff-compare-types'
 import type { RuntimeClientTarget } from '../../../../../shared/remote-runtime/host-catalog/runtime-client-target'
-import { dedupeRemoteTrackingRefs } from '../../../../../shared/git/history/git-history-ref-display'
-import { GitGraphRefBadge } from './git-graph-row'
 import { gitGraphDiffTargetGroupId } from './open-git-graph-tab'
 
 type CompareState =
@@ -39,9 +33,7 @@ export function GitGraphCommitDetails({
   ownerTarget,
   item,
   onSelectCommit,
-  onClose,
-  laneColor,
-  showTitle = true
+  onClose
 }: {
   worktreeId: string
   worktreePath: string
@@ -49,10 +41,6 @@ export function GitGraphCommitDetails({
   item: GitHistoryItem
   onSelectCommit: (id: string) => void
   onClose: () => void
-  laneColor?: GitHistoryGraphColorId
-  /** The message and branch names on top; off where the row above already shows them in full
-   * (Detailed, Branches: Paweł, 2026-11-17, "commit msg is shown twice"). */
-  showTitle?: boolean
 }): React.JSX.Element {
   const [compare, setCompare] = useState<CompareState>({ status: 'loading' })
   const openCommitDiff = useAppStore((s) => s.openCommitDiff)
@@ -140,7 +128,6 @@ export function GitGraphCommitDetails({
   const body = item.message.startsWith(item.subject)
     ? item.message.slice(item.subject.length).trim()
     : item.message.trim()
-  const refs = dedupeRemoteTrackingRefs(item.references ?? [], {})
 
   const files = (
     <>
@@ -202,40 +189,20 @@ export function GitGraphCommitDetails({
   // wins over its @2xl: override in this build's CSS order.
   return (
     <div className="@container relative flex min-w-0 flex-1 flex-col border-y border-border">
-      {showTitle ? (
-        <div className="flex shrink-0 items-start gap-2 px-4 pt-2.5 pb-1.5">
-          <div className="min-w-0 flex-1">
-            <div className="text-sm font-semibold break-words text-foreground">{item.subject}</div>
-            {refs.length > 0 && (
-              <div className="mt-1.5 flex flex-wrap gap-1">
-                {refs.map((ref) => (
-                  <GitGraphRefBadge key={ref.id} itemRef={ref} laneColor={laneColor} />
-                ))}
-              </div>
-            )}
-          </div>
-          <Button variant="ghost" size="icon-xs" onClick={onClose} aria-label="Close details">
-            <X className="size-3.5" />
-          </Button>
-        </div>
-      ) : (
-        <Button
-          variant="ghost"
-          size="icon-xs"
-          className="absolute top-1.5 right-1.5 z-10"
-          onClick={onClose}
-          aria-label="Close details"
-        >
-          <X className="size-3.5" />
-        </Button>
-      )}
-      <div
-        className={cn(
-          'flex max-h-[20rem] min-h-0 scrollbar-sleek @max-2xl:flex-col @max-2xl:overflow-y-auto',
-          // Room for the corner close button when there is no title row.
-          !showTitle && 'pt-1.5 pr-7'
-        )}
+      {/* No title: the row above already shows the message and branch names, in every view
+          (Paweł, 2026-11-17 for Detailed and Branches, 2026-11-18 for Compact: "commit msg is
+          visible twice"); Compact's cut-short subject has its full message on hover. */}
+      <Button
+        variant="ghost"
+        size="icon-xs"
+        className="absolute top-1.5 right-1.5 z-10"
+        onClick={onClose}
+        aria-label="Close details"
       >
+        <X className="size-3.5" />
+      </Button>
+      {/* pt/pr: room for the corner close button. */}
+      <div className="flex max-h-[20rem] min-h-0 scrollbar-sleek pt-1.5 pr-7 @max-2xl:flex-col @max-2xl:overflow-y-auto">
         <div className="min-w-0 border-border pb-2 scrollbar-sleek @max-2xl:border-b @2xl:w-[45%] @2xl:shrink-0 @2xl:overflow-y-auto @2xl:border-r">
           {files}
         </div>
