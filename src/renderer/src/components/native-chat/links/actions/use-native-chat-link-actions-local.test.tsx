@@ -6,6 +6,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { LinkActionPopover } from '@/components/link-actions/LinkActionPopover'
 import CommentMarkdown from '@/components/comment-markdown/CommentMarkdown'
 import { useNativeChatLinkActions } from './use-native-chat-link-actions'
+import type * as HttpLinkDestinations from '@/lib/browser/navigation/http-link-destinations'
+import type * as TerminalLinkOpenHints from '@/components/terminal-pane/links/terminal-link-open-hints'
 
 const mocks = vi.hoisted(() => ({
   identity: null as { email: string | null; name: string | null } | null,
@@ -24,6 +26,17 @@ vi.mock('../../native-chat-account-usage', () => ({
 
 vi.mock('@/lib/project-default-claude-identity', () => ({
   projectDefaultClaudeAccount: () => mocks.projectAccount
+}))
+
+const openRoutedHttpLink = vi.hoisted(() => vi.fn())
+vi.mock('@/lib/browser/navigation/http-link-destinations', async (importOriginal) => ({
+  ...(await importOriginal<typeof HttpLinkDestinations>()),
+  openRoutedHttpLink
+}))
+
+vi.mock('@/components/terminal-pane/links/terminal-link-open-hints', async (importOriginal) => ({
+  ...(await importOriginal<typeof TerminalLinkOpenHints>()),
+  isMacPlatform: () => true
 }))
 
 vi.mock('./use-native-chat-file-link-click', () => ({
@@ -85,27 +98,41 @@ afterEach(() => {
 })
 
 describe('native chat links in a Chrome profile (local)', () => {
-  it("opens a project-less Claude chat's link in Chrome's first profile", async () => {
+  it("opens a plain click in Orca's browser, not Chrome", async () => {
+    const openUrl = vi.fn(async () => {})
+    Object.assign(window, { api: { shell: { openUrl } } })
+    mocks.projectAccount = { email: 'pawel@project.example' }
+    render(<Transcript markdown="See [the PR](https://github.com/o/r/pull/1)." />)
+    fireEvent.click(await screen.findByRole('link', { name: 'the PR' }))
+    expect(openUrl).not.toHaveBeenCalled()
+    expect(openRoutedHttpLink).toHaveBeenCalledWith(
+      'https://github.com/o/r/pull/1',
+      expect.objectContaining({ worktreeId: 'wt-1', forceDestination: 'orca' })
+    )
+    expect(screen.queryByText('System Browser')).toBeNull()
+  })
+
+  it("opens a project-less Claude chat's Cmd-clicked link in Chrome's first profile", async () => {
     const openUrl = vi.fn(async () => {})
     Object.assign(window, { api: { shell: { openUrl } } })
     mocks.identity = { email: 'pawel@client.example', name: 'client' }
     render(<Transcript markdown="See [the PR](https://github.com/o/r/pull/1)." />)
-    fireEvent.click(await screen.findByRole('link', { name: 'the PR' }))
+    fireEvent.click(await screen.findByRole('link', { name: 'the PR' }), { metaKey: true })
+    expect(openRoutedHttpLink).not.toHaveBeenCalled()
     expect(openUrl).toHaveBeenCalledWith('https://github.com/o/r/pull/1', {
       email: null,
       name: null,
       owner: true
     })
-    expect(screen.queryByText('System Browser')).toBeNull()
   })
 
-  it("opens a link in the profile of the project's default subscription", async () => {
+  it("opens a Cmd-clicked link in the profile of the project's default subscription", async () => {
     const openUrl = vi.fn(async () => {})
     Object.assign(window, { api: { shell: { openUrl } } })
     mocks.identity = { email: 'pawel@client.example', name: 'client' }
     mocks.projectAccount = { email: 'pawel@project.example' }
     render(<Transcript markdown="See [the PR](https://github.com/o/r/pull/1)." />)
-    fireEvent.click(await screen.findByRole('link', { name: 'the PR' }))
+    fireEvent.click(await screen.findByRole('link', { name: 'the PR' }), { metaKey: true })
     expect(openUrl).toHaveBeenCalledWith('https://github.com/o/r/pull/1', {
       email: 'pawel@project.example',
       name: 'pawel'

@@ -8,7 +8,9 @@ import { routeNativeChatHref } from '../../../../../../shared/native-chat/file-a
 import { useAppStore } from '../../../../store/index'
 import type { NativeChatFileLinkContext } from './native-chat-file-link-context'
 import { resolveNativeChatHttpLinkRouting } from './native-chat-link-target-actions'
-import { handleNativeChatWebLink } from './native-chat-web-link-actions'
+import { handleNativeChatWebLink, openNativeChatWebLink } from './native-chat-web-link-actions'
+import { httpLinkDirectClickDestination } from '@/lib/browser/navigation/http-link-destinations'
+import { isTerminalLinkDirectActivation } from '@/components/terminal-pane/links/gestures/terminal-link-activation'
 import { nativeChatPlainLinkClickBehavior } from './native-chat-link-click-behavior'
 import { useNativeChatFileLinkClick } from './use-native-chat-file-link-click'
 import { accountShortName, useNativeChatClaudeIdentity } from '../../native-chat-account-usage'
@@ -59,27 +61,37 @@ export function useNativeChatLinkActions(
       if (route.kind !== 'web' || !/^https?:/i.test(route.url)) {
         return
       }
-      // Why: a plain click opens the link in the Chrome profile of the project's default
-      // subscription, whatever account this chat runs on (Paweł, 2026-11-10: "I always have to
-      // open chrome in profile that is default for given project"). A project without one is the
+      // Why: a plain click opens the link in Orca's browser, as a Cmd/Ctrl-click did before, whose
+      // tabs take the project's account profile; Cmd/Ctrl-click opens it in the Chrome profile of
+      // the project's default subscription (Paweł, 2026-11-18: "when i click link in terminal based
+      // chat ui it opens chrome, cmd + click opens orca browser, reverse it"). The Chrome profile
+      // is the project's, whatever account this chat runs on (Paweł, 2026-11-10: "I always have to
+      // open chrome in profile that is default for given project"); a project without one is the
       // owner's own, so a Claude chat there opens Chrome's first profile, never the chat's account
       // (Paweł, 2026-11-10: a personal project's link opened in a client's profile because its
-      // chat ran on that client's subscription). A modifier click keeps Orca's own link actions.
+      // chat ran on that client's subscription). Shift and Alt keep Orca's own link actions.
       const projectAccount = projectDefaultClaudeAccount(useAppStore.getState(), context.worktreeId)
       const chromeAccount = projectAccount
         ? { email: projectAccount.email, name: accountShortName(projectAccount.email) }
         : identityRef.current
           ? { email: null, name: null, owner: true }
           : null
+      const leftButton = (event.button ?? 0) === 0
       const plain =
-        (event.button ?? 0) === 0 &&
-        !event.metaKey &&
-        !event.ctrlKey &&
-        !event.shiftKey &&
-        !event.altKey
-      if (plain && chromeAccount) {
+        leftButton && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey
+      if (isTerminalLinkDirectActivation(event) && !event.shiftKey && chromeAccount) {
         event.preventDefault()
         void window.api.shell.openUrl(route.url, chromeAccount)
+        return
+      }
+      if (plain) {
+        event.preventDefault()
+        const routing = resolveNativeChatHttpLinkRouting(useAppStore.getState(), context.worktreeId)
+        openNativeChatWebLink(
+          route.url,
+          { worktreeId: context.worktreeId, sourceTabId: context.sourceTabId, ...routing },
+          httpLinkDirectClickDestination(routing.destinations, false)
+        )
         return
       }
       // Read at click time: settings and workspace ownership must not re-render the transcript.
