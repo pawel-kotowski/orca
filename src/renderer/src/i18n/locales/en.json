@@ -23195,6 +23195,7 @@
       "hideSlackAgents": "Slack agents: click to hide",
       "showSlackAgents": "Slack agents hidden: click to show",
       "hideOtherAgents": "Other agents: click to hide",
+      "inboxHidden": "{{n}} hidden: click the badges on the Inbox bar to show them.",
       "showOtherAgents": "Other agents hidden: click to show"
     },
     "sidebar": {

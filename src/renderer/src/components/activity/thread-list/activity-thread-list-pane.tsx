@@ -402,7 +402,7 @@ export function ActivityThreadListPane({
           </div>
           <ActivityListEmptyState
             empty={visibleThreadCount === 0 && pinnedGroups.length === 0}
-            inboxEmpty={groupBy === 'status' && listGroups.every((g) => g.threads.length === 0)}
+            inboxGroups={groupBy === 'status' ? listGroups : null}
           />
         </div>
       </div>
