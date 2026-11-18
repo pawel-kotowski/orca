@@ -26,7 +26,7 @@ function chatPtyId(terminalTabId: string): string | null {
   const entries = Object.entries(ptyIdsByLeafId).filter(([, ptyId]) => Boolean(ptyId))
   const claude = entries.find(
     ([leafId]) =>
-      state.agentStatusByPaneKey[makePaneKey(terminalTabId, leafId)]?.agentType === 'claude'
+      state.agentStatusByPaneKey.get(makePaneKey(terminalTabId, leafId))?.agentType === 'claude'
   )
   return (claude ?? entries[0])?.[1] ?? null
 }

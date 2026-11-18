@@ -14,6 +14,7 @@ import { publishNativeChatClaudeSubagents } from './native-chat-claude-subagents
 import { terminalChatBackgroundTasks } from './native-chat-terminal-background-tasks'
 import { openNativeChatSubagent } from './subagents/native-chat-open-subagent'
 import { acceptedAgentStatuses } from '@/store/slices/agent-status/status-ownership/accepted-agent-statuses'
+import { makeAgentStatusEntry } from '@/runtime/sync-runtime-graph/testing/sync-runtime-graph-test-harness'
 
 vi.mock('./NativeChatWorkersStrip', () => ({ NativeChatWorkersStrip: () => null }))
 
@@ -92,7 +93,15 @@ describe('NativeChatTerminalShellsStatus', () => {
   beforeEach(() => {
     useAppStore.setState({
       agentStatusByPaneKey: acceptedAgentStatuses([
-        [PANE, { agentType: 'claude', state: 'working' } as never]
+        [
+          PANE,
+          makeAgentStatusEntry({
+            agentType: 'claude',
+            state: 'working',
+            paneKey: PANE,
+            terminalTitle: 'claude [working]'
+          })
+        ]
       ])
     })
   })

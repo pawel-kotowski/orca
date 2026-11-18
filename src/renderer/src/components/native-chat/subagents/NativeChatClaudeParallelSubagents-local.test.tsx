@@ -8,7 +8,8 @@ import { render } from '../messages/actions/native-chat-tooltip-test-harness'
 import type { NativeChatMessage } from '../../../../../shared/native-chat/native-chat-types'
 import type { NativeChatSubagentTranscript } from '../../../../../shared/native-chat/native-chat-subagent-transcripts'
 import { mergeClaudeSubagents } from '../../../../../shared/native-chat/transcript/native-chat-claude-subagent-merge'
-import { NativeChatMessageList } from '../NativeChatMessageList'
+import { NativeChatSubagentTranscripts } from './NativeChatSubagentTranscripts'
+import { openNativeChatSubagent } from './native-chat-open-subagent'
 import { installNativeChatMessageListTestViewport } from '../viewport/virtualization/native-chat-message-list-test-viewport-local'
 import type { NativeChatLiveSession } from '../session/terminal/read/native-chat-live-session-contract'
 
@@ -101,16 +102,29 @@ function session(messages: NativeChatMessage[]): NativeChatLiveSession {
   }
 }
 
+const PANE = 'tab-1:leaf-1'
+const NO_FIND = { isOpen: false, query: '' }
 let restoreViewport = (): void => {}
 beforeAll(() => {
   restoreViewport = installNativeChatMessageListTestViewport()
 })
 afterAll(() => restoreViewport())
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  openNativeChatSubagent(PANE, null)
+})
 
 it("draws one reply's parallel subagents as one run that opens to each one's steps", () => {
   const merged = mergeClaudeSubagents(conversation, DESCRIPTIONS.map(subagent), true)
-  render(<NativeChatMessageList session={session(merged)} isWorking expandSignal={false} />)
+  render(
+    <NativeChatSubagentTranscripts
+      paneKey={PANE}
+      find={NO_FIND}
+      session={session(merged)}
+      isWorking
+      expandSignal={false}
+    />
+  )
   expect(screen.getAllByText(/Kicked off \d+ subagents?/)).toHaveLength(1)
   expect(screen.getByText('Kicked off 4 subagents')).toBeInTheDocument()
   const run = screen.getByRole('button', { name: /Kicked off 4 subagents/ })
@@ -120,9 +134,8 @@ it("draws one reply's parallel subagents as one run that opens to each one's ste
   for (const description of DESCRIPTIONS) {
     expect(screen.getByText(description)).toBeInTheDocument()
   }
-  const entry = screen.getByText('Queue survey').closest('button')!
-  if (entry.getAttribute('aria-expanded') !== 'true') {
-    fireEvent.click(entry)
-  }
+  // Upstream's subagent views (2026-11-18 merge): an entry opens the subagent's own view in place
+  // of the conversation, which shows its steps; the roster no longer expands inline.
+  fireEvent.click(screen.getByRole('button', { name: 'Open Queue survey' }))
   expect(screen.getByText('Report: Queue survey')).toBeInTheDocument()
 })

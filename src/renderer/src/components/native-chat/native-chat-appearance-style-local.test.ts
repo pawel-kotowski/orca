@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { nativeChatAppearanceStyle } from './appearance/native-chat-appearance-style'
+import {
+  DEFAULT_NATIVE_CHAT_CODE_FONT_SIZE,
+  DEFAULT_NATIVE_CHAT_FONT_SIZE
+} from '../../../../shared/native-chat/settings/native-chat-appearance-settings'
 
 // Why: local-only chat appearance settings (image overlay, custom text and bubble colours) keep
 // their tests in a file of their own, so upstream's test pruning never conflicts with them.
@@ -30,9 +34,13 @@ describe('local chat appearance style', () => {
   it('sizes inline code as a share of the message text, so it grows with the text', () => {
     const ratio = (settings: Parameters<typeof nativeChatAppearanceStyle>[0]) =>
       nativeChatAppearanceStyle(settings)['--chat-inline-code-ratio']
-    expect(ratio(undefined)).toBe(`${12 / 14}em`)
-    expect(ratio({ nativeChatAppearance: { fontSize: 20 } })).toBe(`${12 / 14}em`)
-    expect(ratio({ nativeChatAppearance: { fontSize: 20, codeFontSize: 14 } })).toBe('1em')
+    // Code size over the default text size (upstream's defaults: 12 over 13 since #42359).
+    const defaultRatio = `${DEFAULT_NATIVE_CHAT_CODE_FONT_SIZE / DEFAULT_NATIVE_CHAT_FONT_SIZE}em`
+    expect(ratio(undefined)).toBe(defaultRatio)
+    expect(ratio({ nativeChatAppearance: { fontSize: 20 } })).toBe(defaultRatio)
+    expect(
+      ratio({ nativeChatAppearance: { fontSize: 20, codeFontSize: DEFAULT_NATIVE_CHAT_FONT_SIZE } })
+    ).toBe('1em')
   })
 
   it('gives inline code its theme chip whenever the chat is in colour, not only when matching', () => {

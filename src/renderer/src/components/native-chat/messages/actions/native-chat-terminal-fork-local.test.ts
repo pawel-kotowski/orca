@@ -45,7 +45,9 @@ describe('withNativeChatTerminalForkDivider', () => {
     expect(block?.type === 'text' ? nativeChatNoticeLook(block) : null).toEqual({
       kind: 'forked-from',
       sourceSessionId: 'source-id',
-      sourceName: 'Fix the build'
+      sourceName: 'Fix the build',
+      sourceForked: false,
+      sourceMissing: false
     })
   })
 

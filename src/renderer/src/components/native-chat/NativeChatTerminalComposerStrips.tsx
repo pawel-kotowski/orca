@@ -58,7 +58,9 @@ function NativeChatTerminalGoalStrip({
 }: Props): React.JSX.Element | null {
   const t = useTranslate()
   const goal = useMemo(() => terminalChatThreadGoal(messages), [messages])
-  const turnStartedAt = useAppStore((s) => s.agentStatusByPaneKey[paneKey]?.turnStartedAt ?? null)
+  const turnStartedAt = useAppStore(
+    (s) => s.agentStatusByPaneKey.get(paneKey)?.turnStartedAt ?? null
+  )
   if (!goal) {
     return null
   }

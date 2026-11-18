@@ -44,7 +44,7 @@ export function buildNativeChatTerminalForkStartup(input: {
   session: { id: string; transcriptPath: string | null }
 }): NativeChatTerminalForkStartup | null {
   const { state, agent } = input
-  const entry = state.agentStatusByPaneKey[input.paneKey]
+  const entry = state.agentStatusByPaneKey.get(input.paneKey)
   const source = normalizeAgentProviderSession(entry?.providerSession)
   const launchConfig = entry ? state.getAgentLaunchConfigForStatusEntry(entry) : undefined
   const providerSession: AgentProviderSessionMetadata = {

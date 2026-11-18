@@ -17,7 +17,7 @@ vi.mock('@/store', () => ({
     subscribe: () => () => {}
   })
 }))
-vi.mock('@/components/floating-terminal/floating-workspace-panel-reveal', () => ({
+vi.mock('@/components/floating-terminal/workspace/floating-workspace-panel-reveal', () => ({
   hideFloatingWorkspacePanel: mocks.hideFloatingWorkspacePanel
 }))
 

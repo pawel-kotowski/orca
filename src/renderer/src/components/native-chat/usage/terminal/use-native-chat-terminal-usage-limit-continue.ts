@@ -124,8 +124,8 @@ export function useNativeChatTerminalContinueAfterSwitch(
   const restartQueued = useAppStore((s) =>
     oldPtyId === undefined ? false : s.pendingPaneAccountRestarts[oldPtyId] !== undefined
   )
-  const statusState = useAppStore((s) => s.agentStatusByPaneKey[paneKey]?.state ?? null)
-  const statusUpdatedAt = useAppStore((s) => s.agentStatusByPaneKey[paneKey]?.updatedAt ?? null)
+  const statusState = useAppStore((s) => s.agentStatusByPaneKey.get(paneKey)?.state ?? null)
+  const statusUpdatedAt = useAppStore((s) => s.agentStatusByPaneKey.get(paneKey)?.updatedAt ?? null)
   const send = useLatest(continueNow)
   useEffect(() => {
     if (!armed) {

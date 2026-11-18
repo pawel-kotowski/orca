@@ -31,7 +31,8 @@ export function switchChatAccount(args: {
     const ptyIdsByLeafId = state.terminalLayoutsByTabId[args.terminalTabId]?.ptyIdsByLeafId ?? {}
     const ptyIds = Object.entries(ptyIdsByLeafId).flatMap(([leafId, ptyId]) =>
       ptyId &&
-      state.agentStatusByPaneKey[makePaneKey(args.terminalTabId, leafId)]?.agentType === 'claude'
+      state.agentStatusByPaneKey.get(makePaneKey(args.terminalTabId, leafId))?.agentType ===
+        'claude'
         ? [ptyId]
         : []
     )

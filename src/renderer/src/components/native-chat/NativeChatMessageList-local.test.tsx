@@ -80,6 +80,8 @@ describe('turn history presentation (local)', () => {
   })
 
   // Local build: transcript-only (terminal) lists total their turns too (Paweł, 2026-11-10).
+  // The rollup's "1 changed file" is its heading text, not a button (it never was: the old
+  // button query failed on 7b5e093eba too, unnoticed until this case became a -local file).
   it('keeps rollups turn-local, with or without a journal', () => {
     const secondUser = item(
       'user-two',
@@ -89,8 +91,8 @@ describe('turn history presentation (local)', () => {
     const secondDiff = { ...diff(), itemId: 'second-diff', sequence: 6, observedAt: 6000 }
     const items = [user, prose, diff(), secondUser, secondDiff]
     const { rerender } = render(view(items))
-    expect(screen.getAllByRole('button', { name: /1 changed file/ })).toHaveLength(2)
+    expect(screen.getAllByText('1 changed file')).toHaveLength(2)
     rerender(view(items, false))
-    expect(screen.getAllByRole('button', { name: /1 changed file/ })).toHaveLength(2)
+    expect(screen.getAllByText('1 changed file')).toHaveLength(2)
   })
 })

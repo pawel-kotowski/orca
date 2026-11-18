@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client'
 import { expect, it, vi } from 'vitest'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { useAppStore } from '@/store'
+import { acceptedAgentStatuses } from '@/store/slices/agent-status/status-ownership/accepted-agent-statuses'
 import { NativeChatAccountScopeProvider } from './native-chat-account-usage'
 import { NativeChatResumeButton } from './native-chat-resume-button'
 
@@ -19,8 +20,26 @@ vi.mock('./session/terminal/send/native-chat-runtime-send', () => ({
 it("lists the project's conversations and resumes a pick in this chat's terminal", async () => {
   const LEAF = '11111111-1111-4111-8111-111111111111'
   useAppStore.setState({
-    terminalLayoutsByTabId: { 'tab-1': { ptyIdsByLeafId: { [LEAF]: 'pty-1' } } } as never,
-    agentStatusByPaneKey: { [`tab-1:${LEAF}`]: { agentType: 'claude', state: 'done' } } as never
+    // A shell pane listed first: the resume must still go to the Claude pane.
+    terminalLayoutsByTabId: {
+      'tab-1': {
+        ptyIdsByLeafId: { '22222222-2222-4222-8222-222222222222': 'pty-shell', [LEAF]: 'pty-1' }
+      }
+    } as never,
+    agentStatusByPaneKey: acceptedAgentStatuses([
+      [
+        `tab-1:${LEAF}`,
+        {
+          agentType: 'claude',
+          state: 'done',
+          paneKey: `tab-1:${LEAF}`,
+          prompt: '',
+          updatedAt: 0,
+          stateStartedAt: 0,
+          stateHistory: []
+        }
+      ]
+    ])
   })
   vi.stubGlobal('api', {
     nativeChat: {

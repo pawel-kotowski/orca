@@ -14,7 +14,8 @@ import {
 } from '../../../../../main/native-chat/claude-subagent-transcripts'
 import { readNativeChatTranscript } from '../../../../../main/native-chat/transcript-reader'
 import { mergeClaudeSubagents } from '../../../../../shared/native-chat/transcript/native-chat-claude-subagent-merge'
-import { NativeChatMessageList } from '../NativeChatMessageList'
+import { NativeChatSubagentTranscripts } from './NativeChatSubagentTranscripts'
+import { openNativeChatSubagent } from './native-chat-open-subagent'
 import { installNativeChatMessageListTestViewport } from '../viewport/virtualization/native-chat-message-list-test-viewport-local'
 import type { NativeChatLiveSession } from '../session/terminal/read/native-chat-live-session-contract'
 
@@ -142,6 +143,8 @@ function session(messages: NativeChatLiveSession['messages']): NativeChatLiveSes
   }
 }
 
+const PANE = 'tab-1:leaf-1'
+const NO_FIND = { isOpen: false, query: '' }
 let root: string
 let transcript: string
 let restoreViewport = (): void => {}
@@ -168,6 +171,7 @@ beforeEach(async () => {
 })
 afterEach(async () => {
   cleanup()
+  openNativeChatSubagent(PANE, null)
   await rm(root, { recursive: true, force: true })
 })
 
@@ -178,7 +182,15 @@ it("draws one reply's background Agent calls as one subagent run, not also as a 
     throw new Error(read.error)
   }
   const merged = mergeClaudeSubagents(read.messages, subagents, true)
-  render(<NativeChatMessageList session={session(merged)} isWorking expandSignal={false} />)
+  render(
+    <NativeChatSubagentTranscripts
+      paneKey={PANE}
+      find={NO_FIND}
+      session={session(merged)}
+      isWorking
+      expandSignal={false}
+    />
+  )
 
   // One visible group, and no tool run of the same calls beside it.
   expect(screen.getAllByText(/(Kicked off|Ran) \d+ subagents?/)).toHaveLength(1)
@@ -191,10 +203,9 @@ it("draws one reply's background Agent calls as one subagent run, not also as a 
   for (const [, , description] of SPAWNS) {
     expect(screen.getAllByText(description)).toHaveLength(1)
   }
-  const entry = screen.getByText('Queue/stop-tasks parity survey').closest('button')!
-  if (entry.getAttribute('aria-expanded') !== 'true') {
-    fireEvent.click(entry)
-  }
+  // Upstream's subagent views (2026-11-18 merge): an entry opens the subagent's own view in place
+  // of the conversation, which shows its steps; the roster no longer expands inline.
+  fireEvent.click(screen.getByRole('button', { name: 'Open Queue/stop-tasks parity survey' }))
   expect(screen.getByText('Report: Queue/stop-tasks parity survey')).toBeInTheDocument()
   // The calls' rows leave no empty slot behind: every drawn row has something in it.
   for (const slot of document.querySelectorAll('[data-index]')) {

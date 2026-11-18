@@ -76,7 +76,7 @@ function placeDraft(
       const leafId = leafOf(state.terminalLayoutsByTabId[target.tabId]?.root)
       return leafId ? makePaneKey(target.tabId, leafId) : undefined
     }
-    return Object.entries(state.agentStatusByPaneKey).find(
+    return [...state.agentStatusByPaneKey].find(
       ([, entry]) => entry?.providerSession?.id === target.sessionId
     )?.[0]
   }

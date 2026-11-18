@@ -82,11 +82,11 @@ vi.mock('@/components/ui/tooltip', () => ({
   }
 }))
 
-vi.mock('@/hooks/useShortcutLabel', () => ({
+vi.mock('@/lib/keyboard/useShortcutLabel', () => ({
   useShortcutLabel: () => 'Cmd+`'
 }))
 
-vi.mock('./FloatingTerminalIconContextMenu', () => ({
+vi.mock('./trigger/FloatingTerminalIconContextMenu', () => ({
   FloatingTerminalIconContextMenu: function FloatingTerminalIconContextMenu(props: {
     children?: unknown
   }) {

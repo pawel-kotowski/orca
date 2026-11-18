@@ -3,6 +3,7 @@ import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, expect, it, vi } from 'vitest'
 import { useAppStore } from '@/store'
+import { acceptedAgentStatuses } from '@/store/slices/agent-status/status-ownership/accepted-agent-statuses'
 import { NativeChatAccountSwitch } from './native-chat-account-switch'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
@@ -37,9 +38,20 @@ it('moves the chat: saves the workspace account and restarts only its Claude pan
         }
       }
     } as never,
-    agentStatusByPaneKey: {
-      'tab:11111111-1111-4111-8111-111111111111': { agentType: 'claude', state: 'done' }
-    } as never,
+    agentStatusByPaneKey: acceptedAgentStatuses([
+      [
+        'tab:11111111-1111-4111-8111-111111111111',
+        {
+          agentType: 'claude',
+          state: 'done',
+          paneKey: 'tab:11111111-1111-4111-8111-111111111111',
+          prompt: '',
+          updatedAt: 0,
+          stateStartedAt: 0,
+          stateHistory: []
+        }
+      ]
+    ]),
     queuePaneAccountRestarts: (ptyIds: string[]) => {
       queued.push(ptyIds)
     }

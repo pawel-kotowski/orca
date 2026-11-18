@@ -80,7 +80,7 @@ export function useNativeChatClaudeSubagents<T extends { messages: NativeChatMes
   const messages = session.messages
   const isClaude = resolveNativeChatTranscriptAgent(agent) === 'claude'
   const spawned = isClaude && sessionId !== null && hasClaudeSubagentSpawn(messages)
-  const sessionLive = useAppStore((state) => Boolean(state.agentStatusByPaneKey[paneKey]))
+  const sessionLive = useAppStore((state) => Boolean(state.agentStatusByPaneKey.get(paneKey)))
   const [subagents, setSubagents] = useState<readonly NativeChatSubagentTranscript[]>(NONE)
   const key = spawned ? spawnKey(messages) : ''
   const anyRunning = useMemo(

@@ -77,6 +77,10 @@ function setAutoContinue(on: boolean): void {
   })
 }
 
+// Upstream's usage-limit row (2026-11-18 merge) names its buttons differently: "Continue" once the
+// limit reset (was "Continue now"); while waiting, icon tools "Hand off to another agent" and the
+// clock ("Auto-continue settings", or pressed "Don't continue at <time>" while scheduled). Hand off
+// shows only while the chat still waits for its reset; once usage is back the row offers Continue.
 describe('a terminal chat stopped by its usage limit', () => {
   beforeEach(() => {
     vi.useFakeTimers({
@@ -94,21 +98,21 @@ describe('a terminal chat stopped by its usage limit', () => {
 
   it('types the continue message through the composer once the limit reset', () => {
     const resend = renderChat(limitMessage(START - 60_000), () => true)
-    fireEvent.click(screen.getByRole('button', { name: /Continue Now/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
     expect(resend).toHaveBeenCalledWith('Continue where you left off.')
     expect(terminalContinueError.get(PANE)).toBeUndefined()
   })
 
   it("offers the pane's own Hand Off to Another Agent on the limit row", () => {
     const handOff = vi.fn()
-    renderChat(limitMessage(START - 60_000), () => true, handOff)
-    fireEvent.click(screen.getByRole('button', { name: /Hand Off/ }))
+    renderChat(limitMessage(START + 60 * 60_000), () => true, handOff)
+    fireEvent.click(screen.getByRole('button', { name: 'Hand off to another agent' }))
     expect(handOff).toHaveBeenCalledTimes(1)
   })
 
   it("says so with the composer's notices when the continue could not be typed", () => {
     renderChat(limitMessage(START - 60_000), () => false)
-    fireEvent.click(screen.getByRole('button', { name: /Continue Now/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
     expect(terminalContinueError.get(PANE)).toMatchObject({
       kind: 'error',
       text: "Couldn't continue this chat. Try again, or send a message."
@@ -117,8 +121,8 @@ describe('a terminal chat stopped by its usage limit', () => {
 
   it('points at the setting while continuing at the reset is off', () => {
     renderChat(limitMessage(START + 60 * 60_000), () => true)
-    expect(screen.queryByRole('button', { name: /Continue Now/ })).toBeNull()
-    expect(screen.getByRole('button', { name: /Continue automatically/ })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Continue' })).toBeNull()
+    expect(screen.getByRole('button', { name: 'Auto-continue settings' })).toBeInTheDocument()
   })
 
   it('continues by itself at the reset when the setting is on, unless cancelled', () => {
@@ -140,7 +144,7 @@ describe('a terminal chat stopped by its usage limit', () => {
   it('does not continue at the reset once the person cancels', () => {
     setAutoContinue(true)
     const resend = renderChat(limitMessage(START + 10 * 60_000), () => true)
-    fireEvent.click(screen.getByRole('button', { name: "Don't continue" }))
+    fireEvent.click(screen.getByRole('button', { name: /^Don't continue at / }))
     expect(screen.getByText(/won't continue this chat automatically/)).toBeInTheDocument()
     act(() => {
       vi.advanceTimersByTime(60 * 60_000)
