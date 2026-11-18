@@ -99,6 +99,7 @@ export type RuntimeClientSettingsUpdate = Pick<
   | 'claudeAccountByWorktreeId'
   | 'nativeChatAppearance'
   | 'appFontFamily'
+  | 'browserProfileScope'
   | 'prAutoRefresh'
   | 'newTabMenuLayout'
   | 'floatingTerminalNewTabMenuLayout'

@@ -44,4 +44,11 @@ describe('settings.update nativeChatAppearance', () => {
       appFontFamily: 'Albert Sans'
     })
   })
+
+  it('accepts the browser profile scope, Per account included', () => {
+    expect(SettingsUpdate.parse({ browserProfileScope: 'account' })).toEqual({
+      browserProfileScope: 'account'
+    })
+    expect(() => SettingsUpdate.parse({ browserProfileScope: 'everywhere' })).toThrow()
+  })
 })

@@ -147,7 +147,9 @@ export const SettingsUpdate = z
      *  agent can set the chat font or Light text without the Settings page). */
     nativeChatAppearance: z.record(z.string(), z.unknown()).optional(),
     /** Local build: the interface font (Settings → Appearance), so an agent can set it too. */
-    appFontFamily: z.string().trim().max(200).optional()
+    appFontFamily: z.string().trim().max(200).optional(),
+    /** Local build: Settings → Browser → Profile for new tabs, so an agent can pick Per account. */
+    browserProfileScope: z.enum(['shared', 'repo', 'worktree', 'account']).optional()
   })
   .strict()
   .default({})
