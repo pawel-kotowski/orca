@@ -39,22 +39,22 @@ vi.mock('../store', () => ({
   }
 }))
 
-vi.mock('./web-session-tabs-sync/tracking-lifecycle', () => ({
+vi.mock('./web-session-tabs-sync/tracking/tracking-lifecycle', () => ({
   acceptReplayedWebSessionTabsSnapshot: mocks.acceptReplayedWebSessionTabsSnapshot
 }))
-vi.mock('./web-session-tabs-sync/snapshot-api', () => ({
+vi.mock('./web-session-tabs-sync/snapshots/snapshot-api', () => ({
   applyWebSessionTabsSnapshot: mocks.applyWebSessionTabsSnapshot
 }))
-vi.mock('./web-session-tabs-sync/tracking-decisions', () => ({
+vi.mock('./web-session-tabs-sync/tracking/tracking-decisions', () => ({
   decideWebSessionTabsSnapshot: mocks.decideWebSessionTabsSnapshot
 }))
-vi.mock('./web-session-tabs-sync/store-patch', () => ({
+vi.mock('./web-session-tabs-sync/snapshots/store-patch', () => ({
   applyWebSessionTabsStorePatch: (buildPatch: (state: unknown) => unknown) => {
     mocks.setState(buildPatch)
     return () => {}
   }
 }))
-vi.mock('./web-session-tabs-sync/tracking-mappings', () => ({
+vi.mock('./web-session-tabs-sync/identity/tracking-mappings', () => ({
   resolveHostSessionTabIdForWebSessionTab: mocks.resolveHostSessionTabIdForWebSessionTab
 }))
 

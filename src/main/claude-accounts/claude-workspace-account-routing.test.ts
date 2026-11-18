@@ -19,7 +19,7 @@ import {
   withClaudeProfileTerminalEnv
 } from './profiles/routing/claude-profile-installed-router'
 
-vi.mock('../startup/login-shell-environment', () => ({
+vi.mock('../startup/shell-environment/login-shell-environment', () => ({
   resolveLoginShellEnvironment: () => Promise.resolve({})
 }))
 

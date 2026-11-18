@@ -24,7 +24,7 @@ vi.mock('@/lib/agent-session/structured-agent-session-tab-activation', () => ({
 vi.mock('@/lib/workspace/activation/worktree-activation', () => ({
   activateAndRevealWorkspace: mocks.activateAndRevealWorkspace
 }))
-vi.mock('@/components/floating-terminal/floating-workspace-availability', () => ({
+vi.mock('@/components/floating-terminal/workspace/floating-workspace-availability', () => ({
   floatingWorkspaceUnavailableReason: () => null
 }))
 
