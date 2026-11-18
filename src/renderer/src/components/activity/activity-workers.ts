@@ -3,9 +3,12 @@ import { useAppStore } from '@/store'
 import type { WorktreeLineage } from '../../../../shared/worktree/lineage-types'
 import { activityThreadSection } from './activity-inbox-sections'
 import { NO_ACTIVITY_INBOX_FACTS, type ActivityInboxFacts } from './activity-inbox-facts'
-import { activityThreadStatusId } from './activity-thread-presentation'
-import { isActivityWorkerThread, resolveActivityWorkerParents } from './activity-thread-child-agent'
-import type { AgentPaneThread } from './activity-thread-types'
+import { activityThreadStatusId } from './threads/activity-thread-presentation'
+import {
+  isActivityWorkerThread,
+  resolveActivityWorkerParents
+} from './threads/activity-thread-child-agent'
+import type { AgentPaneThread } from './threads/activity-thread-types'
 
 /**
  * Orchestration workers in the activity view (Paweł, 2026-11-09: "i usually don't care about them

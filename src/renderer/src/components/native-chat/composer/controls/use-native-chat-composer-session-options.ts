@@ -1,6 +1,10 @@
 import { useNativeChatSessionOptionCommand } from '../../session/options/terminal/use-native-chat-session-option-command'
 import { useNativeChatSessionOptions } from '../../session/options/terminal/use-native-chat-session-options'
 import type { NativeChatComposerProps } from '../native-chat-composer-types'
+import type { NativeChatSendHandle } from '../../session/terminal/send/native-chat-runtime-send'
+import type { NativeChatPtySessionOptionsSurface } from '../../../../../../shared/native-chat/input/session-options/native-chat-pty-session-options'
+import { nativeChatCommandOpensTerminal } from '../../../../../../shared/native-chat/input/commands/native-chat-agent-profiles'
+import { useCallback } from 'react'
 import type {
   SessionOptionDescriptor,
   SessionOptionsSurface
@@ -18,7 +22,10 @@ type ComposerSessionOptionsArgs = Pick<
   | 'readTerminalScreen'
   | 'structuredTransport'
 > &
-  Pick<Parameters<typeof useNativeChatSessionOptionCommand>[0], 'disabled' | 'resolveTarget'> &
+  Pick<
+    Parameters<typeof useNativeChatSessionOptionCommand>[0],
+    'disabled' | 'resolveTarget' | 'readTerminalDraft'
+  > &
   Pick<Parameters<typeof useNativeChatSessionOptions>[0], 'transcriptModel'>
 
 export function useNativeChatComposerSessionOptions({
@@ -26,6 +33,7 @@ export function useNativeChatComposerSessionOptions({
   disabled,
   onSlashCommand,
   onSubmitted,
+  readTerminalDraft,
   resolveTarget,
   terminalTabId,
   targetPtyId,
@@ -35,8 +43,13 @@ export function useNativeChatComposerSessionOptions({
   structuredTransport,
   transcriptModel
 }: ComposerSessionOptionsArgs): {
-  isDispatching: boolean
-  pty: ReturnType<typeof useNativeChatSessionOptions>
+  /** What a PTY command send needs from the session options. */
+  ptyCommandRouting: {
+    isDispatchingSessionOption: boolean
+    sessionOptionsSurface: NativeChatPtySessionOptionsSurface | null
+    /** Switches to Terminal once a command that opens a TUI screen is in. */
+    onCommandSent: (command: string, delivery: NativeChatSendHandle) => void
+  }
   surface: SessionOptionsSurface | null
   snapshot: SessionOptionDescriptor[]
 } {
@@ -45,6 +58,7 @@ export function useNativeChatComposerSessionOptions({
     disabled,
     onSlashCommand,
     onSubmitted,
+    readTerminalDraft,
     resolveTarget
   })
   const pty = useNativeChatSessionOptions({
@@ -58,9 +72,26 @@ export function useNativeChatComposerSessionOptions({
     // Local: a Claude chat names its model even after the frame that showed it scrolled away.
     transcriptModel
   })
+  const onCommandSent = useCallback(
+    (command: string, delivery: NativeChatSendHandle) => {
+      if (!onSwitchToTerminal || !nativeChatCommandOpensTerminal(agent, command)) {
+        return
+      }
+      // Why: leaving the chat cancels its pending writes, so switch only once the command is in.
+      void delivery.outcome?.then((outcome) => {
+        if (outcome === 'submitted') {
+          onSwitchToTerminal()
+        }
+      })
+    },
+    [agent, onSwitchToTerminal]
+  )
   return {
-    isDispatching,
-    pty,
+    ptyCommandRouting: {
+      isDispatchingSessionOption: isDispatching,
+      sessionOptionsSurface: pty.surface,
+      onCommandSent
+    },
     surface: structuredTransport?.optionsSurface ?? pty.surface,
     snapshot: structuredTransport?.optionSnapshot ?? pty.snapshot
   }

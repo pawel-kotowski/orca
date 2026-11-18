@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { REPO_COLORS } from '../../../../shared/repo-badge-color'
+import { REPO_COLORS } from '../../../../shared/repository/appearance/repo-badge-color'
 import { activityCardTintStyle, activityProjectColor } from './activity-project-color'
 
 describe('activity project colour', () => {

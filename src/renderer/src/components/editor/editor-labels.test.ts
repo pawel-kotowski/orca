@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { OpenFile } from '@/store/slices/editor/types/open-file'
-import { getSameNameFolderHint } from './editor-labels'
+import { getSameNameFolderHint } from './panel/header/editor-labels'
 
 function open(relativePath: string, extra: Partial<OpenFile> = {}): OpenFile {
   return {

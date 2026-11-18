@@ -8,7 +8,7 @@ import type { AgentShowSnapResult } from '../../shared/agent-show/agent-show-win
 import type { CommandHandler, HandlerContext } from '../dispatch/dispatch'
 import { getOptionalStringFlag } from '../arguments/flags'
 import { printResult } from '../output/command-result-output'
-import { RuntimeClientError } from '../runtime/types'
+import { RuntimeClientError } from '../runtime/connection/types'
 import { isRendererUnavailable } from '../files/file-open-call'
 import { getFileWorktreeSelector } from '../files/file-worktree-target'
 import { resolveShowPath } from './show-path'

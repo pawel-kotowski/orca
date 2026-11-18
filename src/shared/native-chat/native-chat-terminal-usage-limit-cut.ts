@@ -1,7 +1,7 @@
 // A terminal chat's usage-limit cut, read from its transcript rows; the structured chat reads journal turns instead.
 
 import type { NativeChatMessage } from './native-chat-types'
-import type { NativeChatUsageLimitCut } from './native-chat-usage-limit-cut'
+import type { NativeChatUsageLimitCut } from './transcript/continuation/native-chat-usage-limit-cut'
 
 function usageLimitOf(
   message: NativeChatMessage

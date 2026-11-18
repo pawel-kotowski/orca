@@ -1,7 +1,7 @@
 import { readdir, readFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
-import { getAppEnvironment } from '../../../../shared/app-environment'
+import { getAppEnvironment } from '../../../../shared/app-lifecycle/app-environment'
 import type { RefusedPaneResume } from '../../../../shared/agent-status/contracts/agent-status-ipc-payload'
 import type { ResumeSpawnAdmission } from './saved-resume-admission'
 

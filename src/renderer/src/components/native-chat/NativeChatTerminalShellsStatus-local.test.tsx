@@ -4,13 +4,16 @@ import '@testing-library/jest-dom/vitest'
 
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+vi.mock('./subagents/native-chat-open-subagent', () => ({ openNativeChatSubagent: vi.fn() }))
 import { useAppStore } from '@/store'
 import type { NativeChatMessage } from '../../../../shared/native-chat/native-chat-types'
 import type { NativeChatSubagentTranscript } from '../../../../shared/native-chat/native-chat-subagent-transcripts'
 import { NativeChatTerminalShellsStatus } from './NativeChatTerminalShellsStatus'
 import { publishNativeChatClaudeSubagents } from './native-chat-claude-subagents-store'
 import { terminalChatBackgroundTasks } from './native-chat-terminal-background-tasks'
-import type { NativeChatMessageListHandle } from './messages/actions/use-native-chat-reveal-latest'
+import { openNativeChatSubagent } from './subagents/native-chat-open-subagent'
+import { acceptedAgentStatuses } from '@/store/slices/agent-status/status-ownership/accepted-agent-statuses'
 
 vi.mock('./NativeChatWorkersStrip', () => ({ NativeChatWorkersStrip: () => null }))
 
@@ -88,7 +91,9 @@ describe('terminalChatBackgroundTasks', () => {
 describe('NativeChatTerminalShellsStatus', () => {
   beforeEach(() => {
     useAppStore.setState({
-      agentStatusByPaneKey: { [PANE]: { agentType: 'claude', state: 'working' } } as never
+      agentStatusByPaneKey: acceptedAgentStatuses([
+        [PANE, { agentType: 'claude', state: 'working' } as never]
+      ])
     })
   })
   afterEach(() => {
@@ -97,18 +102,9 @@ describe('NativeChatTerminalShellsStatus', () => {
   })
 
   it('names every running subagent and shell on its own line, no click needed, no Stop', () => {
-    const revealSubagent = vi.fn()
-    const messageListRef = {
-      current: { revealSubagent } as unknown as NativeChatMessageListHandle
-    }
     act(() => publishNativeChatClaudeSubagents(PANE, subagents))
     const { container } = render(
-      <NativeChatTerminalShellsStatus
-        session={{ messages }}
-        paneKey={PANE}
-        isVisible
-        messageListRef={messageListRef}
-      />
+      <NativeChatTerminalShellsStatus session={{ messages }} paneKey={PANE} isVisible />
     )
     const agentsLine = container.querySelector('[data-native-chat-activity-line="subagents"]')
     const shellsLine = container.querySelector('[data-native-chat-activity-line="shells"]')
@@ -117,12 +113,12 @@ describe('NativeChatTerminalShellsStatus', () => {
     expect(shellsLine).toHaveTextContent('Dev server')
     expect(shellsLine?.querySelector('[title]')?.getAttribute('title')).toBe('Dev server\npnpm dev')
     fireEvent.click(screen.getByRole('button', { name: /Queue survey/ }))
-    expect(revealSubagent).toHaveBeenCalledWith('ag2')
+    expect(openNativeChatSubagent).toHaveBeenCalledWith(PANE, 'ag2')
     expect(screen.queryByRole('button', { name: /^Stop/ })).toBeNull()
   })
 
   it('draws nothing but its frame while nothing runs', () => {
-    useAppStore.setState({ agentStatusByPaneKey: {} as never })
+    useAppStore.setState({ agentStatusByPaneKey: acceptedAgentStatuses() })
     const { container } = render(
       <NativeChatTerminalShellsStatus session={{ messages }} paneKey={PANE} isVisible />
     )

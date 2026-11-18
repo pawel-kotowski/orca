@@ -8,7 +8,7 @@ import {
   GitHistoryCommitContextMenu,
   type GitHistoryCommitAction
 } from '@/components/right-sidebar/source-control/sync/git-history-commit-context-menu'
-import type { RuntimeClientTarget } from '../../../../../shared/runtime-client-target'
+import type { RuntimeClientTarget } from '../../../../../shared/remote-runtime/host-catalog/runtime-client-target'
 import type { GitHistoryItem } from '../../../../../shared/git/history/git-history-types'
 import type { GitGraphLaneRow } from './git-graph-branch-layout'
 import type { GitGraphLayout } from './git-graph-columns'

@@ -3,7 +3,7 @@ import { useAppStore } from '@/store'
 import NativeChatView from '../native-chat/NativeChatView'
 import { parsePaneKey } from '../../../../shared/workspace-layout/stable-pane-id'
 import { ActivityChatPreviewFrame, CROSSFADE_MS } from './activity-thread-chat-preview'
-import type { AgentPaneThread } from './activity-thread-types'
+import type { AgentPaneThread } from './threads/activity-thread-types'
 
 /** What the shared chat window shows: a card's chat and what its controls do. */
 export type ActivityChatPreviewTarget = {

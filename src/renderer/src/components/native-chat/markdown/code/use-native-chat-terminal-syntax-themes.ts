@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { useAppStore } from '@/store'
 import { applyTerminalSyntaxThemes } from '@/lib/syntax-highlighting/syntax-terminal-themes-apply'
 import { glassDiagnostic } from '@/lib/glass-diagnostic'
-import { nativeChatColors } from '../../../../../../shared/native-chat/native-chat-appearance-settings'
+import { nativeChatColors } from '../../../../../../shared/native-chat/settings/native-chat-appearance-settings'
 
 type TerminalThemeNames = { light: string | null; dark: string | null }
 

@@ -2,7 +2,7 @@ import type {
   AgentShowContext,
   AgentShowResult
 } from '../../../../shared/agent-show/agent-show-contract'
-import { resolveRuntimePath } from '../../../../shared/cross-platform-path'
+import { resolveRuntimePath } from '../../../../shared/file-access/cross-platform-path'
 import { detectLanguage } from '../../../../shared/editor-language/editor-language-detect'
 import { toWorktreeRelativePath } from '../../../../shared/terminal/links/terminal-links'
 import type { OpenFile } from '@/store/slices/editor/types/open-file'

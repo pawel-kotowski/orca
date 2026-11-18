@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { linkNativeChatFilePaths } from './native-chat-file-link-tree'
+import { linkNativeChatFilePaths } from './file-access/native-chat-file-link-tree'
 import { parseVisualCodeLocation } from './native-chat-code-range'
-import { routeNativeChatHref } from './native-chat-href-routing'
+import { routeNativeChatHref } from './file-access/native-chat-href-routing'
 
 describe('parseVisualCodeLocation', () => {
   it('reads a worktree-relative path with a range or one line', () => {

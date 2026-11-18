@@ -1,4 +1,4 @@
-import { parseOrcaSessionAddress } from '../orca-session-address'
+import { parseOrcaSessionAddress } from '../agent-session/identity/orca-session-address'
 
 /** A terminal-hosted coordinator's party: its Orca terminal handle. */
 export function isWorkerApprovalsTerminalParty(party: string): boolean {

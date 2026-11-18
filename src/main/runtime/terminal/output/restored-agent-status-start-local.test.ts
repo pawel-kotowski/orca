@@ -1,15 +1,15 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { settledWriteStub } from '../../../providers/settled-pty-write-stub'
+import { settledWriteStub } from '../../../providers/testing/settled-pty-write-stub'
 import { seedTerminalRestoreRecordsFromSpawnResult } from '../../../ipc/pty/pane/agent-session-owners'
 import { agentHookServer } from '../../../agent-hooks/server/agent-hook-server'
-import '../../orca-runtime-tests/runtime-test-module-registration.spec'
+import '../../construction/test-context/runtime-test-module-registration.spec'
 import { OrcaRuntimeService } from '../../orca-runtime'
 import {
   bindSinglePtyRun,
   setInMemoryOrchestrationMessages,
   store,
   syncSinglePty
-} from '../../orca-runtime-tests/orca-runtime-test-fixtures.spec'
+} from '../../construction/test-context/orca-runtime-test-fixtures.spec.ts'
 import { InMemoryOrchestrationMessages } from '../../orchestration/mailbox/terminal-pointer/in-memory-orchestration-messages.spec'
 
 // Local (glass build): kept in the CI-discovered .test.ts lane after upstream removed

@@ -3,8 +3,8 @@ import {
   forkNativeChatClaudeTranscript,
   nativeChatClaudeForkCopyInput
 } from './native-chat-claude-terminal-fork'
-import { AgentConversationCopyError } from './agent-conversation-copy-error'
-import { toSshTranscriptPath } from './ssh-transcript-path'
+import { AgentConversationCopyError } from './conversation-adoption/agent-conversation-copy-error'
+import { toSshTranscriptPath } from './transcript-filesystem/ssh-transcript-path'
 
 const PATH = '/data/claude-profiles/acc-1/home/projects/-repo/source-id.jsonl'
 const hostPath = () => PATH

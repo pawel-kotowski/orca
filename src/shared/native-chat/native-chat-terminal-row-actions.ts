@@ -3,7 +3,7 @@
 // for the structured chat's, which read those positions.
 
 import { isRootAgentJournalItem } from '../agent-session/journal/agent-session-journal-producer'
-import { nativeChatRowOffersRewind } from './native-chat-rewind-eligibility'
+import { nativeChatRowOffersRewind } from './transcript/turns/native-chat-rewind-eligibility'
 import type { NativeChatMessage } from './native-chat-types'
 
 /** The terminal agents whose conversations Orca can copy into a new tab. */

@@ -1,5 +1,5 @@
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import type { ConfirmationDialogContextValue } from '@/components/confirmation-dialog-context'
+import type { ConfirmationDialogContextValue } from '@/components/dismiss/confirmation/confirmation-dialog-context'
 import { translate } from '@/i18n/i18n'
 import { activateTabAndFocusPane } from '@/lib/workspace/tabs/activate-tab-and-focus-pane'
 import { activateTerminalTabOnOwner } from '@/lib/workspace/tabs/terminal-tab-owner-activation'
@@ -141,8 +141,7 @@ export function useNativeChatTerminalRowActions(input: {
           'components.native-chat.terminalRestart.confirm',
           'Restart in new tab'
         ),
-        cancelLabel: translate('components.native-chat.terminalRestart.cancel', 'Cancel'),
-        cancelVariant: 'ghost'
+        cancelLabel: translate('components.native-chat.terminalRestart.cancel', 'Cancel')
       })
       if (confirmed) {
         await start(itemId, {

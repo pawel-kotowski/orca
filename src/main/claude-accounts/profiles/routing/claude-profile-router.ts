@@ -13,10 +13,10 @@ import {
   CLAUDE_PROFILE_POINTER_ENV,
   CLAUDE_PROFILE_SETUP_FAILED_MESSAGE,
   CLAUDE_USER_CONFIG_DIR_ENV
-} from '../../../../shared/claude-profile-routing'
+} from '../../../../shared/agent-accounts/claude/claude-profile-routing'
 import { claudeProfileMissing } from './claude-profile-launch-errors'
-import type { GlobalSettings } from '../../../../shared/global-settings-types'
-import type { ClaudeManagedAccount } from '../../../../shared/managed-account-types'
+import type { GlobalSettings } from '../../../../shared/settings/global-settings-types'
+import type { ClaudeManagedAccount } from '../../../../shared/agent-accounts/managed-account-types'
 import { launchClaudeAccountId } from '../../../../shared/claude-workspace-account'
 import { probeRecentClaudeCliVersion } from '../../../claude/cli-capabilities/claude-hook-event-versions'
 import { writeFileAtomically } from '../../../filesystem/atomic-file-publication'
@@ -46,7 +46,7 @@ import {
   isSameClaudeLogin,
   type ClaudeFolderLogin
 } from '../../sign-in/claude-account-folder'
-import { resolveLoginShellEnvironment } from '../../../startup/login-shell-environment'
+import { resolveLoginShellEnvironment } from '../../../startup/shell-environment/login-shell-environment'
 
 export type ClaudeProfileRouterSettings = Pick<
   GlobalSettings,
@@ -330,7 +330,10 @@ export class ClaudeProfileRouter {
       wslDistro: null,
       wslLinuxConfigDir: null,
       envPatch: this.launchEnv(accountId),
-      provenance: home ? `profile:${profile?.accountId}` : 'system'
+      provenance: home ? `profile:${profile?.accountId}` : 'system',
+      ...(home && profile
+        ? { readingAccount: { accountId: profile.accountId, runtime: 'host', wslDistro: null } }
+        : {})
     }
   }
 

@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { useAppStore } from '@/store'
-import { nativeChatToolStepsOpen } from '../../../../../../shared/native-chat/native-chat-appearance-settings'
+import { nativeChatToolStepsOpen } from '../../../../../../shared/native-chat/settings/native-chat-appearance-settings'
 import { structuredAgentLabel } from '@/lib/agent-session/launch/structured-agent-session-launch-label'
 import type { NativeChatLiveSession } from '../../session/terminal/read/native-chat-live-session-contract'
 import type { NativeChatTranscriptRowContext } from '../../messages/rows/NativeChatTranscriptRow'
@@ -26,7 +26,7 @@ export function useNativeChatTranscriptRowContext({
   runtimeContext,
   structuredAttachments,
   onToggleExpandedTurn,
-  subagentDisclosure,
+  onOpenSubagent,
   onScrollMessageToTop,
   onRevealDiff
 }: NativeChatTranscriptRowContextInput): NativeChatTranscriptRowContext {
@@ -45,7 +45,7 @@ export function useNativeChatTranscriptRowContext({
       runtimeContext,
       structuredAttachments,
       onToggleExpandedTurn,
-      subagentDisclosure,
+      onOpenSubagent,
       onScrollMessageToTop,
       onRevealDiff
     }),
@@ -63,7 +63,7 @@ export function useNativeChatTranscriptRowContext({
       structuredAttachments,
       onScrollMessageToTop,
       taskListPredecessors,
-      subagentDisclosure,
+      onOpenSubagent,
       onToggleExpandedTurn
     ]
   )

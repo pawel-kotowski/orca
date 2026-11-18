@@ -1,9 +1,9 @@
 import { mkdirSync } from 'node:fs'
 import { delimiter } from 'node:path'
 import { isTuiAgentEnabled } from '../../../../shared/agent-launch/catalog/tui-agent-selection'
-import { NATIVE_CHAT_SCRATCH_DIR_ENV } from '../../../native-chat/native-chat-visuals-delivery'
-import { resolveNativeChatVisualsSkillLocationSync } from '../../../native-chat/native-chat-visuals-skill-location'
-import { terminalChatsScratchFolderFor } from '../../../native-chat/native-chat-scratch-folder'
+import { NATIVE_CHAT_SCRATCH_DIR_ENV } from '../../../native-chat/conversation-files/native-chat-visuals-delivery'
+import { resolveNativeChatVisualsSkillLocationSync } from '../../../native-chat/conversation-files/native-chat-visuals-skill-location'
+import { terminalChatsScratchFolderFor } from '../../../native-chat/conversation-files/native-chat-scratch-folder'
 import { getProfileUserDataPath } from '../../../orca-profiles/profile-storage-paths'
 import type { BuildPtyHostEnvOptions } from './types'
 

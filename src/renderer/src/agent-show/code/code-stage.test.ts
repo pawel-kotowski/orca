@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { TabGroupLayoutNode } from '../../../../shared/tab-types'
+import type { TabGroupLayoutNode } from '../../../../shared/workspace-layout/tab-groups/tab-types'
 import { findCodeStage, stackSplitRatios, verticalStackAround } from './code-stage'
 
 const leaf = (groupId: string): TabGroupLayoutNode => ({ type: 'leaf', groupId })

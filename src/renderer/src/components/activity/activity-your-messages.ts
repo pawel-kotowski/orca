@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react'
-import type { AgentPaneThread } from './activity-thread-types'
+import type { AgentPaneThread } from './threads/activity-thread-types'
 import { activityThreadPromptAt } from './activity-thread-prompt-time'
 
 /**

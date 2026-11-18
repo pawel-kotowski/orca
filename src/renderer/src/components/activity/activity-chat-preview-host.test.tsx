@@ -20,7 +20,7 @@ import {
   hideActivityChatPreview,
   showActivityChatPreview
 } from './activity-chat-preview-host'
-import type { AgentPaneThread } from './activity-thread-types'
+import type { AgentPaneThread } from './threads/activity-thread-types'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 

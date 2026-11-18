@@ -2,7 +2,7 @@ import { useTerminalCrewIdentity } from '../../orchestration-crew/use-terminal-c
 import { useNativeChatTabOwnerWorktreeId } from '../pane/ownership/use-native-chat-tab-owner'
 import { useNativeChatPanePtyId } from '../usage/terminal/use-native-chat-terminal-usage-limit-continue'
 import { isWorkerApprovalsTerminalParty } from '../../../../../shared/orchestration/worker-approvals-party'
-import type { RuntimeClientTarget } from '../../../../../shared/runtime-client-target'
+import type { RuntimeClientTarget } from '../../../../../shared/remote-runtime/host-catalog/runtime-client-target'
 
 /** The terminal chat's address its workers report to: its terminal handle on this machine.
  *  A pane on another host has none here (v1, as structured chats: the feed is local). */

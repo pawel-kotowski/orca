@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react'
-import { AGENT_SESSION_FORKED_FROM_PRESENTATION } from '../../../../../../shared/agent-session/agent-session-fork'
-import { NATIVE_CHAT_NOTICE_COPY } from '../../../../../../shared/native-chat/native-chat-notice'
+import { AGENT_SESSION_FORKED_FROM_PRESENTATION } from '../../../../../../shared/agent-session/lifecycle/records/agent-session-fork'
+import { NATIVE_CHAT_NOTICE_COPY } from '../../../../../../shared/native-chat/transcript/notices/native-chat-notice'
 import type { NativeChatMessage } from '../../../../../../shared/native-chat/native-chat-types'
 
 /** Where a terminal chat's copy came from, for its "Forked from" divider. */

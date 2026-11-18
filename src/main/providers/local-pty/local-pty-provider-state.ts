@@ -1,15 +1,15 @@
-import type { WslGuestRoot } from '../../../shared/wsl-guest-root-marker'
+import type { WslGuestRoot } from '../../../shared/shell/wsl/wsl-guest-root-marker'
 import type * as pty from 'node-pty'
-import type { PhysicalExitTracker } from '../../../shared/physical-exit-tracker'
+import type { PhysicalExitTracker } from '../../../shared/process-observation/physical-exit-tracker'
 import type { PtyStartupIngress } from '../../../shared/terminal/pty/ingress/pty-startup-ingress'
-import type { IPtyProvider } from '../pty-provider-contract'
-import type { PtyDataEvent } from '../pty-provider-events'
-import { mintPtySessionId } from '../../daemon/sessions/pty-session-id'
+import type { IPtyProvider } from '../pty/provider-contract'
+import type { PtyDataEvent } from '../pty/events'
 import {
   getSpawnedShellName,
   LOCAL_PTY_ID_PREFIX,
   normalizeLocalCallerSessionId
 } from './local-pty-launch-context'
+import { mintPtySessionId } from '../../daemon/sessions/pty-session-id'
 
 export type PtyShutdownOperation = {
   promise: Promise<void>
@@ -130,7 +130,7 @@ export function clearPtyState(id: string): void {
   ptyPhysicalExits.delete(id)
 }
 
-export function allocatePtyId(sessionId: string | undefined): string {
+export function allocatePtyId(sessionId: string | undefined, worktreeId?: string): string {
   const requested = normalizeLocalCallerSessionId(sessionId)
   if (requested) {
     return requested
@@ -141,7 +141,8 @@ export function allocatePtyId(sessionId: string | undefined): string {
   // and cwd, and resumes the pane's agent there a second time.
   let id: string
   do {
-    id = `${LOCAL_PTY_ID_PREFIX}${mintPtySessionId()}`
+    // Upstream scopes a workspace's fallback ids to it; an unscoped one keeps the local prefix.
+    id = worktreeId ? mintPtySessionId(worktreeId) : `${LOCAL_PTY_ID_PREFIX}${mintPtySessionId()}`
   } while (ptyProcesses.has(id))
   return id
 }

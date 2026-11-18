@@ -6,10 +6,10 @@ import { cn } from '@/lib/class-names'
 import { observeOffscreenAnimation } from '@/lib/window-activity/offscreen-animation-pause'
 import { translate } from '@/i18n/i18n'
 import { FilledBellIcon } from '../sidebar/workspace-card/identity/worktree-card-glyphs'
-import { activityThreadStatusId } from './activity-thread-presentation'
+import { activityThreadStatusId } from './threads/activity-thread-presentation'
 import { useActivityInboxFactsContext } from './activity-inbox-facts'
-import { isRunningActivityState } from './activity-event-state'
-import type { AgentPaneThread } from './activity-thread-types'
+import { isRunningActivityState } from './events/activity-event-state'
+import type { AgentPaneThread } from './threads/activity-thread-types'
 
 function SlotButton({
   label,

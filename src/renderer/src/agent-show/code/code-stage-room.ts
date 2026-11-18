@@ -1,4 +1,4 @@
-import type { TabGroupLayoutNode } from '../../../../shared/tab-types'
+import type { TabGroupLayoutNode } from '../../../../shared/workspace-layout/tab-groups/tab-types'
 import { resolveEditorTypography } from '../../../../shared/editor/editor-typography'
 import type { AppState } from '@/store/types'
 import {

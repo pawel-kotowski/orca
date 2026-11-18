@@ -15,7 +15,7 @@ import {
 import { readNativeChatTranscript } from '../../../../../main/native-chat/transcript-reader'
 import { mergeClaudeSubagents } from '../../../../../shared/native-chat/transcript/native-chat-claude-subagent-merge'
 import { NativeChatMessageList } from '../NativeChatMessageList'
-import { installNativeChatMessageListTestViewport } from '../viewport/virtualization/native-chat-message-list-test-viewport'
+import { installNativeChatMessageListTestViewport } from '../viewport/virtualization/native-chat-message-list-test-viewport-local'
 import type { NativeChatLiveSession } from '../session/terminal/read/native-chat-live-session-contract'
 
 // Paweł, 2026-11-12: in a terminal Claude chat, one reply's four background Agent calls drew as a

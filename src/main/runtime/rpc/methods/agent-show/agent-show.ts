@@ -15,7 +15,7 @@ import {
   AgentShowTourStampParams,
   AgentShowToursParams
 } from '../../../../../shared/rpc-contract/agent-show-params'
-import { LOCAL_EXECUTION_HOST_ID } from '../../../../../shared/execution-host'
+import { LOCAL_EXECUTION_HOST_ID } from '../../../../../shared/execution-host/execution-host'
 import { loadTour, tourPathInWorktree } from '../../../../agent-show/tours/tour-load'
 import { listWorktreeTours } from '../../../../agent-show/tours/tour-library'
 import { tourStampInfo } from '../../../../agent-show/tours/tour-stamp-info'

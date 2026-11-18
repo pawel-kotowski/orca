@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import type { ClaudeManagedAccount } from '../../../shared/managed-account-types'
+import type { ClaudeManagedAccount } from '../../../shared/agent-accounts/managed-account-types'
 
 vi.mock('@/store/projects/project-host-setup-selector', () => ({
   getProjectHostSetupProjectionFromState: (state: {

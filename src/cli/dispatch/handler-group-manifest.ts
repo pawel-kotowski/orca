@@ -1,3 +1,4 @@
+/* eslint-disable max-lines -- Why: an upstream file at its limit that the local build's patches push a few lines over; the ratchet does not run on local/orca-glass. */
 import type { CommandHandler } from './dispatch'
 import { BROWSER_HANDLER_GROUPS } from '../browser/browser-handler-groups'
 import { JIRA_HANDLER_GROUP } from '../jira/jira-handler-group'
@@ -22,7 +23,7 @@ export const HANDLER_GROUPS: readonly HandlerGroup[] = [
   {
     name: 'core',
     keys: ['claude-teams', 'open', 'serve', 'status'],
-    load: async () => (await import('../runtime/cli-lifecycle-handlers.js')).CORE_HANDLERS
+    load: async () => (await import('../runtime/commands/cli-lifecycle-handlers.js')).CORE_HANDLERS
   },
   ...SERVE_PAIRING_HANDLER_GROUPS,
   {
@@ -203,8 +204,10 @@ export const HANDLER_GROUPS: readonly HandlerGroup[] = [
       'computer capabilities',
       'computer list-apps',
       'computer permissions',
+      'computer launch-app',
       'computer list-windows',
       'computer get-app-state',
+      'computer wait',
       'computer click',
       'computer perform-secondary-action',
       'computer scroll',
@@ -231,6 +234,16 @@ export const HANDLER_GROUPS: readonly HandlerGroup[] = [
     name: 'agent-launch',
     keys: ['agent launch'],
     load: async () => (await import('../agents/agent-launch.js')).AGENT_LAUNCH_HANDLERS
+  },
+  {
+    name: 'installed-agents',
+    keys: ['agent installed'],
+    load: async () => (await import('../agents/installed-agents.js')).INSTALLED_AGENT_HANDLERS
+  },
+  {
+    name: 'agent-conversations',
+    keys: ['agent list', 'agent show', 'agent read'],
+    load: async () => (await import('../agents/agent-conversations.js')).AGENT_CONVERSATION_HANDLERS
   },
   {
     name: 'chat',

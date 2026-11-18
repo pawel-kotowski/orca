@@ -1,4 +1,4 @@
-import type { TabGroupLayoutNode } from '../../../../shared/tab-types'
+import type { TabGroupLayoutNode } from '../../../../shared/workspace-layout/tab-groups/tab-types'
 
 type Side = 'first' | 'second'
 export type LayoutPath = readonly Side[]

@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { decodeClaudeTranscriptLine } from './transcript-line-decoders-claude'
+import {
+  decodeClaudeChatTranscriptLine,
+  decodeClaudeTranscriptLine
+} from './transcript-decoding/transcript-line-decoders-claude'
 import { runningTranscriptBackgroundShells } from '../../shared/native-chat/transcript/native-chat-transcript-background-shells'
-import { isNoiseMessage } from '../../shared/native-chat/native-chat-noise'
+import { isNoiseMessage } from '../../shared/native-chat/transcript/messages/native-chat-noise'
 import type { NativeChatMessage } from '../../shared/native-chat/native-chat-types'
 
 // Shaped like Claude Code 2.1.322's records: the background Bash call, its launch result, and the
@@ -66,5 +69,14 @@ describe('a Claude task notification (local)', () => {
     expect(runningTranscriptBackgroundShells(messages, Date.parse('2026-11-12T21:30:00Z'))).toEqual(
       []
     )
+  })
+
+  it('ends its background shell in a chat read too, where it becomes the turn marker', () => {
+    const chat = lines
+      .map((line, index) => decodeClaudeChatTranscriptLine(JSON.stringify(line), `f${index}`))
+      .filter((message): message is NativeChatMessage => message !== null)
+    const marker = chat.find((message) => message.id === 'n1')
+    expect(marker?.role).toBe('system')
+    expect(runningTranscriptBackgroundShells(chat, Date.parse('2026-11-12T21:30:00Z'))).toEqual([])
   })
 })

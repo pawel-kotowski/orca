@@ -1,5 +1,5 @@
 import type { AgentShowContext } from '../../../../shared/agent-show/agent-show-contract'
-import type { RuntimeClientTarget } from '../../../../shared/runtime-client-target'
+import type { RuntimeClientTarget } from '../../../../shared/remote-runtime/host-catalog/runtime-client-target'
 
 /**
  * The context to show a server's relayed request with in this window, or null when this window

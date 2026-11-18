@@ -1,4 +1,4 @@
-import type { AgentPaneThread } from './activity-thread-types'
+import type { AgentPaneThread } from './threads/activity-thread-types'
 import { myPromptAt } from './activity-my-prompt-times'
 
 /**

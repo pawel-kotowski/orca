@@ -9,7 +9,7 @@ import { usageLimitResetsAt } from '../../shared/agent-session/failures/agent-se
 import { structuredAgentSessionStatusBlock } from '../../shared/agent-session/view/structured-agent-session-status-block'
 import type { NativeChatMessage } from '../../shared/native-chat/native-chat-types'
 import { asRecord } from '../ai-vault/parsing/session-record-fields'
-import { extractString } from '../../shared/trimmed-string'
+import { extractString } from '../../shared/text/trimmed-string'
 import { CLAUDE_LIMIT_WINDOWS } from '../claude/structured/journal/claude-usage-limits'
 
 function syntheticText(message: Record<string, unknown> | null): string {

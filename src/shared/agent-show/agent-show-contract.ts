@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import type { TabContentType, TabGroupLayoutNode } from '../tab-types'
+import type { TabContentType, TabGroupLayoutNode } from '../workspace-layout/tab-groups/tab-types'
 
 // Why: one contract for `orca show`, so the CLI, the RPC layer and each renderer area agree without importing each other.
 

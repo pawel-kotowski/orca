@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { nativeChatShowsComposerWorkspaceLine } from './native-chat-appearance-settings'
+import { nativeChatShowsComposerWorkspaceLine } from './settings/native-chat-appearance-settings'
 
 describe('nativeChatShowsComposerWorkspaceLine', () => {
   it("shows upstream's line until settings load", () => {

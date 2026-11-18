@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { editor } from 'monaco-editor'
-import { performReveal } from './monaco-reveal'
+import { performReveal } from './monaco/monaco-reveal'
 
 function fakeEditor(paneHeightPx: number) {
   const calls = {

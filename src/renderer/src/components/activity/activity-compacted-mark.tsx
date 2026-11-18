@@ -1,6 +1,6 @@
 import React from 'react'
 import { useTranslate } from '@/i18n/use-translate'
-import type { AgentPaneThread } from './activity-thread-types'
+import type { AgentPaneThread } from './threads/activity-thread-types'
 
 /** When the agent compacted its conversation during its current finish, if it did. */
 export function activityThreadCompactedAt(thread: AgentPaneThread): number | undefined {

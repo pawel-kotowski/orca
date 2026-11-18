@@ -5,10 +5,10 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { TooltipProvider } from '@/components/ui/tooltip'
-import { _resetActivityHoverCardIntentForTest } from './activity-thread-hover-card-intent'
-import { ActivityThreadRow } from './activity-thread-row'
-import type { AgentPaneThread } from './activity-thread-types'
-import { makeRepo, makeTab, makeWorktree } from './ActivityPrototypePage-test-fixtures'
+import { _resetActivityHoverCardIntentForTest } from './thread-preview/activity-thread-hover-card-intent'
+import { ActivityThreadRow } from './thread-list/activity-thread-row'
+import type { AgentPaneThread } from './threads/activity-thread-types'
+import { makeRepo, makeTab, makeWorktree } from './development/activity-test-fixtures-local'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 

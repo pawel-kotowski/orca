@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useAgentStatusSelector } from '@/runtime/agent-status/use-agent-status'
 import { useAppStore } from '../../../../../store/index'
 import type { ClaudeSessionEffortSettings } from '../../../../../../../shared/native-chat/claude-session-effort-types'
 
@@ -12,20 +13,24 @@ export function useClaudeTerminalSessionStart(paneKey: string | undefined): {
   hookEffort: string | null
   start: ClaudeSessionEffortSettings | null
 } {
-  const hookEffort = useAppStore((state) =>
+  const liveEffort = useAgentStatusSelector(
+    paneKey,
+    (entry) => entry?.providerSession?.effort ?? null
+  )
+  const liveSessionId = useAgentStatusSelector(
+    paneKey,
+    (entry) => entry?.providerSession?.id ?? null
+  )
+  const sleepingEffort = useAppStore((state) =>
     paneKey
-      ? (state.agentStatusByPaneKey[paneKey]?.providerSession?.effort ??
-        state.sleepingAgentSessionsByPaneKey?.[paneKey]?.providerSession?.effort ??
-        null)
+      ? (state.sleepingAgentSessionsByPaneKey?.[paneKey]?.providerSession?.effort ?? null)
       : null
   )
-  const sessionId = useAppStore((state) =>
-    paneKey
-      ? (state.agentStatusByPaneKey[paneKey]?.providerSession?.id ??
-        state.sleepingAgentSessionsByPaneKey?.[paneKey]?.providerSession?.id ??
-        null)
-      : null
+  const sleepingSessionId = useAppStore((state) =>
+    paneKey ? (state.sleepingAgentSessionsByPaneKey?.[paneKey]?.providerSession?.id ?? null) : null
   )
+  const hookEffort = liveEffort ?? sleepingEffort
+  const sessionId = liveSessionId ?? sleepingSessionId
   const [read, setRead] = useState<{
     sessionId: string
     settings: ClaudeSessionEffortSettings

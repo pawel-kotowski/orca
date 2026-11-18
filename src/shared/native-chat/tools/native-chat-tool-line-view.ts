@@ -1,4 +1,4 @@
-import { agentJournalToolCallLifecycle } from '../../agent-journal-tool-call-lifecycle'
+import { agentJournalToolCallLifecycle } from '../../agent-session/journal/agent-journal-tool-call-lifecycle'
 import { nativeChatToolArguments, type NativeChatToolArgument } from './native-chat-tool-code-parts'
 import { nativeChatToolCategory } from './native-chat-tool-icon'
 import {

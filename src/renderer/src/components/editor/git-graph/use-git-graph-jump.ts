@@ -5,7 +5,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { getConnectionId } from '@/lib/workspace/ownership/connection-context'
 import { getRuntimeGitRefs } from '@/runtime/source-control/git/runtime-git-status-client'
-import type { RuntimeClientTarget } from '../../../../../shared/runtime-client-target'
+import type { RuntimeClientTarget } from '../../../../../shared/remote-runtime/host-catalog/runtime-client-target'
 import type {
   GitHistoryItem,
   GitHistoryItemRef,

@@ -7,7 +7,7 @@ import {
   normalizeNativeChatAppearanceSettings,
   resetNativeChatAppearanceSettings,
   resolveNativeChatAppearanceSettings
-} from './native-chat-appearance-settings'
+} from './settings/native-chat-appearance-settings'
 
 // Local-only tests for the local build's chat appearance settings (text and bubble colors, chat
 // opacity over a background image, local view defaults); upstream never touches this file.

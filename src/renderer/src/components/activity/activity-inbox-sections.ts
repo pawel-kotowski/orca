@@ -1,8 +1,8 @@
 import { translate } from '@/i18n/i18n'
-import { isClearableActivityThread } from './activity-clear-completed'
-import { activityThreadStatusId } from './activity-thread-presentation'
+import { isClearableActivityThread } from './thread-list/activity-clear-completed'
+import { activityThreadStatusId } from './threads/activity-thread-presentation'
 import { byRecentPrompt } from './activity-thread-prompt-time'
-import type { ActivityThreadGroup, AgentPaneThread } from './activity-thread-types'
+import type { ActivityThreadGroup, AgentPaneThread } from './threads/activity-thread-types'
 import { NO_ACTIVITY_INBOX_FACTS, type ActivityInboxFacts } from './activity-inbox-facts'
 
 /**

@@ -1,4 +1,4 @@
-import type { Tab } from '../../../../../shared/tab-types'
+import type { Tab } from '../../../../../shared/workspace-layout/tab-groups/tab-types'
 
 /**
  * The chat a tour from the panel plays for, as `orca show tour` would own it: the tab of the

@@ -1,12 +1,15 @@
 import { createContext, useContext, useEffect, useMemo, type ReactNode } from 'react'
 import { useAppStore } from '@/store'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { useResetCountdownClock } from '@/hooks/useResetCountdownClock'
+import { useResetCountdownClock } from '@/components/status-bar/usage/useResetCountdownClock'
 import { translate } from '@/i18n/i18n'
-import type { ClaudeManagedAccount } from '../../../../shared/managed-account-types'
-import type { ProviderRateLimits, RateLimitWindow } from '../../../../shared/rate-limit-types'
-import { formatRateLimitWindowChipLabel } from '../../../../shared/rate-limit-window-label'
-import { clampUsedPercent } from '../../../../shared/usage-percentage-display'
+import type { ClaudeManagedAccount } from '../../../../shared/agent-accounts/managed-account-types'
+import type {
+  ProviderRateLimits,
+  RateLimitWindow
+} from '../../../../shared/agent-usage/rate-limits/rate-limit-types'
+import { formatRateLimitWindowChipLabel } from '../../../../shared/agent-usage/rate-limits/rate-limit-window-label'
+import { clampUsedPercent } from '../../../../shared/agent-usage/display/usage-percentage-display'
 import { NativeChatMeter } from './native-chat-meter'
 import { NativeChatAccountSwitch } from './native-chat-account-switch'
 import { workspaceClaudeAccountId } from '../../../../shared/claude-workspace-account'

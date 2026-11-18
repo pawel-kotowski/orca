@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { useAppStore } from '@/store'
-import { nativeChatFinishedTurnsOpen } from '../../../../shared/native-chat/native-chat-appearance-settings'
+import { nativeChatFinishedTurnsOpen } from '../../../../shared/native-chat/settings/native-chat-appearance-settings'
 import { nativeChatOpenTurnKeys } from './messages/disclosure/native-chat-expanded-keys'
 
 /**

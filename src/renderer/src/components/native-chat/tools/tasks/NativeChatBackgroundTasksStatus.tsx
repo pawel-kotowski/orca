@@ -1,29 +1,32 @@
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Activity, Bot, ChevronDown, CircleHelp, SquareTerminal, Workflow } from 'lucide-react'
-import type { AgentSessionBackgroundTask } from '../../../../../../shared/agent-session/agent-session-background-task-wire'
+import type { AgentSessionBackgroundTask } from '../../../../../../shared/agent-session/background-tasks/agent-session-background-task-wire'
 import type {
   AgentChildRowContext,
   AgentChildRowModel
 } from '../../../../../../shared/agent-status/presentation/agent-child-row-model'
 import type { AgentChildWorkView } from '../../../../../../shared/agent-status/child-work/agent-status-child-work-view'
-import { AgentChildRowContent } from '@/components/AgentChildRowContent'
-import { agentChildRowName } from '@/components/agent-child-row-text'
+import { AgentChildRowContent } from '@/components/agent/status/AgentChildRowContent'
+import { agentChildRowName } from '@/components/agent/status/agent-child-row-text'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/class-names'
 import { useTranslate } from '@/i18n/use-translate'
-import { useNow } from '@/hooks/use-now'
+import { useNow } from '@/lib/window-activity/use-now'
 import {
   backgroundTasksHeaderText,
   NARROW_BACKGROUND_TASKS_STRIP_REM
-} from '../../../../../../shared/background-task-header-content'
+} from '../../../../../../shared/agent-status/presentation/background-tasks/background-task-header-content'
 import {
   backgroundTaskRowMeta,
   backgroundTaskRowStopId,
   backgroundTasksStripTicks,
-  buildBackgroundTaskGroupsFromViews,
   type BackgroundTaskGroup
-} from '../../../../../../shared/background-task-roster'
+} from '../../../../../../shared/agent-status/presentation/background-tasks/background-task-roster'
 import { backgroundTasksHeaderContent } from './background-task-header-content'
-import { backgroundTaskGroupLabel, buildBackgroundTaskGroups } from './background-task-roster'
+import {
+  backgroundTaskGroupLabel,
+  structuredSessionBackgroundTaskGroups
+} from './background-task-roster'
 import { sayBackgroundTaskTranslated as say } from './background-task-words-text'
 
 /** Use strip width in rem so narrow splits behave like narrow windows even on wide monitors. */
@@ -97,6 +100,8 @@ export function BackgroundTaskRow(props: {
   stoppingTaskIds: ReadonlySet<string>
   onStop: (taskId: string) => void
   onShowAgent?: (providerId: string) => void
+  /** The agent whose view is open, marked current. */
+  currentAgentId?: string | null
 }): React.JSX.Element {
   const t = useTranslate()
   const { row, now } = props
@@ -130,12 +135,15 @@ export function BackgroundTaskRow(props: {
         {shownId !== undefined ? (
           <button
             type="button"
-            className="-mx-1 flex h-6 min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-md px-1 text-left outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
-            aria-label={t(
-              'components.native-chat.backgroundTasks.showAgent',
-              'Show {{value0}} in the conversation',
-              { value0: agentChildRowName(row) }
+            data-native-chat-agent-row={shownId}
+            aria-current={props.currentAgentId === shownId ? 'true' : undefined}
+            className={cn(
+              '-mx-1 flex h-6 min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-md px-1 text-left outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring',
+              props.currentAgentId === shownId && 'bg-accent'
             )}
+            aria-label={t('components.native-chat.backgroundTasks.openAgent', 'Open {{value0}}', {
+              value0: agentChildRowName(row)
+            })}
             onClick={() => props.onShowAgent?.(shownId)}
           >
             {content}
@@ -169,6 +177,7 @@ export function BackgroundTaskRow(props: {
                 stoppingTaskIds={props.stoppingTaskIds}
                 onStop={props.onStop}
                 onShowAgent={props.onShowAgent}
+                currentAgentId={props.currentAgentId}
               />
             ))}
           </ul>
@@ -199,8 +208,10 @@ export function NativeChatBackgroundTasksStatus(props: {
   expanded: boolean
   onExpandedChange: (expanded: boolean) => void
   onStop: (taskId?: string) => void
-  /** Open a listed agent's activity where it sits in the conversation. */
+  /** Open a listed agent's own view. */
   onShowAgent?: (providerId: string) => void
+  /** The agent whose view the pane shows. */
+  currentAgentId?: string | null
 }): React.JSX.Element {
   const expanded = props.expanded
   const taskListId = useId()
@@ -211,9 +222,12 @@ export function NativeChatBackgroundTasksStatus(props: {
   // The 1 Hz elapsed tick must not re-group, re-sort and re-translate the whole roster.
   const groups: BackgroundTaskGroup[] = useMemo(
     () =>
-      props.childViews !== undefined
-        ? buildBackgroundTaskGroupsFromViews(props.childViews, props.childRowContext)
-        : buildBackgroundTaskGroups(props.tasks, props.settledTasks),
+      structuredSessionBackgroundTaskGroups(
+        props.tasks,
+        props.settledTasks,
+        props.childViews,
+        props.childRowContext
+      ),
     [props.childViews, props.childRowContext, props.tasks, props.settledTasks]
   )
   const now = useNow(1_000, props.isVisible && backgroundTasksStripTicks(groups, expanded))
@@ -311,6 +325,7 @@ export function NativeChatBackgroundTasksStatus(props: {
                           stoppingTaskIds={props.stoppingTaskIds}
                           onStop={props.onStop}
                           onShowAgent={props.onShowAgent}
+                          currentAgentId={props.currentAgentId}
                         />
                       ))}
                     </ul>

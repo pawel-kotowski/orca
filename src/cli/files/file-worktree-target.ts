@@ -1,8 +1,11 @@
-import type { RuntimeWorktreeRecord } from '../../shared/runtime-worktree-contracts'
-import { isRuntimePathAbsolute, relativePathInsideRoot } from '../../shared/cross-platform-path'
-import { isWslUncPath, parseWslUncPath, toWindowsWslPath } from '../../shared/wsl-paths'
+import type { RuntimeWorktreeRecord } from '../../shared/worktree/catalog/runtime-worktree-contracts'
+import {
+  isRuntimePathAbsolute,
+  relativePathInsideRoot
+} from '../../shared/file-access/cross-platform-path'
+import { isWslUncPath, parseWslUncPath, toWindowsWslPath } from '../../shared/file-access/wsl-paths'
 import type { HandlerContext } from '../dispatch/dispatch'
-import { RuntimeClientError } from '../runtime/types'
+import { RuntimeClientError } from '../runtime/connection/types'
 import {
   getOptionalWorktreeSelector,
   resolveCurrentWorktreeSelector

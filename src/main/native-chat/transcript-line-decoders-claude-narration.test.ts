@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { isClaudeNarrationThinking } from './claude-narration-thinking'
-import { decodeClaudeTranscriptLine } from './transcript-line-decoders-claude'
+import { decodeClaudeTranscriptLine } from './transcript-decoding/transcript-line-decoders-claude'
 
 // Signature prefixes from a Claude Code 2.1.318 transcript (thinking display "updates").
 const NARRATION_SIGNATURE =

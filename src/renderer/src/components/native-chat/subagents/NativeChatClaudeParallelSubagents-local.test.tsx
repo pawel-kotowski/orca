@@ -9,7 +9,7 @@ import type { NativeChatMessage } from '../../../../../shared/native-chat/native
 import type { NativeChatSubagentTranscript } from '../../../../../shared/native-chat/native-chat-subagent-transcripts'
 import { mergeClaudeSubagents } from '../../../../../shared/native-chat/transcript/native-chat-claude-subagent-merge'
 import { NativeChatMessageList } from '../NativeChatMessageList'
-import { installNativeChatMessageListTestViewport } from '../viewport/virtualization/native-chat-message-list-test-viewport'
+import { installNativeChatMessageListTestViewport } from '../viewport/virtualization/native-chat-message-list-test-viewport-local'
 import type { NativeChatLiveSession } from '../session/terminal/read/native-chat-live-session-contract'
 
 // A terminal Claude chat as its transcript decodes: one reply's four background Agent calls are

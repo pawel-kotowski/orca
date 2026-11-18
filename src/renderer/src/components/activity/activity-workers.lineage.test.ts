@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 vi.mock('@/store', () => ({ useAppStore: vi.fn() }))
 
 import type { WorktreeLineage } from '../../../../shared/worktree/lineage-types'
-import type { AgentPaneThread } from './activity-thread-types'
+import type { AgentPaneThread } from './threads/activity-thread-types'
 import { activityWorkerPlacement, buildActivityWorkers } from './activity-workers'
 
 function thread(paneKey: string, worktreeId: string, handle: string, at = 1): AgentPaneThread {

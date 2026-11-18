@@ -228,12 +228,17 @@ export const NativeChatComposerPane = forwardRef<ComposerHandle, C.NativeChatCom
     })
 
     const dictation = useNativeChatDictation(textareaRef, disabled)
-    const sessionOptions = useNativeChatComposerSessionOptions({
+    // What option commands and PTY sends share to reach, and read, the agent's input line.
+    const ptyCommandTarget = {
       agent,
       disabled,
+      resolveTarget,
       onSlashCommand,
       onSubmitted,
-      resolveTarget,
+      readTerminalDraft: launchSeed?.readTerminalDraft
+    }
+    const sessionOptions = useNativeChatComposerSessionOptions({
+      ...ptyCommandTarget,
       terminalTabId,
       targetPtyId,
       onSwitchToTerminal,
@@ -267,14 +272,9 @@ export const NativeChatComposerPane = forwardRef<ComposerHandle, C.NativeChatCom
     )
     const headSteer = steerHead ?? heldSteerHead
     const ptyCommandRouting = {
-      agent,
-      disabled,
-      isDispatchingSessionOption: sessionOptions.isDispatching,
-      resolveTarget,
-      onSlashCommand,
-      onSubmitted,
+      ...ptyCommandTarget,
+      ...sessionOptions.ptyCommandRouting,
       answerCommandLocally,
-      sessionOptionsSurface: sessionOptions.pty.surface,
       trackPendingSend,
       setDraft,
       setCaret,
@@ -289,7 +289,6 @@ export const NativeChatComposerPane = forwardRef<ComposerHandle, C.NativeChatCom
       imageAttachments,
       launchDraft: launchSeed?.launchDraft,
       launchDraftResolved: launchSeed?.launchDraftResolved === true,
-      readTerminalDraft: launchSeed?.readTerminalDraft,
       classifySend,
       onOptimisticSend,
       optimisticSendOutcome,

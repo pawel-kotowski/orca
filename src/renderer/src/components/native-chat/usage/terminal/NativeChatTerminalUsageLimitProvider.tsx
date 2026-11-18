@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, type ReactNode, type RefObject } from 'react'
 import { translate } from '@/i18n/i18n'
-import { NATIVE_CHAT_USAGE_LIMIT_CONTINUE_MESSAGE } from '../../../../../../shared/native-chat/native-chat-usage-limit-cut'
+import { NATIVE_CHAT_USAGE_LIMIT_CONTINUE_MESSAGE } from '../../../../../../shared/native-chat/transcript/continuation/native-chat-usage-limit-cut'
 import { latestNativeChatTerminalUsageLimitCut } from '../../../../../../shared/native-chat/native-chat-terminal-usage-limit-cut'
 import type { NativeChatMessage } from '../../../../../../shared/native-chat/native-chat-types'
-import type { ClaudeManagedAccount } from '../../../../../../shared/managed-account-types'
+import type { ClaudeManagedAccount } from '../../../../../../shared/agent-accounts/managed-account-types'
 import {
   NativeChatOrcaStopContext,
   type NativeChatOrcaStopView
@@ -111,7 +111,9 @@ export function NativeChatTerminalUsageLimitProvider({
           />
         ) : null,
       ...(handOff && offeredId !== null ? { handOff } : {}),
-      disabled: false
+      disabled: false,
+      // The pane's own Hand Off opens its dialog at once; nothing is gathered here first.
+      preparing: false
     }),
     [agent, offeredId, terminalTabId, transcriptPath, waitingOn, onSwitch, handOff]
   )

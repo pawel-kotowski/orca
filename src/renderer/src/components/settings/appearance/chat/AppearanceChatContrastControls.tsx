@@ -2,7 +2,7 @@ import { useState } from 'react'
 import type {
   NativeChatAppearanceSettings,
   ResolvedNativeChatAppearanceSettings
-} from '../../../../../../shared/native-chat/native-chat-appearance-settings'
+} from '../../../../../../shared/native-chat/settings/native-chat-appearance-settings'
 import {
   chatTerminalControlledHint,
   chatTerminalControlledTooltip,

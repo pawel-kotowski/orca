@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { decodeClaudeTranscriptLine } from './transcript-line-decoders-claude'
+import { decodeClaudeTranscriptLine } from './transcript-decoding/transcript-line-decoders-claude'
 
 const SYNTHETIC_USAGE = {
   input_tokens: 0,

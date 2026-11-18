@@ -1,13 +1,13 @@
 import type React from 'react'
 import { useAppStore } from '@/store'
-import { projectMatchesRepo } from '../../../../shared/project-repo-match'
-import { getProjectIdentityKey } from '../../../../shared/project-host-setup-projection'
+import { projectMatchesRepo } from '../../../../shared/project/project-repo-match'
+import { getProjectIdentityKey } from '../../../../shared/project/host-setup/project-host-setup-projection'
 import { getProjectHostSetupProjectionFromState } from '@/store/projects/project-host-setup-selector'
 import {
   DEFAULT_REPO_BADGE_COLOR,
   normalizeRepoBadgeColor,
   REPO_COLORS
-} from '../../../../shared/repo-badge-color'
+} from '../../../../shared/repository/appearance/repo-badge-color'
 
 // The palette's colours, without its neutral grey: a grey tells the cards apart no better than none.
 const PICKED_COLORS = REPO_COLORS.filter((color) => color !== DEFAULT_REPO_BADGE_COLOR)

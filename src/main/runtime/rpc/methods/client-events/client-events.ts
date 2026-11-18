@@ -7,7 +7,7 @@ import { defineMethod, defineStreamingMethod } from '../../core'
 import {
   ClientEventsSubscribeParams,
   ClientEventsUnsubscribeParams
-} from '../../../../../shared/rpc-contract/client-events-params'
+} from '../../../../../shared/rpc-contract/client-ui/client-events-params'
 import { BROWSER_CLIENT_HOST_REQUEST_CAPABILITY } from '../../../../../shared/browser/client-hosting/browser-client-host-request-protocol'
 import { getBrowserHostRequestRegistry } from '../../../browser-host/leases/browser-host-request-registry'
 import { AGENT_SHOW_CLIENT_RELAY_CAPABILITY } from '../../../../../shared/agent-show/agent-show-client-relay'
@@ -15,7 +15,7 @@ import { getAgentShowClientRelayRegistry } from '../../../../agent-show/relay/ag
 import {
   STRUCTURED_CHAT_START_TELEMETRY_CLIENT_CAPABILITY,
   STRUCTURED_CHAT_PROMPT_TELEMETRY_CLIENT_CAPABILITY
-} from '../../../../../shared/structured-chat-dispatch-telemetry'
+} from '../../../../../shared/agent-session/requests/structured-chat-dispatch-telemetry'
 import { subscribeStructuredChatTelemetry } from '../../../../telemetry/structured-chat-dispatch'
 import { structuredCallerFor } from '../structured-sessions/creation/structured-agent-session-gate'
 

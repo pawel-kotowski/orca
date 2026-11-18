@@ -6,17 +6,17 @@ import {
   agentSessionProviderHandleChainHead,
   type AgentSessionProviderHandleChain,
   type AgentSessionProviderHandleLink
-} from '../../../../shared/agent-session/lifecycle/agent-session-provider-handle'
-import { agentSessionProviderHandleKey } from '../../../../shared/agent-session/lifecycle/agent-session-provider-handle-encoding'
-import { requireLegacyAgentSessionAccountHome } from '../../../../shared/agent-session/lifecycle/agent-session-account-home'
-import type { resolveCliCommand } from '../../../../shared/node-cli-command-resolution'
-import { hasReachedAppVersion } from '../../../../shared/app-version'
+} from '../../../../shared/agent-session/lifecycle/provider-handles/agent-session-provider-handle'
+import { agentSessionProviderHandleKey } from '../../../../shared/agent-session/lifecycle/provider-handles/agent-session-provider-handle-encoding'
+import { requireLegacyAgentSessionAccountHome } from '../../../../shared/agent-session/lifecycle/accounts/agent-session-account-home'
+import type { resolveCliCommand } from '../../../../shared/shell/command-resolution/node-cli-command-resolution'
+import { hasReachedAppVersion } from '../../../../shared/app-lifecycle/identity/app-version'
 import {
   checkAgentCliVersion,
   type AgentCliVersionCheck,
   type AgentCliVersionReader
 } from '../../../agent-launch/preflight/agent-cli-version-probe'
-import { AgentCliInstallationError } from '../../../native-chat/agent-cli-installation-error'
+import { AgentCliInstallationError } from '../../../native-chat/agent-launch/agent-cli-installation-error'
 import {
   resolveAgainAfterRefreshOnMissingProgram,
   assertStructuredAgentResolutionCurrent,
@@ -24,7 +24,7 @@ import {
   resolveStructuredAgentCommand,
   type StructuredAgentCommand,
   type StructuredAgentCommandSettings
-} from '../../../native-chat/structured-agent-command-resolution'
+} from '../../../native-chat/agent-launch/structured-agent-command-resolution'
 import type { StructuredAgentLaunchPartResolver } from '../../../runtime/agent-session/launch/structured-agent-launch-composition'
 import { isWindowsProcessStartTimeAvailable } from '../../../windows/windows-process-table'
 import { sessionIdFromFileName } from '../../../ai-vault/parsing/session-scanner-accumulator'
@@ -37,6 +37,7 @@ import {
   ensurePiBackgroundWorkBridge,
   type PiBackgroundWorkLaunch
 } from '../background-work/rpc-background-work-bridge'
+import { piTitlebarExtensionService } from '../../managed-extensions/titlebar-extension-service'
 import type { StructuredAgentSessionLogger } from '../../../native-chat/agent-session-wire/host/structured-agent-session-logger'
 
 export type PiRpcResolvedLaunch = PiRpcLaunchOptions & {
@@ -52,6 +53,7 @@ export type PiRpcLaunchPartDeps = {
   probeVersion?: AgentCliVersionReader
   resolveFullAccess?: () => boolean
   ensureBackgroundWorkBridge?: () => Promise<PiBackgroundWorkLaunch | null>
+  managedExtensionsEnabled?: () => boolean
   logger?: StructuredAgentSessionLogger
 }
 
@@ -76,6 +78,7 @@ export function resolvePiRpcCommand(
 
 export function checkPiRpcVersion(
   launch: {
+    operation?: StructuredAgentResolutionOperation
     command: string
     prefixArgs?: readonly string[]
     cwd: string
@@ -84,7 +87,13 @@ export function checkPiRpcVersion(
   read?: AgentCliVersionReader
 ): Promise<AgentCliVersionCheck> {
   return checkAgentCliVersion(
-    { program: launch.command, prefixArgs: launch.prefixArgs, cwd: launch.cwd, env: launch.env },
+    {
+      program: launch.command,
+      prefixArgs: launch.prefixArgs,
+      cwd: launch.cwd,
+      env: launch.env,
+      operation: launch.operation
+    },
     PI_RPC_MINIMUM_VERSIONS,
     read
   )
@@ -215,6 +224,10 @@ export function piRpcLaunchPart(
     )
     if (launchVersion.status === 'tooOld') {
       throw AgentCliInstallationError.tooOld('pi', launchVersion)
+    }
+    // Chat loads extensions from its agent dir, so subagent rows need the current status extension there.
+    if (deps.managedExtensionsEnabled?.()) {
+      piTitlebarExtensionService.installManagedExtensions(accountHome.path, 'pi')
     }
     const backgroundWork = await (
       deps.ensureBackgroundWorkBridge ??

@@ -1,6 +1,7 @@
 /* eslint-disable max-lines -- Why: upstream's view sits at the limit; local features (the terminal
    chat's held-message queue among them) add a few wiring lines and keep their logic in their own
    files, and moving upstream's own code out would fork the view from upstream on every merge. */
+import { useAgentStatus } from '@/runtime/agent-status/use-agent-status'
 import { useNativeChatDeliveryProjection } from './session/terminal/delivery/use-native-chat-delivery-projection'
 import { NativeChatCrewFrame } from '../orchestration-crew/NativeChatCrewPanel'
 import { TerminalChatCrewPanel } from '../orchestration-crew/TerminalChatCrewPanel'
@@ -15,6 +16,7 @@ import { selectNativeChatViewState } from './session/status/native-chat-view-sta
 import { NativeChatTerminalMessageList } from './NativeChatTerminalMessageList'
 import { NativeChatTerminalShellsStatus } from './NativeChatTerminalShellsStatus'
 import { NativeChatTerminalComposerStrips } from './NativeChatTerminalComposerStrips'
+import { closeNativeChatSubagentOnEscape } from './subagents/native-chat-open-subagent'
 import {
   useNativeChatInteractiveSendReveal,
   useNativeChatRevealLatest
@@ -32,12 +34,12 @@ import { useNativeChatTerminalPromptCard } from './prompts/use-native-chat-inter
 import { NativeChatPromptStrip } from './prompts/NativeChatPromptCollapse'
 import { NativeChatEmptyState } from './host-access/NativeChatEmptyState'
 import { useNativeChatInteractiveSend } from './session/terminal/send/use-native-chat-interactive-send'
-import { shouldClearNativeChatWorkingSuppression } from '../../../../shared/native-chat/native-chat-working-suppression'
-import { nativeChatHookWorkingStartedAt } from '../../../../shared/native-chat/native-chat-live-status'
-import { resolveNativeChatTerminalTurn } from '../../../../shared/native-chat/native-chat-terminal-turn'
+import { shouldClearNativeChatWorkingSuppression } from '../../../../shared/native-chat/transcript/streaming/native-chat-working-suppression'
+import { nativeChatHookWorkingStartedAt } from '../../../../shared/native-chat/transcript/streaming/native-chat-live-status'
+import { resolveNativeChatTerminalTurn } from '../../../../shared/native-chat/transcript/turns/native-chat-terminal-turn'
 import { useNativeChatTerminalTurnTiming } from './conversation/turns/use-native-chat-terminal-turn-timing'
 import { shouldPruneLaunchPrompt } from './session/terminal/delivery/native-chat-pending'
-import { pendingSendsAsMessages } from '../../../../shared/native-chat/transcript/native-chat-pending-sends'
+import { pendingSendsAsMessages } from '../../../../shared/native-chat/transcript/pending-sends/native-chat-pending-sends'
 import {
   useNativeChatPendingDelivery,
   useNativeChatOptimisticSend
@@ -51,7 +53,7 @@ import {
 import {
   deriveNativeChatStreamingText,
   nativeChatStreamingMessage
-} from '../../../../shared/native-chat/native-chat-streaming'
+} from '../../../../shared/native-chat/transcript/streaming/native-chat-streaming'
 import { useNativeChatRootInputRouting } from './composer/focus/use-native-chat-root-input-routing'
 import {
   emptyNativeChatContextMenuActions,
@@ -68,7 +70,7 @@ import { useRecheckNativeChatFileLinksWhenTurnEnds } from './links/actions/use-n
 import { useNativeChatLocalCommandAnswer } from './session/options/terminal/use-native-chat-local-command-answer'
 import { useNativeChatImageRuntimeContext } from './media/images/native-chat-image-runtime-context'
 import { handleNativeChatPaneShortcut } from './pane/routing/native-chat-pane-shortcut'
-import { formatShortcutLabel } from '@/hooks/useShortcutLabel'
+import { formatShortcutLabel } from '@/lib/keyboard/useShortcutLabel'
 import { NativeChatTerminalQueuedMessageList } from './queue/NativeChatTerminalQueuedMessageList'
 import { NativeChatTerminalPromptSlotNotices } from './composer/controls/NativeChatTerminalPromptSlotNotices'
 
@@ -108,16 +110,12 @@ export function NativeChatResolvedView({
   // Use the live session’s reconciled lifecycle for every working-state consumer.
   const liveWorking = session.status === 'working'
   // Preview the in-progress hook reply before its completed transcript turn arrives.
-  const hookPreview = useAppStore((s) => s.agentStatusByPaneKey[paneKey]?.lastAssistantMessage)
+  const hookPreview = useAgentStatus(paneKey)?.lastAssistantMessage
   // Tool stdout/errors ride the same field for status-card previews; they are not the reply.
-  const hookPreviewIsToolOutput = useAppStore(
-    (s) => s.agentStatusByPaneKey[paneKey]?.lastAssistantMessageIsToolOutput === true
-  )
+  const hookPreviewIsToolOutput = useAgentStatus(paneKey)?.lastAssistantMessageIsToolOutput === true
   // A coalesced interrupt/restart can stay working; the newer epoch must still clear Stop suppression.
-  const workingEpoch = useAppStore((s) =>
-    nativeChatHookWorkingStartedAt(s.agentStatusByPaneKey[paneKey])
-  )
-  const turnEpoch = useAppStore((s) => s.agentStatusByPaneKey[paneKey]?.turnStartedAt ?? null)
+  const workingEpoch = nativeChatHookWorkingStartedAt(useAgentStatus(paneKey))
+  const turnEpoch = useAgentStatus(paneKey)?.turnStartedAt ?? null
   const sendWorkingEpoch =
     (session.hookWorking ?? liveWorking) || session.hookAwaitingInput ? turnEpoch : undefined
   const canSend = useNativeChatCanSend(targetPtyId)
@@ -215,7 +213,8 @@ export function NativeChatResolvedView({
     questionAnswerInputRef,
     isVisible,
     isFocusedGroup,
-    composerReady
+    composerReady,
+    surfaceReady: shownPromptCard !== null
   })
 
   const pendingMessages = useMemo(
@@ -334,6 +333,7 @@ export function NativeChatResolvedView({
         }
         rootInput.onKeyDownCapture(event)
       }}
+      onKeyDown={(event) => closeNativeChatSubagentOnEscape(event, paneKey)}
       onContextMenuCapture={contextMenu.onContextMenuCapture}
       className={cn(
         NATIVE_CHAT_APPEARANCE_ROOT_CLASS,
@@ -360,6 +360,7 @@ export function NativeChatResolvedView({
         ) : (
           <NativeChatTerminalMessageList
             source={{ agent, sessionId, transcriptPath, paneKey, terminalTabId }}
+            find={find}
             ref={messageListRef}
             session={sessionWithPending}
             isVisible={isVisible}
@@ -405,7 +406,7 @@ export function NativeChatResolvedView({
       <NativeChatTerminalQueuedMessageList
         {...{ paneKey, agent, turnActive, composerRef, composerReady, workingInterrupted }}
       />
-      <NativeChatTerminalShellsStatus {...{ session, paneKey, isVisible, messageListRef }} />
+      <NativeChatTerminalShellsStatus {...{ session, paneKey, isVisible }} />
       <NativeChatTerminalComposerStrips
         {...{ terminalTabId, paneKey, isVisible, isWorking, canSend, composerRef }}
         {...{ messages: session.messages, promptShown: shownPromptCard !== null }}

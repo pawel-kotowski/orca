@@ -41,10 +41,7 @@ async function start(userDataPath: string): Promise<AgentHookServer> {
 async function claudeHook(server: AgentHookServer, payload: Record<string, unknown>) {
   const response = await postHookEvent(
     server,
-    buildBody(
-      { session_id: 'claude-lead', ...payload },
-      { agentProcess: JSON.stringify(PROCESS) }
-    )
+    buildBody({ session_id: 'claude-lead', ...payload }, { agentProcess: JSON.stringify(PROCESS) })
   )
   expect(response.status).toBe(204)
 }

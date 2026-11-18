@@ -1,14 +1,14 @@
 import { useLayoutEffect, useMemo, useRef, type RefObject } from 'react'
 import { Activity, Bot, SquareTerminal } from 'lucide-react'
-import { useAppStore } from '@/store'
-import { useNow } from '@/hooks/use-now'
+import { useAgentStatus } from '@/runtime/agent-status/use-agent-status'
+import { useNow } from '@/lib/window-activity/use-now'
 import type { NativeChatMessage } from '../../../../shared/native-chat/native-chat-types'
 import type { TranscriptBackgroundShell } from '../../../../shared/native-chat/transcript/native-chat-transcript-background-shells'
-import { formatNativeChatDuration } from '../../../../shared/native-chat/transcript/native-chat-turn-status'
+import { formatNativeChatDuration } from '../../../../shared/native-chat/transcript/turns/native-chat-turn-status'
 import { NativeChatActivityLine, type NativeChatActivityCell } from './NativeChatActivityLine'
 import { NativeChatWorkersStrip } from './NativeChatWorkersStrip'
-import type { NativeChatMessageListHandle } from './messages/actions/use-native-chat-reveal-latest'
 import { useNativeChatClaudeSubagentTranscripts } from './native-chat-claude-subagents-store'
+import { openNativeChatSubagent } from './subagents/native-chat-open-subagent'
 import { terminalChatBackgroundTasks } from './native-chat-terminal-background-tasks'
 
 /**
@@ -18,22 +18,20 @@ import { terminalChatBackgroundTasks } from './native-chat-terminal-background-t
  * upstream's "1 shell command" box hid what runs until clicked, then took three rows to show one
  * command, cut short): one thin line per kind above the message box (2026-11-10: "one row for
  * shells one for subagents ... many shells in one row until expanded"), each item named, with its
- * running time. A subagent opens its place in the transcript; a shell shows its full command on
+ * running time. A subagent opens its own transcript view; a shell shows its full command on
  * hover. The pane's Orca workers get the line above them.
  */
 export function NativeChatTerminalShellsStatus({
   session,
   paneKey,
-  isVisible,
-  messageListRef
+  isVisible
 }: {
   session: { messages: readonly NativeChatMessage[] }
   paneKey: string
   isVisible: boolean
-  messageListRef?: RefObject<NativeChatMessageListHandle | null>
 }): React.JSX.Element {
   const messages = session.messages
-  const agentLive = useAppStore((state) => Boolean(state.agentStatusByPaneKey[paneKey]))
+  const agentLive = Boolean(useAgentStatus(paneKey))
   const subagents = useNativeChatClaudeSubagentTranscripts(paneKey)
   // Why a slow clock: it only retires a Monitor past its timeout.
   const slowNow = useNow(30_000, isVisible && agentLive)
@@ -61,7 +59,7 @@ export function NativeChatTerminalShellsStatus({
           <button
             type="button"
             title={label}
-            onClick={() => messageListRef?.current?.revealSubagent(task.id)}
+            onClick={() => openNativeChatSubagent(paneKey, task.id)}
             className="flex h-4 w-full min-w-0 cursor-pointer items-center gap-1 rounded text-left outline-none hover:text-foreground focus-visible:ring-1 focus-visible:ring-ring"
           >
             <Bot aria-hidden="true" className="size-3 shrink-0" />

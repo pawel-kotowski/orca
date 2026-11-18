@@ -1,7 +1,4 @@
-import {
-  USAGE_URGENT_PERCENT,
-  USAGE_WARNING_PERCENT
-} from '../status-bar/provider-extra-usage-section'
+import { USAGE_URGENT_PERCENT, USAGE_WARNING_PERCENT } from '../status-bar/usage/usage-health-tone'
 
 /**
  * How full a limit is, as the theme says it: green while there is room, yellow as it nears, red

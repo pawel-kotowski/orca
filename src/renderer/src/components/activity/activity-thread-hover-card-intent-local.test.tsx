@@ -5,11 +5,11 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { HoverCardContent } from '@/components/ui/hover-card'
-import { ActivityThreadHoverCardRoot } from './activity-thread-hover-card-root'
+import { ActivityThreadHoverCardRoot } from './thread-preview/activity-thread-hover-card-root'
 import {
   _resetActivityHoverCardIntentForTest,
   ACTIVITY_HOVER_CARD_REST_MS
-} from './activity-thread-hover-card-intent'
+} from './thread-preview/activity-thread-hover-card-intent'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 

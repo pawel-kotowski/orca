@@ -2,7 +2,7 @@ import type { NativeChatMessage } from '../../../../../../shared/native-chat/nat
 import {
   nativeChatTurnAnswerRows,
   type NativeChatTurnFoldRow
-} from '../../../../../../shared/native-chat/transcript/native-chat-turn-fold'
+} from '../../../../../../shared/native-chat/transcript/folding/native-chat-turn-fold'
 import type { NativeChatTranscriptSlot } from './native-chat-transcript-slots'
 
 /**

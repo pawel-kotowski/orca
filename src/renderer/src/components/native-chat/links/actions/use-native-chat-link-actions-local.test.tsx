@@ -4,7 +4,7 @@ import { useRef } from 'react'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { LinkActionPopover } from '@/components/link-actions/LinkActionPopover'
-import CommentMarkdown from '@/components/sidebar/CommentMarkdown'
+import CommentMarkdown from '@/components/comment-markdown/CommentMarkdown'
 import { useNativeChatLinkActions } from './use-native-chat-link-actions'
 
 const mocks = vi.hoisted(() => ({

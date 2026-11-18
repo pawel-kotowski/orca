@@ -139,7 +139,7 @@ function findByProp(node: unknown, propName: string): ReactElementLike {
 
 async function renderToggle(open = false, onToggle = vi.fn()): Promise<unknown> {
   hookRuntime.index = 0
-  const { FloatingTerminalToggleButton } = await import('./FloatingTerminalToggleButton')
+  const { FloatingTerminalToggleButton } = await import('./trigger/FloatingTerminalToggleButton')
   return FloatingTerminalToggleButton({ open, onToggle })
 }
 

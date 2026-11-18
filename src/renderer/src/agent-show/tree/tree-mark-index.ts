@@ -4,7 +4,7 @@ import {
   normalizeRuntimePathForComparison,
   relativePathInsideRoot,
   resolveRuntimePath
-} from '../../../../shared/cross-platform-path'
+} from '../../../../shared/file-access/cross-platform-path'
 
 export type TreeMarkEntry = { path: string; label?: string; isDirectory: boolean }
 

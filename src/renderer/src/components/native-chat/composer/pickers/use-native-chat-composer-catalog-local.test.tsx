@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { renderHook } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import { getVerifiedNativeChatCommands } from '../../../../../../shared/native-chat/native-chat-agent-profiles'
+import { getVerifiedNativeChatCommands } from '../../../../../../shared/native-chat/input/commands/native-chat-agent-profiles'
 import { useNativeChatComposerCatalog } from './use-native-chat-composer-catalog'
 import { withNativeChatResumeCommand } from './use-native-chat-resume-command'
 

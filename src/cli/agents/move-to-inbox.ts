@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import type { CommandHandler } from '../dispatch/dispatch'
 import { getRequiredStringFlag } from '../arguments/flags'
-import { RuntimeClientError } from '../runtime/types'
+import { RuntimeClientError } from '../runtime/connection/types'
 import { ORCA_MOVE_TO_INBOX_PATH } from '../../shared/agent-status/contracts/agent-reach-out'
 
 type HookEndpoint = { port: string; token: string }

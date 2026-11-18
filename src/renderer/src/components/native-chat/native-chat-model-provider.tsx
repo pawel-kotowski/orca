@@ -1,4 +1,4 @@
-import { ClaudeIcon, GeminiIcon, OpenAIIcon } from '../status-bar/icons'
+import { ClaudeIcon, GeminiIcon, OpenAIIcon } from '../status-bar/accounts/provider-icons'
 import type { SessionOptionDescriptor } from '../../../../shared/native-chat/input/native-chat-session-options'
 
 export type NativeChatModelProvider = 'anthropic' | 'openai' | 'google'

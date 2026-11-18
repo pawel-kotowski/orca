@@ -1,5 +1,5 @@
 import type { NativeChatConversationSummary } from '../../../../shared/native-chat/transcript/native-chat-conversation-summary'
-import type { AgentPaneThread } from './activity-thread-types'
+import type { AgentPaneThread } from './threads/activity-thread-types'
 
 /**
  * A card whose transcript Orca cannot read (a closed or finished session, another agent) still

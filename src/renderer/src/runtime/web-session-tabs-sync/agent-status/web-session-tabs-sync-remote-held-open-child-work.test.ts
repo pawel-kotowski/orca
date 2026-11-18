@@ -1,11 +1,11 @@
 /** A paired pane whose lead turn ended (the laptop reads `done` from the PTY bytes) while the host still sees the background shell it left running. Only the host can see that work, so its held-open row must win over the byte `done`, or the card sits under Standing by (Paweł, 2026-11-12). */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { RuntimeMobileSessionTabsResult } from '../../../../../shared/runtime-session-contracts'
+import type { RuntimeMobileSessionTabsResult } from '../../../../../shared/remote-runtime/session-graph/runtime-session-contracts'
 import type { AgentStatusEntry } from '../../../../../shared/agent-status/contracts/agent-status-types'
 
 import { makePaneKey } from '../../../../../shared/workspace-layout/stable-pane-id'
 import { toWebTerminalSurfaceTabId } from '../../../../../shared/workspace-layout/terminal-surface-id'
-import { getDefaultSettings } from '../../../../../shared/constants'
+import { getDefaultSettings } from '../../../../../shared/orca-profiles/constants'
 import type { AppState } from '../../../store/types'
 import { createTestStore, seedStore } from '../../../store/testing/app-store-test-fixture'
 import { makeWorktree } from '../../../store/slices/worktrees/worktree.test-fixture'
@@ -15,9 +15,9 @@ import {
   resetRendererOwnedAgentStatusPanesForTests,
   resolveRendererOwnedAgentStatusTiming
 } from '../../../components/terminal-pane/agent-status/renderer-owned-agent-status-registry'
-import { applyWebSessionTabsSnapshot } from '../snapshot-api'
-import { resetWebSessionTabsSnapshotFreshnessForTests } from '../tracking-lifecycle'
-import { shouldApplyWebSessionTabsSnapshot } from '../tracking-decisions'
+import { applyWebSessionTabsSnapshot } from '../snapshots/snapshot-api'
+import { resetWebSessionTabsSnapshotFreshnessForTests } from '../tracking/tracking-lifecycle'
+import { shouldApplyWebSessionTabsSnapshot } from '../tracking/tracking-decisions'
 
 // Mirror imports app singleton; redirect it to this createTestStore harness.
 vi.mock('../../../store/index', () => ({
@@ -119,7 +119,9 @@ function replayClientOscWorking(store: TestStore, clientNow: number): () => void
       MIRROR_PANE_KEY,
       { state: 'working', prompt: CLIENT_PROMPT, agentType: 'claude' },
       'claude',
-      resolveRendererOwnedAgentStatusTiming(store.getState().agentStatusByPaneKey[MIRROR_PANE_KEY]),
+      resolveRendererOwnedAgentStatusTiming(
+        store.getState().agentStatusByPaneKey.get(MIRROR_PANE_KEY)
+      ),
       { tabId: MIRROR_TAB_ID, worktreeId: WT }
     )
   return release
@@ -159,7 +161,9 @@ function replayClientOscDone(store: TestStore, clientNow: number): void {
       MIRROR_PANE_KEY,
       { state: 'done', prompt: CLIENT_PROMPT, agentType: 'claude' },
       'claude',
-      resolveRendererOwnedAgentStatusTiming(store.getState().agentStatusByPaneKey[MIRROR_PANE_KEY]),
+      resolveRendererOwnedAgentStatusTiming(
+        store.getState().agentStatusByPaneKey.get(MIRROR_PANE_KEY)
+      ),
       { tabId: MIRROR_TAB_ID, worktreeId: WT }
     )
 }
@@ -181,7 +185,7 @@ describe('remote-paired pane: host child work outranks the byte done', () => {
     const store = seedPairedClientStore()
     replayClientOscWorking(store, T0 + 100)
     replayClientOscDone(store, T0 + 500)
-    expect(store.getState().agentStatusByPaneKey[MIRROR_PANE_KEY]?.state).toBe('done')
+    expect(store.getState().agentStatusByPaneKey.get(MIRROR_PANE_KEY)?.state).toBe('done')
 
     applyHostSnapshot(
       store,
@@ -199,7 +203,7 @@ describe('remote-paired pane: host child work outranks the byte done', () => {
       }),
       T0 + 1_000
     )
-    const entry = store.getState().agentStatusByPaneKey[MIRROR_PANE_KEY]
+    const entry = store.getState().agentStatusByPaneKey.get(MIRROR_PANE_KEY)
     expect(entry?.state).toBe('working')
     expect(entry?.workingMode).toBe('monitoring')
   })
@@ -219,6 +223,6 @@ describe('remote-paired pane: host child work outranks the byte done', () => {
       }),
       T0 + 1_000
     )
-    expect(store.getState().agentStatusByPaneKey[MIRROR_PANE_KEY]?.state).toBe('done')
+    expect(store.getState().agentStatusByPaneKey.get(MIRROR_PANE_KEY)?.state).toBe('done')
   })
 })

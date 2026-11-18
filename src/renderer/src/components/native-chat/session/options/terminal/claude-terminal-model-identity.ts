@@ -1,4 +1,4 @@
-import type { CatalogModel } from '../../../../../../../shared/agent-session/options/agent-session-option-catalog-types'
+import type { CatalogModel } from '../../../../../../../shared/agent-session/options/catalog-providers/agent-session-option-catalog-types'
 import type {
   SessionOptionDescriptor,
   SessionOptionValue

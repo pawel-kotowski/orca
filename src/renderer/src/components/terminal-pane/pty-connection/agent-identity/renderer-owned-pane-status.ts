@@ -45,7 +45,7 @@ export function installRendererOwnedPaneStatus(session: ConnectPanePtySession): 
           agentType ?? authoritativePaneAgent
         )
       : resolvedStatusTitle
-    const existing = currentState.agentStatusByPaneKey[session.cacheKey]
+    const existing = currentState.agentStatusByPaneKey.get(session.cacheKey)
     // Why: the adopted host row already says the lead finished and names the work it left
     // running; a byte `done` carries no news and would hide that work (hostChildWorkOutranksClientDone).
     const hostRowAlreadySaysDone =
@@ -79,7 +79,7 @@ export function installRendererOwnedPaneStatus(session: ConnectPanePtySession): 
     if (payload.state === 'working' && session.syncAgentTaskCompleteTrackingEnabled()) {
       session.requiresFreshWorkingForAgentTaskCompleteNotification = false
     }
-    const storedStatus = useAppStore.getState().agentStatusByPaneKey[session.cacheKey]
+    const storedStatus = useAppStore.getState().agentStatusByPaneKey.get(session.cacheKey)
     const notificationPayload =
       typeof storedStatus?.stateStartedAt === 'number'
         ? { ...statusPayload, stateStartedAt: storedStatus.stateStartedAt }

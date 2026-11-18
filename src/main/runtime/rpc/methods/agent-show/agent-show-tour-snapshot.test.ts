@@ -6,7 +6,7 @@ import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import type { OrcaRuntimeService } from '../../../orca-runtime'
 import type { RpcContext } from '../../core'
-import { LOCAL_EXECUTION_HOST_ID } from '../../../../../shared/execution-host'
+import { LOCAL_EXECUTION_HOST_ID } from '../../../../../shared/execution-host/execution-host'
 import { AGENT_SHOW_METHODS } from './agent-show'
 
 const snapshot = AGENT_SHOW_METHODS.find((method) => method.name === 'agentShow.tourSnapshot')!

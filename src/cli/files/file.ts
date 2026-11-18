@@ -1,11 +1,11 @@
 import { getFileOpenPosition } from './file-open-position'
 import type { GitStatusEntry, GitStatusResult } from '../../shared/git/status/git-status-types'
 import type { RuntimeFileOpenResult } from '../../shared/file-access/runtime-editor-file-open'
-import type { RuntimeNavigationTarget } from '../../shared/runtime-navigation'
+import type { RuntimeNavigationTarget } from '../../shared/remote-runtime/session-graph/runtime-navigation'
 import type { CommandHandler, HandlerContext } from '../dispatch/dispatch'
 import { getOptionalStringFlag, getRequiredStringFlag } from '../arguments/flags'
 import { printResult } from '../output/command-result-output'
-import { RuntimeClientError } from '../runtime/types'
+import { RuntimeClientError } from '../runtime/connection/types'
 import { callFileOpen } from './file-open-call'
 import { getFileWorktreeSelector, resolveFilePath } from './file-worktree-target'
 

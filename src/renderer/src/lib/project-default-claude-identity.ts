@@ -1,9 +1,9 @@
-import type { ClaudeManagedAccount } from '../../../shared/managed-account-types'
+import type { ClaudeManagedAccount } from '../../../shared/agent-accounts/managed-account-types'
 import type { AppState } from '@/store/types'
 import { projectDefaultClaudeAccountId } from '../../../shared/claude-workspace-account'
 import { getRepoIdFromWorktreeId } from '../../../shared/worktree/id'
-import { projectMatchesRepo } from '../../../shared/project-repo-match'
-import { getProjectIdentityKey } from '../../../shared/project-host-setup-projection'
+import { projectMatchesRepo } from '../../../shared/project/project-repo-match'
+import { getProjectIdentityKey } from '../../../shared/project/host-setup/project-host-setup-projection'
 import { getProjectHostSetupProjectionFromState } from '@/store/projects/project-host-setup-selector'
 
 type State = Pick<AppState, 'repos' | 'settings'> &

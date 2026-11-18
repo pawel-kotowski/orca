@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useAppStore } from '@/store'
 import { isAiVaultAgent } from '../../../../shared/ai-vault/contracts/ai-vault-types'
-import { LOCAL_EXECUTION_HOST_ID } from '../../../../shared/execution-host'
+import { LOCAL_EXECUTION_HOST_ID } from '../../../../shared/execution-host/execution-host'
 import {
   summarizeNativeChatConversation,
   type NativeChatConversationSummary
@@ -10,7 +10,7 @@ import { resolveNativeChatSession } from '../native-chat/pane/routing/native-cha
 import { createNativeChatRuntimeSelector } from '../native-chat/pane/ownership/native-chat-runtime-owner'
 import { useNativeChatRetainedSession } from '../native-chat/session/terminal/read/use-native-chat-retained-session'
 import type { NativeChatLiveSession } from '../native-chat/session/terminal/read/native-chat-live-session-contract'
-import type { AgentPaneThread } from './activity-thread-types'
+import type { AgentPaneThread } from './threads/activity-thread-types'
 import { noteMyPromptAt } from './activity-my-prompt-times'
 
 export type ActivityThreadConversation = {

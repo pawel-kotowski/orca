@@ -3,7 +3,7 @@
 // (openGitGraph: one 'git-graph' tab per workspace, opened on the workspace's own host).
 import { useAppStore } from '@/store'
 import { openGitGraph } from '@/lib/source-control/graph/git-graph-tab'
-import { isFolderRepo } from '../../../../../shared/repo-kind'
+import { isFolderRepo } from '../../../../../shared/repository/repo-kind'
 import { getRepoIdFromWorktreeId } from '../../../../../shared/worktree/id'
 
 /** `targetGroupId`: the tab group to open in (the + menu's group); the active group otherwise. */

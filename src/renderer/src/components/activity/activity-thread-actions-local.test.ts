@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { FLOATING_TERMINAL_WORKTREE_ID } from '../../../../shared/constants'
-import { TOGGLE_FLOATING_TERMINAL_EVENT } from '@/components/floating-terminal/floating-terminal'
-import { makeRepo, makeTab, makeWorktree } from './ActivityPrototypePage-test-fixtures'
-import type { AgentPaneThread } from './activity-thread-types'
+import { FLOATING_TERMINAL_WORKTREE_ID } from '../../../../shared/workspace/identity/floating-workspace-id'
+import { TOGGLE_FLOATING_TERMINAL_EVENT } from '@/components/floating-terminal/workspace/floating-workspace-open-intent'
+import { makeRepo, makeTab, makeWorktree } from './development/activity-test-fixtures-local'
+import type { AgentPaneThread } from './threads/activity-thread-types'
 
 // Local-only: the floating panel toggles from its activity cards (70de5db983, fce1e1fa20).
 
@@ -28,7 +28,7 @@ vi.mock('@/components/floating-terminal/floating-workspace-availability', () => 
   floatingWorkspaceUnavailableReason: () => null
 }))
 
-import { createActivityThreadActions } from './activity-thread-actions'
+import { createActivityThreadActions } from './thread-list/activity-thread-actions'
 import {
   activityHidesWorkbench,
   setActivityHidesWorkbench

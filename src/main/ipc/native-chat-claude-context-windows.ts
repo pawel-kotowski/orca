@@ -1,13 +1,13 @@
 import { ipcMain } from 'electron'
 import { agentHookServer } from '../agent-hooks/server/agent-hook-server'
-import { nativeChatTranscriptPathOnExecutionHost } from '../native-chat/ssh-transcript-path'
+import { nativeChatTranscriptPathOnExecutionHost } from '../native-chat/transcript-filesystem/ssh-transcript-path'
 import { readClaudeModelContextWindows } from '../claude/claude-model-catalog-context-windows'
 import { listClaudeProjectSessions } from '../claude/claude-project-sessions'
 import { readNativeChatClaudeSubagents } from '../native-chat/native-chat-claude-subagents-read'
 import { forkNativeChatClaudeTranscript } from '../native-chat/native-chat-claude-terminal-fork'
 import { readClaudeSessionEffortSettings } from '../claude/claude-session-effort'
 import { claudeSessionRecordDirs } from './pty/host-env/live-claude-session-holder'
-import { getAppEnvironment } from '../../shared/app-environment'
+import { getAppEnvironment } from '../../shared/app-lifecycle/app-environment'
 
 /** A terminal-backed Claude chat asks for its models' context windows to size its context readout. */
 export function registerNativeChatClaudeContextWindowsHandler(): void {

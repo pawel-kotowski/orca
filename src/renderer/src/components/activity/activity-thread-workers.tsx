@@ -1,10 +1,13 @@
 import { useSyncExternalStore } from 'react'
 import { ChevronRight } from 'lucide-react'
-import { AgentStateDot } from '@/components/AgentStateDot'
+import { AgentStateDot } from '@/components/agent/status/AgentStateDot'
 import { cn } from '@/lib/class-names'
 import { translate } from '@/i18n/i18n'
-import { activityThreadRowCopy, activityThreadStatusId } from './activity-thread-presentation'
-import type { AgentPaneThread } from './activity-thread-types'
+import {
+  activityThreadRowCopy,
+  activityThreadStatusId
+} from './threads/activity-thread-presentation'
+import type { AgentPaneThread } from './threads/activity-thread-types'
 import { useActivityWorkersContext } from './activity-workers'
 import { useActivityThreadConversation } from './use-activity-thread-conversation'
 import { useAppStore } from '@/store'

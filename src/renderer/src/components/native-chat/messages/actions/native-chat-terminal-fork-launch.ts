@@ -1,5 +1,5 @@
 import { toast } from 'sonner'
-import { createNonSecureContextUuid } from '../../../../../../shared/non-secure-context-uuid'
+import { createNonSecureContextUuid } from '../../../../../../shared/identifiers/non-secure-context-uuid'
 import { useAppStore } from '@/store/index'
 import { translate } from '@/i18n/i18n'
 import { callRuntimeRpc } from '@/runtime/rpc/calls/runtime-rpc-call'

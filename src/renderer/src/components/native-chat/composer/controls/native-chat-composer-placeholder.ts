@@ -1,7 +1,7 @@
 import type { NativeChatAfterStopSend } from '../submit/native-chat-composer-target'
 import { translate } from '../../../../i18n/i18n'
 import type { Translate } from '../../../../i18n/use-translate'
-import { NATIVE_CHAT_TURN_STATUS_COPY } from '../../../../../../shared/native-chat/transcript/native-chat-turn-status'
+import { NATIVE_CHAT_TURN_STATUS_COPY } from '../../../../../../shared/native-chat/transcript/turns/native-chat-turn-status'
 
 export function nativeChatComposerPlaceholder(
   hasPty: boolean,

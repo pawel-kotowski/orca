@@ -1,7 +1,7 @@
 import type { AppState } from '@/store/types'
-import { onScreenWorkspaceIds } from '@/hooks/agent-auto-ack-targets'
+import { onScreenWorkspaceIds } from '@/attention/agent-auto-ack-targets'
 import { selectFloatingWorkspacePanelVisible } from '@/store/workspaces/floating/floating-workspace-panel-selector'
-import { isFloatingWorkspaceId } from '../../../shared/floating-workspace-worktree'
+import { isFloatingWorkspaceId } from '../../../shared/workspace/identity/floating-workspace-worktree'
 
 /** Said whenever a show lands while the window is not drawn, so the agent never claims the user saw it. */
 export const WINDOW_HIDDEN_DETAIL =

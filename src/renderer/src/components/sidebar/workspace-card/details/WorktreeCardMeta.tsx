@@ -5,9 +5,9 @@ import { getWorkspaceAttachments } from '../../../../../../shared/workspace-atta
 import { WorktreeCardLinkedItemsSection } from '../review/WorktreeCardLinkedItemsSection'
 import { HoverCard, HoverCardTrigger, HoverCardContent } from '@/components/ui/hover-card'
 import { useAppStore } from '@/store'
-import { nativeChatWorkspaceHoverDetails } from '../../../../../../shared/native-chat/native-chat-appearance-settings'
+import { nativeChatWorkspaceHoverDetails } from '../../../../../../shared/native-chat/settings/native-chat-appearance-settings'
 import { Pencil, StickyNote } from 'lucide-react'
-import { SelectedTextCopyMenu } from '@/components/SelectedTextCopyMenu'
+import { SelectedTextCopyMenu } from '@/components/clipboard/SelectedTextCopyMenu'
 import '../../workspace-actions/context-menu/WorktreeContextMenu'
 import { WORKTREE_NATIVE_CONTEXT_MENU_ATTR } from '../../workspace-actions/context-menu/worktree-context-menu-policy'
 import {
@@ -26,7 +26,11 @@ import { WorktreeCardCliDetailSection } from './WorktreeCardCliDetailSection'
 import { WorktreeCardTaskDetailSection } from '../review/WorktreeCardTaskDetailSection'
 import { getWorktreeCardTaskActions } from '../review/worktree-card-task-actions'
 import { WorktreeCardHoverIdentityHeader } from './WorktreeCardHoverIdentityHeader'
-import { CommentMarkdownAsync, preloadCommentMarkdown } from '../../comment-markdown-lazy'
+import {
+  CommentMarkdownAsync,
+  preloadCommentMarkdown
+} from '../../../comment-markdown/comment-markdown-lazy'
+import { useActivityThreadHoverCardIntent } from '@/components/activity/thread-preview/activity-thread-hover-card-intent'
 
 const COMMENT_MARKDOWN_CLASS_NAME =
   'text-[11.5px] text-foreground break-words leading-normal [&_.comment-md-p]:block [&_.comment-md-p+.comment-md-p]:mt-1'
@@ -106,6 +110,12 @@ export function WorktreeCardDetailsHover({
     },
     [handleHoverOpenChange, workspaceTitleEditing]
   )
+  // Same rest-to-peek intent as agent activity rows so passing pointers don't flash the card.
+  const hoverIntent = useActivityThreadHoverCardIntent({
+    open: hoverOpen || workspaceTitleEditing,
+    onOpenChange: handleEffectiveHoverOpenChange,
+    openDelay
+  })
   const dismissAndRun = React.useCallback(
     (handler: ((event: React.MouseEvent) => void) | undefined) => (event: React.MouseEvent) => {
       closeHover()
@@ -147,8 +157,8 @@ export function WorktreeCardDetailsHover({
   return (
     <HoverCard
       open={workspaceTitleEditing || (!contextMenuOpen && hoverOpen)}
-      onOpenChange={handleEffectiveHoverOpenChange}
-      openDelay={openDelay}
+      onOpenChange={hoverIntent.onOpenChange}
+      openDelay={0}
       closeDelay={closeDelay}
     >
       <span className="contents" onClick={(event) => event.stopPropagation()}>
@@ -156,7 +166,13 @@ export function WorktreeCardDetailsHover({
       </span>
       <HoverCardTrigger
         asChild
-        onPointerEnter={hasComment(comment) ? preloadCommentMarkdown : undefined}
+        {...hoverIntent.triggerHandlers}
+        onPointerEnter={(event) => {
+          hoverIntent.triggerHandlers.onPointerEnter(event)
+          if (hasComment(comment)) {
+            preloadCommentMarkdown()
+          }
+        }}
       >
         {children}
       </HoverCardTrigger>

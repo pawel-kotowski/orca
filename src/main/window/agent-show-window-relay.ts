@@ -12,7 +12,7 @@ import type {
   AgentShowWindowRequest
 } from '../../shared/agent-show/agent-show-window-relay'
 import { withPaintingWhileHidden } from '../plugins/view/plugin-view-capture'
-import { requestRendererReply } from './renderer-reply-request'
+import { requestRendererReply } from './renderer-relays/renderer-reply-request'
 
 // Why 20s: showing code may wait for an editor to mount and lay out before it reports visibility.
 const AGENT_SHOW_TIMEOUT_MS = 20_000

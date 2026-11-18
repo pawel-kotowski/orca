@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import type { CatalogModel } from '../../../../../../../shared/agent-session/options/agent-session-option-catalog-types'
+import type { CatalogModel } from '../../../../../../../shared/agent-session/options/catalog-providers/agent-session-option-catalog-types'
 import type { SessionOptionDescriptor } from '../../../../../../../shared/native-chat/input/native-chat-session-options'
 import {
   nativeChatModelPillLabel,
   sayNativeChatSessionOptionEnglish
-} from '../../../../../../../shared/native-chat/input/native-chat-session-option-labels'
+} from '../../../../../../../shared/native-chat/input/session-options/native-chat-session-option-labels'
 import {
   claudeSessionValuesToReport,
   claudeVersionedModelId

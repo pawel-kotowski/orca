@@ -12,7 +12,7 @@ import {
 import { translate } from '@/i18n/i18n'
 import { saveWorkspaceClaudeAccount } from '@/lib/workspace-claude-account'
 import { makePaneKey } from '../../../../shared/workspace-layout/stable-pane-id'
-import type { ClaudeManagedAccount } from '../../../../shared/managed-account-types'
+import type { ClaudeManagedAccount } from '../../../../shared/agent-accounts/managed-account-types'
 import { accountShortName } from './native-chat-account-usage'
 
 /**

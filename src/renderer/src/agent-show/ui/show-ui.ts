@@ -3,7 +3,7 @@ import type {
   AgentShowHandler,
   AgentShowState
 } from '../../../../shared/agent-show/agent-show-contract'
-import { relativePathInsideRoot } from '../../../../shared/cross-platform-path'
+import { relativePathInsideRoot } from '../../../../shared/file-access/cross-platform-path'
 import { activateBrowserWorkspaceTab } from '@/lib/browser/workspace/browser-workspace-tab-activation'
 import { useAppStore } from '@/store/index'
 import { isUiPageOnScreen, resolveUiPageTarget } from './ui-page-target'

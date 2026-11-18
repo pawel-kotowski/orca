@@ -12,7 +12,7 @@ import { useTranslate } from '@/i18n/use-translate'
 import { useAppStore } from '@/store'
 import { getExecutionHostIdForWorktree } from '@/lib/workspace/ownership/worktree-runtime-owner'
 import { runtimeRpcTargetForAuthorityKey } from '@/runtime/rpc/targets/runtime-client-target'
-import type { ClaudeManagedAccount } from '../../../../../../shared/managed-account-types'
+import type { ClaudeManagedAccount } from '../../../../../../shared/agent-accounts/managed-account-types'
 import {
   accountShortName,
   resolveChatClaudeAccount,

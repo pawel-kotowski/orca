@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { decodeClaudeTranscriptLine } from './transcript-line-decoders-claude'
+import { decodeClaudeTranscriptLine } from './transcript-decoding/transcript-line-decoders-claude'
 
 // A Claude Code 2.1.318 away recap, as its transcript stores it.
 const recapLine = JSON.stringify({

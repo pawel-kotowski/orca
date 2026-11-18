@@ -9,7 +9,7 @@ import type {
 } from '../../shared/agent-session/journal/agent-session-journal-types'
 import type { NativeChatBlock, NativeChatMessage } from '../../shared/native-chat/native-chat-types'
 import { asRecord } from '../ai-vault/parsing/session-record-fields'
-import { extractString } from '../../shared/trimmed-string'
+import { extractString } from '../../shared/text/trimmed-string'
 import { timestampMs } from '../ai-vault/parsing/session-record-time'
 
 const LOCAL_COMMAND_STDOUT = /^\s*<local-command-stdout>([\s\S]*)<\/local-command-stdout>\s*$/

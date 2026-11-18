@@ -6,7 +6,7 @@ import { carryAgentReachOut } from '../../../../shared/agent-status/contracts/ag
 import { buildActivityInboxFacts } from './activity-inbox-facts'
 import { activityThreadSection, isActivityThreadStandingBy } from './activity-inbox-sections'
 import { activityWorkerPlacement, type ActivityWorkers } from './activity-workers'
-import type { AgentPaneThread } from './activity-thread-types'
+import type { AgentPaneThread } from './threads/activity-thread-types'
 import { activityThreadsAnsweringYou } from './activity-your-messages'
 
 const NO_WORKERS: ActivityWorkers = {

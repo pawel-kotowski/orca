@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { ClaudeManagedAccount } from '../../shared/managed-account-types'
+import type { ClaudeManagedAccount } from '../../shared/agent-accounts/managed-account-types'
 import { CLAUDE_WORKSPACE_ACCOUNT_ENV } from '../../shared/claude-workspace-account'
 import type { ClaudeProfileSetupReport } from './profiles/setup/claude-profile-setup'
 import {

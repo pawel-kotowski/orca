@@ -2,22 +2,30 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, vi } from 'vitest'
-import { spawnMock } from './pty/pty-ipc-mock-registry'
-import { posixOnlyIt } from './pty/pty-ipc-test-constants'
-import { setupPtyIpcSuite } from './pty/pty-ipc-test-harness'
+import { spawnMock } from './pty/testing-local/pty-ipc-mock-registry'
+import { posixOnlyIt } from './pty/testing-local/pty-ipc-test-constants'
+import { setupPtyIpcSuite } from './pty/testing-local/pty-ipc-test-harness'
 import { POSIX_SHELL_STARTUP_COMMAND_ENV } from '../pty/shell-startup/posix-shell-startup-command'
 import { registerPtyHandlers } from './pty/register-handlers'
 import { OrcaRuntimeService } from '../runtime/orca-runtime'
 import { AgentSessionRecordStore } from '../runtime/agent-session/records/agent-session-record-store'
 
-vi.mock('electron', () => import('./pty/pty-ipc-mock-registry').then((m) => m.electronModuleMock()))
-vi.mock('fs', () => import('./pty/pty-ipc-mock-registry').then((m) => m.fsModuleMock()))
-vi.mock('node-pty', () => import('./pty/pty-ipc-mock-registry').then((m) => m.nodePtyModuleMock()))
+vi.mock('electron', () =>
+  import('./pty/testing-local/pty-ipc-mock-registry').then((m) => m.electronModuleMock())
+)
+vi.mock('fs', () =>
+  import('./pty/testing-local/pty-ipc-mock-registry').then((m) => m.fsModuleMock())
+)
+vi.mock('node-pty', () =>
+  import('./pty/testing-local/pty-ipc-mock-registry').then((m) => m.nodePtyModuleMock())
+)
 vi.mock('node:child_process', async (importOriginal) =>
-  (await import('./pty/pty-ipc-mock-registry')).childProcessModuleMock(await importOriginal())
+  (await import('./pty/testing-local/pty-ipc-mock-registry')).childProcessModuleMock(
+    await importOriginal()
+  )
 )
 vi.mock('../agent-hooks/server', () =>
-  import('./pty/pty-ipc-mock-registry').then((m) => m.agentHookServerModuleMock())
+  import('./pty/testing-local/pty-ipc-mock-registry').then((m) => m.agentHookServerModuleMock())
 )
 
 // Paweł, 2026-11-05: in daemon-fallback mode a floating pane whose saved terminal

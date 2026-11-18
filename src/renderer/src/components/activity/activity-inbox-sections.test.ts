@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { isActivityThreadStandingBy } from './activity-inbox-sections'
-import type { AgentPaneThread } from './activity-thread-types'
+import type { AgentPaneThread } from './threads/activity-thread-types'
 
 function clearedThread(currentAgentState: AgentPaneThread['currentAgentState']): AgentPaneThread {
   return {

@@ -12,7 +12,8 @@ const base: NativeChatComposerSendState = {
   hasDraft: true,
   sendButtonDisabled: false,
   alternateSend: undefined,
-  chordSteersHead: false
+  chordSteersHead: false,
+  promptSuggestion: undefined
 }
 
 afterEach(() => {

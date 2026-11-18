@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { AgentShowRequest } from '../agent-show/agent-show-contract'
-import { WorktreeSelector } from './files-target-params'
+import { WorktreeSelector } from './filesystem/files-target-params'
 
 export const AgentShowRequestParams = WorktreeSelector.extend({
   request: AgentShowRequest,

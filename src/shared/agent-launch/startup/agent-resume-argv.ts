@@ -2,7 +2,8 @@ import type {
   AgentProviderSessionMetadata,
   ResumableTuiAgent
 } from '../../agent-session/lifecycle/agent-session-resume'
-import { ompTranscriptProfileArgs } from '../../omp-profile'
+import { ompTranscriptProfileArgs } from './omp-profile'
+import { hermesStateDbProfileArgs } from './hermes-profile'
 
 /**
  * Claude writes a conversation's transcript only with its first message, so an empty chat cannot be
@@ -103,7 +104,9 @@ export function getAgentResumeArgv(
     case 'kiro':
       return providerSession.key === 'session_id' ? ['kiro-cli', '--resume-id', id] : null
     case 'hermes':
-      return providerSession.key === 'session_id' ? ['hermes', '--resume', id] : null
+      return providerSession.key === 'session_id'
+        ? ['hermes', ...hermesStateDbProfileArgs(providerSession.transcriptPath), '--resume', id]
+        : null
   }
 }
 

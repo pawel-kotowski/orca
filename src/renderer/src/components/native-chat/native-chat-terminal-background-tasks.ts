@@ -1,4 +1,4 @@
-import type { AgentSessionBackgroundTask } from '../../../../shared/agent-session/agent-session-background-task-wire'
+import type { AgentSessionBackgroundTask } from '../../../../shared/agent-session/background-tasks/agent-session-background-task-wire'
 import type { NativeChatMessage } from '../../../../shared/native-chat/native-chat-types'
 import type { NativeChatSubagentTranscript } from '../../../../shared/native-chat/native-chat-subagent-transcripts'
 import { claudeSubagentRoster } from '../../../../shared/native-chat/transcript/native-chat-claude-subagent-merge'

@@ -6,7 +6,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/class-names'
 import { formatShortTimeAgo } from '@/lib/time-format/short-time-ago'
-import { useNow } from '@/hooks/use-now'
+import { useNow } from '@/lib/window-activity/use-now'
 import { translate } from '@/i18n/i18n'
 import { useAppStore } from '@/store'
 import { makePaneKey } from '../../../../shared/workspace-layout/stable-pane-id'

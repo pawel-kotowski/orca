@@ -1,9 +1,9 @@
 import { createContext, useContext, useMemo } from 'react'
 import { useAppStore } from '@/store'
 import type { AgentReachOut } from '../../../../shared/agent-status/contracts/agent-reach-out'
-import { isRunningActivityState } from './activity-event-state'
+import { isRunningActivityState } from './events/activity-event-state'
 import type { ActivityWorkers } from './activity-workers'
-import type { AgentPaneThread } from './activity-thread-types'
+import type { AgentPaneThread } from './threads/activity-thread-types'
 import { activityThreadTurnStartedAt } from './activity-thread-prompt-time'
 import { activityThreadsAnsweringYou, useYourChatMessageAtByPtyId } from './activity-your-messages'
 

@@ -1,8 +1,8 @@
-import type { Tab } from '../../../shared/tab-types'
+import type { Tab } from '../../../shared/workspace-layout/tab-groups/tab-types'
 import type { TuiAgent } from '../../../shared/agent-launch/catalog/tui-agent'
-import { cliAgentsOpenInChat } from '../../../shared/native-chat/native-chat-appearance-settings'
+import { cliAgentsOpenInChat } from '../../../shared/native-chat/settings/native-chat-appearance-settings'
 import { isNativeChatAgentAvailable } from '../../../shared/native-chat/native-chat-availability'
-import { isNativeChatTranscriptLocalReadable } from '../../../shared/native-chat/transcript/native-chat-transcript-readability'
+import { isNativeChatTranscriptLocalReadable } from '../../../shared/native-chat/transcript/messages/native-chat-transcript-readability'
 import { getConnectionIdFromState } from '@/lib/workspace/ownership/connection-owner-resolution'
 import type { AppState } from '@/store/types'
 
@@ -38,4 +38,28 @@ export function resolveAgentTabViewMode(
     return requested
   }
   return defaultAgentTabViewMode(state, worktreeId, agent) ?? requested
+}
+
+/**
+ * The view a tab being created opens in: the caller's choice, else "Open CLI agents in Chat UI"
+ * for a new agent launch; a tab adopting a live or mirrored PTY keeps the view it already had.
+ */
+export function newTerminalTabViewMode(
+  state: AppState,
+  worktreeId: string,
+  options:
+    | {
+        viewMode?: Tab['viewMode']
+        initialPtyId?: unknown
+        mirroredHostTab?: unknown
+        launchAgent?: TuiAgent
+      }
+    | undefined
+): Tab['viewMode'] | undefined {
+  if (options?.viewMode) {
+    return options.viewMode
+  }
+  return options?.initialPtyId || options?.mirroredHostTab
+    ? undefined
+    : defaultAgentTabViewMode(state, worktreeId, options?.launchAgent)
 }

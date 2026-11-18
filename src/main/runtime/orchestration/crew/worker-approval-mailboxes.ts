@@ -1,6 +1,6 @@
 import type { OrchestrationDb } from '../db/orchestration-db'
 import { readCrewOwnedRunAddresses } from './crew-query'
-import { parseOrcaSessionAddress } from '../../../../shared/orca-session-address'
+import { parseOrcaSessionAddress } from '../../../../shared/agent-session/identity/orca-session-address'
 import { isWorkerApprovalsTerminalParty } from '../../../../shared/orchestration/worker-approvals-party'
 
 /** The mailboxes a chat coordinator's workers report their prompts to: its own address and its

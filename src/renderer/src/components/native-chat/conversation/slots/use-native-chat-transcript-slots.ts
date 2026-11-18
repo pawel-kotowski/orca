@@ -7,8 +7,8 @@ import { useContext, useMemo } from 'react'
 import {
   nativeChatLiveLine,
   type NativeChatLiveLine
-} from '../../../../../../shared/native-chat/transcript/native-chat-live-line'
-import { isNativeChatRowInLiveWorkingTurn } from '../../../../../../shared/native-chat/transcript/native-chat-live-turn-membership'
+} from '../../../../../../shared/native-chat/transcript/row-content/native-chat-live-line'
+import { isNativeChatRowInLiveWorkingTurn } from '../../../../../../shared/native-chat/transcript/turns/native-chat-live-turn-membership'
 import {
   buildNativeChatTranscript,
   type NativeChatTranscriptSlot
@@ -22,7 +22,7 @@ export function useNativeChatTranscriptSlots({
   line,
   heldByBackgroundWork = false,
   ...input
-}: Omit<NativeChatTranscriptSlotsInput, 'liveReasoningId' | 'tailRowBelow'> & {
+}: Omit<NativeChatTranscriptSlotsInput, 'liveReasoningId'> & {
   line: {
     /** The row drawn under the transcript, if any. */
     tailRow: 'awaiting-input' | 'activity' | null
@@ -54,8 +54,7 @@ export function useNativeChatTranscriptSlots({
     expandedTurnKeys,
     isWorking,
     lifecycleWorking,
-    subagentSections,
-    subagentChoices,
+    subagentHeads,
     forkOffer
   } = input
   const { tailRow, thinking, stopping = false, activityText } = line
@@ -90,8 +89,6 @@ export function useNativeChatTranscriptSlots({
     ]
   )
   const liveReasoningId = liveLine?.reasoning?.message.id ?? null
-  // A boolean, so the line's changing words never rebuild the slots.
-  const tailRowBelow = liveLine !== null || tailRow === 'awaiting-input'
   const { slots, forkPoint } = useMemo(
     () =>
       buildNativeChatTranscript({
@@ -108,10 +105,8 @@ export function useNativeChatTranscriptSlots({
         expandedTurnKeys,
         isWorking,
         lifecycleWorking,
-        subagentSections,
-        subagentChoices,
+        subagentHeads,
         liveReasoningId,
-        tailRowBelow,
         forkOffer
       }),
     [
@@ -125,9 +120,7 @@ export function useNativeChatTranscriptSlots({
       messages,
       openedPullRequests,
       receipts,
-      subagentChoices,
-      subagentSections,
-      tailRowBelow,
+      subagentHeads,
       turnDiffs,
       turnKeys,
       turnStatuses,

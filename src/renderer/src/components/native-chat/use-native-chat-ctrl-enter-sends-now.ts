@@ -1,6 +1,6 @@
 import { useAppStore } from '@/store'
 import type { AgentType } from '../../../../shared/agent-status/contracts/agent-status-types'
-import { nativeChatCtrlEnterSendsNow } from '../../../../shared/native-chat/native-chat-appearance-settings'
+import { nativeChatCtrlEnterSendsNow } from '../../../../shared/native-chat/settings/native-chat-appearance-settings'
 
 // Why: some tests stand a plain object in for the store; the setting's default holds there.
 const useCtrlEnterSendsNowSetting: () => boolean =

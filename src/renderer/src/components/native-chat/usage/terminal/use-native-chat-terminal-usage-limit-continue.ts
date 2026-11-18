@@ -11,8 +11,8 @@ import { parsePaneKey } from '../../../../../../shared/workspace-layout/stable-p
 import {
   isNativeChatUsageLimitCutSchedulable,
   type NativeChatUsageLimitCut
-} from '../../../../../../shared/native-chat/native-chat-usage-limit-cut'
-import type { NativeChatUsageLimitAutoContinueState } from '../NativeChatUsageLimitAutoContinue'
+} from '../../../../../../shared/native-chat/transcript/continuation/native-chat-usage-limit-cut'
+import type { NativeChatUsageLimitAutoContinueState } from '../native-chat-usage-limit-auto-continue-setting'
 import {
   terminalAutoContinueSettled,
   terminalContinueAfterSwitch

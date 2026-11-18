@@ -3,7 +3,7 @@ import type { NativeChatReadSubagentsResult } from '../../shared/native-chat/nat
 import type { AgentType } from '../../shared/agent-status/contracts/agent-status-types'
 import { readClaudeSubagentTranscripts } from './claude-subagent-transcripts'
 import { resolveSessionFilePath } from './session-file-resolver'
-import { parseSshTranscriptPath } from './ssh-transcript-path'
+import { parseSshTranscriptPath } from './transcript-filesystem/ssh-transcript-path'
 
 const NONE: NativeChatReadSubagentsResult = { subagents: [] }
 

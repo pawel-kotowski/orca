@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { decodeClaudeTranscriptLine } from './transcript-line-decoders-claude'
+import { decodeClaudeTranscriptLine } from './transcript-decoding/transcript-line-decoders-claude'
 
 function userLine(content: string): string {
   return JSON.stringify({

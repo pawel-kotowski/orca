@@ -4,15 +4,15 @@
 // (Paweł, 2026-11-12: workers on the devbox opened as terminals).
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-await import('../../orca-runtime-tests/runtime-test-module-registration.spec')
-await import('../../orca-runtime-tests/orca-runtime-test-lifecycle.spec')
+await import('../../construction/test-context/runtime-test-module-registration.spec.ts')
+await import('../../construction/test-context/orca-runtime-test-lifecycle.spec.ts')
 const { OrcaRuntimeService } = await import('../../orca-runtime')
 const { store, TEST_WORKTREE_ID } =
-  await import('../../orca-runtime-tests/orca-runtime-test-fixtures.spec')
-const { committingSpawn } = await import('../../orca-runtime-tests/bind-first-pane.test-fixture')
+  await import('../../construction/test-context/orca-runtime-test-fixtures.spec.ts')
+const { committingSpawn } = await import('../layout/bind-first-pane.test-fixture.ts')
 const { detectAgentCommandsOnHost } = await import('../../../preflight/agent-command-detection')
 const { createExistingWorktreeWorkerTerminal } =
-  await import('../../rpc/methods/orchestration/worker/worker-topology')
+  await import('../../rpc/methods/orchestration/worker/start/placement/worker-placement-topology')
 const { startRuntimeLocalWorktreeTerminals } =
   await import('../../workspaces/startup/runtime-local-worktree-terminal-startup')
 

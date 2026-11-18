@@ -1,7 +1,7 @@
 import React from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
-import { AgentWorkingSpinner } from './AgentWorkingSpinner'
+import { AgentWorkingSpinner } from './agent/status/AgentWorkingSpinner'
 
 describe('AgentWorkingSpinner (local build)', () => {
   it('keeps the ring turning under reduced motion, drawn by its class alone', () => {

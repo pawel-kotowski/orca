@@ -1,12 +1,12 @@
 import { Trash2 } from 'lucide-react'
 import { ContextMenuItem, ContextMenuSeparator } from '@/components/ui/context-menu'
 import { translate } from '@/i18n/i18n'
-import { parseWorkspaceKey } from '../../../../shared/workspace-scope'
+import { parseWorkspaceKey } from '../../../../shared/workspace/identity/workspace-scope'
 import {
   createWorktreeContextMenuDeleteIntent,
   deferWorktreeContextMenuDeleteIntent
 } from '../sidebar/workspace-actions/context-menu/worktree-context-menu-delete-intent'
-import type { AgentPaneThread } from './activity-thread-types'
+import type { AgentPaneThread } from './threads/activity-thread-types'
 
 /**
  * Delete the card's workspace from the activity view. It runs the workspace view's own delete (the

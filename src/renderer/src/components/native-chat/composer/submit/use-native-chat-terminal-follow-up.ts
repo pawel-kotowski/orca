@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
 import { useAppStore } from '@/store'
-import { nativeChatQueueFollowUps } from '../../../../../../shared/native-chat/input/native-chat-follow-up-behavior'
+import { nativeChatQueueFollowUps } from '../../../../../../shared/native-chat/input/composer/native-chat-follow-up-behavior'
 import type { NativeChatPtySendDelivery } from './use-native-chat-pty-composer-send'
 
 type PtySend = (

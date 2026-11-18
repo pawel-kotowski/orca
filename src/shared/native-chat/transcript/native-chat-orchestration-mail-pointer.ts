@@ -1,4 +1,4 @@
-import type { AgentMessageSource } from '../../agent-session/agent-session-message-source'
+import type { AgentMessageSource } from '../../agent-session/journal/agent-session-message-source'
 
 const POINTER = /^\s*You have \d+ (?:new )?orchestration messages?\b[\s\S]*orchestration check/
 

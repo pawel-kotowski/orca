@@ -1,5 +1,5 @@
 import type { NativeChatMessage } from '../native-chat-types'
-import { normalizedNativeChatUserMessageText } from './native-chat-image-transcript-markers'
+import { normalizedNativeChatUserMessageText } from './images/native-chat-image-transcript-markers'
 import { orchestrationMailPointerSource } from './native-chat-orchestration-mail-pointer'
 
 /** One thing the agent did in the latest turn, as the chat shows it. */

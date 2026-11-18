@@ -9,7 +9,7 @@ import { open, readdir, readFile, stat } from 'node:fs/promises'
 import { basename, dirname, join } from 'node:path'
 import type { NativeChatMessage } from '../../shared/native-chat/native-chat-types'
 import type { NativeChatSubagentTranscript } from '../../shared/native-chat/native-chat-subagent-transcripts'
-import { decodeClaudeTranscriptLine } from './transcript-line-decoders-claude'
+import { decodeClaudeTranscriptLine } from './transcript-decoding/transcript-line-decoders-claude'
 
 const AGENT_FILE = /^agent-([A-Za-z0-9_-]{1,128})\.jsonl$/
 /** Rows kept per subagent: its brief and the newest work, enough to follow it. */

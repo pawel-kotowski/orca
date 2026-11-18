@@ -9,8 +9,8 @@ import type {
   NativeChatSubagentState
 } from '../native-chat-types'
 import type { NativeChatSubagentTranscript } from '../native-chat-subagent-transcripts'
-import { subagentFallbackText } from './native-chat-subagent-items'
-import { isNoiseMessage } from '../native-chat-noise'
+import { subagentFallbackText } from './subagents/native-chat-subagent-items'
+import { isNoiseMessage } from './messages/native-chat-noise'
 
 const SPAWN_TOOLS = new Set(['Agent', 'Task'])
 const TASK_NOTIFICATION =

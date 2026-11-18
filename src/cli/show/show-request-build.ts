@@ -8,7 +8,7 @@ import {
   getRequiredStringFlag
 } from '../arguments/flags'
 import { mapRequestTargets, requestTargets } from '../../shared/agent-show/tour-request-targets'
-import { RuntimeClientError } from '../runtime/types'
+import { RuntimeClientError } from '../runtime/connection/types'
 import {
   getPlacement,
   getUiTarget,

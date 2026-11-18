@@ -2,10 +2,10 @@ import { useMemo } from 'react'
 import { ArrowLeft } from 'lucide-react'
 import { translate } from '@/i18n/i18n'
 import { useAppStore } from '@/store'
-import { createActivityThreadActions } from '@/components/activity/activity-thread-actions'
+import { createActivityThreadActions } from '@/components/activity/thread-list/activity-thread-actions'
 import { ActivityWorkerRow } from '@/components/activity/activity-thread-workers'
 import { useCoordinatorWorkers } from '@/components/activity/activity-workers-feed'
-import { activityThreadRowCopy } from '@/components/activity/activity-thread-presentation'
+import { activityThreadRowCopy } from '@/components/activity/threads/activity-thread-presentation'
 import { NativeChatActivityLine } from './NativeChatActivityLine'
 
 /**

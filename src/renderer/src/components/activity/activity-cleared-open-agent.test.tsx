@@ -3,15 +3,16 @@ import { cleanup, renderHook } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { AgentStatusEntry } from '../../../../shared/agent-status/contracts/agent-status-types'
 import { makePaneKey } from '../../../../shared/workspace-layout/stable-pane-id'
+import { acceptedAgentStatuses } from '@/store/slices/agent-status/status-ownership/accepted-agent-statuses'
 import { useAppStore } from '@/store'
 import {
   LEAF_ID,
   makeRepo,
   makeTabWithIds,
   makeWorktree
-} from './ActivityPrototypePage-test-fixtures'
-import { READ_AGENTS_GROUP_KEY } from './activity-thread-grouping'
-import { useAgentPaneThreads } from './use-agent-pane-threads'
+} from './development/activity-test-fixtures-local'
+import { READ_AGENTS_GROUP_KEY } from './thread-list/activity-thread-grouping'
+import { useAgentPaneThreads } from './threads/use-agent-pane-threads'
 
 vi.mock('@/store', async () => {
   const { createTestStore } = await import('@/store/testing/app-store-test-fixture')
@@ -49,8 +50,7 @@ describe('a cleared open agent', () => {
     }
     const clearedKey = makePaneKey('tab-cleared', LEAF_ID)
     useAppStore.setState({
-      agentStatusByPaneKey: entries,
-      retainedAgentsByPaneKey: {},
+      agentStatusByPaneKey: acceptedAgentStatuses(Object.entries(entries)),
       migrationUnsupportedByPtyId: {},
       runtimeAgentOrchestrationByPaneKey: {},
       acknowledgedAgentsByPaneKey: {},
@@ -89,18 +89,19 @@ describe('a cleared open agent', () => {
     const tab = makeTabWithIds('tab-cleared', worktree.id)
     const paneKey = makePaneKey(tab.id, LEAF_ID)
     useAppStore.setState({
-      agentStatusByPaneKey: {
-        [paneKey]: {
-          paneKey,
-          state: 'done',
-          prompt: 'p',
-          agentType: 'claude',
-          updatedAt: 50_000,
-          stateStartedAt: 50_000,
-          stateHistory: []
-        }
-      },
-      retainedAgentsByPaneKey: {},
+      agentStatusByPaneKey: acceptedAgentStatuses(
+        Object.entries({
+          [paneKey]: {
+            paneKey,
+            state: 'done',
+            prompt: 'p',
+            agentType: 'claude',
+            updatedAt: 50_000,
+            stateStartedAt: 50_000,
+            stateHistory: []
+          }
+        })
+      ),
       migrationUnsupportedByPtyId: {},
       runtimeAgentOrchestrationByPaneKey: {},
       acknowledgedAgentsByPaneKey: {},

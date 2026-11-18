@@ -1,5 +1,5 @@
 import type { AgentShowContext } from '../../../shared/agent-show/agent-show-contract'
-import type { Tab } from '../../../shared/tab-types'
+import type { Tab } from '../../../shared/workspace-layout/tab-groups/tab-types'
 import { useAppStore } from '@/store/index'
 import { isShowOwnerTab } from './agent-show-owner-tab'
 

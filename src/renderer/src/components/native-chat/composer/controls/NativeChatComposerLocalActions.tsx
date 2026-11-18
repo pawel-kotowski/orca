@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { useTranslate } from '@/i18n/use-translate'
 import { getScreenSubmitShortcutLabel } from '@/lib/keyboard/screen-submit-shortcut'
-import type { NativeChatFollowUpBehavior } from '../../../../../../shared/native-chat/input/native-chat-follow-up-behavior'
+import type { NativeChatFollowUpBehavior } from '../../../../../../shared/native-chat/input/composer/native-chat-follow-up-behavior'
 
 /**
  * Local build: Stop in the message box is red so it never reads like Send (Paweł, 2026-11-08), and

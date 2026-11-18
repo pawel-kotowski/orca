@@ -1,5 +1,5 @@
 import { useAppStore } from '@/store'
-import { nativeChatShowsComposerWorkspaceLine } from '../../../../shared/native-chat/native-chat-appearance-settings'
+import { nativeChatShowsComposerWorkspaceLine } from '../../../../shared/native-chat/settings/native-chat-appearance-settings'
 
 // Why: some tests stand a plain object in for the store; upstream's default (shown) holds there.
 export const useNativeChatShowsWorkspaceLine: () => boolean =

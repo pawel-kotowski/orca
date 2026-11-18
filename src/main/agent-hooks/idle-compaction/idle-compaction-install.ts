@@ -1,6 +1,6 @@
 import { appendFile, mkdir, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { getAppEnvironment } from '../../../shared/app-environment'
+import { getAppEnvironment } from '../../../shared/app-lifecycle/app-environment'
 import type { AgentHookServer } from '../server/agent-hook-server'
 import type { OrcaRuntimeService } from '../../runtime/orca-runtime'
 import {

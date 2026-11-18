@@ -2,9 +2,9 @@
 
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { ActivityThreadContextMenu } from './activity-thread-context-menu'
-import type { AgentPaneThread } from './activity-thread-types'
-import { makeRepo, makeTab, makeWorktree } from './ActivityPrototypePage-test-fixtures'
+import { ActivityThreadContextMenu } from './thread-list/activity-thread-context-menu'
+import type { AgentPaneThread } from './threads/activity-thread-types'
+import { makeRepo, makeTab, makeWorktree } from './development/activity-test-fixtures-local'
 
 // Local-only: delete a card's workspace from its right-click menu (6e6f05b1b6).
 

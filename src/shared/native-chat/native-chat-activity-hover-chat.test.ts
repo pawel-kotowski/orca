@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { nativeChatActivityHoverChat } from './native-chat-appearance-settings'
+import { nativeChatActivityHoverChat } from './settings/native-chat-appearance-settings'
 
 describe('nativeChatActivityHoverChat', () => {
   it('is off once settings load, unless turned on', () => {

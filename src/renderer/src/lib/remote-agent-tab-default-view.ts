@@ -6,7 +6,7 @@ import { isWebRuntimeSessionActive } from '@/runtime/web-session-tabs-sync/ident
 import {
   expectAgentTabChatView,
   setPendingAgentTabViewDefault
-} from '@/runtime/web-session-tabs-sync/expected-agent-tab-view'
+} from '@/runtime/web-session-tabs-sync/tab-projection/expected-agent-tab-view'
 
 /**
  * A workspace just created on a remote host with an agent: its host makes the agent's tab, so

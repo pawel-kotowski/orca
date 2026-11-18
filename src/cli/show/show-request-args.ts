@@ -6,7 +6,7 @@ import {
   type AgentShowRequestOf
 } from '../../shared/agent-show/agent-show-contract'
 import { getOptionalStringFlag } from '../arguments/flags'
-import { RuntimeClientError } from '../runtime/types'
+import { RuntimeClientError } from '../runtime/connection/types'
 
 type Flags = Map<string, string | boolean>
 type LineRange = { startLine: number; endLine: number }

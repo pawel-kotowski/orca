@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { computeMonacoRevealRange } from './monaco-reveal-range'
+import { computeMonacoRevealRange } from './monaco/monaco-reveal-range'
 
 describe('computeMonacoRevealRange with a line range', () => {
   it('selects whole lines from the start line to the end of the end line', () => {

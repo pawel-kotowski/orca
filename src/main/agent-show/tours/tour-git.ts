@@ -6,7 +6,7 @@ import type { StampedView } from '../../../shared/agent-show/tour-freshness'
 import { gitExecFileAsync } from '../../git/command-runner/git-exec-file'
 import { gitReadOptionsForWorktree } from '../../git/command-runner/git-runtime-options'
 import { literalPathspec } from '../../git/source-control/git-pathspec'
-import { readGitBlobAtOidPath } from '../../git/source-control/git-blob-read'
+import { readGitBlobAtOidPath } from '../../git/source-control/diffs/git-blob-read'
 
 // Why these flags: the user's diff config (noprefix, external tools, textconv, quoting) must not change what is parsed.
 const DIFF_FLAGS = [

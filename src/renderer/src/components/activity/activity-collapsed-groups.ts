@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { useAppStore } from '@/store'
-import type { ActivityThreadCollapseState } from './activity-thread-collapse-context'
+import type { ActivityThreadCollapseState } from './thread-list/activity-thread-collapse-context'
 import {
   parseStringList,
   readViewLayout,

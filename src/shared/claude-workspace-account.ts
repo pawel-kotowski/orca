@@ -1,4 +1,4 @@
-import type { GlobalSettings } from './global-settings-types'
+import type { GlobalSettings } from './settings/global-settings-types'
 import { getRepoIdFromWorktreeId } from './worktree/id'
 
 /** Names the Claude account one launch asked for; the PTY spawn routes it and never passes it on. */

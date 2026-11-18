@@ -1,11 +1,11 @@
 import { useCallback, useMemo, type ComponentProps } from 'react'
-import { ActivityStatusGroupHeader } from './activity-thread-controls'
-import { READ_AGENTS_GROUP_KEY } from './activity-thread-grouping'
+import { ActivityStatusGroupHeader } from './thread-list/activity-thread-controls'
+import { READ_AGENTS_GROUP_KEY } from './thread-list/activity-thread-grouping'
 import { WORKING_GROUP_KEY } from './activity-inbox-sections'
 import { useActivityDrawerHeight, useActivityDrawerTakeover } from './activity-drawer-resize'
 import { translate } from '@/i18n/i18n'
-import type { ActivityThreadGroup } from './activity-thread-types'
-import { ActivityThreadVirtualRow } from './activity-thread-virtual-row'
+import type { ActivityThreadGroup } from './threads/activity-thread-types'
+import { ActivityThreadVirtualRow } from './thread-list/activity-thread-virtual-row'
 import { parseBoolean, readLegacyLocalStorage, useViewLayoutValue } from './view-layout-memory'
 
 type RowProps = Omit<ComponentProps<typeof ActivityThreadVirtualRow>, 'item' | 'collapsed'>

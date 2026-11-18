@@ -1,9 +1,9 @@
 import { basename, dirname } from 'node:path'
 import { readClaudePromptParentUuid } from '../claude/transcripts/claude-rewind-fork'
 import { materializeClaudeConversationTranscript } from '../claude/transcripts/claude-rewind-transcript'
-import { AgentConversationCopyError } from './agent-conversation-copy-error'
+import { AgentConversationCopyError } from './conversation-adoption/agent-conversation-copy-error'
 import { resolveSessionFilePath } from './session-file-resolver'
-import { parseSshTranscriptPath } from './ssh-transcript-path'
+import { parseSshTranscriptPath } from './transcript-filesystem/ssh-transcript-path'
 import {
   parseNativeChatForkClaudeTranscriptArgs,
   type NativeChatForkClaudeTranscriptResult

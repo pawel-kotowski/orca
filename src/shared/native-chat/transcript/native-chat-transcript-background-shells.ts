@@ -1,5 +1,5 @@
-import type { AgentSessionBackgroundTask } from '../../agent-session/agent-session-background-task-wire'
-import { readClaudeTaskNotification } from '../../claude-task-notification-text'
+import type { AgentSessionBackgroundTask } from '../../agent-session/background-tasks/agent-session-background-task-wire'
+import { readClaudeTaskNotification } from '../../agent-hook-listener/providers/claude/background-tasks/claude-task-notification-text'
 import {
   isTextBlock,
   isToolCallBlock,
@@ -135,7 +135,8 @@ export function runningTranscriptBackgroundShells(
         } else {
           shell.taskId = taskId
         }
-      } else if (message.role === 'user' && isTextBlock(block)) {
+      } else if ((message.role === 'user' || message.role === 'system') && isTextBlock(block)) {
+        // A chat read turns the notification into a system turn marker that keeps its text.
         const body = block.text.trim()
         const notice = readClaudeTaskNotification(body)
         // Why a status only: a Monitor's events reuse the tag without one while it keeps running.

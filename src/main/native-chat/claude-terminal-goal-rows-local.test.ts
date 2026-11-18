@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { decodeClaudeTranscriptLine } from './transcript-line-decoders-claude'
+import { decodeClaudeTranscriptLine } from './transcript-decoding/transcript-line-decoders-claude'
 import { claudeGoalCommandOutputState } from './claude-terminal-goal-rows'
 
 // The records a real terminal Claude Code 2.1.322 wrote for `/goal …`, a passed check and `/goal clear`.

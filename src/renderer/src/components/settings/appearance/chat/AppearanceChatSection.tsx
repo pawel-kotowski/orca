@@ -11,18 +11,17 @@ import {
   nativeChatCompactComposer,
   nativeChatShowsComposerWorkspaceLine,
   nativeChatCtrlEnterSendsNow,
-  nativeChatToolStepsOpen
-} from '../../../../../../shared/native-chat/native-chat-appearance-settings'
-import {
+  nativeChatToolStepsOpen,
+  DEFAULT_NATIVE_CHAT_FONT_SIZE,
   NATIVE_CHAT_COLOR_KEYS,
   normalizeNativeChatAppearanceSettings,
   type NativeChatColorKey,
   resetNativeChatAppearanceSettings,
   resolveNativeChatAppearanceSettings,
   type NativeChatAppearanceSettings
-} from '../../../../../../shared/native-chat/native-chat-appearance-settings'
+} from '../../../../../../shared/native-chat/settings/native-chat-appearance-settings'
 import { useAppStore } from '../../../../store/index'
-import { formatPrimaryShortcutLabel } from '@/hooks/useShortcutLabel'
+import { formatPrimaryShortcutLabel } from '@/lib/keyboard/useShortcutLabel'
 import { useTranslate } from '@/i18n/use-translate'
 import { AppearanceChatContrastControls } from './AppearanceChatContrastControls'
 import { AppearanceChatImageOverlaySetting } from './AppearanceChatImageOverlaySetting'
@@ -42,7 +41,7 @@ import {
   getChatWidthOptions
 } from './chat-appearance-search'
 import { writeNativeChatAppearance } from '../../../native-chat/appearance/native-chat-appearance-write'
-import type { GlobalSettings } from '../../../../../../shared/global-settings-types'
+import type { GlobalSettings } from '../../../../../../shared/settings/global-settings-types'
 
 // Why: approximate the themes' chat colors so a picker opens near the current color.
 const CHAT_COLOR_PICKER_START: Record<NativeChatColorKey, string> = {
@@ -81,7 +80,7 @@ export function AppearanceChatSection({
     )
   }
   return (
-    <div className="divide-y divide-border/40">
+    <>
       <AppearanceChatContrastControls
         appearance={appearance}
         onChange={update}
@@ -240,7 +239,7 @@ export function AppearanceChatSection({
           label={entries.textSize.title}
           description={matching ? chatTerminalControlledHint(t) : entries.textSize.description}
           value={appearance.fontSize}
-          defaultValue={matching ? undefined : 14}
+          defaultValue={matching ? undefined : DEFAULT_NATIVE_CHAT_FONT_SIZE}
           disabled={matching}
           disabledReason={chatTerminalControlledTooltip(t)}
           min={12}
@@ -324,6 +323,6 @@ export function AppearanceChatSection({
           }
         />
       </SearchableSetting>
-    </div>
+    </>
   )
 }

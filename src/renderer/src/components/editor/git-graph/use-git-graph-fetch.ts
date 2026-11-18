@@ -4,7 +4,7 @@
 import { useCallback, useState } from 'react'
 import { getConnectionId } from '@/lib/workspace/ownership/connection-context'
 import { fetchRuntimeGit } from '@/runtime/source-control/git/runtime-git-sync-client'
-import type { RuntimeClientTarget } from '../../../../../shared/runtime-client-target'
+import type { RuntimeClientTarget } from '../../../../../shared/remote-runtime/host-catalog/runtime-client-target'
 
 export function useGitGraphFetch({
   worktreeId,

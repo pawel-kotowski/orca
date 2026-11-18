@@ -1,6 +1,6 @@
 import { useEffect, useSyncExternalStore } from 'react'
-import { useAgentPaneThreads } from './use-agent-pane-threads'
-import type { AgentPaneThread } from './activity-thread-types'
+import { useAgentPaneThreads } from './threads/use-agent-pane-threads'
+import type { AgentPaneThread } from './threads/activity-thread-types'
 import type { ActivityWorkers } from './activity-workers'
 
 /**

@@ -1,7 +1,8 @@
 import { useMemo, type ComponentProps, type RefObject } from 'react'
 import { useAppStore } from '@/store'
 import { createNativeChatRuntimeSelector } from './pane/ownership/native-chat-runtime-owner'
-import { NativeChatMessageList } from './NativeChatMessageList'
+import type { NativeChatMessageList } from './NativeChatMessageList'
+import { NativeChatSubagentTranscripts } from './subagents/NativeChatSubagentTranscripts'
 import { NativeChatTerminalVisualOwner } from './NativeChatTerminalVisualOwner'
 import { NativeChatTerminalPromptRow } from './NativeChatTerminalPromptRow'
 import { useNativeChatClaudeSubagents } from './use-native-chat-claude-subagents'
@@ -39,8 +40,11 @@ export function NativeChatTerminalMessageList({
   stopRequested = false,
   composerRef,
   handOff,
+  find,
   ...listProps
 }: { source: Source } & Omit<ComponentProps<typeof NativeChatMessageList>, 'expandSignal'> & {
+    /** The pane's find bar, which the subagent transcripts' tool runs read. */
+    find: ComponentProps<typeof NativeChatSubagentTranscripts>['find']
     expandSignal?: boolean
     /** The person pressed Stop on the live turn (the view hides its working state at once). */
     stopRequested?: boolean
@@ -91,9 +95,12 @@ export function NativeChatTerminalMessageList({
             composerRef={composerRef}
             handOff={handOff}
           >
-            <NativeChatMessageList
+            {/* Upstream's subagent views: the conversation stays mounted under an open subagent. */}
+            <NativeChatSubagentTranscripts
               // A landed /clear starts the list over, as the structured chat's does.
               key={clearFade.generation}
+              find={find}
+              paneKey={source.paneKey}
               session={listSession}
               expandSignal={expandSignal}
               // Why: a wait with no card names nothing; show the terminal's own prompt instead.

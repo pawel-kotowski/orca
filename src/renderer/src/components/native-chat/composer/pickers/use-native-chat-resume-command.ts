@@ -1,10 +1,10 @@
 import { useCallback, type Dispatch, type RefObject, type SetStateAction } from 'react'
 import { translate } from '@/i18n/i18n'
 import type { Translate } from '@/i18n/use-translate'
-import type { SlashCommandSuggestion } from '../../../../../../shared/native-chat/input/native-chat-slash-commands'
+import type { SlashCommandSuggestion } from '../../../../../../shared/native-chat/input/commands/native-chat-slash-commands'
 import type { AgentType } from '../../../../../../shared/agent-status/contracts/agent-status-types'
 import { isAiVaultAgent } from '../../../../../../shared/ai-vault/contracts/ai-vault-types'
-import type { NativeChatPickerItem } from '../../../../../../shared/native-chat/input/native-chat-picker-items'
+import type { NativeChatPickerItem } from '../../../../../../shared/native-chat/input/composer/native-chat-picker-items'
 import type { NativeChatPickerState } from '@/components/native-chat/composer/pickers/use-native-chat-picker-state'
 import {
   writeNativeChatComposerText,
@@ -16,6 +16,7 @@ import { openNativeChatSessionHistory } from './native-chat-session-history-open
 export const NATIVE_CHAT_RESUME_COMMAND = 'resume'
 
 const FORK_DRAFT = /^\/fork(?:\s+([\s\S]*))?$/i
+const MCP_DRAFT = /^\/mcp\s*$/i
 
 /** Replace the agent’s /resume catalog entry with Orca’s Session History command, and its /usage
  *  and /fork with Orca’s where this chat runs them. */
@@ -89,7 +90,10 @@ export type NativeChatResumeCommand = {
  *  Codex chat; in a structured chat `/fork` forks it. Neither reaches the agent. */
 export function useNativeChatResumeCommand(args: {
   structuredTransport:
-    | Pick<NativeChatStructuredComposerTransport, 'worktreeId' | 'accountUsage' | 'fork'>
+    | Pick<
+        NativeChatStructuredComposerTransport,
+        'worktreeId' | 'accountUsage' | 'fork' | 'mcpPanel'
+      >
     | undefined
   agent: AgentType
   terminalTabId: string
@@ -111,12 +115,13 @@ export function useNativeChatResumeCommand(args: {
   const structuredWorktreeId = structuredTransport?.worktreeId
   const usage = structuredTransport?.accountUsage
   const fork = structuredTransport?.fork
-  const openUsage = useCallback(
-    (draft: string): void => {
+  const mcp = structuredTransport?.mcpPanel
+  const openPanel = useCallback(
+    (draft: string, panel: { open: () => void } | undefined): void => {
       const rest = draft.replace(/^\/\S+\s*/, '')
       // Focus before opening so closing the modal returns to the editor even after a Send click.
       textareaRef.current?.focus()
-      usage?.open()
+      panel?.open()
       setDraft(rest)
       setCaret(rest.length)
       setActiveSuggestion(0)
@@ -127,7 +132,7 @@ export function useNativeChatResumeCommand(args: {
         writeNativeChatComposerText(input, rest, rest.length)
       }
     },
-    [usage, setDraft, setCaret, setActiveSuggestion, setNotice, textareaRef]
+    [setDraft, setCaret, setActiveSuggestion, setNotice, textareaRef]
   )
 
   const runFork = useCallback(
@@ -192,11 +197,13 @@ export function useNativeChatResumeCommand(args: {
     (draft: string): boolean =>
       !isPickedSkill(draft) &&
       // Why: a terminal-backed Claude or Codex chat takes /resume too (Session History, resumed in
-      // a terminal); /usage and /fork exist only on a structured transport.
+      // a terminal); /usage, /mcp and /fork exist only on a structured transport.
       (((structured || isAiVaultAgent(agent)) && parseNativeChatResumeDraft(draft) !== null) ||
         (structured && usage !== undefined && /^\/usage\s*$/i.test(draft)) ||
+        // Before goal mode too, so `/mcp` never becomes an objective.
+        (structured && mcp !== undefined && MCP_DRAFT.test(draft)) ||
         (structured && fork !== undefined && FORK_DRAFT.test(draft.trim()))),
-    [agent, fork, isPickedSkill, structured, usage]
+    [agent, fork, isPickedSkill, mcp, structured, usage]
   )
   const consume = useCallback(
     (draft: string): boolean => {
@@ -204,7 +211,9 @@ export function useNativeChatResumeCommand(args: {
         return false
       }
       if (/^\/usage\s*$/i.test(draft)) {
-        openUsage(draft)
+        openPanel(draft, usage)
+      } else if (MCP_DRAFT.test(draft)) {
+        openPanel(draft, mcp)
       } else if (fork && FORK_DRAFT.test(draft.trim())) {
         runFork(draft)
       } else {
@@ -212,7 +221,7 @@ export function useNativeChatResumeCommand(args: {
       }
       return true
     },
-    [fork, matchesDraft, open, openUsage, runFork]
+    [fork, matchesDraft, mcp, open, openPanel, runFork, usage]
   )
 
   const interceptPick = useCallback(
@@ -224,14 +233,15 @@ export function useNativeChatResumeCommand(args: {
           if (
             item.name !== 'resume' &&
             !(item.name === 'usage' && usage) &&
+            !(item.name === 'mcp' && mcp) &&
             !(item.name === 'fork' && fork)
           ) {
             pick(item)
             return
           }
           clearSkillOrigin()
-          if (item.name === 'usage') {
-            openUsage(textareaRef.current?.value ?? '')
+          if (item.name === 'usage' || item.name === 'mcp') {
+            openPanel(textareaRef.current?.value ?? '', item.name === 'usage' ? usage : mcp)
             return
           }
           if (item.name === 'fork') {
@@ -246,7 +256,7 @@ export function useNativeChatResumeCommand(args: {
         }
         pick(item)
       },
-    [autocomplete, clearSkillOrigin, fork, open, openUsage, runFork, textareaRef, usage]
+    [autocomplete, clearSkillOrigin, fork, mcp, open, openPanel, runFork, textareaRef, usage]
   )
 
   return { consume, interceptPick, matchesDraft }

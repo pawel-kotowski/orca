@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { READ_AGENTS_GROUP_KEY, withReadAgentsGroup } from './activity-thread-grouping'
+import { READ_AGENTS_GROUP_KEY, withReadAgentsGroup } from './thread-list/activity-thread-grouping'
 
 // Local-only: Standing by, the last section of the activity list (51868bb6bb, 896e9ee1b0).
 

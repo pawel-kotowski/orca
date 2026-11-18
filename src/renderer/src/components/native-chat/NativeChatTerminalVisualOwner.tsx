@@ -1,6 +1,6 @@
 import { useMemo, type ReactNode } from 'react'
-import { TERMINAL_CHATS_VISUAL_SESSION_ID } from '../../../../shared/native-chat/native-chat-visual-directive'
-import type { RuntimeClientTarget } from '../../../../shared/runtime-client-target'
+import { TERMINAL_CHATS_VISUAL_SESSION_ID } from '../../../../shared/native-chat/visuals/native-chat-visual-directive'
+import type { RuntimeClientTarget } from '../../../../shared/remote-runtime/host-catalog/runtime-client-target'
 import { NativeChatVisualOwnerProvider } from './media/visuals/native-chat-visual-owner'
 
 /**

@@ -9,7 +9,7 @@ import { terminalChatThreadGoal } from './session/goals/terminal-chat-thread-goa
 import { NativeChatTerminalWorkerLifetimeStrip } from './worker-lifetime/NativeChatTerminalWorkerLifetimeStrip'
 import type { NativeChatComposerHandle } from './composer/native-chat-composer-types'
 import type { NativeChatMessage } from '../../../../shared/native-chat/native-chat-types'
-import type { RuntimeClientTarget } from '../../../../shared/runtime-client-target'
+import type { RuntimeClientTarget } from '../../../../shared/remote-runtime/host-catalog/runtime-client-target'
 
 const LOCAL: RuntimeClientTarget = { kind: 'local' }
 

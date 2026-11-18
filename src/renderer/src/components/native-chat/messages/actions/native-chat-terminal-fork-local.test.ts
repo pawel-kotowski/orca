@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { NativeChatMessage } from '../../../../../../shared/native-chat/native-chat-types'
-import { nativeChatNoticeLook } from '../../../../../../shared/native-chat/native-chat-notice'
+import { nativeChatNoticeLook } from '../../../../../../shared/native-chat/transcript/notices/native-chat-notice'
 import { codexHomeOfTranscript } from './native-chat-terminal-fork-startup'
 import { withNativeChatTerminalForkDivider } from './native-chat-terminal-fork-origins'
 import { nativeChatSlotOffersFork } from './native-chat-side-chat-fork-point'
