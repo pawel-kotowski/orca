@@ -428,6 +428,7 @@ import {
 import { CreateProject } from './linear/linear-project-create-params'
 import { LinkPreviewGetParams } from './link-preview/link-preview-params'
 import {
+  NativeChatClaudeSessionLogin,
   NativeChatForkClaudeTranscript,
   NativeChatReadClaudeSubagents,
   NativeChatSession,
@@ -1408,6 +1409,7 @@ export const RPC_PARAMS_BY_METHOD = {
   'mobileWeb.bundle.localeCatalog': MobileWebBundleLocaleCatalogParamsSchema,
   'mobileWeb.bundle.manifest': null,
   'mobileWeb.bundle.range': MobileWebBundleChunkParamsSchema,
+  'nativeChat.claudeSessionLogin': NativeChatClaudeSessionLogin,
   'nativeChat.forkClaudeTranscript': NativeChatForkClaudeTranscript,
   'nativeChat.readClaudeSubagents': NativeChatReadClaudeSubagents,
   'nativeChat.readSession': NativeChatSession,

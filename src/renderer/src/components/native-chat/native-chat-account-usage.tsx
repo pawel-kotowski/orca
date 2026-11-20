@@ -18,6 +18,11 @@ import { getExecutionHostIdForWorktree } from '@/lib/workspace/ownership/worktre
 import { runtimeRpcTargetForAuthorityKey } from '@/runtime/rpc/targets/runtime-client-target'
 import type { ProviderAccountsSnapshot } from '@/runtime/provider-accounts/observations/runtime-provider-accounts-client'
 import { useRemoteProviderAccounts } from './native-chat-remote-claude-usage'
+import {
+  useClaudeSessionLogin,
+  type ClaudeSessionLoginState
+} from './native-chat-claude-session-login'
+import { claudeConfigDirFromTranscriptPath } from '../../../../shared/agent-accounts/claude/claude-session-login'
 
 /** Which chat the message box belongs to, so its controls can show that chat's Claude account. */
 export type NativeChatAccountScope = {
@@ -83,6 +88,12 @@ export function resolveChatClaudeAccount(input: {
   if (fromTranscript) {
     return fromTranscript
   }
+  // Why: a session in any other Claude folder (the system home, or one a box's limit-move or a
+  // hand restart pointed CLAUDE_CONFIG_DIR at) runs on that folder's own login, which the chat
+  // reads from the folder (sessionLoginUsage), never from a saved account it does not run on.
+  if (claudeConfigDirFromTranscriptPath(input.transcriptPath)) {
+    return null
+  }
   // Why: a transcript in the system home ran on the system default login, whose usage Orca reads
   // only when it is the active selection.
   if (input.transcriptPath && !input.activeAccountId) {
@@ -118,7 +129,7 @@ let lastInactiveFetchAt = Number.NEGATIVE_INFINITY
 const INACTIVE_REFRESH_MS = 5 * 60 * 1000
 
 /** What the chat line shows: the subscription's short name, its email when known, its limits. */
-type ChatClaudeUsage = {
+export type ChatClaudeUsage = {
   /** The subscription owner's short name; null while the host has not reported its login. */
   name: string | null
   email: string | null
@@ -161,6 +172,34 @@ export function resolveRemoteChatClaudeUsage(
   }
 }
 
+/** Whether a transcript lives in a Claude folder Orca does not manage, so its folder names it. */
+export function isUnmanagedClaudeFolder(transcriptPath: string | null): boolean {
+  return (
+    claudeConfigDirFromTranscriptPath(transcriptPath) !== null &&
+    accountIdFromTranscriptPath(transcriptPath) === null
+  )
+}
+
+/**
+ * A chat in an unmanaged folder shows that folder's own login and limits, as its host read them.
+ * Undefined means the host could not say (an older build): the caller falls back to what it knew.
+ */
+export function sessionLoginUsage(
+  state: ClaudeSessionLoginState | null
+): ChatClaudeUsage | null | undefined {
+  if (!state || state.status === 'failed') {
+    return undefined
+  }
+  if (state.status === 'loading') {
+    // Why nothing: the folder's previous guess (the host's system login) is what was wrong.
+    return null
+  }
+  const email = state.login?.email ?? null
+  return email
+    ? { name: accountShortName(email), email, limits: state.login?.limits ?? null, accountId: null }
+    : null
+}
+
 function useChatClaudeUsage(scope: NativeChatAccountScope): ChatClaudeUsage | null {
   const worktreeId = useAppStore((state) =>
     worktreeIdForTab(state.tabsByWorktree, scope.terminalTabId)
@@ -172,6 +211,11 @@ function useChatClaudeUsage(scope: NativeChatAccountScope): ChatClaudeUsage | nu
   })
   const remoteId = owner !== 'local' && owner !== '' ? owner : null
   const snapshot = useRemoteProviderAccounts(remoteId)
+  const unmanaged = scope.agent === 'claude' && isUnmanagedClaudeFolder(scope.transcriptPath)
+  const sessionLogin = useClaudeSessionLogin(
+    unmanaged ? scope.transcriptPath : null,
+    owner === '' ? null : owner
+  )
   const account = useAppStore((state) =>
     owner === 'local'
       ? resolveChatClaudeAccount({
@@ -202,6 +246,10 @@ function useChatClaudeUsage(scope: NativeChatAccountScope): ChatClaudeUsage | nu
     lastInactiveFetchAt = window.performance.now()
     void useAppStore.getState().fetchInactiveClaudeAccountUsage()
   }, [needsFetch])
+  const fromFolder = unmanaged ? sessionLoginUsage(sessionLogin) : undefined
+  if (fromFolder !== undefined) {
+    return fromFolder && !remoteId ? { ...fromFolder, worktreeId } : fromFolder
+  }
   if (remoteId) {
     return snapshot ? resolveRemoteChatClaudeUsage(snapshot, scope.transcriptPath) : null
   }

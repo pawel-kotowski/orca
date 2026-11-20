@@ -1,4 +1,8 @@
 import type {
+  ClaudeSessionLogin,
+  ClaudeSessionLoginArgs
+} from '../../../shared/agent-accounts/claude/claude-session-login'
+import type {
   NativeChatForkClaudeTranscriptArgs,
   NativeChatForkClaudeTranscriptResult
 } from '../../../shared/native-chat/native-chat-terminal-fork-contract'
@@ -97,4 +101,6 @@ export type NativeChatApi = {
   forkClaudeTranscript?: (
     args: NativeChatForkClaudeTranscriptArgs
   ) => Promise<NativeChatForkClaudeTranscriptResult>
+  /** The login a local Claude session runs on, read from its transcript's own config folder. */
+  readClaudeSessionLogin?: (args: ClaudeSessionLoginArgs) => Promise<ClaudeSessionLogin | null>
 }
