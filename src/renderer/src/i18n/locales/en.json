@@ -24330,6 +24330,7 @@
         "selectGroup": "Select all sessions in {{group}}",
         "reasonWsl": "WSL terminal",
         "reasonOwnFolder": "Uses your own Claude folder",
+        "reasonOwnFolderLogin": "On {{name}}, its own folder",
         "reasonUnknownAccount": "Account unknown",
         "reasonNoSession": "Can't resume",
         "reasonSharedSession": "Also open in another pane",

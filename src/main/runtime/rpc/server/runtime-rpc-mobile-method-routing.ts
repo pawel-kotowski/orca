@@ -173,6 +173,8 @@ export const EXECUTION_HOST_METHODS = [
   'linear.resolveCurrentIssue',
   'markdown.readTab',
   'markdown.saveTab',
+  // A chat's Claude login is read from the session's folder on the host that runs it.
+  'nativeChat.claudeSessionLogin',
   'nativeChat.forkClaudeTranscript',
   'nativeChat.readClaudeSubagents',
   'nativeChat.readSession',

@@ -8,6 +8,7 @@ import { forkNativeChatClaudeTranscript } from '../native-chat/native-chat-claud
 import { readClaudeSessionEffortSettings } from '../claude/claude-session-effort'
 import { claudeSessionRecordDirs } from './pty/host-env/live-claude-session-holder'
 import { getAppEnvironment } from '../../shared/app-lifecycle/app-environment'
+import { readClaudeSessionLogin } from '../claude-accounts/session-login/claude-session-login-read'
 
 /** A terminal-backed Claude chat asks for its models' context windows to size its context readout. */
 export function registerNativeChatClaudeContextWindowsHandler(): void {
@@ -42,5 +43,10 @@ export function registerNativeChatClaudeContextWindowsHandler(): void {
     forkNativeChatClaudeTranscript(args, (sessionId, path) =>
       nativeChatTranscriptPathOnExecutionHost(agentHookServer.getStatusSnapshot(), sessionId, path)
     )
+  )
+  // A terminal-backed Claude chat names the login its session runs on now, whatever started it.
+  ipcMain.removeHandler('nativeChat:claudeSessionLogin')
+  ipcMain.handle('nativeChat:claudeSessionLogin', (_event, args: unknown) =>
+    readClaudeSessionLogin(args, { rows: () => agentHookServer.getStatusSnapshot() })
   )
 }

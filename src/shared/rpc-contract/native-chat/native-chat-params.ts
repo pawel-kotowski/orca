@@ -58,6 +58,11 @@ export const NativeChatReadClaudeSubagents = z.object({
   transcriptPath: z.string().min(1).optional()
 })
 
+/** The login a terminal-backed Claude chat's session runs on, read on the host from its folder. */
+export const NativeChatClaudeSessionLogin = z.object({
+  transcriptPath: z.string().min(1)
+})
+
 /** A terminal-backed Claude chat's shortened copy, written on the host that holds its transcript. */
 export const NativeChatForkClaudeTranscript = z.object({
   sessionId: z.string().min(1),

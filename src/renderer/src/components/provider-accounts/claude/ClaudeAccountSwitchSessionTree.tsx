@@ -23,8 +23,14 @@ import {
   toggleResumeSelection
 } from '../../native-chat-recovery/tree/native-chat-resume-on-restart-grouping'
 import { moveInTree } from '../../native-chat-recovery/tree/native-chat-resume-tree-keys'
+import { useClaudeSessionLogin } from '../../native-chat/native-chat-claude-session-login'
+import { accountShortName } from '../../native-chat/native-chat-account-usage'
 
-type SessionRowData = ClaudeSessionMoveCandidate & { reason?: string }
+type SessionRowData = ClaudeSessionMoveCandidate & {
+  reason?: string
+  /** It runs in its own Claude folder, so the row names that folder's login. */
+  ownFolder?: true
+}
 
 type SessionGroup = {
   key: string
@@ -144,7 +150,8 @@ function sessionGroups(
       title: t('accounts.claude.switchSessions.groupCantMove', "Can't move"),
       sessions: sessions.cantMove.map((session) => ({
         ...session,
-        reason: cantMoveReasonLabel(session.reason, t)
+        reason: cantMoveReasonLabel(session.reason, t),
+        ...(session.reason === 'own-folder' ? { ownFolder: true as const } : {})
       })),
       fixed: true
     }
@@ -306,11 +313,38 @@ function SessionRow({
         </span>
       )}
       <span className="max-w-40 shrink-0 truncate text-[11px] text-muted-foreground">
-        {session.reason ??
+        {session.ownFolder ? (
+          <OwnFolderReason paneKey={paneKey} fallback={session.reason ?? ''} />
+        ) : (
+          (session.reason ??
           (busy
             ? t('accounts.claude.switchSessions.busy', 'Working')
-            : t('accounts.claude.switchSessions.idle', 'Idle'))}
+            : t('accounts.claude.switchSessions.idle', 'Idle')))
+        )}
       </span>
     </ResumeTreeRow>
+  )
+}
+
+/** A session in its own Claude folder, named by the login that folder is signed in to. */
+function OwnFolderReason({
+  paneKey,
+  fallback
+}: {
+  paneKey: string
+  fallback: string
+}): React.JSX.Element {
+  const t = useTranslate()
+  const transcriptPath = useAgentStatus(paneKey)?.providerSession?.transcriptPath ?? null
+  const login = useClaudeSessionLogin(transcriptPath, 'local')
+  const email = login?.status === 'ready' ? login.login?.email : null
+  return (
+    <>
+      {email
+        ? t('accounts.claude.switchSessions.reasonOwnFolderLogin', 'On {{name}}, its own folder', {
+            name: accountShortName(email)
+          })
+        : fallback}
+    </>
   )
 }
