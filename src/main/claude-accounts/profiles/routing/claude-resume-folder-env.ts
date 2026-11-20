@@ -22,7 +22,11 @@ function sameFolder(left: string, right: string, platform: NodeJS.Platform): boo
   return platform === 'win32' ? a.toLowerCase() === b.toLowerCase() : a === b
 }
 
-function isFolder(path: string): boolean {
+/** A folder that exists on this host, never a WSL/UNC share (reading one can boot a distro). */
+export function usableClaudeResumeFolder(path: string): boolean {
+  if (/^[\\/]{2}/.test(path)) {
+    return false
+  }
   try {
     return statSync(path).isDirectory()
   } catch {
@@ -43,7 +47,7 @@ export function withClaudeResumeFolder(
   host: ClaudeResumeFolderHost
 ): Record<string, string> {
   const platform = host.platform ?? process.platform
-  if (/^[\\/]{2}/.test(folder) || !isFolder(folder)) {
+  if (!usableClaudeResumeFolder(folder)) {
     return env
   }
   const next = { ...env }

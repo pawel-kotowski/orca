@@ -9,6 +9,8 @@ import {
   CLAUDE_PROFILE_POINTER_ENV
 } from '../../../../shared/agent-accounts/claude/claude-profile-routing'
 import { withClaudeResumeFolder } from './claude-resume-folder-env'
+import { claudeResumeFolderFor } from './claude-profile-installed-router'
+import { CLAUDE_RESUME_CONFIG_DIR_ENV } from '../../../../shared/agent-launch/startup/claude-resume-account'
 
 // Local-only test: Orca's own resume after an Orca restart runs a session in the folder it last
 // ran in, not the workspace's account (Paweł, 2026-11-20, after limit-move's moves were undone).
@@ -90,5 +92,17 @@ describe('a resumed Claude runs in the folder its session last ran in (local)', 
       PATH: '/bin',
       CLAUDE_CONFIG_DIR: extra
     })
+  })
+
+  it('a spawn whose resume names a usable folder skips the routed account’s auth', () => {
+    const host = { runtime: 'host' as const }
+    expect(claudeResumeFolderFor({ [CLAUDE_RESUME_CONFIG_DIR_ENV]: extra }, host)).toBe(extra)
+    expect(
+      claudeResumeFolderFor({ [CLAUDE_RESUME_CONFIG_DIR_ENV]: join(root, 'gone') }, host)
+    ).toBeNull()
+    expect(
+      claudeResumeFolderFor({ [CLAUDE_RESUME_CONFIG_DIR_ENV]: extra }, { runtime: 'wsl' })
+    ).toBeNull()
+    expect(claudeResumeFolderFor({}, host)).toBeNull()
   })
 })

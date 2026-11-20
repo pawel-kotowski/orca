@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { useAppStore } from '../../../store/index'
 import { makePaneKey } from '../../../../../shared/workspace-layout/stable-pane-id'
 import type { PaneForegroundAgentEntry } from '../../../store/slices/agent-status/pane-authority/pane-foreground-agent'
+import type { AgentStatusEntry } from '../../../../../shared/agent-status/contracts/agent-status-types'
 
 /**
  * A chat whose Claude is ended and resumed in the same terminal comes back to its Chat UI.
@@ -13,14 +14,16 @@ import type { PaneForegroundAgentEntry } from '../../../store/slices/agent-statu
  * the mark, so a tab put in terminal view by hand stays terminal.
  */
 type ReturnMark = {
+  /** When the exit moved the tab out of Chat UI. */
+  at: number
   /** A shell (or no agent) has been seen in the pane's foreground since the exit. */
   sawShell: boolean
 }
 
 const marks = new Map<string, ReturnMark>()
 
-export function markChatRestartReturn(tabId: string, leafId: string): void {
-  marks.set(makePaneKey(tabId, leafId), { sawShell: false })
+export function markChatRestartReturn(tabId: string, leafId: string, at = Date.now()): void {
+  marks.set(makePaneKey(tabId, leafId), { at, sawShell: false })
 }
 
 export function clearChatRestartReturns(tabId: string): void {
@@ -37,14 +40,22 @@ export function hasChatRestartReturn(tabId: string, leafId: string): boolean {
 }
 
 /**
- * What a marked pane's foreground says now: 'wait' while the old agent may still show,
- * 'return' once a new agent runs after the shell was seen. Requiring the shell first keeps a
+ * Whether a new agent runs in a marked pane: its hook row reports a session start newer than the
+ * exit (the new Claude's SessionStart; a late hook of the old one is no session start), or its
+ * foreground shows an agent again after the shell was seen. Requiring the shell first keeps a
  * foreground read from before the exit from bouncing the tab straight back.
  */
 export function chatRestartReturnStep(
   mark: ReturnMark,
-  foreground: PaneForegroundAgentEntry | undefined
+  foreground: PaneForegroundAgentEntry | undefined,
+  status?: Pick<AgentStatusEntry, 'sessionBoundary' | 'evidenceObservedAt' | 'updatedAt'>
 ): 'wait' | 'saw-shell' | 'return' {
+  if (
+    status?.sessionBoundary === true &&
+    (status.evidenceObservedAt ?? status.updatedAt) > mark.at
+  ) {
+    return 'return'
+  }
   if (!foreground || foreground.shellForeground || !foreground.agent) {
     return mark.sawShell ? 'wait' : 'saw-shell'
   }
@@ -70,13 +81,14 @@ export function useNativeChatRestartReturn(args: {
       return
     }
     const check = (): void => {
-      const foregrounds = useAppStore.getState().paneForegroundAgentByPaneKey
+      const { paneForegroundAgentByPaneKey: foregrounds, agentStatusByPaneKey } =
+        useAppStore.getState()
       for (const [key, mark] of marks) {
         if (!key.startsWith(`${tabId}:`)) {
           continue
         }
         const leafId = key.slice(tabId.length + 1)
-        const step = chatRestartReturnStep(mark, foregrounds[key])
+        const step = chatRestartReturnStep(mark, foregrounds[key], agentStatusByPaneKey.get(key))
         if (step === 'saw-shell') {
           mark.sawShell = true
         } else if (step === 'return' && isChatEligibleForLeaf(leafId)) {
@@ -88,7 +100,10 @@ export function useNativeChatRestartReturn(args: {
     }
     check()
     return useAppStore.subscribe((state, previous) => {
-      if (state.paneForegroundAgentByPaneKey !== previous.paneForegroundAgentByPaneKey) {
+      if (
+        state.paneForegroundAgentByPaneKey !== previous.paneForegroundAgentByPaneKey ||
+        state.agentStatusByPaneKey !== previous.agentStatusByPaneKey
+      ) {
         check()
       }
     })

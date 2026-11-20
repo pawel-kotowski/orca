@@ -13,7 +13,7 @@ describe('a chat restarted in place returns to Chat UI (local)', () => {
   const shell = { agent: null, shellForeground: true }
 
   it('waits for the shell, then returns when a new agent runs', () => {
-    const mark = { sawShell: false }
+    const mark = { at: 1000, sawShell: false }
     // The old Claude may still show for a moment after its exit.
     expect(chatRestartReturnStep(mark, claude)).toBe('wait')
     expect(chatRestartReturnStep(mark, shell)).toBe('saw-shell')
@@ -21,6 +21,19 @@ describe('a chat restarted in place returns to Chat UI (local)', () => {
     expect(chatRestartReturnStep(mark, shell)).toBe('wait')
     expect(chatRestartReturnStep(mark, undefined)).toBe('wait')
     expect(chatRestartReturnStep(mark, claude)).toBe('return')
+  })
+
+  it('returns on the new Claude’s session start, never on a hook older than the exit', () => {
+    const mark = { at: 1000, sawShell: false }
+    const start = { sessionBoundary: true, evidenceObservedAt: 1500, updatedAt: 1500 }
+    expect(chatRestartReturnStep(mark, shell, start)).toBe('return')
+    expect(chatRestartReturnStep(mark, shell, { ...start, evidenceObservedAt: 900 })).toBe(
+      'saw-shell'
+    )
+    // A later hook of any other kind (the old process's last words) is no session start.
+    expect(chatRestartReturnStep(mark, shell, { ...start, sessionBoundary: false })).toBe(
+      'saw-shell'
+    )
   })
 
   const LEAF_1 = '11111111-1111-4111-8111-111111111111'

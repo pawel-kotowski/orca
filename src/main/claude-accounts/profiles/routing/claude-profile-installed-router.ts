@@ -3,7 +3,7 @@ import { join } from 'node:path'
 import { CLAUDE_WORKSPACE_ACCOUNT_ENV } from '../../../../shared/claude-workspace-account'
 import { CLAUDE_RESUME_CONFIG_DIR_ENV } from '../../../../shared/agent-launch/startup/claude-resume-account'
 import { readUserClaudeConfigDir } from '../claude-profile-paths'
-import { withClaudeResumeFolder } from './claude-resume-folder-env'
+import { usableClaudeResumeFolder, withClaudeResumeFolder } from './claude-resume-folder-env'
 import { isDirectory } from '../claude-profile-homes'
 // Keep the router setup graph out of scan workers.
 import type { ClaudeProfileRouter } from './claude-profile-router'
@@ -55,6 +55,19 @@ export function claudeSpawnSelectionTarget(
     spawn.worktreeId
   )
   return accountId ? { ...target, workspaceAccountId: accountId } : target
+}
+
+/**
+ * The folder a resumed Claude runs in when its resume names one this host can use (a session
+ * that last ran outside every Orca-managed profile). Such a spawn skips the routed account's own
+ * auth preparation, whose env patch would put the pane back on that account.
+ */
+export function claudeResumeFolderFor(
+  env: Record<string, string> | undefined,
+  target: ClaudeAccountSelectionTarget
+): string | null {
+  const folder = env?.[CLAUDE_RESUME_CONFIG_DIR_ENV]
+  return folder && target.runtime !== 'wsl' && usableClaudeResumeFolder(folder) ? folder : null
 }
 
 export function withClaudeProfileTerminalEnv<Env extends Record<string, string> | undefined>(
