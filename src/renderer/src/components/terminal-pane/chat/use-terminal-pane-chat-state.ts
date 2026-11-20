@@ -12,6 +12,7 @@ import {
 } from '../../native-chat/pane/routing/native-chat-leaf-routing'
 import type { TerminalPaneTitleController } from '../titles/use-terminal-pane-title-state'
 import { readTerminalComposerDraft } from './terminal-composer-draft-read'
+import { markChatRestartReturn, useNativeChatRestartReturn } from './native-chat-restart-return'
 
 export function useTerminalPaneChatState(controller: TerminalPaneTitleController) {
   const {
@@ -169,19 +170,32 @@ export function useTerminalPaneChatState(controller: TerminalPaneTitleController
       }
       const panes = managerRef.current?.getPanes() ?? []
       const activeLeafId = managerRef.current?.getActivePane()?.leafId ?? null
-      applyNativeChatLeafRoute(
-        resolveNativeChatLeafRoute({
-          isChatViewMode,
-          chatLeafId,
-          activeLeafId,
-          chatLeafStillMounted: panes.some((pane) => pane.leafId === chatLeafId),
-          activeLeafIsEligible: isChatEligibleForLeaf(activeLeafId),
-          chatLeafHasConfirmedAgentExit: true
-        })
-      )
+      const route = resolveNativeChatLeafRoute({
+        isChatViewMode,
+        chatLeafId,
+        activeLeafId,
+        chatLeafStillMounted: panes.some((pane) => pane.leafId === chatLeafId),
+        activeLeafIsEligible: isChatEligibleForLeaf(activeLeafId),
+        chatLeafHasConfirmedAgentExit: true
+      })
+      if (route.exitChat) {
+        // Why: a Claude restarted in place (limit-move, the Slack bot) brings the chat back.
+        markChatRestartReturn(tabId, leafId)
+      }
+      applyNativeChatLeafRoute(route)
     },
-    [applyNativeChatLeafRoute, chatLeafId, isChatEligibleForLeaf, isChatViewMode, managerRef]
+    [applyNativeChatLeafRoute, chatLeafId, isChatEligibleForLeaf, isChatViewMode, managerRef, tabId]
   )
+  const returnToChat = useCallback(
+    (leafId: string): void => {
+      if (unifiedTabId) {
+        applyNativeChatLeafRoute({ chatLeafId: leafId, exitChat: false })
+        setTabViewMode(unifiedTabId, 'chat')
+      }
+    },
+    [applyNativeChatLeafRoute, setTabViewMode, unifiedTabId]
+  )
+  useNativeChatRestartReturn({ tabId, isChatViewMode, isChatEligibleForLeaf, returnToChat })
   useEffect(() => {
     onAgentExitedRef.current = handleConfirmedAgentExit
   }, [handleConfirmedAgentExit, onAgentExitedRef])

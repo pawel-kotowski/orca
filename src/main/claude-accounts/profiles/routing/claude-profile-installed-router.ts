@@ -1,5 +1,9 @@
+import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { CLAUDE_WORKSPACE_ACCOUNT_ENV } from '../../../../shared/claude-workspace-account'
+import { CLAUDE_RESUME_CONFIG_DIR_ENV } from '../../../../shared/agent-launch/startup/claude-resume-account'
+import { readUserClaudeConfigDir } from '../claude-profile-paths'
+import { withClaudeResumeFolder } from './claude-resume-folder-env'
 import { isDirectory } from '../claude-profile-homes'
 // Keep the router setup graph out of scan workers.
 import type { ClaudeProfileRouter } from './claude-profile-router'
@@ -58,11 +62,27 @@ export function withClaudeProfileTerminalEnv<Env extends Record<string, string> 
   target: ClaudeAccountSelectionTarget
 ): Env | Record<string, string> {
   // The request is routed here; the agent itself never needs it.
-  const { [CLAUDE_WORKSPACE_ACCOUNT_ENV]: _requested, ...rest } = env ?? {}
+  const {
+    [CLAUDE_WORKSPACE_ACCOUNT_ENV]: _requested,
+    [CLAUDE_RESUME_CONFIG_DIR_ENV]: resumeFolder,
+    ...rest
+  } = env ?? {}
   void _requested
-  const routedEnv = env && CLAUDE_WORKSPACE_ACCOUNT_ENV in env ? rest : env
+  const routedEnv =
+    env && (CLAUDE_WORKSPACE_ACCOUNT_ENV in env || CLAUDE_RESUME_CONFIG_DIR_ENV in env) ? rest : env
   const profileEnv = installed?.terminalEnv(target)
-  return profileEnv ? { ...routedEnv, ...profileEnv } : routedEnv
+  const merged = profileEnv ? { ...routedEnv, ...profileEnv } : routedEnv
+  if (!resumeFolder || target.runtime === 'wsl') {
+    return merged
+  }
+  // Why after the account's env: a resumed session runs in the folder it last ran in.
+  const userConfigDir = installed ? installed.userConfigDir() : readUserClaudeConfigDir(process.env)
+  return withClaudeResumeFolder(merged ?? {}, resumeFolder, {
+    systemDefaultHome:
+      installed?.systemDefaultHome() ?? userConfigDir ?? join(homedir(), '.claude'),
+    userConfigDir,
+    routed: Boolean(profileEnv)
+  })
 }
 
 /** The user's CLAUDE_CONFIG_DIR from the login shell, folders Orca saw Claude use, and account homes. */
