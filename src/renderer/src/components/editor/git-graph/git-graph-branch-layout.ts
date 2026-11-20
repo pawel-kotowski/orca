@@ -131,13 +131,32 @@ export function buildGitGraphBranchViewModels(
     }
     // A pinned branch's first lane takes its reserved column; everything else (other branches, a
     // pinned branch's extra lanes) follows the reserved block in the order it opened in.
+    // Paweł, 2026-11-20: "should test tip be shown on the right? its pinned to left". A merge of
+    // an older commit of a pinned branch (a feature merging test before test moved on) opens a
+    // lane in that branch's name, which reached the column first and pushed the branch's own tip
+    // to the right. So the commit's own line takes its column ahead of lines passing by, and a
+    // passing line bound for the same commit joins it there instead of running beside it.
     type Placed = { lane: Lane; from: number | 'node' | 'none'; first?: true }
     const slots: (Placed | undefined)[] = reserved.map(() => undefined)
     const rest: Placed[] = []
+    const joins: GitGraphEdge[] = []
+    const slotOf = (entry: Placed): number =>
+      entry.lane.branch === undefined ? -1 : reserved.indexOf(entry.lane.branch)
+    const ownLine = output.find((entry) => entry.first)
+    if (ownLine && slotOf(ownLine) !== -1) {
+      slots[slotOf(ownLine)] = ownLine
+    }
     for (const entry of output) {
-      const slot = entry.lane.branch === undefined ? -1 : reserved.indexOf(entry.lane.branch)
-      if (slot !== -1 && !slots[slot]) {
+      if (slots.includes(entry)) {
+        continue
+      }
+      const slot = slotOf(entry)
+      if (slot === -1) {
+        rest.push(entry)
+      } else if (!slots[slot]) {
         slots[slot] = entry
+      } else if (slots[slot]!.lane.id === entry.lane.id && entry.from !== 'node') {
+        joins.push({ from: entry.from, to: slot, color: entry.lane.color })
       } else {
         rest.push(entry)
       }
@@ -162,6 +181,7 @@ export function buildGitGraphBranchViewModels(
         edges.push({ from: entry.from, to: index, color: entry.lane.color })
       }
     })
+    edges.push(...joins)
     frontier = placed.map((entry) => entry.lane)
     rows.push({
       historyItem: item,

@@ -219,6 +219,37 @@ describe('a pinned branch whose tip is not loaded yet', () => {
   })
 })
 
+describe('a pinned branch merged into a feature before it moved on', () => {
+  // feature/x merged test at t1; test then gained t2, which feature/y builds on. The merge's
+  // line to t1 is named test too, and reaches test's column before test's own tip does.
+  const items = [
+    commit('x2', ['x1', 't1'], "Merge remote-tracking branch 'origin/test' into feature/x", [
+      branch('feature/x')
+    ]),
+    commit('y1', ['t2'], 'feature y', [branch('feature/y')]),
+    commit('t2', ['t1'], 'test tip', [remote('origin/test')]),
+    commit('t1', ['m1'], 'older test'),
+    commit('x1', ['m1'], 'feature x start'),
+    commit('m1', [], 'main tip', [branch('main')])
+  ]
+  const pinned = ['main', 'test']
+  const laneNames = gitGraphLaneNames(items, pinned)
+  const colourOf = gitGraphBranchColours(items, laneNames, pinned, undefined)
+  const rows = buildGitGraphBranchViewModels(items, { laneNames, pinned, colourOf })
+  const row = (id: string) => rows.find((entry) => entry.historyItem.id === id)!
+
+  it("keeps the branch's tip in its own column", () => {
+    expect(row('t2').circleIndex).toBe(1)
+    expect(row('t1').circleIndex).toBe(1)
+  })
+
+  it('joins the merge line into the column instead of drawing a second line beside it', () => {
+    expect(row('t2').outputSwimlanes.filter((lane) => lane.id === 't1')).toHaveLength(1)
+    expect(row('t2').edges).toContainEqual(expect.objectContaining({ from: 1, to: 1 }))
+    expect(row('t2').edges).toContainEqual(expect.objectContaining({ from: 'node', to: 1 }))
+  })
+})
+
 describe('defaultGitGraphPinnedLanes', () => {
   it('pins the repo main branch, then its development branch', () => {
     expect(defaultGitGraphPinnedLanes([remote('origin/development'), branch('master')])).toEqual([
