@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { basename, dirname, join, resolve } from 'node:path'
-import { linuxNativeToolchainImage } from './linux/build-wayland-clipboard.mjs'
+import { dockerIsRootless, linuxNativeToolchainImage } from './linux/build-wayland-clipboard.mjs'
 import glibcVerification from './linux/verify-linux-glibc-floor.cjs'
 import { pathToFileURL } from 'node:url'
 import {
@@ -56,7 +56,7 @@ function reuseDesktopBuild(output, arch, stamp, fingerprint) {
 export function buildJournalFileLock(
   output,
   arch = process.arch,
-  { glibcFloor = 'server', run = runProcessSync } = {}
+  { glibcFloor = 'server', run = runProcessSync, rootless } = {}
 ) {
   const root = resolve(import.meta.dirname, '../../..')
   mkdirSync(dirname(output), { recursive: true })
@@ -84,11 +84,14 @@ export function buildJournalFileLock(
       }
     }
     const image = linuxNativeToolchainImage(root, docker)
+    // Why: under rootless Docker `--user <uid>` maps to a subordinate uid that cannot write the
+    // bind-mounted output; container root maps to the invoking user (as the Wayland helper does).
+    const asRoot = rootless ?? (run === runProcessSync ? dockerIsRootless() : false)
     docker([
       'run',
       '--rm',
       '--user',
-      `${process.getuid?.() ?? 0}:${process.getgid?.() ?? 0}`,
+      asRoot ? '0:0' : `${process.getuid?.() ?? 0}:${process.getgid?.() ?? 0}`,
       '-v',
       `${dirname(source)}:/source:ro`,
       '-v',
