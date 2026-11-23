@@ -77,21 +77,20 @@ function LandedPullRequest({
   pr: GitGraphPullRequest
   color?: GitHistoryGraphColorId
 }): React.JSX.Element {
+  // One run of text, so a long title wraps after "landed #N" instead of dropping below it.
   return (
-    <span className="inline-flex flex-wrap items-center gap-1" title={pr.url}>
-      <GitPullRequestArrow className="size-3.5 shrink-0" />
-      landed
-      <span className="inline-flex items-center gap-1 font-medium text-foreground">
-        {color && (
-          <span
-            aria-hidden
-            className="size-1.5 rounded-full"
-            style={{ background: graphColor(color) }}
-          />
-        )}
-        <span className="break-words">
-          <span className="font-semibold tabular-nums">#{pr.number}</span> {pr.title}
-        </span>
+    <span className="min-w-0 break-words" title={pr.url}>
+      <GitPullRequestArrow className="mr-1 inline size-3.5 align-[-2px]" />
+      landed{' '}
+      {color && (
+        <span
+          aria-hidden
+          className="mr-1 inline-block size-1.5 rounded-full align-middle"
+          style={{ background: graphColor(color) }}
+        />
+      )}
+      <span className="font-medium text-foreground">
+        <span className="font-semibold tabular-nums">#{pr.number}</span> {pr.title}
       </span>
     </span>
   )
@@ -147,7 +146,12 @@ export function GitGraphOutlineSummary({
           )}
           {laneName && !hasRefs && !pinned.includes(laneName) && (
             <>
-              into <BranchName name={laneName} color={row.nodeColor} />
+              into{' '}
+              <BranchName
+                name={laneName}
+                color={row.nodeColor}
+                pr={gitGraphPullRequestForBranch(prs, laneName, row.historyItem.id)}
+              />
             </>
           )}
         </span>
@@ -170,7 +174,11 @@ export function GitGraphOutlineSummary({
           <GitMerge className="size-3.5 shrink-0" />
           merged{' '}
           {mergedName ? (
-            <BranchName name={mergedName} color={branchColour(mergedName, mergedColor)} />
+            <BranchName
+              name={mergedName}
+              color={branchColour(mergedName, mergedColor)}
+              pr={gitGraphPullRequestForBranch(prs, mergedName)}
+            />
           ) : (
             (pullRequest ?? 'a branch')
           )}
@@ -180,7 +188,12 @@ export function GitGraphOutlineSummary({
           )}
           {laneName && !hasRefs && !pinned.includes(laneName) && (
             <>
-              into <BranchName name={laneName} color={row.nodeColor} />
+              into{' '}
+              <BranchName
+                name={laneName}
+                color={row.nodeColor}
+                pr={gitGraphPullRequestForBranch(prs, laneName, row.historyItem.id)}
+              />
             </>
           )}
         </span>
