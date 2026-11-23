@@ -192,6 +192,19 @@ describe('agent mail between paired Orca servers', () => {
     expect(mailFor(b, 'term_b').map((message) => message.body)).toEqual(['Thanks.'])
   })
 
+  it('names a --from that is no terminal here and says to leave it out', async () => {
+    const refused = await mutation(a, 'orchestration.send', {
+      from: 'projects-87',
+      on: 'devB',
+      to: 'term_b',
+      subject: 'Check the build'
+    })
+    expect(refused).toMatchObject({ ok: false, error: { code: 'invalid_argument' } })
+    expect(JSON.stringify(refused)).toContain('--from projects-87 is not a live terminal')
+    expect(JSON.stringify(refused)).toContain('Leave --from out')
+    expect(mailFor(b, 'term_b')).toEqual([])
+  })
+
   it('returns a chat agent reply to the chat on the opening server', async () => {
     const send = ORCHESTRATION_METHODS.find((method) => method.name === 'orchestration.send')!
     // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: a test double carrying only the fields the code under test reads.

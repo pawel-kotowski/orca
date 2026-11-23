@@ -35,14 +35,14 @@ async function isOrcaVerifiedAgent(): Promise<boolean> {
   }
 }
 
-/** The same command with the server moved from --environment to --on. */
-function withOn(rawArgs: readonly string[] | undefined, server: string): string {
+/** The same command with the server moved from --environment to --on, and the sender left for Orca to name. */
+export function withOn(rawArgs: readonly string[] | undefined, server: string): string {
   const args = rawArgs ?? []
   const kept: string[] = []
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index]!
     const [name] = arg.split('=', 1)
-    if (name === '--environment') {
+    if (name === '--environment' || name === '--from') {
       if (!arg.includes('=')) {
         index += 1
       }

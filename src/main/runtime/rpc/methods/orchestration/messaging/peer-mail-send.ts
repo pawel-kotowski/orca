@@ -30,6 +30,13 @@ export function peerMailLocalCaller(args: {
     args.from === undefined
       ? null
       : (args.attestedCaller?.paneKey ?? args.runtime.getLiveTerminalPaneKey(args.from))
+  if (args.from && !paneKey) {
+    throw new OrchestrationError(
+      'invalid_argument',
+      `--from ${args.from} is not a live terminal on this Orca (an agent's own session name is not one). Leave --from out: Orca knows which agent is sending. Nothing was sent.`,
+      NOTHING_SENT
+    )
+  }
   if (!args.from || !paneKey) {
     throw new OrchestrationError(
       'invalid_argument',
