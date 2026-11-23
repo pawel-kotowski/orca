@@ -261,7 +261,7 @@ export async function activateBackendRuntime(
     () => runtime
   )
   registerCleanup(runtime.attachAgentStatusStore(agentHookServer))
-  // Local: Orca compacts idle terminal agents on orcad hosts too (Electron arms it in main-process-ready-runtime).
+  // Local: Orca compacts idle terminal agents on orcad hosts too (Electron: desktop-core-local-followers).
   const { installIdleCompaction } =
     await import('../agent-hooks/idle-compaction/idle-compaction-install')
   registerCleanup(installIdleCompaction(agentHookServer, () => runtime))

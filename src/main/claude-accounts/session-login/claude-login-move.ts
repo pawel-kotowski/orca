@@ -289,7 +289,7 @@ export class ClaudeLoginMover {
     }
     const handle = pick.pendingTerminal
     const terminal = this.deps.terminal(handle)
-    if (!terminal) {
+    if (!terminal?.session) {
       // After a host restart its terminals reattach one by one; a closed one never comes back.
       const missing = (this.missing.get(sessionId) ?? 0) + 1
       this.missing.set(sessionId, missing)
@@ -299,7 +299,7 @@ export class ClaudeLoginMover {
       return
     }
     this.missing.delete(sessionId)
-    if (terminal.session && terminal.session.id !== sessionId) {
+    if (terminal.session.id !== sessionId) {
       // The pane went on to another conversation: the move was about the one it left.
       this.settlePending(sessionId)
       return
@@ -314,10 +314,8 @@ export class ClaudeLoginMover {
     }
     ended.delete(sessionId)
     this.settlePending(sessionId)
-    if (terminal.session) {
-      // Not awaited: a restart takes seconds, and the other waiting moves go on.
-      void this.run(terminal.session, handle, pick.configDir)
-    }
+    // Not awaited: a restart takes seconds, and the other waiting moves go on.
+    void this.run(terminal.session, handle, pick.configDir)
   }
 
   private settlePending(sessionId: string): void {

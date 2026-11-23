@@ -51,6 +51,7 @@ import { WslUsageReporter } from '../telemetry/wsl-usage-reporter'
 import { ALL_RPC_METHODS } from '../runtime/rpc/methods/rpc-method-registry'
 import { startWorkspaceCleanupRunner } from '../workspaces/cleanup/workspace-cleanup-runner-startup'
 import { agentHookServer } from '../agent-hooks/server/agent-hook-server'
+import { installLocalHostFollowers } from './desktop-core-local-followers'
 import { installHookStatusSessionTabsRepublish } from '../agent-hooks/runtime/hook-status-session-tabs-republish'
 import { installRepoMaintenanceIdleGate } from '../workspaces/catalog/repo-maintenance-idle-gate'
 import { recoverPendingSkillTransactions } from '../skills/transaction-state/skill-transaction-startup-recovery'
@@ -275,6 +276,7 @@ export async function composeDesktopCore(
   core.starNag.start()
   core.starNag.registerIpcHandlers()
   startBrowserAutomation(core, runtime, native)
+  deps.registerCleanup(installLocalHostFollowers(runtime, () => core.runtime ?? null))
   let releaseProviderMaintenance: () => void = () => {}
   const providerMaintenanceReady = new Promise<void>((resolve) => {
     releaseProviderMaintenance = resolve
