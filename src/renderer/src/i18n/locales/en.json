@@ -22377,7 +22377,18 @@
         "switchingRestart": "Claude restarts on it when its turn ends and picks the conversation up.",
         "switchingNext": "The next Claude in this workspace starts on it.",
         "switchLabel": "Claude subscription {{name}}: switch",
-        "switchTitle": "Run this chat on"
+        "switchTitle": "Run this chat on",
+        "switchedNow": "Claude runs on it now and picked the conversation up.",
+        "switchStopsBackground": "Commands it runs in the background stop.",
+        "moveFailed": "Could not move this chat to {{name}}",
+        "moveUnknownLogin": "That machine is no longer signed in to it.",
+        "moveNoTerminal": "The chat's terminal is not open on that machine. Open it and try again.",
+        "moveNoSession": "The terminal has no Claude conversation to move yet.",
+        "moveNotShared": "That login keeps its conversations apart and cannot read this one.",
+        "moveElsewhere": "Another terminal runs this conversation.",
+        "moveBusy": "Something else runs in the chat's terminal.",
+        "moveStopFailed": "Claude did not stop, so it stays where it was.",
+        "moveStartFailed": "Claude did not come up on it. The chat's terminal shows why."
       },
       "resumeButton": "Resume a conversation",
       "resumeList": {

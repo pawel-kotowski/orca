@@ -1,5 +1,5 @@
 import { homedir } from 'node:os'
-import { join, resolve } from 'node:path'
+import { resolve } from 'node:path'
 import type { ProviderRateLimits } from '../../../shared/agent-usage/rate-limits/rate-limit-types'
 import {
   claudeConfigDirFromTranscriptPath,
@@ -7,8 +7,7 @@ import {
   type ClaudeSessionLogin
 } from '../../../shared/agent-accounts/claude/claude-session-login'
 import { claudeStateFileAsync, readClaudeFolderLoginAsync } from '../sign-in/claude-account-folder'
-import { readUserClaudeConfigDir } from '../profiles/claude-profile-paths'
-import { getClaudeProfileRouter } from '../profiles/routing/claude-profile-installed-router'
+import { systemClaudeFolder } from './claude-host-logins-read'
 import { fetchActiveClaudeRateLimits } from '../../rate-limits/providers/claude/claude-active-usage-fetch'
 import type { ClaudeRuntimeAuthPreparation } from '../runtime-auth/runtime-auth-types'
 import { parseSshTranscriptPath } from '../../native-chat/transcript-filesystem/ssh-transcript-path'
@@ -50,13 +49,6 @@ function normalizeFolder(folder: string): string {
   return process.platform === 'win32' ? resolved.toLowerCase() : resolved
 }
 
-/** The host's own Claude folder: the user's CLAUDE_CONFIG_DIR, else ~/.claude. */
-function systemDefaultFolder(userHome: string): { dir: string; userConfigDir: string | undefined } {
-  const router = getClaudeProfileRouter()
-  const userConfigDir = router ? router.userConfigDir() : readUserClaudeConfigDir(process.env)
-  return { dir: userConfigDir ?? join(userHome, '.claude'), userConfigDir }
-}
-
 /**
  * The login of the Claude session whose transcript this is, read from that session's own config
  * folder, whichever process made it: an Orca-managed profile, the host's own `~/.claude`, or a
@@ -89,7 +81,7 @@ export async function readClaudeSessionLogin(
     return null
   }
   const userHome = deps.userHome ?? homedir()
-  const system = systemDefaultFolder(userHome)
+  const system = systemClaudeFolder(userHome)
   const isSystemDefault = normalizeFolder(system.dir) === folder
   // Why: Claude keeps the system login's state in ~/.claude.json, beside the folder, unless the
   // user set CLAUDE_CONFIG_DIR; any folder given as CLAUDE_CONFIG_DIR keeps it inside.

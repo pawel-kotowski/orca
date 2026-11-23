@@ -63,6 +63,19 @@ export const NativeChatClaudeSessionLogin = z.object({
   transcriptPath: z.string().min(1)
 })
 
+/** The logins a terminal-backed Claude chat can run on, on the host that runs it. */
+export const NativeChatClaudeLogins = z.object({
+  terminal: z.string().min(1).optional(),
+  transcriptPath: z.string().min(1).optional()
+})
+
+/** Moves a terminal-backed Claude chat to another of its host's logins. */
+export const NativeChatMoveClaudeLogin = z.object({
+  terminal: z.string().min(1),
+  configDir: z.string().min(1),
+  transcriptPath: z.string().min(1).optional()
+})
+
 /** A terminal-backed Claude chat's shortened copy, written on the host that holds its transcript. */
 export const NativeChatForkClaudeTranscript = z.object({
   sessionId: z.string().min(1),

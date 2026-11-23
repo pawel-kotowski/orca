@@ -30,7 +30,7 @@ async function findSessionProcess(
   return null
 }
 
-function processCommand(pid: number): Promise<string> {
+export function processCommand(pid: number): Promise<string> {
   return new Promise((resolve) => {
     execFile('ps', ['-o', 'command=', '-p', String(pid)], (error, stdout) =>
       resolve(error ? '' : stdout)

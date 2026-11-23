@@ -265,6 +265,10 @@ export async function activateBackendRuntime(
   const { installIdleCompaction } =
     await import('../agent-hooks/idle-compaction/idle-compaction-install')
   registerCleanup(installIdleCompaction(agentHookServer, () => runtime))
+  // Local: a chat's move to another Claude login that waits for its turn outlives a restart.
+  const { installClaudeLoginMoves } =
+    await import('../claude-accounts/session-login/claude-login-move-install')
+  registerCleanup(installClaudeLoginMoves(runtime))
 
   // Headless registration threads Store into persistence; account homes prefer client then host selection.
   // WSL has no host selection and keeps the desktop-prepared environment.

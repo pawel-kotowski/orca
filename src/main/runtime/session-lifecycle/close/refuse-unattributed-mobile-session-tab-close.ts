@@ -1,7 +1,7 @@
-import { OrcaRuntimeWithClaudeRunningPaneAccountMove } from '../projection/claude-running-pane-account-move'
+import { OrcaRuntimeWithClaudeLoginMoveTerminal } from '../projection/claude-login-move-terminal'
 import type { RuntimeMobileSessionTabCloseResult } from '../../../../shared/remote-runtime/session-graph/runtime-session-contracts'
 
-export abstract class OrcaRuntimeWithRefuseUnattributedMobileSessionTabClose extends OrcaRuntimeWithClaudeRunningPaneAccountMove {
+export abstract class OrcaRuntimeWithRefuseUnattributedMobileSessionTabClose extends OrcaRuntimeWithClaudeLoginMoveTerminal {
   async refuseUnattributedMobileSessionTabClose(
     worktreeSelector: string,
     tabId: string

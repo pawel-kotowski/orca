@@ -1,6 +1,6 @@
 /* eslint-disable max-lines -- Why: upstream's native-chat RPC table sits at its limit; the local
    terminal-chat fork method (nativeChat.forkClaudeTranscript) and the session login read
-   (nativeChat.claudeSessionLogin) add entries beside their siblings. */
+   and switch (nativeChat.claudeSessionLogin, claudeLogins, moveClaudeLogin) add entries beside their siblings. */
 import type { NativeChatMessage } from '../../../../../shared/native-chat/native-chat-types'
 import { recordMobileViewOpened } from '../../../../telemetry/mobile-client-telemetry'
 import type {
@@ -18,6 +18,10 @@ import { nativeChatTranscriptPathOnExecutionHost } from '../../../../native-chat
 import { readNativeChatClaudeSubagents } from '../../../../native-chat/native-chat-claude-subagents-read'
 import { forkNativeChatClaudeTranscript } from '../../../../native-chat/native-chat-claude-terminal-fork'
 import { readClaudeSessionLogin } from '../../../../claude-accounts/session-login/claude-session-login-read'
+import {
+  moveChatClaudeLogin,
+  readClaudeLoginsForChat
+} from '../../../../claude-accounts/session-login/claude-login-move-install'
 import { defineMethod, defineStreamingMethod, type RpcContext } from '../../core'
 import { sanitizeNativeChatRpcBlock } from './native-chat-rpc-block-sanitize'
 import {
@@ -28,7 +32,9 @@ import {
   MOBILE_NATIVE_CHAT_MAX_WINDOW,
   NativeChatReadClaudeSubagents,
   NativeChatForkClaudeTranscript,
+  NativeChatClaudeLogins,
   NativeChatClaudeSessionLogin,
+  NativeChatMoveClaudeLogin,
   NativeChatSession,
   NativeChatUnsubscribe,
   type NativeChatResumePoint
@@ -131,6 +137,18 @@ export const NATIVE_CHAT_METHODS = [
     params: NativeChatClaudeSessionLogin,
     handler: async (params, { runtime }) =>
       readClaudeSessionLogin(params, { rows: () => runtime.getAgentProviderSessionRows() })
+  }),
+  defineMethod({
+    name: 'nativeChat.claudeLogins',
+    permission: 'workspace',
+    params: NativeChatClaudeLogins,
+    handler: async (params, { runtime }) => readClaudeLoginsForChat(runtime, params)
+  }),
+  defineMethod({
+    name: 'nativeChat.moveClaudeLogin',
+    permission: 'workspace',
+    params: NativeChatMoveClaudeLogin,
+    handler: async (params, { runtime }) => moveChatClaudeLogin(runtime, params)
   }),
   defineMethod({
     name: 'nativeChat.readSession',

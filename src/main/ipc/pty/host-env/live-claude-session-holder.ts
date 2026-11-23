@@ -2,6 +2,7 @@ import { readdir, readFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { getAppEnvironment } from '../../../../shared/app-lifecycle/app-environment'
+import { extraClaudeLoginFolders } from '../../../claude-accounts/session-login/claude-host-logins-read'
 import type { RefusedPaneResume } from '../../../../shared/agent-status/contracts/agent-status-ipc-payload'
 import type { ResumeSpawnAdmission } from './saved-resume-admission'
 
@@ -33,6 +34,10 @@ export async function claudeSessionRecordDirs(userDataDir: string | null): Promi
         dirs.add(join(profiles, entry.name, 'home', 'sessions'))
       }
     }
+  }
+  // Logins beside ~/.claude (`~/.claude-logins/<name>`), which sessions are moved to and from.
+  for (const folder of await extraClaudeLoginFolders()) {
+    dirs.add(join(folder, 'sessions'))
   }
   return [...dirs]
 }

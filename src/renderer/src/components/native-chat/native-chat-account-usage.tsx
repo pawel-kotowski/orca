@@ -11,7 +11,10 @@ import type {
 import { formatRateLimitWindowChipLabel } from '../../../../shared/agent-usage/rate-limits/rate-limit-window-label'
 import { clampUsedPercent } from '../../../../shared/agent-usage/display/usage-percentage-display'
 import { NativeChatMeter } from './native-chat-meter'
-import { NativeChatAccountSwitch } from './native-chat-account-switch'
+import {
+  NativeChatAccountSwitch,
+  NativeChatRemoteAccountSwitch
+} from './native-chat-account-switch'
 import { workspaceClaudeAccountId } from '../../../../shared/claude-workspace-account'
 import { claudeAccountOrgName } from '../../../../shared/agent-accounts/claude-account-org-name'
 import { getExecutionHostIdForWorktree } from '@/lib/workspace/ownership/worktree-runtime-owner'
@@ -137,6 +140,8 @@ export type ChatClaudeUsage = {
   /** The managed account and workspace a switch acts on; null for another machine's chat. */
   accountId?: string | null
   worktreeId?: string | null
+  /** The paired machine whose own logins a switch offers; null for this machine's chat. */
+  environmentId?: string | null
 }
 
 /**
@@ -248,10 +253,18 @@ function useChatClaudeUsage(scope: NativeChatAccountScope): ChatClaudeUsage | nu
   }, [needsFetch])
   const fromFolder = unmanaged ? sessionLoginUsage(sessionLogin) : undefined
   if (fromFolder !== undefined) {
-    return fromFolder && !remoteId ? { ...fromFolder, worktreeId } : fromFolder
+    return (
+      fromFolder &&
+      (remoteId ? { ...fromFolder, environmentId: remoteId } : { ...fromFolder, worktreeId })
+    )
   }
   if (remoteId) {
-    return snapshot ? resolveRemoteChatClaudeUsage(snapshot, scope.transcriptPath) : null
+    return snapshot
+      ? {
+          ...resolveRemoteChatClaudeUsage(snapshot, scope.transcriptPath),
+          environmentId: remoteId
+        }
+      : null
   }
   return account
     ? {
@@ -348,12 +361,21 @@ function ClaudeAccountUsageChip({
         // Why: whose subscription this is reads at a glance, in the theme's blue; a click moves
         // the chat to another one (native-chat-account-switch). Outside the tooltip, which would
         // otherwise cover its open menu.
-        <NativeChatAccountSwitch
-          name={name}
-          currentAccountId={usage.accountId ?? null}
-          worktreeId={usage.worktreeId ?? null}
-          terminalTabId={scope.terminalTabId}
-        />
+        usage.environmentId ? (
+          <NativeChatRemoteAccountSwitch
+            name={name}
+            environmentId={usage.environmentId}
+            terminalTabId={scope.terminalTabId}
+            transcriptPath={scope.transcriptPath}
+          />
+        ) : (
+          <NativeChatAccountSwitch
+            name={name}
+            currentAccountId={usage.accountId ?? null}
+            worktreeId={usage.worktreeId ?? null}
+            terminalTabId={scope.terminalTabId}
+          />
+        )
       ) : null}
       {session || weekly ? (
         <Tooltip>

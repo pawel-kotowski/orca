@@ -209,7 +209,7 @@ export abstract class OrcaRuntimeWithClaudeRunningPaneAccountMove extends OrcaRu
     return panes
   }
 
-  private claudePaneOf(pty: RuntimePtyWorktreeRecord): ClaudePane | null {
+  protected claudePaneOf(pty: RuntimePtyWorktreeRecord): ClaudePane | null {
     const recorded = this.paneOfPty(pty).paneKey
     // SSH relay, other servers' and WSL terminals keep their own logins.
     if (pty.connectionId !== null || isRemoteRuntimePtyId(pty.ptyId) || pty.isWsl || !recorded) {
