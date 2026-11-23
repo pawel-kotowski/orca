@@ -38,7 +38,7 @@ type MoveRuntime = Pick<
 >
 
 /** Claude's prompt at its usage limit: its footer, or the menu it asks with (also limit-move's). */
-const LIMIT_PROMPT = /Usage limit reached\s*·\s*limit resets|Stop and wait for limit to reset/i
+const LIMIT_PROMPT = /Usage limit reached\s*\u00b7\s*limit resets|Stop and wait for limit to reset/i
 const SCREEN_TAIL = 12
 const STOP_WAIT_MS = 20_000
 
