@@ -166,7 +166,9 @@ export function NativeChatSubagentRun({
       }
     >
       <span className="text-chat-foreground">{headline}</span>
-      {rosterOpen ? null : <span className="min-w-0 truncate text-chat-foreground-faint">{` · ${names}`}</span>}
+      {rosterOpen ? null : (
+        <span className="min-w-0 truncate text-chat-foreground-faint">{` · ${names}`}</span>
+      )}
       <span className="tabular-nums">
         {` · ${summary}`}
         {clockStartedAt !== null ? (

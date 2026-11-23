@@ -197,7 +197,7 @@ export class AgentHookServer extends AgentHookServerLifecycle {
     return confirmed
   }
 
-    /** A prompt's mark with no launch held: an agent typed there, or one an earlier mark left
+  /** A prompt's mark with no launch held: an agent typed there, or one an earlier mark left
    *  unproven, may have ended. Only a hook row or a tracked pane can hold one, so the mark of a
    *  plain shell, which lands on every prompt, skips the saved-record read. */
   protected noticeLaunchlessCommandMark(resolved: string): void {

@@ -290,7 +290,7 @@ export function NativeChatComposerField({
               </div>
             ) : null}
             <div className={compact ? 'min-w-0 flex-1 basis-0' : 'contents'}>
-                <NativeChatPromptEditor
+              <NativeChatPromptEditor
                 key={draftScopeKey}
                 scopeKey={draftScopeKey}
                 positionTarget={positionTarget}

@@ -30,6 +30,8 @@ export function NativeChatTerminalVisualOwner({
   // Overrides the transcript scope's owner: this terminal chat's visuals live in the terminal chats folder.
   const owner = useNativeChatTabVisualOwner(target, TERMINAL_CHATS_VISUAL_SESSION_ID, terminalTabId)
   return (
-    <NativeChatVisualOwnerContext.Provider value={owner}>{children}</NativeChatVisualOwnerContext.Provider>
+    <NativeChatVisualOwnerContext.Provider value={owner}>
+      {children}
+    </NativeChatVisualOwnerContext.Provider>
   )
 }

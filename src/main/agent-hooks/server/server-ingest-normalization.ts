@@ -211,7 +211,7 @@ export abstract class AgentHookServerIngestNormalization extends AgentHookServer
     this.liveHookAtByPaneKey.set(this.resolvePaneKeyAlias(paneKey), Date.now())
   }
 
-    /** Normalizes and applies one local hook; returns the row that owns its tool call, if any. */
+  /** Normalizes and applies one local hook; returns the row that owns its tool call, if any. */
   protected ingestLocalHook(
     source: AgentHookSource,
     aliasedBody: unknown

@@ -164,7 +164,9 @@ function packagedOrcadTemplateTargets(env = process.env) {
   }
   const unknown = requested.filter((target) => !ORCAD_TEMPLATE_TARGETS.includes(target))
   if (unknown.length > 0) {
-    throw new Error(`[verify-packaged-orcad-template] unknown ORCA_ORCAD_TEMPLATE_TARGETS: ${unknown}`)
+    throw new Error(
+      `[verify-packaged-orcad-template] unknown ORCA_ORCAD_TEMPLATE_TARGETS: ${unknown}`
+    )
   }
   return requested
 }

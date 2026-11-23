@@ -394,7 +394,7 @@ describe('agent mail between paired Orca servers', () => {
     expect(mailFor(b, 'term_b')).toEqual([])
   })
 
-    it("reports the server's delivery hold, as a local send does", async () => {
+  it("reports the server's delivery hold, as a local send does", async () => {
     // A terminal whose agent died shows no live status, so its server's gate holds the mail.
     vi.spyOn(b.runtime, 'readTerminalMailHold').mockImplementation((mailbox) =>
       mailbox === 'term_b' ? { kind: 'unverified', terminal: 'term_b' } : null
