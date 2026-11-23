@@ -18,11 +18,11 @@ import {
   type BrowserMemorySaverSettingsSource
 } from '../../browser/guest-lifecycle/browser-page-idle-discard'
 import { registerBrowserDictationHandlers } from './browser-dictation-ipc'
+import { registerBrowserGrabHandlers } from './browser-grab-ipc'
 import {
   disposeGrabModeStateForPage,
-  registerBrowserGrabHandlers,
   resetGrabModeState
-} from './browser-grab-ipc'
+} from '../../browser/element-grab/browser-grab-mode-sequencer'
 import { registerBrowserSessionProfileHandlers } from './browser-session-profile-ipc'
 import { registerAgentShowPageMarkHandlers } from '../../browser/agent-show/agent-show-page-marks-ipc'
 import type { BrowserCertificateProceedResult } from '../../../shared/browser/workspaces/browser-workspace-types'
@@ -36,6 +36,7 @@ import type {
   BrowserPagePromptResult
 } from '../../../shared/browser/prompts/browser-page-prompt'
 import { respondToBrowserPagePrompt } from '../../browser/guest-lifecycle/prompts/browser-page-prompts'
+import { openStreamedBrowserExternalAppLink } from '../../browser/guest-lifecycle/prompts/browser-external-app-launch'
 import { recordActiveBrowserPage } from '../../browser/extensions/tabs-and-windows/browser-extension-tab-model'
 import { announceRegisteredBrowserExtensionTab } from '../../browser/extensions/tabs-and-windows/browser-extension-tab-lifecycle'
 import { registerBrowserExtensionHandlers } from './browser-extensions'
@@ -72,6 +73,7 @@ export function registerBrowserHandlers(
   ipcMain.removeHandler('browser:proceedCertificate')
   ipcMain.removeHandler('browser:respondWebAuthnAccount')
   ipcMain.removeHandler('browser:respondPagePrompt')
+  ipcMain.removeHandler('browser:openStreamedExternalAppLink')
 
   const registerGuest = (
     event: Electron.IpcMainInvokeEvent,
@@ -264,6 +266,14 @@ export function registerBrowserHandlers(
       }
       return respondToBrowserPagePrompt(event.sender, response)
     }
+  )
+
+  ipcMain.handle(
+    'browser:openStreamedExternalAppLink',
+    (event, rawUrl: unknown): Promise<boolean> =>
+      isTrustedBrowserRenderer(event.sender)
+        ? openStreamedBrowserExternalAppLink(rawUrl)
+        : Promise.resolve(false)
   )
 
   ipcMain.handle(

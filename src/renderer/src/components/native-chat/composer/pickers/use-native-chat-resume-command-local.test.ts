@@ -95,6 +95,7 @@ describe('/resume and the Resume button (local)', () => {
         terminalTabId: 'tab-2',
         agent: 'claude',
         resumesInPlace: false,
+        ownConversation: true,
         search: ''
       })
     ).toBeNull()

@@ -39,6 +39,7 @@ export function normalizeAgentStatusMetadata(
     data.launchConfig === undefined &&
     !authorityRestartId &&
     !data.paneOwner &&
+    data.executionHost !== 'shared' &&
     data.orcaSessionId === undefined
   ) {
     return undefined
@@ -49,6 +50,7 @@ export function normalizeAgentStatusMetadata(
     ...(data.orcaSessionId !== undefined ? { orcaSessionId: data.orcaSessionId } : {}),
     ...(data.launchToken ? { launchToken: data.launchToken } : {}),
     ...(data.launchConfig !== undefined ? { launchConfig: data.launchConfig } : {}),
-    ...(data.paneOwner ? { paneOwner: data.paneOwner } : {})
+    ...(data.paneOwner ? { paneOwner: data.paneOwner } : {}),
+    ...(data.executionHost === 'shared' ? { executionHost: 'shared' as const } : {})
   }
 }

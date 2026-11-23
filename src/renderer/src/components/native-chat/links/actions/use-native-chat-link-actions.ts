@@ -20,6 +20,8 @@ import { projectDefaultClaudeAccount } from '@/lib/project-default-claude-identi
 export type NativeChatLinkActions = {
   onLinkClick: CommentMarkdownLinkClickHandler | undefined
   linkActionRequest: LinkActionRequest | null
+  /** Shows the popover for a click this hook's own context did not handle. */
+  requestLinkActions: (request: LinkActionRequest) => void
   closeLinkActions: (dismissed?: LinkActionRequest) => void
 }
 
@@ -30,7 +32,6 @@ export function useNativeChatLinkActions(
   scope: { sessionId: string | null; isVisible: boolean }
 ): NativeChatLinkActions {
   const [linkActionRequest, setLinkActionRequest] = useState<LinkActionRequest | null>(null)
-  const openFileLink = useNativeChatFileLinkClick(context, setLinkActionRequest, rootRef)
   const scopeKey = JSON.stringify([
     context?.worktreeId,
     context?.runtimeEnvironmentId,
@@ -41,14 +42,31 @@ export function useNativeChatLinkActions(
     setPreviousScopeKey(scopeKey)
     setLinkActionRequest(null)
   }
-  // Read at click time, like the settings below.
-  const identity = useNativeChatClaudeIdentity()
-  const identityRef = useRef(identity)
-  identityRef.current = identity
   const closeLinkActions = useCallback((dismissed?: LinkActionRequest) => {
     setLinkActionRequest((current) => closeLinkActionRequest(current, dismissed))
   }, [])
 
+  const onLinkClick = useNativeChatLinkClick(context, setLinkActionRequest, rootRef)
+  return {
+    onLinkClick,
+    linkActionRequest,
+    requestLinkActions: setLinkActionRequest,
+    closeLinkActions
+  }
+}
+
+/** One transcript's link clicks; `request` shows the shared destination popover. A group room
+ *  has one popover and a link context per member, so it calls this once per member. */
+export function useNativeChatLinkClick(
+  context: NativeChatFileLinkContext | null,
+  request: (request: LinkActionRequest) => void,
+  rootRef: RefObject<HTMLElement | null>
+): CommentMarkdownLinkClickHandler | undefined {
+  const openFileLink = useNativeChatFileLinkClick(context, request, rootRef)
+  // Read at click time, like the settings below.
+  const identity = useNativeChatClaudeIdentity()
+  const identityRef = useRef(identity)
+  identityRef.current = identity
   const onLinkClick = useCallback<CommentMarkdownLinkClickHandler>(
     (event, href) => {
       if (!context) {
@@ -92,7 +110,11 @@ export function useNativeChatLinkActions(
       }
       if (orcaClick) {
         event.preventDefault()
-        const routing = resolveNativeChatHttpLinkRouting(useAppStore.getState(), context.worktreeId)
+        const routing = resolveNativeChatHttpLinkRouting(
+          useAppStore.getState(),
+          context.worktreeId,
+          route.url
+        )
         openNativeChatWebLink(
           route.url,
           { worktreeId: context.worktreeId, sourceTabId: context.sourceTabId, ...routing },
@@ -107,20 +129,16 @@ export function useNativeChatLinkActions(
       handleNativeChatWebLink(event, route.url, {
         worktreeId: context.worktreeId,
         sourceTabId: context.sourceTabId,
-        ...resolveNativeChatHttpLinkRouting(state, context.worktreeId),
+        ...resolveNativeChatHttpLinkRouting(state, context.worktreeId, route.url),
         actionsEnabled: plainClickBehavior === 'actions',
         plainClickBehavior,
         restoreFocus: () =>
           (anchor.isConnected ? anchor : rootRef.current)?.focus({ preventScroll: true }),
-        request: setLinkActionRequest
+        request
       })
     },
-    [context, openFileLink, rootRef]
+    [context, openFileLink, request, rootRef]
   )
 
-  return {
-    onLinkClick: context ? onLinkClick : undefined,
-    linkActionRequest,
-    closeLinkActions
-  }
+  return context ? onLinkClick : undefined
 }

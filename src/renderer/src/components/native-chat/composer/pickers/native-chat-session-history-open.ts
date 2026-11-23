@@ -16,6 +16,8 @@ export function openNativeChatSessionHistory(args: {
   agent: AgentType
   structuredWorktreeId?: string
   resumesInPlace: boolean
+  /** The chat's own conversation resumes in place; any other history opens alongside it, in its own tab. */
+  ownConversation: boolean
   search: string
 }): string | null {
   const state = useAppStore.getState()
@@ -40,6 +42,7 @@ export function openNativeChatSessionHistory(args: {
     workspace,
     chatTabId: args.terminalTabId,
     resumesInPlace: args.resumesInPlace,
+    ...(args.ownConversation ? {} : { alongside: true as const }),
     initialQuery: args.search,
     ...(isAiVaultAgent(args.agent) ? { agent: args.agent } : {})
   })

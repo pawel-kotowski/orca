@@ -6,7 +6,6 @@ import {
   ptyStatusEvidenceAt
 } from './runtime-mobile-agent-status-evidence'
 import {
-  AGENT_STATUS_HYDRATE_MAX_AGE_MS,
   AGENT_STATUS_STALE_AFTER_MS,
   agentStatusAuthorityObservedAt,
   agentStatusStaleAfterMs
@@ -84,6 +83,7 @@ export function renewRuntimeMobileAgentStatusFromPtyTitle(
     stateHistory: [],
     ...(status.agentType ? { agentType: status.agentType } : {}),
     ...(status.terminalHandle ? { terminalHandle: status.terminalHandle } : {}),
+    ...(status.orchestration ? { orchestration: status.orchestration } : {}),
     ...(status.worktreeId ? { worktreeId: status.worktreeId } : {}),
     ...(status.tabId ? { tabId: status.tabId } : {}),
     ...(status.terminalTitle ? { terminalTitle: status.terminalTitle } : {}),
@@ -168,8 +168,6 @@ export function selectRuntimeHookAgentRowForPane(
   let restored: AgentStatusIpcPayload | null = null
   let confirmedReceivedAt = -Infinity
   const now = Date.now()
-  // Unverifiable lasts as long as hydration keeps the row; going quiet is not exit evidence.
-  const restoredAfter = now - AGENT_STATUS_HYDRATE_MAX_AGE_MS
   for (const entry of rows) {
     if (entry.providerSession && (!session || entry.receivedAt > session.receivedAt)) {
       session = entry
@@ -202,7 +200,7 @@ export function selectRuntimeHookAgentRowForPane(
       entry.providerSessionOnly !== true &&
       entry.restoredUnconfirmed === true &&
       entry.state !== 'done' &&
-      (entry.evidenceObservedAt ?? entry.receivedAt) >= restoredAfter &&
+      // Unverifiable lasts as long as hydration keeps the row; going quiet is not exit evidence.
       (!restored || entry.receivedAt > restored.receivedAt)
     ) {
       restored = entry

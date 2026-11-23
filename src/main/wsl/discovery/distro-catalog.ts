@@ -5,7 +5,6 @@ import { filterUserWslDistros, parseWslDistros } from './wsl-distro-list-output'
 import { wslDistroListRetryDelayMs } from './wsl-distro-retry'
 import {
   _resetWslAvailabilityCacheForTests,
-  _setWslAvailabilityCacheForTests,
   dropStaleWslAvailabilityFailure
 } from './wsl-availability'
 import {
@@ -29,7 +28,6 @@ import {
 import { clearWslHomeCache, getCachedWslHome, rememberWslHome } from './wsl-home-cache'
 import { notifyWslDiscoveryChanged } from './wsl-discovery-change'
 import {
-  _setWslInstallationForTests,
   peekWslInstallation,
   peekWslInstallationAndRefreshIfDue,
   readWslInstallation
@@ -322,14 +320,6 @@ export async function getWslHomeAsync(distro: string): Promise<string | null> {
   return probe
 }
 
-/** UNC home roots for distros that are running at discovery time. */
-export async function listRunningWslHomeDirsAsync(): Promise<string[]> {
-  const homes = await Promise.all(
-    (await listRunningWslDistrosAsync()).map((distro) => getWslHomeAsync(distro))
-  )
-  return homes.filter((home): home is string => Boolean(home))
-}
-
 // Retire pending probes with their cache so a reset cannot leak an old answer into the next test.
 function resetWslDistroListState(): void {
   wslDistroCache = null
@@ -350,18 +340,10 @@ export function _resetWslCachesForTests(): void {
   _resetWslAvailabilityCacheForTests()
 }
 
-// Seeds expire like real cache entries; timer-advancing tests must mock process-host to prevent actual probes.
-export function _setWslCachesForTests(args: {
-  available?: boolean | null
-  distros?: string[] | null
-  availabilityRetryable?: boolean
-}): void {
-  _setWslAvailabilityCacheForTests(args.available, args.availabilityRetryable ?? false)
-  // Seed through normal caching so an empty list also arms backoff.
-  resetWslDistroListState()
-  if (args.distros) {
-    cacheWslDistroList(args.distros, ++wslDistroProbeSequence)
-  }
-  // A seeded catalog is an installed host. Don't let the service query consume a wsl.exe mock.
-  _setWslInstallationForTests('present')
+/** UNC home roots for distros that are running at discovery time. */
+export async function listRunningWslHomeDirsAsync(): Promise<string[]> {
+  const homes = await Promise.all(
+    (await listRunningWslDistrosAsync()).map((distro) => getWslHomeAsync(distro))
+  )
+  return homes.filter((home): home is string => Boolean(home))
 }

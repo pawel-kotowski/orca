@@ -1,11 +1,11 @@
 /* eslint-disable max-lines -- Why: upstream's actions sit at the limit; the local terminal chat's
    Ctrl+Enter label adds one prop, and moving upstream's own code out would fork it on every merge. */
 import { NativeChatComposerDraftNotSavedIcon } from '../../drafts/NativeChatComposerDraftNotSavedIcon'
-import { memo } from 'react'
-import { ArrowUp, CornerDownRight, ListEnd, Mic, Plus, Save, Square } from 'lucide-react'
+import { NativeChatRoomContext } from '../../native-chat-room-context'
+import { memo, useContext } from 'react'
+import { ArrowUp, CornerDownRight, ListEnd, Save, Square } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { cn } from '@/lib/class-names'
 import { useTranslate } from '@/i18n/use-translate'
 import { getScreenSubmitShortcutLabel } from '@/lib/keyboard/screen-submit-shortcut'
 import { useUiLanguageRevision } from '@/i18n/use-ui-language-revision'
@@ -27,6 +27,9 @@ import {
   NativeChatAlternateSendChip,
   NativeChatCompactComposerActions
 } from './NativeChatComposerLocalActions'
+import { NativeChatComposerPrimaryButton } from './NativeChatComposerPrimaryButton'
+import { NativeChatAttachButton } from './NativeChatAttachButton'
+import { NativeChatDictationButton } from './NativeChatDictationButton'
 import { NativeChatContextUsageRing } from '../../usage/NativeChatContextUsageRing'
 import type { NativeChatContextUsageSummary } from '../../../../../../shared/native-chat/native-chat-context-usage-summary'
 import type { NativeChatOptionPickerRequest } from '../../session/options/controls/native-chat-option-picker-request'
@@ -112,6 +115,7 @@ export const NativeChatComposerActions = memo(function NativeChatComposerActions
 }: NativeChatComposerActionsProps): React.JSX.Element {
   const t = useTranslate()
   useUiLanguageRevision()
+  const roomReplies = useContext(NativeChatRoomContext)?.replies
   const mode = useNativeChatPlanMode({
     surface: sessionOptionsSurface,
     snapshot: sessionOptionsSnapshot,
@@ -130,9 +134,6 @@ export const NativeChatComposerActions = memo(function NativeChatComposerActions
       onSend()
     }
   }
-  const dictationLabel = isDictating
-    ? t('components.native-chat.composer.stopDictation', 'Stop dictation')
-    : t('components.native-chat.composer.startDictation', 'Start dictation')
   const sendReason = stops ? null : (sendBlockedReason ?? null)
   const sendHint =
     sendReason ??
@@ -169,8 +170,7 @@ export const NativeChatComposerActions = memo(function NativeChatComposerActions
       </span>
     </Button>
   ) : (
-    <Button
-      type="button"
+    <NativeChatComposerPrimaryButton
       data-native-chat-critical-action={stops ? 'stop' : undefined}
       aria-label={
         stops
@@ -180,78 +180,24 @@ export const NativeChatComposerActions = memo(function NativeChatComposerActions
           : (sendReason ?? t('components.native-chat.composer.send', 'Send'))
       }
       disabled={sendDisabled || (stops && isStopping)}
-      // A press keeps focus where it was; a focused button drops it to <body> when it disables.
-      onMouseDown={(event) => event.preventDefault()}
       onClick={handleCriticalAction}
       variant={stops ? 'ghost' : 'default'}
-      size="icon"
-      className={cn('size-8 rounded-full pointer-coarse:size-10', stops && NATIVE_CHAT_STOP_TINT)}
+      className={stops ? NATIVE_CHAT_STOP_TINT : undefined}
     >
       {stops ? <Square className="size-3.5 fill-current" /> : <ArrowUp className="size-4" />}
-    </Button>
+    </NativeChatComposerPrimaryButton>
   )
 
-  const attach = (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-sm"
-          aria-label={t('components.native-chat.composer.attach', 'Attach file')}
-          disabled={attachDisabled}
-          onClick={onAttach}
-          className="pointer-coarse:size-11"
-        >
-          <Plus className="size-4" />
-        </Button>
-      </TooltipTrigger>
-      <TooltipContent side="top" sideOffset={4}>
-        {t('components.native-chat.composer.attach', 'Attach file')}
-      </TooltipContent>
-    </Tooltip>
-  )
+  const attach = <NativeChatAttachButton disabled={attachDisabled} onAttach={onAttach} />
   const dictation = (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Button
-          type="button"
-          variant={isDictating ? 'secondary' : 'ghost'}
-          size="icon-sm"
-          aria-label={dictationLabel}
-          disabled={dictationDisabled}
-          onClick={isDictationHoldMode ? undefined : onDictationToggle}
-          onPointerDown={(event) => {
-            if (!isDictationHoldMode || dictationDisabled) {
-              return
-            }
-            event.preventDefault()
-            onDictationHoldStart()
-          }}
-          onPointerUp={() => {
-            if (isDictationHoldMode && !dictationDisabled) {
-              onDictationHoldEnd()
-            }
-          }}
-          onPointerCancel={() => {
-            if (isDictationHoldMode && !dictationDisabled) {
-              onDictationHoldEnd()
-            }
-          }}
-          onPointerLeave={(event) => {
-            if (isDictationHoldMode && event.buttons === 1 && !dictationDisabled) {
-              onDictationHoldEnd()
-            }
-          }}
-          className="pointer-coarse:size-11"
-        >
-          {isDictating ? <Square className="size-3.5 fill-current" /> : <Mic className="size-4" />}
-        </Button>
-      </TooltipTrigger>
-      <TooltipContent side="top" sideOffset={4}>
-        {dictationLabel}
-      </TooltipContent>
-    </Tooltip>
+    <NativeChatDictationButton
+      disabled={dictationDisabled}
+      isDictating={isDictating}
+      isHoldMode={isDictationHoldMode}
+      onToggle={onDictationToggle}
+      onHoldStart={onDictationHoldStart}
+      onHoldEnd={onDictationHoldEnd}
+    />
   )
   if (launchPrompt) {
     return (
@@ -304,6 +250,7 @@ export const NativeChatComposerActions = memo(function NativeChatComposerActions
 
   const left: NativeChatComposerControl[] = [
     { id: 'attach', priority: 6, content: attach },
+    ...(roomReplies ? [{ id: 'room-replies', priority: 6, content: roomReplies }] : []),
     {
       id: 'permissions',
       priority: 5,
@@ -385,27 +332,22 @@ export const NativeChatComposerActions = memo(function NativeChatComposerActions
       right={right}
       primary={
         steerPreview && !editSession && (steerPreview === 'steer-queued' || !sendDisabled) ? (
-          <Button
-            type="button"
+          <NativeChatComposerPrimaryButton
             data-native-chat-steer-preview={steerPreview}
             aria-label={steerPreviewLabel}
-            onMouseDown={(event) => event.preventDefault()}
             onClick={(event) => {
               // As Send: the action can change between a double-click's presses (Steer, then Steer queued).
               if (event.detail <= 1) {
                 onSteerPreview?.()
               }
             }}
-            variant="default"
-            size="icon"
-            className="size-8 rounded-full pointer-coarse:size-10"
           >
             {steerPreview === 'queue' ? (
               <ListEnd className="size-4" />
             ) : (
               <CornerDownRight className="size-4" />
             )}
-          </Button>
+          </NativeChatComposerPrimaryButton>
         ) : sendHint ? (
           <Tooltip>
             <TooltipTrigger asChild>

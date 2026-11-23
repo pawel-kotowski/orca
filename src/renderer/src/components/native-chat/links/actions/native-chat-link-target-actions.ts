@@ -23,7 +23,8 @@ import { openNativeChatCodeRange } from '@/agent-show/ui/chat-code-show'
 
 export function resolveNativeChatHttpLinkRouting(
   state: AppState,
-  worktreeId: string
+  worktreeId: string,
+  url: string
 ): { sourceOwner: HttpLinkSourceOwner; destinations: HttpLinkActionDestinations } {
   const sourceOwner = resolveNativeChatHttpLinkSourceOwner(state, worktreeId)
   return {
@@ -31,7 +32,8 @@ export function resolveNativeChatHttpLinkRouting(
     destinations: httpLinkActionDestinationsFor(
       state.settings,
       sourceOwner,
-      canOpenRemoteLinkInWorkspaceBrowser(state, worktreeId, sourceOwner)
+      canOpenRemoteLinkInWorkspaceBrowser(state, worktreeId, sourceOwner),
+      url
     )
   }
 }
@@ -99,7 +101,11 @@ export function nativeChatLinkActions(
   if (route.kind !== 'web' || !/^https?:/i.test(route.url)) {
     return null
   }
-  const routing = resolveNativeChatHttpLinkRouting(useAppStore.getState(), context.worktreeId)
+  const routing = resolveNativeChatHttpLinkRouting(
+    useAppStore.getState(),
+    context.worktreeId,
+    route.url
+  )
   return {
     destination: route.url,
     kind: 'url',

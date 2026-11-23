@@ -164,13 +164,3 @@ export function _resetWslInstallationForTests(): void {
   unknownUntilMs = 0
   _resetWslNotInstalledLatchForTests()
 }
-
-export function _setWslInstallationForTests(value: WslInstallation | null): void {
-  installation = value
-  installationProbe = null
-  unknownUntilMs = 0
-  _resetWslNotInstalledLatchForTests()
-  if (value === 'absent') {
-    latchWslNotInstalled()
-  }
-}

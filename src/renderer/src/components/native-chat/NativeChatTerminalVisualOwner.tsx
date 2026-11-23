@@ -1,7 +1,10 @@
 import { useMemo, type ReactNode } from 'react'
 import { TERMINAL_CHATS_VISUAL_SESSION_ID } from '../../../../shared/native-chat/visuals/native-chat-visual-directive'
 import type { RuntimeClientTarget } from '../../../../shared/remote-runtime/host-catalog/runtime-client-target'
-import { NativeChatVisualOwnerProvider } from './media/visuals/native-chat-visual-owner'
+import {
+  NativeChatVisualOwnerContext,
+  useNativeChatTabVisualOwner
+} from './media/visuals/native-chat-visual-owner'
 
 /**
  * Inline HTML visuals in a terminal-backed chat (Paweł, 2026-11-10: the terminal Chat UI should
@@ -24,13 +27,9 @@ export function NativeChatTerminalVisualOwner({
         : { kind: 'local' },
     [runtimeEnvironmentId]
   )
+  // Overrides the transcript scope's owner: this terminal chat's visuals live in the terminal chats folder.
+  const owner = useNativeChatTabVisualOwner(target, TERMINAL_CHATS_VISUAL_SESSION_ID, terminalTabId)
   return (
-    <NativeChatVisualOwnerProvider
-      target={target}
-      sessionId={TERMINAL_CHATS_VISUAL_SESSION_ID}
-      tabId={terminalTabId}
-    >
-      {children}
-    </NativeChatVisualOwnerProvider>
+    <NativeChatVisualOwnerContext.Provider value={owner}>{children}</NativeChatVisualOwnerContext.Provider>
   )
 }

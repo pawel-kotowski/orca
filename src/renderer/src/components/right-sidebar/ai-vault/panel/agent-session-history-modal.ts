@@ -15,6 +15,8 @@ export type AgentSessionHistoryModalRequest = {
   initialQuery: string
   /** The chat's agent, which the panel's agent filter starts on. */
   agent?: AiVaultAgent
+  /** A room's `/resume`: a pick opens in its own tab instead of replacing the room. */
+  alongside?: true
 }
 
 export function openAgentSessionHistoryModal(request: AgentSessionHistoryModalRequest): void {
@@ -24,7 +26,8 @@ export function openAgentSessionHistoryModal(request: AgentSessionHistoryModalRe
     chatTabId: request.chatTabId,
     resumesInPlace: request.resumesInPlace !== false,
     initialQuery: request.initialQuery,
-    agent: request.agent
+    agent: request.agent,
+    alongside: request.alongside
   })
 }
 
@@ -44,6 +47,7 @@ export function readAgentSessionHistoryModalRequest(
     chatTabId: data.chatTabId,
     resumesInPlace: data.resumesInPlace !== false,
     initialQuery: typeof data.initialQuery === 'string' ? data.initialQuery : '',
-    ...(isAiVaultAgent(data.agent) ? { agent: data.agent } : {})
+    ...(isAiVaultAgent(data.agent) ? { agent: data.agent } : {}),
+    ...(data.alongside === true ? { alongside: true } : {})
   }
 }

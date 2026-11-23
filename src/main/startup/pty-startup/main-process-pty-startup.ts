@@ -1,3 +1,4 @@
+import { installProviderProcessHost } from '../../provider-process/provider-process-spawn'
 import { recordCodexMigrationPtySpawn } from '../../codex/history/backfill/desktop-codex-session-migration'
 import { app } from 'electron'
 import { parseWorkspaceKey } from '../../../shared/workspace/identity/workspace-scope'
@@ -7,8 +8,11 @@ import { track } from '../../telemetry/client'
 import { getPtyIdForPaneKey } from '../../ipc/pty/pane/key-state'
 import {
   getDaemonProvider,
+  getDaemonEndpointFacts,
+  getProviderProcessHostClient,
   listLiveDaemonPtyIds
 } from '../../daemon/providers/lifecycle/daemon-provider-state'
+import { reportDaemonPtyCwdVerdict } from '../../daemon/observability/daemon-adoption-telemetry-event'
 import { initDaemonPtyProvider } from '../../daemon/providers/lifecycle/daemon-provider-init'
 import { restartLocalTerminalsAfterElevation } from '../../windows/windows-administrator-restart'
 import { resolveTerminalSpawnAdmissionMode } from '../../daemon/admission/terminal-spawn-admission-mode'
@@ -60,7 +64,7 @@ export function emitPluginWorktreeLifecycle(event: RuntimeWorktreeLifecycleEvent
     kind: 'worktree',
     path: event.path
   }
-  state.pluginService?.emitEvent(
+  state.core.pluginService?.emitEvent(
     event.kind === 'created' ? 'workspace.created' : 'workspace.removed',
     event.kind === 'created'
       ? { ...identity, branch: shortPluginBranchName(event.branch) }
@@ -77,11 +81,11 @@ export function handleCodexHomePtySpawned(args: {
   startedAt?: Date
   startedSequence?: number
 }): void {
-  recordCodexMigrationPtySpawn(state.codexSessionMigration, state.codexRuntimeHome, args)
+  recordCodexMigrationPtySpawn(state.core.codexSessionMigration, state.core.codexRuntimeHome, args)
 }
 
 export function handlePtyExit(id: string, exitSequence: number): void {
-  state.codexSessionMigration?.finishLaunch(id, exitSequence)
+  state.core.codexSessionMigration?.finishLaunch(id, exitSequence)
 }
 
 /** Runs once provider and hook hydration settle, so targeted PTY liveness can answer. */
@@ -112,8 +116,8 @@ async function sweepRestoredStatusesAgainstLocalPtys(): Promise<void> {
   // Why: an agent inside a long tool call, or waiting on its own background shell, sends no hook
   // until that ends; after a restart its live process is the only proof it still works.
   await agentHookServer.confirmRestoredWorkingStatuses()
-  state.runtime?.agentTransitions.seedRestoredRows()
-  await state.runtime?.sidebarFacts?.reconcileSortStampTiers(provider)
+  state.core.runtime?.agentTransitions.seedRestoredRows()
+  await state.core.runtime?.sidebarFacts?.reconcileSortStampTiers(provider)
 }
 
 export function startTerminalRuntimeStartupServices(): WindowsDesktopStartupServices {
@@ -136,7 +140,7 @@ export function startTerminalRuntimeStartupServices(): WindowsDesktopStartupServ
       // Retained shells keep their launch-time Codex home despite routing changes.
       const hasRetainedManagedHostPane = hasRecordedManagedHostCodexPane()
       if (
-        state.codexRuntimeHome &&
+        state.core.codexRuntimeHome &&
         (hasRetainedManagedHostPane || hasAnyRecordedLegacyWslCodexPane())
       ) {
         const livePtyIds = await listLiveDaemonPtyIds()
@@ -148,7 +152,8 @@ export function startTerminalRuntimeStartupServices(): WindowsDesktopStartupServ
             void reconcileRetainedCodexHookHomes({
               hookService: codexHookService,
               hooksEnabled: isAgentStatusHooksEnabledForAgent(settings, 'codex'),
-              runtimeHomePaths: state.codexRuntimeHome.getRetainedHostCodexHookHomePaths(livePtyIds)
+              runtimeHomePaths:
+                state.core.codexRuntimeHome.getRetainedHostCodexHookHomePaths(livePtyIds)
             }).catch((error) =>
               console.warn('[codex-hook-service] retained Codex home reconcile failed:', error)
             )
@@ -156,7 +161,7 @@ export function startTerminalRuntimeStartupServices(): WindowsDesktopStartupServ
         }
       }
       // Retained shells may invoke Codex as soon as the startup gate opens.
-      state.codexRuntimeHome?.reconcileLegacySharedHomeForRetainedPanes()
+      state.core.codexRuntimeHome?.reconcileLegacySharedHomeForRetainedPanes()
       logStartupMilestone('startup-service-done', { service: 'daemon-pty-provider' })
     },
     // Restored PTYs need live ORCA_AGENT_HOOK_* endpoint state before reconnecting.
@@ -204,6 +209,20 @@ export function startTerminalRuntimeStartupServices(): WindowsDesktopStartupServ
 export function bindTerminalRuntimeStartupServices(
   services: Promise<WindowsDesktopStartupServices>
 ): void {
+  if (process.platform === 'darwin' && !state.isServeMode) {
+    installProviderProcessHost(
+      async () => {
+        await state.localPtyProviderStartupReady
+        return getProviderProcessHostClient()
+      },
+      (verdict) => {
+        void reportDaemonPtyCwdVerdict({
+          ...verdict,
+          pidPath: getDaemonEndpointFacts()?.pidPath ?? null
+        })
+      }
+    )
+  }
   state.firstWindowStartupServicesReady = services.then((value) => value.firstWindowReady)
   state.localPtyStartupReady = services.then((value) => value.localPtyReady)
   state.localPtyProviderStartupReady = services.then((value) => value.localPtyProviderReady)

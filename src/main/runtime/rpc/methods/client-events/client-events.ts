@@ -12,6 +12,8 @@ import { BROWSER_CLIENT_HOST_REQUEST_CAPABILITY } from '../../../../../shared/br
 import { getBrowserHostRequestRegistry } from '../../../browser-host/leases/browser-host-request-registry'
 import { AGENT_SHOW_CLIENT_RELAY_CAPABILITY } from '../../../../../shared/agent-show/agent-show-client-relay'
 import { getAgentShowClientRelayRegistry } from '../../../../agent-show/relay/agent-show-client-relay-registry'
+import { GOOGLE_SETUP_CARDS_CLIENT_CAPABILITY } from '../../../../../shared/google/google-connect-types'
+import { registerGoogleCardRenderer } from '../../../../google/google-card-reach'
 import {
   STRUCTURED_CHAT_START_TELEMETRY_CLIENT_CAPABILITY,
   STRUCTURED_CHAT_PROMPT_TELEMETRY_CLIENT_CAPABILITY
@@ -32,6 +34,10 @@ export const CLIENT_EVENT_METHODS = [
         // Mobile discards terminalSideEffects; filter per-OSC batch frames before they cross the relay.
         const unsubscribe = runtime.onClientEvent(
           (event) => {
+            // Only a desktop keeps an agent CLI update list; a phone would search its query cache for nothing.
+            if (event.type === 'agentCliUpdateFinished' && clientKind === 'mobile') {
+              return
+            }
             emit(event)
           },
           { consumesTerminalSideEffects: clientKind !== 'mobile' }
@@ -50,6 +56,11 @@ export const CLIENT_EVENT_METHODS = [
           pairedDeviceId &&
           clientCapabilities?.includes(AGENT_SHOW_CLIENT_RELAY_CAPABILITY)
             ? getAgentShowClientRelayRegistry(runtime).register({ pairedDeviceId, emit })
+            : undefined
+        const unregisterCardRenderer =
+          clientKind === 'runtime' &&
+          clientCapabilities?.includes(GOOGLE_SETUP_CARDS_CLIENT_CAPABILITY)
+            ? registerGoogleCardRenderer()
             : undefined
         const readsStarts = clientCapabilities?.includes(
           STRUCTURED_CHAT_START_TELEMETRY_CLIENT_CAPABILITY
@@ -78,6 +89,7 @@ export const CLIENT_EVENT_METHODS = [
             unsubscribe()
             unregisterHostVolunteer?.()
             unregisterShowVolunteer?.()
+            unregisterCardRenderer?.()
             unsubscribeTelemetry?.()
             emit({ type: 'end' })
             resolve()

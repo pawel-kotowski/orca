@@ -176,6 +176,7 @@ export function NativeChatInteractiveCard({
       onChoose={choose}
       onCollapse={onCollapse}
       onOpenTerminal={onAnswerInTerminal}
+      parsedFromTerminal
     />
   )
 }

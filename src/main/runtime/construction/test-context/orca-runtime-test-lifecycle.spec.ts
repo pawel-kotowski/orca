@@ -149,10 +149,10 @@ function resetRuntimeTestMocks(): void {
   // Runtime uses the injected desktop surface; Electron mocks alone cannot drive these assertions.
   setRuntimeDesktopSurface({
     showNotification: () => true,
-    findWindowById: (id) => electronMocks.BrowserWindow.fromId(id) as never,
-    onIpc: (channel, listener) => electronMocks.ipcMain.on(channel, listener as never),
-    removeIpcListener: (channel, listener) =>
-      electronMocks.ipcMain.removeListener(channel, listener as never)
+    hasWindow: (id) => Boolean(electronMocks.BrowserWindow.fromId(id)),
+    hasLiveRenderer: (id) => Boolean(electronMocks.BrowserWindow.fromId(id)),
+    sendToWindow: () => false,
+    requestRenderer: () => Promise.reject(new Error('no renderer in this test'))
   })
   resetPlatform()
   electronMocks.app.isPackaged = false

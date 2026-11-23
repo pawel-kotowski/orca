@@ -24,6 +24,7 @@ import type { AgentPaneThread } from '../threads/activity-thread-types'
 import type { ActivityVirtualItemDescriptor } from './activity-thread-virtual-items'
 import { FLOATING_TERMINAL_WORKTREE_ID } from '../../../../../shared/workspace/identity/floating-workspace-id'
 import { selectFloatingWorkspacePanelVisible } from '@/store/workspaces/floating/floating-workspace-panel-selector'
+import type { ActivityGroupBy } from '../../../../../shared/agent-status/presentation/agents-view-thread-filters'
 
 type ContextMenuProps = Parameters<typeof ActivityThreadContextMenu>[0]
 
@@ -44,7 +45,8 @@ export function ActivityThreadVirtualRow({
   canJumpToWorkspace,
   canMarkThreadUnread,
   compactMode,
-  showJumpAction
+  showJumpAction,
+  groupBy
 }: {
   item: ActivityVirtualItemDescriptor
   collapsed: boolean
@@ -63,6 +65,7 @@ export function ActivityThreadVirtualRow({
   canMarkThreadUnread: (thread: AgentPaneThread) => boolean
   compactMode: boolean
   showJumpAction: boolean
+  groupBy: ActivityGroupBy
 }): React.JSX.Element {
   const t = useTranslate()
   const hidesTabs = useActivityHidesWorkbench()
@@ -175,6 +178,7 @@ export function ActivityThreadVirtualRow({
             canJump={canJump}
             compactMode={compactMode}
             showJumpAction={showJumpAction}
+            groupBy={groupBy}
             previewSuppressed={menuOpen}
           />
         </div>

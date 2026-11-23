@@ -79,6 +79,25 @@ function lineageRows(threads: readonly ChildAgentClassifiableThread[]): AgentLin
   })
 }
 
+/** What one thread feeds child classification; threads with equal inputs classify the same. */
+export function childAgentLineageInputs(thread: ChildAgentClassifiableThread): {
+  terminalHandle: string | undefined
+  /** Serialized lineage of every entry that carries one; null when none does. */
+  orchestration: string | null
+} {
+  // Probes stop at the first lineage that resolves, so a repeat of an earlier one never decides.
+  const orchestrations = new Set<string>()
+  for (const entry of candidateEntries(thread)) {
+    if (entry.orchestration) {
+      orchestrations.add(JSON.stringify(entry.orchestration))
+    }
+  }
+  return {
+    terminalHandle: firstReportedTerminalHandle(thread),
+    orchestration: orchestrations.size > 0 ? [...orchestrations].join('\n') : null
+  }
+}
+
 /** Worker pane → the coordinator pane that dispatched it, wherever either runs. */
 export function resolveActivityWorkerParents(
   threads: readonly ChildAgentClassifiableThread[]

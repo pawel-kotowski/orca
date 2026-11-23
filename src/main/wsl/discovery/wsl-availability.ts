@@ -191,16 +191,3 @@ export function _resetWslAvailabilityCacheForTests(): void {
   wslAvailabilityCacheGeneration = 0
   _resetWslInstallationForTests()
 }
-
-export function _setWslAvailabilityCacheForTests(
-  available: boolean | null | undefined,
-  retryable: boolean
-): void {
-  writeWslAvailabilityCache(
-    available === true
-      ? { available: true }
-      : available === false
-        ? { available: false, cachedAt: Date.now(), retryable, failures: 1 }
-        : null
-  )
-}

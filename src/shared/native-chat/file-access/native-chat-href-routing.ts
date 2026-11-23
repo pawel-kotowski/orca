@@ -1,6 +1,7 @@
 import { isWindowsAbsolutePathLike } from '../../file-access/cross-platform-path'
 import { fileUriToFilesystemPath } from '../../file-links/file-uri-path'
 import { splitLineRangeSuffix } from '../native-chat-code-range'
+import { encodeWellFormedURIComponent } from '../../text/well-formed-uri-component'
 
 export type NativeChatHrefRoute =
   | { kind: 'web'; url: string }
@@ -29,7 +30,7 @@ export function createNativeChatFileHref(
 ): string {
   const prefix =
     pathKind === 'literal' ? NATIVE_CHAT_LITERAL_FILE_HREF_PREFIX : NATIVE_CHAT_FILE_HREF_PREFIX
-  return `${prefix}${encodeURIComponent(pathText)}`
+  return `${prefix}${encodeWellFormedURIComponent(pathText)}`
 }
 
 function decodeNativeChatFileHref(

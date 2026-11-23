@@ -1,6 +1,7 @@
 import { AGENT_STATUS_STALE_AFTER_MS } from '../../../../shared/agent-status/contracts/agent-status-freshness'
 import type { AgentStatusEntry } from '../../../../shared/agent-status/contracts/agent-status-types'
 import { heldOpenHookOwnsIdleTitle } from './held-open-hook-idle-title'
+import { foldMainAgentWithRowChildWork } from '../../../../shared/agent-hook-listener/state/agent-hook-row-child-work-fold'
 
 import { terminalTitleBlocksExplicitAgentStatus } from '../../workspaces/process-listing/runtime-worktree-status-projection'
 
@@ -8,7 +9,7 @@ import type { RuntimePtyWorktreeRecord } from '../../terminal/records/runtime-te
 
 export type HookTurnFacts = Pick<
   AgentStatusEntry,
-  'state' | 'agentType' | 'mainAgent' | 'restoredUnconfirmed' | 'workingMode'
+  'state' | 'agentType' | 'mainAgent' | 'restoredUnconfirmed' | 'workingMode' | 'subagents'
 >
 
 export function workingHookOwnsIdleTitleInterval(
@@ -26,8 +27,22 @@ export function workingHookOwnsIdleTitleInterval(
           Math.max(
             pty.lastAgentStatusRichInvalidatedAtEpochMs ?? 0,
             pty.lastAgentStatusStartedAtEpochMs ?? 0
-          )) &&
+          ) ||
+        rowChildWorkHoldsIdleLead(status, observedAt, pty)) &&
         Date.now() - observedAt <= AGENT_STATUS_STALE_AFTER_MS))
+  )
+}
+
+/** An idle lead does not end a turn the row's live children hold open, whichever report landed first (#39120). */
+function rowChildWorkHoldsIdleLead(
+  status: HookTurnFacts,
+  observedAt: number,
+  pty: RuntimePtyWorktreeRecord
+): boolean {
+  return (
+    status.restoredUnconfirmed !== true &&
+    observedAt > (pty.providerGenerationResetAtEpochMs ?? 0) &&
+    foldMainAgentWithRowChildWork('done', { payload: status }).stateName !== 'done'
   )
 }
 
@@ -96,6 +111,8 @@ export function demoteRuntimeMobileAgentStatus(
     paneKey: status.paneKey,
     stateHistory: [],
     agentType: status.agentType,
+    ...(status.terminalHandle ? { terminalHandle: status.terminalHandle } : {}),
+    ...(status.orchestration ? { orchestration: status.orchestration } : {}),
     ...completedTurnFields(status),
     ...(status.providerSession ? { providerSession: status.providerSession } : {}),
     ...(status.orcaSessionId !== undefined ? { orcaSessionId: status.orcaSessionId } : {})

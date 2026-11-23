@@ -314,7 +314,8 @@ export function ActivityThreadListPane({
     canJumpToWorkspace,
     canMarkThreadUnread,
     compactMode,
-    showJumpAction
+    showJumpAction,
+    groupBy
   }
   const resizable = onResizeStart !== undefined
   return (

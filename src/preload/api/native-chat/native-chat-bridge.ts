@@ -15,6 +15,7 @@ import type { ClaudeSessionEffortSettings } from '../../../shared/native-chat/cl
 import { ipcRenderer } from 'electron'
 import type {
   NativeChatAppendedPayload,
+  NativeChatReadSessionOptions,
   NativeChatReadSessionResult,
   NativeChatSubscriptionFrame
 } from './native-chat-api'
@@ -35,14 +36,15 @@ export const nativeChatApi = {
     sessionId: string,
     limit?: number,
     transcriptPath?: string,
-    options?: { wakeWslDistro?: boolean }
+    options?: NativeChatReadSessionOptions
   ): Promise<NativeChatReadSessionResult> =>
     ipcRenderer.invoke('nativeChat:readSession', {
       agent,
       sessionId,
       limit,
       transcriptPath,
-      wakeWslDistro: options?.wakeWslDistro
+      wakeWslDistro: options?.wakeWslDistro,
+      beforeOffset: options?.beforeOffset
     }),
   subscribe: (
     args: {

@@ -22,13 +22,16 @@ function keepFocus(event: React.MouseEvent): void {
 
 export function NativeChatJumpToLatest({
   visible,
-  onJump
+  onJump,
+  label: labelProp
 }: {
   visible: boolean
   onJump: () => void
+  /** Jump to latest by default. */
+  label?: string
 }): React.JSX.Element {
   const t = useTranslate()
-  const label = t('components.native-chat.jumpToLatest', 'Jump to latest')
+  const label = labelProp ?? t('components.native-chat.jumpToLatest', 'Jump to latest')
   const anchorRef = useRef<HTMLSpanElement>(null)
   const slot = useNativeChatCornerSlot(anchorRef)
   // Why: shown means the reader scrolled back; the message box halves while they read

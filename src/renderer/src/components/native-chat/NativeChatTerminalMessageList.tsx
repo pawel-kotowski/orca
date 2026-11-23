@@ -16,6 +16,10 @@ import { NativeChatTerminalUsageLimitProvider } from './usage/terminal/NativeCha
 import type { NativeChatComposerHandle } from './composer/native-chat-composer-types'
 import { useNativeChatWorkerApprovalTimedRows } from './worker-approvals/NativeChatWorkerApprovals'
 import { useTerminalChatWorkerApprovalParty } from './worker-approvals/use-terminal-chat-worker-approval-party'
+import type { RuntimeClientTarget } from '../../../../shared/remote-runtime/host-catalog/runtime-client-target'
+
+// A terminal chat's workers report to this machine only (v1, as structured chats' feed is local).
+const LOCAL_TARGET: RuntimeClientTarget = { kind: 'local' }
 
 // One element for every render: the row reads its terminal through context.
 const TERMINAL_PROMPT_ROW = <NativeChatTerminalPromptRow />
@@ -61,7 +65,7 @@ export function NativeChatTerminalMessageList({
   const runtimeEnvironmentId = useAppStore(selectOwner)
   // Workers' answered prompts, in the transcript where each asked, as in structured chats.
   const approvalParty = useTerminalChatWorkerApprovalParty(source.terminalTabId, source.paneKey)
-  const workerApprovalRows = useNativeChatWorkerApprovalTimedRows(approvalParty)
+  const workerApprovalRows = useNativeChatWorkerApprovalTimedRows(LOCAL_TARGET, approvalParty)
   // A /clear keeps the old conversation fading out until the agent has cleared it.
   const clearFade = useNativeChatTerminalClearFade(source, session)
   const listSession = useNativeChatTerminalForkDivider(

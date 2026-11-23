@@ -6,6 +6,7 @@ export function ActivityThreadHoverCardRoot({
   open,
   onOpenChange,
   openDelay,
+  pointerOpenMode,
   closeDelay,
   enabled = true,
   restMs,
@@ -18,6 +19,7 @@ export function ActivityThreadHoverCardRoot({
   open: boolean
   onOpenChange: (open: boolean) => void
   openDelay?: number
+  pointerOpenMode?: 'rest' | 'immediate'
   closeDelay?: number
   enabled?: boolean
   trigger: React.ReactElement
@@ -27,6 +29,7 @@ export function ActivityThreadHoverCardRoot({
     open,
     onOpenChange,
     openDelay,
+    pointerOpenMode,
     enabled,
     restMs,
     opensFromLeftHalf

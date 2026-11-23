@@ -42,6 +42,7 @@ export function useActivityThreadHoverCardIntent({
   open,
   onOpenChange,
   openDelay = 200,
+  pointerOpenMode,
   enabled = true,
   restMs = ACTIVITY_HOVER_CARD_REST_MS,
   opensFromLeftHalf = false
@@ -49,6 +50,8 @@ export function useActivityThreadHoverCardIntent({
   open: boolean
   onOpenChange: (open: boolean) => void
   openDelay?: number
+  /** A group can own the warm handoff instead of using Activity's warm window. */
+  pointerOpenMode?: 'rest' | 'immediate'
   enabled?: boolean
   /** How long the pointer rests before the card opens; a live chat card opens at once. */
   restMs?: number
@@ -63,9 +66,25 @@ export function useActivityThreadHoverCardIntent({
   const openTimersRef = useRef<OpenTimers | null>(null)
   const detachScrollWatchRef = useRef<(() => void) | null>(null)
   const closedByScrollRef = useRef(false)
-  const latestRef = useRef({ open, onOpenChange, openDelay, enabled, restMs, opensFromLeftHalf })
+  const latestRef = useRef({
+    open,
+    onOpenChange,
+    openDelay,
+    pointerOpenMode,
+    enabled,
+    restMs,
+    opensFromLeftHalf
+  })
   useEffect(() => {
-    latestRef.current = { open, onOpenChange, openDelay, enabled, restMs, opensFromLeftHalf }
+    latestRef.current = {
+      open,
+      onOpenChange,
+      openDelay,
+      pointerOpenMode,
+      enabled,
+      restMs,
+      opensFromLeftHalf
+    }
   })
 
   const clearOpenTimers = useCallback(() => {
@@ -176,8 +195,9 @@ export function useActivityThreadHoverCardIntent({
   const onPointerEnter = useCallback(
     (event: React.PointerEvent<HTMLElement>) => {
       triggerRef.current = event.currentTarget
-      // Blocks Radix's open-on-enter. While open, let it through so returning from the card cancels its close.
-      if (!latestRef.current.open || isRowControl(event.target)) {
+      const { open, pointerOpenMode } = latestRef.current
+      // Radix clears its close timer on entry, including when switching back to an avatar.
+      if ((!open && pointerOpenMode !== 'immediate') || isRowControl(event.target)) {
         event.preventDefault()
       }
       if (isRowControl(event.target)) {
@@ -218,6 +238,11 @@ export function useActivityThreadHoverCardIntent({
         return
       }
       clearOpenTimers()
+      const { pointerOpenMode } = latestRef.current
+      if (pointerOpenMode === 'immediate') {
+        openFromIntent()
+        return
+      }
       setResting(false)
       if (latestRef.current.opensFromLeftHalf) {
         const rect = event.currentTarget.getBoundingClientRect()
@@ -226,7 +251,9 @@ export function useActivityThreadHoverCardIntent({
           return
         }
       }
-      const warm = openCardCount > 0 || window.performance.now() - lastCardClosedAt < WARM_WINDOW_MS
+      const warm =
+        pointerOpenMode === undefined &&
+        (openCardCount > 0 || window.performance.now() - lastCardClosedAt < WARM_WINDOW_MS)
       const rest = latestRef.current.restMs
       openTimersRef.current =
         rest < ACTIVITY_HOVER_CARD_WARM_REST_MS

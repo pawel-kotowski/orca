@@ -41,7 +41,8 @@ export abstract class OrcaRuntimeWithApplyTrackedPtyTitle extends OrcaRuntimeWit
   protected abstract deliverPendingMessagesForPty(ptyId: string): void
   protected abstract clearAgentPromptCorrelationForPty(ptyId: string): void
   protected abstract collectAgentStatusPaneKeysForPty(ptyId: string): Set<string>
-  protected abstract markPaneLiveTitlesDirty(): void
+  /** `ref` is the terminal whose title changed or the pane key whose start facts did. */
+  protected abstract markPaneLiveTitlesDirty(ref: string): void
   /** A title moved a terminal agent to another status; worktree.ps rows show it without a hook row. */
   protected abstract onTitleAgentStatusChanged(): void
 
@@ -143,6 +144,7 @@ export abstract class OrcaRuntimeWithApplyTrackedPtyTitle extends OrcaRuntimeWit
       const observedAtEpochMs = identityOnlyTitle ? null : Date.now()
       // A fresh title retires a stale-working display clear, so the row shows the agent again.
       const retiresDisplayClear = !statusOnly && pty.titleDisplayClear != null
+      const retiredDisplayTitle = pty.titleDisplayClear?.title
       if (!statusOnly) {
         pty.titleDisplayClear = null
         pty.lastOscTitle = recordedTitle
@@ -170,7 +172,15 @@ export abstract class OrcaRuntimeWithApplyTrackedPtyTitle extends OrcaRuntimeWit
         // Why the report's own start: a status restored after a restart is not a new turn, and
         // dating it now made every client show an old finished turn as news again (Paweł,
         // 2026-11-10: cleared Inbox cards came back after each devbox Orca restart).
-        pty.lastAgentStatusStartedAtEpochMs = statusStartedAtEpochMs ?? observedAtEpochMs
+        const startedAtEpochMs = statusStartedAtEpochMs ?? observedAtEpochMs
+        pty.lastAgentStatusStartedAtEpochMs = startedAtEpochMs
+        // Blocked or statusless titles mid-turn keep the turn; only an idle title means at rest.
+        if (prevStatus === 'working' || prevStatus === 'idle') {
+          pty.lastAgentStatusEndedTurn = prevStatus === 'working'
+        }
+        if (agentStatus === 'working') {
+          pty.lastAgentStatusWorkingStartedAtEpochMs = startedAtEpochMs
+        }
       }
       if (prevStatus !== agentStatus || retiresDisplayClear) {
         this.onTitleAgentStatusChanged()
@@ -192,6 +202,8 @@ export abstract class OrcaRuntimeWithApplyTrackedPtyTitle extends OrcaRuntimeWit
       if (agentStatus === 'idle' && prevStatus !== 'permission' && ptyRecordChanged) {
         this.resolvePtyTuiIdleWaiters(pty, ptyId)
       }
+      // Retiring a display clear changes the shown title even when the native title and status repeat.
+      ptyRecordChanged ||= retiresDisplayClear && retiredDisplayTitle !== recordedTitle
       const shouldDelayMobileSnapshot =
         ptyRecordChanged &&
         this.shouldDelayPtyBackedMobileSnapshotForForegroundAgent(pty, normalizedTitle)
@@ -273,6 +285,8 @@ export abstract class OrcaRuntimeWithApplyTrackedPtyTitle extends OrcaRuntimeWit
     this.openCodeRunLifetime.forgetPty(ptyId)
     this.mobileSessionTabsAgentStatusHeartbeat.removePty(ptyId)
     this.clientEvents.clearPtyTitleGate(ptyId)
+    // Its tracker may have held the pane's only shown title; the flush reads it after teardown.
+    this.markPaneLiveTitlesDirty(ptyId)
   }
 
   protected resetTrackedTerminalStateForProviderGeneration(ptyId: string): void {
@@ -299,6 +313,8 @@ export abstract class OrcaRuntimeWithApplyTrackedPtyTitle extends OrcaRuntimeWit
       // so the seed a same-id restore applies must not inherit its authority.
       pty.lastAgentStatusObservedLive = false
       pty.lastAgentStatusStartedAtEpochMs = null
+      pty.lastAgentStatusWorkingStartedAtEpochMs = null
+      pty.lastAgentStatusEndedTurn = false
       pty.lastAgentStatusRichInvalidatedAtEpochMs = Date.now()
       pty.providerGenerationResetAtEpochMs = pty.lastAgentStatusRichInvalidatedAtEpochMs
       pty.managementTitle = null
@@ -315,7 +331,7 @@ export abstract class OrcaRuntimeWithApplyTrackedPtyTitle extends OrcaRuntimeWit
       leaf.waitBlockedAt = null
       leaf.tailWaitState = undefined
     }
-    this.markPaneLiveTitlesDirty()
+    this.markPaneLiveTitlesDirty(ptyId)
     this.reconcileAgentStatusForEndedProcessFn?.(this.collectAgentStatusPaneKeysForPty(ptyId))
     this.primeWaitBlockedBaselineFromSeededTail(ptyId)
   }

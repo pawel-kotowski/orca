@@ -32,6 +32,7 @@ import {
   RepoSearchRefs,
   RepoSetBaseRef,
   RepoSetHidden,
+  RepoSparsePresetRemove,
   RepoSparsePresetSave,
   RepoUpdate
 } from '../../../../../shared/rpc-contract/projects/repo-params'
@@ -47,7 +48,9 @@ export const REPO_METHODS = [
       const reply = {
         repos: context.runtime
           .listVisibleRepos()
-          .map((repo) => projectRepoVisibilityForClient(repo, context))
+          .map((repo) => projectRepoVisibilityForClient(repo, context)),
+        // Image icons' ids for sidebarInputs.repoIcons: a phone draws no https image itself.
+        repoIconIds: context.runtime.repoIconDataUrls.idsByRepo()
       }
       return resolveReplySnapshot(reply, params.afterSnapshotId)
     }
@@ -74,6 +77,15 @@ export const REPO_METHODS = [
         directories: params.directories
       })
     })
+  }),
+  defineMethod({
+    name: 'repo.removeSparsePreset',
+    permission: 'workspace',
+    params: RepoSparsePresetRemove,
+    handler: async (params, { runtime }) => {
+      await runtime.removeSparsePreset(params.repo, params.presetId)
+      return { removed: true }
+    }
   }),
   defineMethod({
     name: 'repo.add',

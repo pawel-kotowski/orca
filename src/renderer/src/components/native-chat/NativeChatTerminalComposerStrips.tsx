@@ -2,7 +2,8 @@ import { useMemo, type RefObject } from 'react'
 import { toast } from 'sonner'
 import { useAppStore } from '@/store'
 import { useTranslate } from '@/i18n/use-translate'
-import { NativeChatPartyWorkerApprovalStack } from './worker-approvals/NativeChatWorkerApprovals'
+import { NativeChatWorkerApprovalStack } from './worker-approvals/NativeChatWorkerApprovals'
+import { useNativeChatPinnedWorkerApprovals } from './worker-approvals/native-chat-worker-approval-feed'
 import { useTerminalChatWorkerApprovalParty } from './worker-approvals/use-terminal-chat-worker-approval-party'
 import { NativeChatThreadGoalBanner } from './session/goals/NativeChatThreadGoalBanner'
 import { terminalChatThreadGoal } from './session/goals/terminal-chat-thread-goal'
@@ -33,10 +34,11 @@ type Props = {
 export function NativeChatTerminalComposerStrips(props: Props): React.JSX.Element {
   const { terminalTabId, paneKey, isVisible } = props
   const party = useTerminalChatWorkerApprovalParty(terminalTabId, paneKey)
+  const approvals = useNativeChatPinnedWorkerApprovals(LOCAL, party)
   return (
     <>
       {/* Workers' open prompts stay pinned here, above this chat's own prompt. */}
-      <NativeChatPartyWorkerApprovalStack party={party} target={LOCAL} isVisible={isVisible} />
+      <NativeChatWorkerApprovalStack approvals={approvals} target={LOCAL} isVisible={isVisible} />
       {props.promptShown ? null : (
         <>
           <NativeChatTerminalGoalStrip {...props} />

@@ -28,7 +28,7 @@ export const NATIVE_CHAT_APPEARANCE_ROOT_CLASS = 'native-chat-appearance bg-chat
 // One fixed bottom gap: the last row never hangs its controls; rail padding covers its 34px macOS overlay.
 // @container lets wide markdown blocks size against the whole transcript.
 export function nativeChatTranscriptOuterClass(railVisible: boolean): string {
-  return railVisible ? '@container px-9 pt-10 pb-5' : '@container px-3 pt-10 pb-5 sm:px-4'
+  return `@container native-chat-transcript-inset pt-10 pb-5 ${railVisible ? 'px-9' : 'px-3 sm:px-4'}`
 }
 export const NATIVE_CHAT_TRANSCRIPT_COLUMN_CLASS =
   'mx-auto flex w-full max-w-(--chat-content-max-width) flex-col gap-5 px-[5px]'

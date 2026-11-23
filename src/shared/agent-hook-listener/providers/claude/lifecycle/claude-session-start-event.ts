@@ -1,20 +1,19 @@
 import type { ParsedAgentStatusPayload } from '../../../../agent-status/contracts/agent-status-types'
 import type { HookListenerState } from '../../../listener-state'
-import { buildClaudeCachedLeadStatusPayload } from './claude-lifecycle-events'
-import { setClaudeMainAgentTurnState } from './claude-roster-state'
 import { CLAUDE_NEW_SESSION_START_SOURCES } from './claude-session-start-sources'
+import { setClaudeMainAgentTurnState } from './claude-roster-state'
+import { buildClaudeCachedLeadStatusPayload } from './claude-lifecycle-events'
 import { buildClaudeStatusPayload } from './claude-status-build'
 
-/** The lead's SessionStart: a new session settles the pane at done; a compaction between turns
- *  restates it as compacted; a child's or another source's start says nothing. */
 export function normalizeClaudeSessionStart(
   state: HookListenerState,
-  eventAgentId: string | undefined,
-  leadModel: string | undefined,
   promptText: string,
   paneKey: string,
-  hookPayload: Record<string, unknown>
+  hookPayload: Record<string, unknown>,
+  eventAgentId: string | undefined,
+  leadModel: string | undefined
 ): ParsedAgentStatusPayload | null {
+  const eventName = 'SessionStart'
   // SessionStart supplies resume identity before prompts; mark idle/sessionBoundary to avoid phantom work/completion notifications (STA-3386).
   const sessionStartSource = hookPayload['source']
   if (eventAgentId === undefined && sessionStartSource === 'compact') {
@@ -26,7 +25,7 @@ export function normalizeClaudeSessionStart(
   }
   // New sessions must not inherit old child/task/cron gates.
   state.claudeSubagentRosterByPaneKey.delete(paneKey)
-  state.claudeRunningNonAgentTaskPaneKeys.delete(paneKey)
+  state.claudeRunningNonAgentTasksByPaneKey.delete(paneKey)
   state.claudeActiveSessionCronPaneKeys.delete(paneKey)
   state.claudeLaunchedBackgroundTasksByPaneKey.delete(paneKey)
   // New sessions start a new main-agent clock.
@@ -35,7 +34,7 @@ export function normalizeClaudeSessionStart(
     stateStartedAt: Date.now(),
     model: leadModel
   })
-  return buildClaudeStatusPayload(state, 'SessionStart', promptText, paneKey, hookPayload, {
+  return buildClaudeStatusPayload(state, eventName, promptText, paneKey, hookPayload, {
     stateName: 'done',
     updateToolSnapshot: true,
     sessionBoundary: true

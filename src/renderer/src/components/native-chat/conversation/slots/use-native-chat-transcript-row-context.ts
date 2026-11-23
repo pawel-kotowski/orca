@@ -16,6 +16,7 @@ type NativeChatTranscriptRowContextInput = Omit<
 
 export function useNativeChatTranscriptRowContext({
   agent,
+  turnBot,
   hostWork,
   expandSignal,
   revealedDiff,
@@ -28,12 +29,14 @@ export function useNativeChatTranscriptRowContext({
   onToggleExpandedTurn,
   onOpenSubagent,
   onScrollMessageToTop,
+  readerAtEnd,
   onRevealDiff
 }: NativeChatTranscriptRowContextInput): NativeChatTranscriptRowContext {
   // Why: "Show every tool step" opens each run the same way an expand request does.
   const toolStepsOpen = useAppStore((state) => nativeChatToolStepsOpen(state.settings))
   return useMemo<NativeChatTranscriptRowContext>(
     () => ({
+      turnBot,
       agentName: structuredAgentLabel(agent),
       actionablePromptIds: hostWork?.actionablePromptIds,
       expandSignal: expandSignal || toolStepsOpen,
@@ -47,10 +50,12 @@ export function useNativeChatTranscriptRowContext({
       onToggleExpandedTurn,
       onOpenSubagent,
       onScrollMessageToTop,
+      readerAtEnd,
       onRevealDiff
     }),
     [
       agent,
+      turnBot,
       hostWork,
       expandSignal,
       toolStepsOpen,
@@ -62,6 +67,7 @@ export function useNativeChatTranscriptRowContext({
       runtimeContext,
       structuredAttachments,
       onScrollMessageToTop,
+      readerAtEnd,
       taskListPredecessors,
       onOpenSubagent,
       onToggleExpandedTurn

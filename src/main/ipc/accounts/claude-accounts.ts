@@ -3,8 +3,19 @@ import type { ClaudeAccountService } from '../../claude-accounts/service'
 import type { ClaudeAccountSelectionTarget } from '../../claude-accounts/selection/runtime-selection'
 import { openAccountSignInLink } from './account-sign-in-link-opener'
 import { registerNativeChatClaudeContextWindowsHandler } from '../native-chat-claude-context-windows'
+import type { ClaudeHostRunningSessionsMove } from '../../../shared/agent-accounts/managed-account-types'
+import type { ClaudeHostSelectionChange } from '../../../shared/agent-accounts/claude/claude-pane-account-folder'
 
-export function registerClaudeAccountHandlers(claudeAccounts: ClaudeAccountService): void {
+/** The host's mover for the running Claude terminals the window doesn't hold. */
+export type MoveUnheldClaudeSessions = (
+  change: ClaudeHostSelectionChange,
+  heldPtyIds: ReadonlySet<string>
+) => Promise<ClaudeHostRunningSessionsMove | undefined>
+
+export function registerClaudeAccountHandlers(
+  claudeAccounts: ClaudeAccountService,
+  moveUnheldSessions: MoveUnheldClaudeSessions
+): void {
   claudeAccounts.setWslSignInLinkOpener((signInLink) => openAccountSignInLink('claude', signInLink))
   ipcMain.handle('claudeAccounts:list', () => claudeAccounts.listAccounts())
   ipcMain.handle(
@@ -36,4 +47,9 @@ export function registerClaudeAccountHandlers(claudeAccounts: ClaudeAccountServi
   )
   // Each account home caches the model catalog that sizes its chats' context windows.
   registerNativeChatClaudeContextWindowsHandler()
+  ipcMain.handle(
+    'claudeAccounts:moveUnheldRunningSessions',
+    (_event, args: { change: ClaudeHostSelectionChange; heldPtyIds: string[] }) =>
+      moveUnheldSessions(args.change, new Set(args.heldPtyIds))
+  )
 }
