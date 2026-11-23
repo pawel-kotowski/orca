@@ -192,6 +192,15 @@ describe('moving a chat to another login of its host (local)', () => {
     })
   })
 
+  it('a Claude that ended starts with the flags of its last move', async () => {
+    const h = harness()
+    await h.move(PERSONAL)
+    h.state.live = null
+    h.state.foreground = 'shell'
+    await h.move(ROBOTEC)
+    expect(h.state.typed.at(-1)).toBe(`resume s1 in ${ROBOTEC} claude --model opus`)
+  })
+
   it('stops nothing it cannot move', async () => {
     const other = harness()
     other.state.paneOfProcess = 'tab:other'

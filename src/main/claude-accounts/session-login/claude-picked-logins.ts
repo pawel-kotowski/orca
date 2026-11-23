@@ -9,7 +9,9 @@ const PickedLogin = z.object({
   configDir: z.string(),
   pickedAt: z.number(),
   /** The terminal of a move that waits for the running turn. */
-  pendingTerminal: z.string().optional()
+  pendingTerminal: z.string().optional(),
+  /** What its Claude was last started with, for a start after it ended (a box that rebooted). */
+  argv: z.array(z.string()).optional()
 })
 const PickedLoginsFile = z.object({ sessions: z.record(z.string(), PickedLogin) })
 

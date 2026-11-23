@@ -135,7 +135,12 @@ export class ClaudeLoginMover {
     await this.running.get(session.id)?.catch(() => null)
     const previous = deps.picks.all()[session.id]
     const live = await deps.process(session.id)
-    const pick: ClaudePickedLogin = { configDir: login.configDir, pickedAt: deps.now() }
+    const argv = (live && (await deps.argv(live.pid))) ?? previous?.argv
+    const pick: ClaudePickedLogin = {
+      configDir: login.configDir,
+      pickedAt: deps.now(),
+      ...(argv ? { argv } : {})
+    }
     if (live && sameFolder(live.configDir, login.configDir)) {
       this.pending.delete(session.id)
       deps.picks.set(session.id, pick)
@@ -194,7 +199,7 @@ export class ClaudeLoginMover {
       return refused('not_shared')
     }
     const live = await deps.process(session.id)
-    const argv = live ? await deps.argv(live.pid) : null
+    const argv = (live && (await deps.argv(live.pid))) ?? deps.picks.all()[session.id]?.argv ?? null
     const resume = await deps.resumeLine({
       handle,
       session,
