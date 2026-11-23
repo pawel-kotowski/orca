@@ -14,6 +14,13 @@ import type { GitGraphLaneRow } from './git-graph-branch-layout'
 import { useGitGraphBranchColour } from './git-graph-branch-colour-context'
 import type { GitGraphSegment } from './git-graph-segment-commits'
 import { gitGraphMergedPullRequest } from './git-graph-lane-names'
+import { GitGraphPullRequestName } from './git-graph-ref-chips'
+import {
+  gitGraphPullRequestForBranch,
+  gitGraphPullRequestForMerge,
+  useGitGraphPullRequestContext,
+  type GitGraphPullRequest
+} from './use-git-graph-pull-requests'
 
 export function GitGraphCount({
   count,
@@ -34,10 +41,13 @@ export function GitGraphCount({
 
 function BranchName({
   name,
-  color
+  color,
+  pr
 }: {
   name: string
   color?: GitHistoryGraphColorId
+  /** Names read as pull requests: this branch's. */
+  pr?: GitGraphPullRequest
 }): React.JSX.Element {
   return (
     <span className="inline-flex items-center gap-1 font-medium text-foreground">
@@ -48,7 +58,41 @@ function BranchName({
           style={{ background: graphColor(color) }}
         />
       )}
-      <span className="break-all">{name}</span>
+      {pr ? (
+        <span title={name}>
+          <GitGraphPullRequestName pr={pr} />
+        </span>
+      ) : (
+        <span className="break-all">{name}</span>
+      )}
+    </span>
+  )
+}
+
+/** A landed pull request: "landed #12 Title", the title in full. */
+function LandedPullRequest({
+  pr,
+  color
+}: {
+  pr: GitGraphPullRequest
+  color?: GitHistoryGraphColorId
+}): React.JSX.Element {
+  return (
+    <span className="inline-flex flex-wrap items-center gap-1" title={pr.url}>
+      <GitPullRequestArrow className="size-3.5 shrink-0" />
+      landed
+      <span className="inline-flex items-center gap-1 font-medium text-foreground">
+        {color && (
+          <span
+            aria-hidden
+            className="size-1.5 rounded-full"
+            style={{ background: graphColor(color) }}
+          />
+        )}
+        <span className="break-words">
+          <span className="font-semibold tabular-nums">#{pr.number}</span> {pr.title}
+        </span>
+      </span>
     </span>
   )
 }
@@ -72,6 +116,7 @@ export function GitGraphOutlineSummary({
   hasRefs: boolean
 }): React.JSX.Element {
   const branchColour = useGitGraphBranchColour()
+  const prs = useGitGraphPullRequestContext()
   const merged = row.historyItem.parentIds.length > 1
   // The merged line's lane: the last one to that parent (a short PR's line ends where main's does).
   const mergedColor = merged
@@ -81,11 +126,46 @@ export function GitGraphOutlineSummary({
   // A pull request squashed onto a pinned branch is that branch's merge in a squash workflow.
   const landed =
     !merged && pullRequest && laneName && pinned.includes(laneName) ? pullRequest : undefined
+  // Names read as pull requests: a merge or a squash is the PR it landed.
+  const landedPr = merged
+    ? gitGraphPullRequestForMerge(prs, pullRequest, mergedName)
+    : landed
+      ? gitGraphPullRequestForMerge(prs, landed, undefined)
+      : undefined
   const [own, ...mergedIn] = segments
   const mergedCount = mergedIn.reduce((sum, segment) => sum + segment.ids.length, 0)
   return (
     <span className="inline-flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-foreground/80">
-      {merged && (
+      {merged && landedPr && (
+        <span className="inline-flex flex-wrap items-center gap-1">
+          <LandedPullRequest
+            pr={landedPr}
+            color={mergedName ? branchColour(mergedName, mergedColor) : mergedColor}
+          />
+          {mergedCount > 0 && (
+            <GitGraphCount count={mergedCount} title={`${mergedCount} commits merged in`} />
+          )}
+          {laneName && !hasRefs && !pinned.includes(laneName) && (
+            <>
+              into <BranchName name={laneName} color={row.nodeColor} />
+            </>
+          )}
+        </span>
+      )}
+      {merged && !landedPr && prs.on && pullRequest && (
+        // A PR GitHub did not list (older than its search reaches): its number still says it landed.
+        <span className="inline-flex flex-wrap items-center gap-1" title={row.historyItem.subject}>
+          <GitPullRequestArrow className="size-3.5 shrink-0" />
+          landed <span className="font-semibold text-foreground tabular-nums">{pullRequest}</span>
+          {mergedName && (
+            <BranchName name={mergedName} color={branchColour(mergedName, mergedColor)} />
+          )}
+          {mergedCount > 0 && (
+            <GitGraphCount count={mergedCount} title={`${mergedCount} commits merged in`} />
+          )}
+        </span>
+      )}
+      {merged && !landedPr && !(prs.on && pullRequest) && (
         <span className="inline-flex flex-wrap items-center gap-1">
           <GitMerge className="size-3.5 shrink-0" />
           merged{' '}
@@ -105,7 +185,8 @@ export function GitGraphOutlineSummary({
           )}
         </span>
       )}
-      {landed && (
+      {landed && landedPr && <LandedPullRequest pr={landedPr} />}
+      {landed && !landedPr && (
         <span className="inline-flex items-center gap-1" title={row.historyItem.subject}>
           <GitPullRequestArrow className="size-3.5 shrink-0" />
           landed <span className="font-medium text-foreground">{landed}</span>
@@ -116,7 +197,12 @@ export function GitGraphOutlineSummary({
           <GitFork className="size-3.5 shrink-0" />
           start of
           {starts.map((name) => (
-            <BranchName key={name} name={name} color={branchColour(name)} />
+            <BranchName
+              key={name}
+              name={name}
+              color={branchColour(name)}
+              pr={gitGraphPullRequestForBranch(prs, name)}
+            />
           ))}
         </span>
       )}

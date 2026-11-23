@@ -13,6 +13,7 @@ import { translate } from '@/i18n/i18n'
 import type { GitHistoryItemRef } from '../../../../../shared/git/history/git-history-types'
 import { GitGraphBranchPicker } from './git-graph-branch-picker'
 import type { GitGraphJumpTarget } from './use-git-graph-jump'
+import type { GitGraphNames } from './use-git-graph-pull-requests'
 
 export type GitGraphDensity = 'detailed' | 'compact' | 'branches'
 
@@ -70,6 +71,21 @@ export function useGitGraphDensity(): [GitGraphDensity, (next: GitGraphDensity) 
     writeStored(DENSITY_STORAGE_KEY, next)
   }, [])
   return [density, choose]
+}
+
+// Branches view: rows named by branch, or by pull request with merges as "landed #N" (Paweł,
+// 2026-11-23).
+const NAMES_STORAGE_KEY = 'orca.gitGraph.names'
+
+export function useGitGraphNames(): [GitGraphNames, (next: GitGraphNames) => void] {
+  const [names, setNames] = useState<GitGraphNames>(() =>
+    readStored(NAMES_STORAGE_KEY, (value) => (value === 'pr' ? 'pr' : 'branch'))
+  )
+  const choose = useCallback((next: GitGraphNames) => {
+    setNames(next)
+    writeStored(NAMES_STORAGE_KEY, next)
+  }, [])
+  return [names, choose]
 }
 
 function Segmented<T extends string | boolean>({
@@ -145,6 +161,9 @@ export function GitGraphToolbar({
   mergeControls,
   density,
   onDensity,
+  names,
+  onNames,
+  pullRequestStatus,
   zoom,
   onZoom,
   loading,
@@ -173,6 +192,11 @@ export function GitGraphToolbar({
   mergeControls: React.ReactNode
   density: GitGraphDensity
   onDensity: (value: GitGraphDensity) => void
+  /** Branches view: name rows by branch or by pull request. */
+  names: GitGraphNames
+  onNames: (value: GitGraphNames) => void
+  /** Pull requests loading or failed, while names are PRs. */
+  pullRequestStatus: string | null
   zoom: number
   onZoom: (direction: 1 | -1) => void
   loading: boolean
@@ -227,6 +251,28 @@ export function GitGraphToolbar({
             }
           ]}
         />
+        {density === 'branches' && (
+          <Segmented
+            value={names}
+            onChange={onNames}
+            options={[
+              {
+                value: 'branch',
+                label: 'Branch names',
+                title: 'Name each line by its branch'
+              },
+              {
+                value: 'pr',
+                label: 'PR titles',
+                title:
+                  "Name each line by its pull request's number and title; a merged one reads landed #N"
+              }
+            ]}
+          />
+        )}
+        {density === 'branches' && names === 'pr' && pullRequestStatus && (
+          <span className="text-xs text-foreground/80">{pullRequestStatus}</span>
+        )}
         {controls}
         <div className="ml-auto flex min-w-0 items-center gap-2">
           <div className="flex h-6 min-w-0 items-center gap-1 rounded-md border border-border px-1.5">

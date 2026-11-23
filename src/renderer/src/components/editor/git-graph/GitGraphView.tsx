@@ -17,6 +17,7 @@ import { GIT_GRAPH_ROW_HEIGHT, GitGraphHeaderRow } from './git-graph-row'
 import { useGitGraphColumns } from './git-graph-columns'
 import { useGitGraphJump, useGitGraphRefList } from './use-git-graph-jump'
 import { GitGraphToolbar, useGitGraphDensity, useGitGraphZoom } from './git-graph-toolbar'
+import { GitGraphPullRequestsProvider, useGitGraphPrNames } from './use-git-graph-pull-requests'
 import { useGitGraphKeys } from './use-git-graph-keys'
 import { GitGraphAuthorHuesProvider } from './git-graph-author-color'
 import { GitGraphBranchColoursProvider } from './git-graph-branch-colour-context'
@@ -125,6 +126,7 @@ export function GitGraphView({ worktreeId }: { worktreeId: string }): React.JSX.
     pinned: lanes.pinned,
     drawnPinned
   })
+  const prNames = useGitGraphPrNames(density, repoKey, history.items, lanes.pinned, result)
   const marks = useGitGraphMergeMarks()
   const [stackNames, toggleStackNames] = useGitGraphStackNames()
   const mergeCounts = new Map(
@@ -288,6 +290,24 @@ export function GitGraphView({ worktreeId }: { worktreeId: string }): React.JSX.
   // A host that predates named refs draws only HEAD's history whatever is asked.
   const hostIgnoresRefs = !!result && (result.refs === undefined || result.refs === 'head')
 
+  const shapeProps = {
+    refs,
+    refsFilter,
+    onRefsFilter: setRefsFilter,
+    headRefId: result?.currentRef?.id,
+    pinned: lanes.pinned,
+    customPinned: lanes.custom,
+    onPinned: lanes.setPinned,
+    onResetPinned: lanes.reset,
+    branchNames,
+    colourOf: model.colourOf,
+    mergeTargets: marks.targets,
+    mergeCounts,
+    onToggleMerge: marks.toggle,
+    stackNames,
+    onToggleStackNames: toggleStackNames
+  }
+
   return (
     // The graph sits on Orca's side panel colour (Paweł, 2026-11-17: "cant you use sidepanel color
     // of orca", after a black overlay read too dark and then too faint): the theme's own surface,
@@ -295,47 +315,13 @@ export function GitGraphView({ worktreeId }: { worktreeId: string }): React.JSX.
     <div className="h-full min-h-0 bg-sidebar" style={themeColours}>
       <div className="flex h-full min-h-0 flex-col text-foreground">
         <GitGraphToolbar
-          controls={
-            <GitGraphShapeControls
-              refs={refs}
-              refsFilter={refsFilter}
-              onRefsFilter={setRefsFilter}
-              headRefId={result?.currentRef?.id}
-              pinned={lanes.pinned}
-              customPinned={lanes.custom}
-              onPinned={lanes.setPinned}
-              onResetPinned={lanes.reset}
-              branchNames={branchNames}
-              colourOf={model.colourOf}
-              mergeTargets={marks.targets}
-              mergeCounts={mergeCounts}
-              onToggleMerge={marks.toggle}
-              stackNames={stackNames}
-              onToggleStackNames={toggleStackNames}
-            />
-          }
-          mergeControls={
-            <GitGraphShapeControls
-              refs={refs}
-              refsFilter={refsFilter}
-              onRefsFilter={setRefsFilter}
-              headRefId={result?.currentRef?.id}
-              pinned={lanes.pinned}
-              customPinned={lanes.custom}
-              onPinned={lanes.setPinned}
-              onResetPinned={lanes.reset}
-              branchNames={branchNames}
-              colourOf={model.colourOf}
-              mergeTargets={marks.targets}
-              mergeCounts={mergeCounts}
-              onToggleMerge={marks.toggle}
-              stackNames={stackNames}
-              onToggleStackNames={toggleStackNames}
-              part="merges"
-            />
-          }
+          controls={<GitGraphShapeControls {...shapeProps} />}
+          mergeControls={<GitGraphShapeControls {...shapeProps} part="merges" />}
           density={density}
           onDensity={setDensity}
+          names={prNames.names}
+          onNames={prNames.setNames}
+          pullRequestStatus={prNames.status}
           zoom={zoom}
           onZoom={stepZoom}
           loading={history.loading}
@@ -368,67 +354,69 @@ export function GitGraphView({ worktreeId }: { worktreeId: string }): React.JSX.
         )}
         <GitGraphAuthorHuesProvider value={model.authorHues}>
           <GitGraphBranchColoursProvider value={model.branchColour}>
-            <div className="flex min-h-0 flex-1" style={{ zoom }}>
-              <div ref={columnRef} className="flex min-w-0 flex-1 flex-col">
-                <GitGraphHeaderRow
-                  layout={layout}
-                  onResize={setWidth}
-                  onReset={resetWidth}
-                  onToggleColumn={toggleColumn}
-                  descriptionLabel={density === 'branches' ? 'Branches and merges' : undefined}
-                />
-                <div
-                  ref={listRef}
-                  role="grid"
-                  tabIndex={0}
-                  data-git-graph-list
-                  className="min-h-0 flex-1 overflow-y-auto outline-none scrollbar-sleek"
-                  onScroll={onScroll}
-                  onPointerMove={hoverGuard.onPointerMove}
-                  onKeyDown={onKeyDown}
-                >
-                  {history.error && (
-                    <div className="px-3 py-2 text-xs text-destructive">{history.error}</div>
-                  )}
-                  {!history.error && history.loading && model.rows.length === 0 && (
-                    <div className="px-3 py-2 text-xs text-muted-foreground">Loading graph…</div>
-                  )}
-                  <GitGraphList
-                    model={model}
+            <GitGraphPullRequestsProvider value={prNames.pullRequests}>
+              <div className="flex min-h-0 flex-1" style={{ zoom }}>
+                <div ref={columnRef} className="flex min-w-0 flex-1 flex-col">
+                  <GitGraphHeaderRow
                     layout={layout}
-                    density={density}
-                    worktreeId={worktreeId}
-                    worktreePath={history.worktreePath}
-                    ownerTarget={ownerTarget}
-                    currentRefId={result?.currentRef?.id}
-                    selectedId={expandedRow}
-                    openCommitId={openCommit}
-                    flashId={flashId}
-                    focusedBranch={focusedBranch}
-                    mergeTargets={marks.targets}
-                    stackNames={stackNames}
-                    onToggleRow={toggleRow}
-                    onSelectCommit={selectCommit}
-                    onOpenCommit={openCommitInRow}
-                    onCloseCommit={() => setSelectedId(null)}
-                    onFocusBranch={followBranch}
-                    onCommitAction={handleCommitAction}
+                    onResize={setWidth}
+                    onReset={resetWidth}
+                    onToggleColumn={toggleColumn}
+                    descriptionLabel={density === 'branches' ? 'Branches and merges' : undefined}
                   />
-                  {history.hasMore && (
-                    <div className="px-3 py-2">
-                      <Button
-                        variant="ghost"
-                        size="xs"
-                        disabled={history.loading}
-                        onClick={history.loadMore}
-                      >
-                        {translate('local.gitGraph.loadMore', 'Load more commits')}
-                      </Button>
-                    </div>
-                  )}
+                  <div
+                    ref={listRef}
+                    role="grid"
+                    tabIndex={0}
+                    data-git-graph-list
+                    className="min-h-0 flex-1 overflow-y-auto outline-none scrollbar-sleek"
+                    onScroll={onScroll}
+                    onPointerMove={hoverGuard.onPointerMove}
+                    onKeyDown={onKeyDown}
+                  >
+                    {history.error && (
+                      <div className="px-3 py-2 text-xs text-destructive">{history.error}</div>
+                    )}
+                    {!history.error && history.loading && model.rows.length === 0 && (
+                      <div className="px-3 py-2 text-xs text-muted-foreground">Loading graph…</div>
+                    )}
+                    <GitGraphList
+                      model={model}
+                      layout={layout}
+                      density={density}
+                      worktreeId={worktreeId}
+                      worktreePath={history.worktreePath}
+                      ownerTarget={ownerTarget}
+                      currentRefId={result?.currentRef?.id}
+                      selectedId={expandedRow}
+                      openCommitId={openCommit}
+                      flashId={flashId}
+                      focusedBranch={focusedBranch}
+                      mergeTargets={marks.targets}
+                      stackNames={stackNames}
+                      onToggleRow={toggleRow}
+                      onSelectCommit={selectCommit}
+                      onOpenCommit={openCommitInRow}
+                      onCloseCommit={() => setSelectedId(null)}
+                      onFocusBranch={followBranch}
+                      onCommitAction={handleCommitAction}
+                    />
+                    {history.hasMore && (
+                      <div className="px-3 py-2">
+                        <Button
+                          variant="ghost"
+                          size="xs"
+                          disabled={history.loading}
+                          onClick={history.loadMore}
+                        >
+                          {translate('local.gitGraph.loadMore', 'Load more commits')}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
+            </GitGraphPullRequestsProvider>
           </GitGraphBranchColoursProvider>
         </GitGraphAuthorHuesProvider>
       </div>

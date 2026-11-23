@@ -103,6 +103,7 @@ export const GitGraphCommitRow = React.forwardRef<HTMLDivElement, GitGraphCommit
         group={group}
         laneColor={viewModel.nodeColor}
         size={branches ? 'lg' : 'md'}
+        commitId={item.id}
         focused={!branches && group.name === focusedBranch}
         // In Branches a name is part of the row: the click opens the row's commits.
         onFocusBranch={branches ? undefined : onFocusBranch}

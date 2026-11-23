@@ -13,6 +13,23 @@ import type {
 import { graphColor } from '@/components/right-sidebar/source-control/sync/git-history-graph-svg'
 import { gitGraphBranchName } from './git-graph-lane-names'
 import { useGitGraphBranchColour } from './git-graph-branch-colour-context'
+import {
+  gitGraphPullRequestForBranch,
+  useGitGraphPullRequestContext,
+  type GitGraphPullRequest
+} from './use-git-graph-pull-requests'
+
+/** A pull request as a name: "#12 Title", "landed #12 Title" once merged, "closed" when dropped. */
+export function GitGraphPullRequestName({ pr }: { pr: GitGraphPullRequest }): React.JSX.Element {
+  return (
+    <span className="break-words">
+      {pr.state === 'merged' && <span className="text-foreground/72">landed </span>}
+      <span className="font-semibold tabular-nums">#{pr.number}</span> {pr.title}
+      {pr.state === 'closed' && <span className="text-foreground/72"> (closed)</span>}
+      {pr.state === 'draft' && <span className="text-foreground/72"> (draft)</span>}
+    </span>
+  )
+}
 
 export type GitGraphRefGroup = {
   key: string
@@ -92,15 +109,21 @@ export function GitGraphRefChip({
   laneColor,
   size = 'md',
   focused,
-  onFocusBranch
+  onFocusBranch,
+  commitId
 }: {
   group: GitGraphRefGroup
   laneColor?: GitHistoryGraphColorId
   size?: 'md' | 'lg'
   focused?: boolean
   onFocusBranch?: (name: string) => void
+  /** The commit the chip sits on: with names as PRs, the PR whose head it is wins. */
+  commitId?: string
 }): React.JSX.Element {
   const branchColour = useGitGraphBranchColour()
+  const prs = useGitGraphPullRequestContext()
+  const pr =
+    group.kind === 'tag' ? undefined : gitGraphPullRequestForBranch(prs, group.name, commitId)
   const dotColor = group.kind === 'tag' ? undefined : branchColour(group.name, laneColor)
   const clickable = group.kind !== 'tag' && onFocusBranch
   const content = (
@@ -114,17 +137,21 @@ export function GitGraphRefChip({
           style={{ background: dotColor ? graphColor(dotColor) : 'var(--muted-foreground)' }}
         />
       )}
-      {/* One piece: a flex gap between remote and name read as "origin/ x". */}
-      <span className="break-all">
-        {group.remote && <span className="text-foreground/72">{group.remote}/</span>}
-        {group.name}
-      </span>
+      {pr ? (
+        <GitGraphPullRequestName pr={pr} />
+      ) : (
+        // One piece: a flex gap between remote and name read as "origin/ x".
+        <span className="break-all">
+          {group.remote && <span className="text-foreground/72">{group.remote}/</span>}
+          {group.name}
+        </span>
+      )}
       {group.isHead && (
         <span className="rounded-sm bg-foreground/10 px-1 text-[9.5px] font-semibold tracking-wide">
           HEAD
         </span>
       )}
-      {group.syncedRemotes.length > 0 && (
+      {!pr && group.syncedRemotes.length > 0 && (
         <span
           className="inline-flex items-center gap-0.5 text-foreground/72"
           title={`Also on ${group.syncedRemotes.join(', ')} at this commit`}
@@ -144,10 +171,11 @@ export function GitGraphRefChip({
     focused ? 'border-ring bg-accent' : 'border-border',
     clickable && 'cursor-pointer hover:border-ring'
   )
+  const title = pr ? `${group.title}\n#${pr.number} ${pr.title} (${pr.state})` : group.title
   return clickable ? (
     <button
       type="button"
-      title={`${group.title}\nClick: follow this branch`}
+      title={`${title}\nClick: follow this branch`}
       className={className}
       onClick={(event) => {
         event.stopPropagation()
@@ -157,7 +185,7 @@ export function GitGraphRefChip({
       {content}
     </button>
   ) : (
-    <span title={group.title} className={className}>
+    <span title={title} className={className}>
       {content}
     </span>
   )
