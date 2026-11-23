@@ -19,11 +19,10 @@ import {
   type GitGraphPullRequest
 } from './use-git-graph-pull-requests'
 
-/** A pull request as a name: "#12 Title", "landed #12 Title" once merged, "closed" when dropped. */
+/** A pull request as a name: "#12 Title", with "(draft)" or "(closed)" after it. */
 export function GitGraphPullRequestName({ pr }: { pr: GitGraphPullRequest }): React.JSX.Element {
   return (
     <span className="break-words">
-      {pr.state === 'merged' && <span className="text-foreground/72">landed </span>}
       <span className="font-semibold tabular-nums">#{pr.number}</span> {pr.title}
       {pr.state === 'closed' && <span className="text-foreground/72"> (closed)</span>}
       {pr.state === 'draft' && <span className="text-foreground/72"> (draft)</span>}

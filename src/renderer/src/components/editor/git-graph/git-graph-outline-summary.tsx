@@ -69,7 +69,7 @@ function BranchName({
   )
 }
 
-/** A landed pull request: "landed #12 Title", the title in full. */
+/** A landed pull request: its icon, then "#12 Title" in full (no "landed": Paweł, 2026-11-23). */
 function LandedPullRequest({
   pr,
   color
@@ -77,11 +77,10 @@ function LandedPullRequest({
   pr: GitGraphPullRequest
   color?: GitHistoryGraphColorId
 }): React.JSX.Element {
-  // One run of text, so a long title wraps after "landed #N" instead of dropping below it.
+  // One run of text, so a long title wraps after "#N" instead of dropping below it.
   return (
     <span className="min-w-0 break-words" title={pr.url}>
       <GitPullRequestArrow className="mr-1 inline size-3.5 align-[-2px]" />
-      landed{' '}
       {color && (
         <span
           aria-hidden
@@ -157,10 +156,10 @@ export function GitGraphOutlineSummary({
         </span>
       )}
       {merged && !landedPr && prs.on && pullRequest && (
-        // A PR GitHub did not list (older than its search reaches): its number still says it landed.
+        // A PR GitHub did not list (older than its search reaches): its number from the message.
         <span className="inline-flex flex-wrap items-center gap-1" title={row.historyItem.subject}>
           <GitPullRequestArrow className="size-3.5 shrink-0" />
-          landed <span className="font-semibold text-foreground tabular-nums">{pullRequest}</span>
+          <span className="font-semibold text-foreground tabular-nums">{pullRequest}</span>
           {mergedName && (
             <BranchName name={mergedName} color={branchColour(mergedName, mergedColor)} />
           )}
@@ -202,7 +201,8 @@ export function GitGraphOutlineSummary({
       {landed && !landedPr && (
         <span className="inline-flex items-center gap-1" title={row.historyItem.subject}>
           <GitPullRequestArrow className="size-3.5 shrink-0" />
-          landed <span className="font-medium text-foreground">{landed}</span>
+          {!prs.on && 'landed '}
+          <span className="font-medium text-foreground">{landed}</span>
         </span>
       )}
       {!merged && !landed && !hasRefs && starts.length > 0 && (
