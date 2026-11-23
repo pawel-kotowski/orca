@@ -78,8 +78,8 @@ function setAutoContinue(on: boolean): void {
 }
 
 // Upstream's usage-limit row (2026-11-18 merge) names its buttons differently: "Continue" once the
-// limit reset (was "Continue now"); while waiting, icon tools "Hand off to another agent" and the
-// clock ("Auto-continue settings", or pressed "Don't continue at <time>" while scheduled). Hand off
+// limit reset (was "Continue now"); while waiting, icon tools "Hand off to agent" and the
+// clock ("Auto-continue on reset", or pressed "Don't continue at <time>" while scheduled). Hand off
 // shows only while the chat still waits for its reset; once usage is back the row offers Continue.
 describe('a terminal chat stopped by its usage limit', () => {
   beforeEach(() => {
@@ -106,7 +106,7 @@ describe('a terminal chat stopped by its usage limit', () => {
   it("offers the pane's own Hand Off to Another Agent on the limit row", () => {
     const handOff = vi.fn()
     renderChat(limitMessage(START + 60 * 60_000), () => true, handOff)
-    fireEvent.click(screen.getByRole('button', { name: 'Hand off to another agent' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Hand off to agent' }))
     expect(handOff).toHaveBeenCalledTimes(1)
   })
 
@@ -122,7 +122,7 @@ describe('a terminal chat stopped by its usage limit', () => {
   it('points at the setting while continuing at the reset is off', () => {
     renderChat(limitMessage(START + 60 * 60_000), () => true)
     expect(screen.queryByRole('button', { name: 'Continue' })).toBeNull()
-    expect(screen.getByRole('button', { name: 'Auto-continue settings' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Auto-continue on reset' })).toBeInTheDocument()
   })
 
   it('continues by itself at the reset when the setting is on, unless cancelled', () => {

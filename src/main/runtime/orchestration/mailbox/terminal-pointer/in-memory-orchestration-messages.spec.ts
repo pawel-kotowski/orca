@@ -4,6 +4,17 @@ import type { MessagePriority, MessageRow, MessageType } from '../../db/orchestr
 // Test message semantics in memory to avoid unrelated SQLite native ABI failures.
 export class InMemoryOrchestrationMessages {
   readonly crewChanges = new CrewChanges()
+  // Upstream's crew wiring reads worker dock sources and the database's transaction flag; this fake has no rows behind either.
+  readonly workerDockSources = {
+    hasChanges: false,
+    changedSources: (): string[] => [],
+    watch: (_listener: () => void) => () => {}
+  }
+  // Upstream's projection probes dispatch_contexts; this fake holds none, so the probe finds nothing.
+  readonly db = {
+    isTransaction: false,
+    prepare: (_sql: string) => ({ get: () => undefined })
+  }
 
   hasAnyDispatchContexts(): boolean {
     return false

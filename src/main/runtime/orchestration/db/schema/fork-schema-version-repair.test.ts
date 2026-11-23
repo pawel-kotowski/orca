@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import SyncDatabase from '../../../../sqlite/sync-database'
 import { OrchestrationDb } from '../orchestration-db'
 import { repairForkStampedSchemaVersion } from './fork-schema-version-repair'
+import { SCHEMA_VERSION } from '../contract-constants'
 
 const directories: string[] = []
 afterEach(() => {
@@ -66,7 +67,7 @@ describe('fork-stamped schema version repair', () => {
     new OrchestrationDb(path).close()
 
     const reopened = new SyncDatabase(path)
-    expect(reopened.pragma('user_version', { simple: true })).toBe(46)
+    expect(reopened.pragma('user_version', { simple: true })).toBe(SCHEMA_VERSION)
     reopened.close()
     expect(columns(path, 'worker_terminal_resources')).toContain('auto_release_at')
     expect(columns(path, 'dispatch_contexts')).toContain('follow_up_of_dispatch_id')

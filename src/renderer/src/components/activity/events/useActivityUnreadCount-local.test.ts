@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { AgentStatusEntry } from '../../../../../shared/agent-status/contracts/agent-status-types'
-import { acceptedAgentStatuses } from '@/store/slices/agent-status/status-ownership/accepted-agent-statuses'
+import { AcceptedAgentStatuses } from '@/store/slices/agent-status/status-ownership/accepted-agent-statuses'
+import type { AgentStatusProjection } from '@/store/slices/agent-status/projection/agent-status-projection'
 import { countActivityUnread } from './useActivityUnreadCount'
 
 // Local (glass build): workers fold into their coordinator's card and ring only while they wait on you.
@@ -19,10 +20,16 @@ function makeEntry(overrides: Partial<AgentStatusEntry>): AgentStatusEntry {
   }
 }
 
+// A pane counts only while it has a workspace row to clear (countActivityUnread skips rowless panes).
+const rowedProjection = {
+  rowWorktree: (key: string) => (key === PANE ? 'worktree-1' : undefined),
+  rowOwnersRevision: () => 0
+} as unknown as AgentStatusProjection
+
 function makeSource(entry: AgentStatusEntry, ackAt = 0) {
   return {
     acknowledgedAgentsByPaneKey: { [PANE]: ackAt },
-    agentStatusByPaneKey: acceptedAgentStatuses([[PANE, entry]]),
+    agentStatusByPaneKey: new AcceptedAgentStatuses(new Map([[PANE, entry]]), rowedProjection, 0),
     migrationUnsupportedByPtyId: {}
   }
 }
