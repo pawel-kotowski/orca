@@ -42,7 +42,10 @@ afterEach(() => rm(root, { recursive: true, force: true }))
 
 const home = (name: string) => ({ variable: 'CLAUDE_CONFIG_DIR', path: join(root, name) })
 async function allowed(): Promise<boolean> {
-  const { transcriptPath, configDir } = await structuredIdleCompactionTarget.source('claude', CHAT)
+  const { transcriptPath, configDir } = await structuredIdleCompactionTarget(() => null).source(
+    'claude',
+    CHAT
+  )
   return claudeAllowsIdleCompaction(transcriptPath!, configDir)
 }
 
@@ -66,7 +69,7 @@ it('reads them from the founding account where the chat keeps it', async () => {
 
 it("finds no transcript outside that account's folder", async () => {
   launchAccountHome.mockResolvedValue(home('gone'))
-  expect(await structuredIdleCompactionTarget.source('claude', CHAT)).toEqual({
+  expect(await structuredIdleCompactionTarget(() => null).source('claude', CHAT)).toEqual({
     transcriptPath: null,
     configDir: join(root, 'gone')
   })

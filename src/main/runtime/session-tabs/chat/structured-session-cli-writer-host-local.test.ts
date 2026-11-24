@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
@@ -501,4 +501,56 @@ it('lost holds alone keep no watch on the terminals', async () => {
   } finally {
     vi.useRealTimers()
   }
+})
+
+it("a leftover row found by its pane, with no PTY record yet, is its terminal's", async () => {
+  lostHolds()
+  const { host, state } = runtime()
+  state.rows = [ROW]
+  state.listed = [
+    { ...RUNNING, paneKey: 'tab:leaf' },
+    { id: 'server', incarnationId: 's', rootProcessId: 20 }
+  ]
+  mocks.processes.mockResolvedValue({
+    shellAlone: async () => false,
+    runsBelow: () => false,
+    runsAnywhere: () => false,
+    runsAgentBelow: (root: number) => root === 20
+  })
+  await expect(host.assertStructuredChatAcquireAdmissible(RECORD)).resolves.toBeUndefined()
+})
+
+it('an agent on the conversation is seen without any row while holds are lost or unread', async () => {
+  lostHolds()
+  const { host, state } = runtime()
+  state.listed = [RUNNING]
+  processesAre(false, true, true)
+  await expect(host.assertStructuredChatAcquireAdmissible(RECORD)).rejects.toThrow()
+})
+
+it('a hold that is read again during the look is judged as the hold it is', async () => {
+  open()
+  resetStructuredChatTerminalHoldsForTests()
+  const { host, state } = runtime()
+  state.listed = [RUNNING]
+  const file = join(mocks.path, 'structured-chat-terminal-holds.json')
+  renameSync(file, `${file}.kept`)
+  mkdirSync(file)
+  // Unread for now, and whether the agent runs is not known.
+  processesAre(false, false, null)
+  await expect(host.assertStructuredChatAcquireAdmissible(RECORD)).rejects.toThrow()
+  mocks.processes.mockImplementation(async () => {
+    rmSync(file, { recursive: true, force: true })
+    renameSync(`${file}.kept`, file)
+    mocks.processes.mockReset()
+    processesAre(false, false, false)
+    return {
+      shellAlone: async () => false,
+      runsBelow: () => false,
+      runsAnywhere: () => false,
+      runsAgentBelow: () => false
+    }
+  })
+  await expect(host.assertStructuredChatAcquireAdmissible(RECORD)).rejects.toThrow()
+  expect(heldStructuredChats()).toEqual(['chat'])
 })

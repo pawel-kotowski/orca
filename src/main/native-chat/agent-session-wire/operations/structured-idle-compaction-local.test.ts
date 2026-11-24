@@ -26,13 +26,15 @@ import { AGENT_JOURNAL_THREAD_SCOPE } from '../../../../shared/agent-session/jou
 import {
   HOST_TEST_NOW,
   HOST_TEST_SESSION as SESSION,
-  HOST_TEST_THREAD as THREAD
+  HOST_TEST_THREAD as THREAD,
+  hostTestMessage
 } from '../host/testing/structured-agent-session-host-test-data.test-fixture'
 import {
   createQueuedMessageTestRig,
   type QueuedMessageTestRig
 } from '../host/testing/structured-agent-session-queued-message-rig.test-fixture'
 import { eventually } from '../host/testing/structured-agent-session-queued-message-rig-provider.test-fixture'
+import { unsentSendKeptAsCard } from '../../agent-session-journal/queued-messages/journal-unsent-send-hold'
 import type * as Admission from './structured-conversation-command-admission'
 
 // Idle compaction is no one's message: it ends no pause, sends no card and queues nothing.
@@ -57,7 +59,10 @@ afterEach(() => rig.dispose())
 const journal = () => rig.host.collaboratorsForTests().sessions.get(SESSION)!.journal
 const compact = () => {
   mocks.host = rig.host
-  return structuredIdleCompactionTarget.compact({ sessionId: SESSION, providerSessionId: THREAD })
+  return structuredIdleCompactionTarget(() => null).compact({
+    sessionId: SESSION,
+    providerSessionId: THREAD
+  })
 }
 
 async function turn(id: string, outcome: 'done' | 'failure' | 'interrupted' | null) {
@@ -205,4 +210,27 @@ it("a spent limit of the chat's account refuses it, and a reset one does not", a
   mocks.blockedEarly = true
   accountUsage.mockResolvedValue(spent(Date.now() - 1))
   expect(await compact()).toBe(true)
+})
+
+it('an Orca that ends before the agent has started keeps no card of it', async () => {
+  await rig.dispose()
+  rig = await createQueuedMessageTestRig({ starting: true })
+  void compact().catch(() => false)
+  await eventually(async () =>
+    expect(
+      (await journal().reads.input({ kind: 'recoverable-submissions' })).submissions
+    ).toHaveLength(1)
+  )
+  expect(rig.compact).not.toHaveBeenCalled()
+  await rig.host.flushAllStreamedEvents()
+  rig.crashRestartHostProcess()
+  expect(await rig.drafts()).toEqual([])
+  expect(await rig.queuePause()).toBeNull()
+})
+
+it('a command the person sent is still kept, and one of the host is not', () => {
+  const body = { ...hostTestMessage('/compact'), command: { name: 'compact' } } as never
+  expect(unsentSendKeptAsCard({ origin: 'client' }, body)).toBe(body)
+  expect(unsentSendKeptAsCard({}, body)).toBe(body)
+  expect(unsentSendKeptAsCard({ origin: 'host' }, body)).toBeNull()
 })

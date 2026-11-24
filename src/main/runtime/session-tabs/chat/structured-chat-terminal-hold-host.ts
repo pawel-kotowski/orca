@@ -30,7 +30,7 @@ import { readTerminalProcesses } from '../../agent-session/ownership/structured-
 import {
   readLiveDaemonSessions,
   readTerminalHoldPane,
-  forgotLostHolds,
+  lostHoldsSay,
   terminalHasNoAgent,
   terminalsOfOtherConversations,
   type TerminalHoldReads
@@ -51,10 +51,10 @@ export abstract class OrcaRuntimeWithStructuredChatTerminalHolds extends OrcaRun
     sessionId: string,
     key: { agent: StructuredAgentId; id: string }
   ): Promise<boolean> {
+    // Before the hold: a file that can be read again in between must not count as none lost.
+    const mayWrite = structuredChatTerminalHoldsUnreadable() && (await this.lostHoldMayWrite(key))
     const hold = structuredChatTerminalHold(sessionId)
-    return hold
-      ? this.structuredChatTerminalActive(sessionId, hold)
-      : structuredChatTerminalHoldsUnreadable() && (await this.lostHoldMayWrite(key))
+    return hold ? this.structuredChatTerminalActive(sessionId, hold) : mayWrite
   }
 
   /** Local: whether a terminal runs the conversation of a chat that is about to be handed over. */
@@ -129,7 +129,11 @@ export abstract class OrcaRuntimeWithStructuredChatTerminalHolds extends OrcaRun
       )
       if (
         (pane === 'running' || pane === 'unknown') &&
-        !(agentsOnly && reads && terminalHasNoAgent(reads, pty?.ptyId, key))
+        !(
+          agentsOnly &&
+          reads &&
+          terminalHasNoAgent(reads, { ptyId: pty?.ptyId, paneKey: row.paneKey }, key)
+        )
       ) {
         return true
       }
@@ -141,7 +145,7 @@ export abstract class OrcaRuntimeWithStructuredChatTerminalHolds extends OrcaRun
    *  agent that always runs somewhere would have the terminals read for good. */
   private async lostHoldMayWrite(key: { agent: StructuredAgentId; id: string }): Promise<boolean> {
     const reads = await this.readHoldTerminals()
-    return !forgotLostHolds(reads, key) && this.terminalRowsMayWrite(key, reads, true)
+    return lostHoldsSay(reads, key) ?? this.terminalRowsMayWrite(key, reads, true)
   }
 
   private async readHoldTerminals(): Promise<TerminalHoldReads> {
@@ -264,10 +268,7 @@ export abstract class OrcaRuntimeWithStructuredChatTerminalHolds extends OrcaRun
       this.cleanupSubscription(chatTerminalHandoverSubscription(ended.hold.token))
       void this.resumeReturnedChats().then(() => this.watchStructuredChatTerminalHolds())
     })
-    const first = setTimeout(() => {
-      releaseUnlaunchedStructuredChatTerminalHolds()
-      this.watchStructuredChatTerminalHolds()
-    }, TERMINAL_HOLD_CHECK_MS)
+    const first = setTimeout(() => this.watchStructuredChatTerminalHolds(), TERMINAL_HOLD_CHECK_MS)
     first.unref?.()
   }
 
@@ -311,7 +312,7 @@ export abstract class OrcaRuntimeWithStructuredChatTerminalHolds extends OrcaRun
   }
 
   private async releaseFinishedTerminalHolds(): Promise<void> {
-    // Again here: they may not have been readable at the start.
+    // At every look: the holds may not have been readable at the start.
     releaseUnlaunchedStructuredChatTerminalHolds()
     const store = getStructuredAgentSessionHost()?.deps.store
     for (const sessionId of heldStructuredChats()) {

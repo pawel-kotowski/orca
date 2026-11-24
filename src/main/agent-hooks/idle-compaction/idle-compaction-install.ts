@@ -11,7 +11,10 @@ import { IDLE_COMPACTION_MIN_TOKENS, IdleCompactionScheduler } from './idle-comp
 
 type IdleCompactionRuntime = Pick<
   OrcaRuntimeService,
-  'getTerminalHandleForPaneKey' | 'readTerminalMailHold' | 'sendTerminalAgentPrompt'
+  | 'getTerminalHandleForPaneKey'
+  | 'readTerminalMailHold'
+  | 'sendTerminalAgentPrompt'
+  | 'getUsageRateLimits'
 >
 
 async function readJson(path: string): Promise<Record<string, unknown> | null> {
@@ -118,7 +121,7 @@ export function installIdleCompaction(
         throw new Error('not_accepted')
       }
     },
-    chats: structuredIdleCompactionTarget,
+    chats: structuredIdleCompactionTarget(() => getRuntime()?.getUsageRateLimits() ?? null),
     log: decisionLog()
   })
   const unsubscribe = server.subscribeEnrichedStatus((event) => scheduler.onStatus(event))

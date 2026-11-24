@@ -380,6 +380,7 @@ export class StructuredAgentSessionHost {
   /** The usage-limit continue as the journal stands now, ahead of the next status publish. */
   readUsageLimitContinue = async (id: string) =>
     this.usageLimitContinue.readState(id, await this.clientDelivery.readUsageLimitCut(id))
+  readUsageLimitCut = this.clientDelivery.readUsageLimitCut
   publishedWork = this.clientDelivery.readPublishedWork
 
   private collaborators = () => ({

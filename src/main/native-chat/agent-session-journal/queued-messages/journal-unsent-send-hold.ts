@@ -64,7 +64,9 @@ export function unsentSendKeptAsCard(
     source?.kind === USER_MESSAGE_SOURCE.kind ||
     // Before source existed, client origin identified personal sends.
     (source === undefined && submission.origin === 'client')
-  return persons || body.command || orchestrationMailNotice(body.from) ? body : null
+  // Local: the host's own command (idle compaction) is no one's message to keep.
+  const command = body.command !== undefined && submission.origin !== 'host'
+  return persons || command || orchestrationMailNotice(body.from) ? body : null
 }
 
 /** Failed initialization proves unanswered handed-over sends never ran. */

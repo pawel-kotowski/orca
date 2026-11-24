@@ -1,10 +1,5 @@
 import { join } from 'node:path'
-import type { AgentSessionRecord } from '../../../shared/agent-session/lifecycle/agent-session-record'
-import {
-  agentSessionAccountHomePath,
-  type AgentSessionAccountHome
-} from '../../../shared/agent-session/lifecycle/accounts/agent-session-account-home'
-import { rateLimitSpentUntil } from '../../../shared/agent-usage/rate-limits/rate-limit-spent-windows'
+import { agentSessionAccountHomePath } from '../../../shared/agent-session/lifecycle/accounts/agent-session-account-home'
 import type { AgentSessionContextUsage } from '../../../shared/agent-session/conversation-context/agent-session-context-usage'
 import { contextTokensFromUsage } from '../../../shared/agent-session/conversation-context/agent-session-context-usage'
 import { agentSessionConversationCommandFields } from '../../../shared/agent-session/conversation-context/agent-session-conversation-command'
@@ -15,6 +10,11 @@ import { isBotGroupMemberSession } from '../../../shared/bots/bot-group'
 import { structuredChatTerminalHold } from '../../runtime/agent-session/ownership/structured-chat-terminal-holds'
 import { resolveSessionFilePath } from '../../native-chat/session-file-resolver'
 import { mintAgentSessionOperationId } from '../../runtime/orchestration/mailbox/structured-pointer/structured-pointer-operation-id'
+import {
+  idleCompactionHome,
+  idleCompactionLimitSpent,
+  type IdleCompactionRateLimits
+} from './idle-compaction-account-limit'
 import {
   readIdleCompactionSessionFacts,
   type IdleCompactionAgent,
@@ -66,29 +66,18 @@ export function chatCompactionFacts(
   }
 }
 
-/** The account home a start of the chat's agent would run under now. */
-async function compactionHome(record: AgentSessionRecord): Promise<AgentSessionAccountHome | null> {
-  const launch = await getStructuredAgentSessionHost()?.deps.launchAccountHome?.(record)
-  return launch ?? record.accountHome
-}
-
-/** The compaction would only fail, and its failure would hold what other agents send. */
-async function limitSpent(record: AgentSessionRecord): Promise<boolean> {
-  const usage = getStructuredAgentSessionHost()?.deps.usageLimitAutoContinue?.accountUsage
-  const home = usage && record.location.wslDistro === null ? await compactionHome(record) : null
-  const reading = home && (await usage?.(record.provider, home))?.account?.read()
-  const until = reading ? rateLimitSpentUntil(reading) : undefined
-  return until === null || (until !== undefined && until > Date.now())
-}
-
-export const structuredIdleCompactionTarget: IdleCompactionChatTarget = {
+export const structuredIdleCompactionTarget = (
+  rateLimits: () => IdleCompactionRateLimits | null
+): IdleCompactionChatTarget => ({
   source: async (agent, { sessionId, providerSessionId }) => {
     if (agent !== 'claude') {
       const transcriptPath = await resolveSessionFilePath(agent, providerSessionId)
       return { transcriptPath, configDir: null }
     }
-    const record = getStructuredAgentSessionHost()?.deps.store.getRecord(sessionId)
-    const home = record?.location.wslDistro === null ? await compactionHome(record) : null
+    const host = getStructuredAgentSessionHost()
+    const record = host?.deps.store.getRecord(sessionId)
+    const home =
+      host && record?.location.wslDistro === null ? await idleCompactionHome(host, record) : null
     const configDir = agentSessionAccountHomePath(home)
     return {
       configDir,
@@ -133,7 +122,7 @@ export const structuredIdleCompactionTarget: IdleCompactionChatTarget = {
     if (!host || !record || fence === undefined) {
       throw new Error('no_host')
     }
-    if (await limitSpent(record)) {
+    if (await idleCompactionLimitSpent(host, record, rateLimits())) {
       return false
     }
     // Refused unless the chat is at rest as the host accepts it. A stopped agent is started for it.
@@ -162,4 +151,4 @@ export const structuredIdleCompactionTarget: IdleCompactionChatTarget = {
     }
     return true
   }
-}
+})
