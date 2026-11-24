@@ -16,7 +16,12 @@ import {
   structuredChatTerminalHold
 } from '../../../runtime/agent-session/ownership/structured-chat-terminal-holds'
 import type { AgentMessageSource } from '../../../../shared/agent-session/journal/agent-session-message-source'
-import { agentJournalSubmissionKey } from '../../../../shared/agent-session/journal/agent-session-journal-item-key'
+import { agentSessionFailureFact } from '../../../../shared/agent-session/failures/agent-session-failure'
+import { agentSessionFailureWords } from '../../../../shared/agent-session/failures/agent-session-failure-words'
+import {
+  agentJournalItemKey,
+  agentJournalSubmissionKey
+} from '../../../../shared/agent-session/journal/agent-session-journal-item-key'
 import { AGENT_JOURNAL_THREAD_SCOPE } from '../../../../shared/agent-session/journal/agent-session-journal-types'
 import {
   HOST_TEST_NOW,
@@ -184,6 +189,61 @@ it.each([
   }
   await giveBack()
   await eventually(async () => expect(await rig.handoff(messageId)).toBeDefined())
+})
+
+async function usageLimit(): Promise<void> {
+  const id = await rig.workingSend()
+  await rig.settleAccepted(id, 'working')
+  await turn(id, 'running')
+  await turn(id, 'completed', 'failure')
+  const journal = rig.host.collaboratorsForTests().sessions.get(SESSION)!.journal
+  await journal.appendItem(
+    { provider: 'orca', clientMessageId: 'limited-limit' },
+    {
+      kind: 'status',
+      ...agentSessionFailureWords(
+        agentSessionFailureFact('usageLimitReached', {
+          usageLimit: { resetsAt: HOST_TEST_NOW + 60_000 }
+        }),
+        { surface: 'row' }
+      )
+    },
+    {
+      fence: 1,
+      turnScope: {
+        kind: 'turn',
+        turnItemId: agentJournalItemKey({
+          provider: 'codex',
+          threadId: THREAD,
+          turnId: `turn-of-${id}`,
+          ordinal: 0
+        })
+      }
+    }
+  )
+}
+
+it('a usage limit the conversation went past in the terminal holds nothing more', async () => {
+  await usageLimit()
+  show()
+  hold()
+  const result = await rig.send('the task', 'queue-if-active', { internal: true, from: TASK })
+    .result
+  if (!result.ok || !('queued' in result.value)) {
+    throw new Error('expected a waiting card')
+  }
+  const { messageId } = result.value.queued
+  await giveBack()
+  await eventually(async () => expect(await rig.handoff(messageId)).toBeDefined())
+})
+
+it('frees a limited queue for mail, which is redriven after the hold', async () => {
+  await usageLimit()
+  show()
+  hold()
+  await giveBack()
+  const journal = rig.host.collaboratorsForTests().sessions.get(SESSION)!.journal
+  expect(await journal.queuedMessages.pauses()).toEqual([])
 })
 
 it('leaves a chat the person closed alone', async () => {

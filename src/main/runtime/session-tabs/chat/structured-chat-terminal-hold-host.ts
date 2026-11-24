@@ -29,6 +29,7 @@ import { readTerminalProcesses } from '../../agent-session/ownership/structured-
 import {
   readLiveDaemonSessions,
   readTerminalHoldPane,
+  terminalsOfOtherConversations,
   type TerminalHoldReads
 } from './structured-chat-terminal-hold-reads'
 import { OrcaRuntimeWithGetWorktreePs } from '../../workspaces/process-listing/workspace-process-listing'
@@ -165,7 +166,14 @@ export abstract class OrcaRuntimeWithStructuredChatTerminalHolds extends OrcaRun
       )
     const inputBefore = inputAt()
     const reads = await this.readHoldTerminals()
-    const anywhere = reads.table.runsAnywhere(id, this.terminalsOfOtherConversations(hold, reads))
+    const anywhere = reads.table.runsAnywhere(
+      id,
+      await terminalsOfOtherConversations(hold, reads, this.getAgentProviderSessionRows(), {
+        ptyId: (row) => this.getPtyRecordForPaneKey(row.paneKey)?.ptyId,
+        live: async (row) =>
+          (await this.readHookCliWriterObservationFn?.(row)?.presence()) === 'live'
+      })
+    )
     const panes: TerminalHoldPane[] = []
     for (const terminal of terminals) {
       const { pane, ran } = await this.readHoldPane(terminal, id, reads)
@@ -190,25 +198,6 @@ export abstract class OrcaRuntimeWithStructuredChatTerminalHolds extends OrcaRun
           terminal.incarnationId !== terminals[index].incarnationId ||
           structuredChatTerminalMayWrite(terminal, panes[index])
       )
-    )
-  }
-
-  /** Terminals whose agent was started on the conversation and reported another since (`/clear`). */
-  private terminalsOfOtherConversations(
-    hold: StructuredChatTerminalHold,
-    { processes }: TerminalHoldReads
-  ): number[] {
-    const own = new Set(hold.terminals.map(({ ptyId }) => ptyId))
-    const named = new Map<string, boolean>()
-    for (const row of this.getAgentProviderSessionRows()) {
-      const ptyId = this.getPtyRecordForPaneKey(row.paneKey)?.ptyId
-      if (ptyId && row.providerSession && !own.has(ptyId)) {
-        const other = row.providerSession.id !== hold.conversationId
-        named.set(ptyId, other && named.get(ptyId) !== false)
-      }
-    }
-    return (processes ?? []).flatMap(({ id, rootProcessId }) =>
-      rootProcessId && named.get(id) ? [rootProcessId] : []
     )
   }
 
@@ -237,9 +226,9 @@ export abstract class OrcaRuntimeWithStructuredChatTerminalHolds extends OrcaRun
         await this.ensureStructuredAgentSessionHost()
         const host = getStructuredAgentSessionHost()
         if (await host?.wakeReturnedSession(sessionId, entry)) {
-          takeStructuredChatReturn(sessionId)
-          this.redriveStructuredSessionMail(sessionId)
+          takeStructuredChatReturn(sessionId, entry)
         }
+        this.redriveStructuredSessionMail(sessionId)
       } catch (error) {
         console.warn('[chat-terminal] waking a returned chat failed', sessionId, error)
       } finally {

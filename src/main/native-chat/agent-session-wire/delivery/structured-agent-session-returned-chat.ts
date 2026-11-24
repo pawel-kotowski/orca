@@ -10,9 +10,16 @@ import type {
   StructuredAgentSessionHostSession
 } from '../host/structured-agent-session-host-types'
 import { isUsageLimitChatOpen } from '../recovery/structured-agent-session-usage-limit-disposition'
-import { failureHoldsMail } from '../../agent-session-journal/queued-messages/queued-message-pause'
+import {
+  failureHoldsMail,
+  type DerivedQueuePause
+} from '../../agent-session-journal/queued-messages/queued-message-pause'
+import { structuredAgentSessionConversationFence } from '../host/structured-agent-session-provider-child'
 import { orchestrationMailNotice } from '../../../../shared/agent-session/journal/agent-session-message-source'
-import { structuredQueuePauses } from './structured-agent-session-queued-pause'
+import {
+  resumeStructuredQueue,
+  structuredQueuePauses
+} from './structured-agent-session-queued-pause'
 
 /**
  * Local: a terminal gave a chat back; false to try again. Without the hold, what came meanwhile would have gone at once;
@@ -45,10 +52,25 @@ export async function wakeReturnedStructuredChat(
   if (record.sleptAt !== undefined || host.asleep(record.location.workspaceId)) {
     return true
   }
-  const first = isUsageLimitChatOpen(store, sessionId)
-    ? await firstWaiting(journal, hold.waiting)
-    : undefined
-  const sent = first === undefined || (await host.send(first)).ok
+  let sent = true
+  if (isUsageLimitChatOpen(store, sessionId)) {
+    const pauses = await structuredQueuePauses(journal)
+    const first = await firstWaiting(journal, hold, pauses)
+    if (first !== undefined) {
+      sent = (await host.send(first)).ok
+    } else if (
+      // A turn that failed before the terminal went on is the past's too: it holds nothing more, and
+      // no Continue is coming that would free the queue.
+      hold.ran &&
+      pauses.some(({ reason }) => reason === 'failed') &&
+      pauses.every(({ reason }) => reason === 'failed' || reason === 'restarted')
+    ) {
+      await resumeStructuredQueue(
+        journal,
+        structuredAgentSessionConversationFence(store, sessionId)
+      )
+    }
+  }
   host.refresh()
   host.wakeDelivery()
   return sent
@@ -81,17 +103,18 @@ export function returnedChatSend(
 /** The first card a pause would go on holding though the same message, sent now, would go. */
 async function firstWaiting(
   journal: StructuredAgentSessionHostSession['journal'],
-  waiting: readonly string[]
+  { waiting, ran }: { waiting: readonly string[]; ran: boolean },
+  pauses: readonly DerivedQueuePause[]
 ): Promise<string | undefined> {
-  const pauses = await structuredQueuePauses(journal)
   if (!pauses.some(({ reason }) => reason === 'failed' || reason === 'restarted')) {
     return undefined
   }
-  const agentsWait = pauses.some(failureHoldsMail)
+  const agentsWait = !ran && pauses.some(failureHoldsMail)
   for (const messageId of waiting) {
     const card = await journal.queuedMessages.get(messageId)
     const { from } = card?.body ?? {}
-    // Mail is redriven by its own mailbox; what another agent sent waits out a usage limit, as ever.
+    // Mail is redriven by its own mailbox; what another agent sent waits out a usage limit, as ever,
+    // unless the conversation went on in the terminal.
     if (
       card?.state === 'waiting' &&
       card.holdReason === null &&

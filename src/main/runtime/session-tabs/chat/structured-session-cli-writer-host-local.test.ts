@@ -307,6 +307,10 @@ it('an older terminal whose agent moved on to another conversation does not keep
   state.rows = [
     { ...ROW, paneKey: 'older:leaf', providerSession: { key: 'session_id', id: 'another' } }
   ]
+  // The row of an agent that ended there says nothing of the one there now.
+  await check(host)
+  expect(heldStructuredChats()).toEqual(['chat'])
+  state.presence = 'live'
   await check(host)
   expect(heldStructuredChats()).toEqual([])
 })

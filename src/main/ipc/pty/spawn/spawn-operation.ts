@@ -81,7 +81,6 @@ export async function runPtySpawn<State extends PtySpawnOperationState>(
 ): Promise<PtySpawnOutcome> {
   const ctx = adapter.state
   const args = ctx.args
-  ctx.chatHandover = claimChatHandoverSpawn(args)
   let spawnFailed = false
   ctx.preAdoptedStablePane = args.adoptedStablePane ?? null
   ctx.paneSpawnOperation = args.paneSpawnOperation
@@ -247,6 +246,8 @@ export async function runPtySpawn<State extends PtySpawnOperationState>(
     return complete(operation)
   }
   try {
+    // Before anything is stopped for this start.
+    ctx.chatHandover = claimChatHandoverSpawn(args)
     if (adapter.replace) {
       await adapter.replace()
     }

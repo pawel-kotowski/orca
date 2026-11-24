@@ -1,4 +1,7 @@
-import { structuredChatTerminalHold } from '../../runtime/agent-session/ownership/structured-chat-terminal-holds'
+import {
+  onStructuredChatTerminalHoldEnded,
+  structuredChatTerminalHold
+} from '../../runtime/agent-session/ownership/structured-chat-terminal-holds'
 import { resolveChatAutomationRun } from './automation-chat-run-observation'
 
 import type { JournalPublication } from '../../native-chat/agent-session-wire/host/structured-agent-session-conversations'
@@ -64,6 +67,7 @@ export async function observeAutomationChatRun(
       currentJournal = null
       cursor = undefined
       clearTimeout(deadline)
+      stopFollowingHold()
       signal.removeEventListener('abort', abort)
       release?.()
       if (error) {
@@ -75,9 +79,14 @@ export async function observeAutomationChatRun(
     const abort = (): void => finish(undefined, new Error('request_aborted'))
     const limitMs = 6 * 60 * 60 * 1000
     // Local: a run waiting for a chat that is open in a terminal has not begun; its time starts then.
+    const stopFollowingHold = onStructuredChatTerminalHoldEnded((ended) => {
+      if (ended.sessionId === sessionId && !settled) {
+        clearTimeout(deadline)
+        deadline = setTimeout(pastLimit, limitMs)
+      }
+    })
     const pastLimit = (): void => {
       if (structuredChatTerminalHold(sessionId)) {
-        deadline = setTimeout(pastLimit, limitMs)
         return
       }
       finish({

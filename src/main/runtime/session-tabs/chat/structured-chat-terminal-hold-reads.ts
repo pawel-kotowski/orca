@@ -1,9 +1,11 @@
 import type { SessionInfo } from '../../../daemon/protocol/daemon-session-info'
+import type { AgentStatusIpcPayload } from '../../../../shared/agent-status/contracts/agent-status-ipc-payload'
 import type { PtyProcessInfo } from '../../../providers/pty/process-info'
 import type { PtyLivenessVerdict } from '../../../../shared/terminal/pty/lifecycle/pty-liveness-verdict'
 import {
   structuredChatTerminalAskedHere,
   type StructuredChatHoldTerminal,
+  type StructuredChatTerminalHold,
   type TerminalHoldPane
 } from '../../agent-session/ownership/structured-chat-terminal-holds'
 import type { TerminalProcesses } from '../../agent-session/ownership/structured-chat-terminal-process'
@@ -84,4 +86,32 @@ export async function readTerminalHoldPane(
       : session.sessionId === ptyId && same(session.incarnationId)
   )
   return answer(lives ? 'unknown' : 'absent')
+}
+
+/** Terminals whose live agent was started on the conversation and reported another since (`/clear`).
+ *  Only a row whose own process lives says so: a row outlives its agent, and Codex names none. */
+export async function terminalsOfOtherConversations(
+  hold: StructuredChatTerminalHold,
+  { processes }: TerminalHoldReads,
+  rows: readonly AgentStatusIpcPayload[],
+  host: {
+    ptyId: (row: AgentStatusIpcPayload) => string | undefined
+    live: (row: AgentStatusIpcPayload) => Promise<boolean>
+  }
+): Promise<number[]> {
+  const own = new Set(hold.terminals.map(({ ptyId }) => ptyId))
+  const named = new Map<string, boolean>()
+  for (const row of rows) {
+    const ptyId = host.ptyId(row)
+    if (ptyId && !row.structuredHost && !own.has(ptyId)) {
+      const other =
+        row.providerSession !== undefined &&
+        row.providerSession.id !== hold.conversationId &&
+        (await host.live(row))
+      named.set(ptyId, other && named.get(ptyId) !== false)
+    }
+  }
+  return (processes ?? []).flatMap(({ id, rootProcessId }) =>
+    rootProcessId && named.get(id) ? [rootProcessId] : []
+  )
 }

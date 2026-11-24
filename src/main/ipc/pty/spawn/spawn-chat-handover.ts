@@ -3,10 +3,7 @@ import {
   claimStructuredChatTerminalSpawn,
   type StructuredChatTerminalSpawn
 } from '../../../runtime/agent-session/ownership/structured-chat-terminal-holds'
-import {
-  commandResumesConversation,
-  isConversationCopyCommand
-} from '../../../runtime/agent-session/ownership/structured-chat-conversation-command'
+import { commandResumesConversation } from '../../../runtime/agent-session/ownership/structured-chat-conversation-command'
 import type { PtySpawnOperationState } from './spawn-operation-state'
 
 /** Local: a start that a held chat's conversation is in, claimed before anything is stopped for it. */
@@ -27,7 +24,6 @@ export function claimChatHandoverSpawn(
       // A reattach's terminal is known already, and a saved restore of a held conversation is refused.
       !args.sessionId &&
       args.resumeOrigin !== 'saved' &&
-      !isConversationCopyCommand(command) &&
       (args.resumeProviderSession?.id === conversationId ||
         commandResumesConversation(command, conversationId)),
     command !== ''

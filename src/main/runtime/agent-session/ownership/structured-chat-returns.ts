@@ -73,8 +73,15 @@ export function structuredChatReturns(): readonly [string, StructuredChatReturn]
   return [...loaded()]
 }
 
-export function takeStructuredChatReturn(sessionId: string): StructuredChatReturn | undefined {
+/** With `only`, not a newer return of the same chat. */
+export function takeStructuredChatReturn(
+  sessionId: string,
+  only?: StructuredChatReturn
+): StructuredChatReturn | undefined {
   const entry = loaded().get(sessionId)
+  if (only !== undefined && entry !== only) {
+    return undefined
+  }
   if (loaded().delete(sessionId)) {
     save()
   }
