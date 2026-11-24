@@ -126,8 +126,10 @@ export function applyJournalSqlSendAdmission(
       )
     })
   }
-  let queue = false
-  if (operation.fromAgent || !pendingPromptsAllUnanswerableHere(eligibility.prompts)) {
+  let queue = operation.waits === true
+  if (queue) {
+    // Local: nothing else decides for a chat open in a terminal.
+  } else if (operation.fromAgent || !pendingPromptsAllUnanswerableHere(eligibility.prompts)) {
     queue = eligibility.prompts.length > 0 || eligibility.work.working() || !!eligibility.pending
     if (!queue && operation.fromAgent) {
       queue = readJournalDomainQueuePauseContext(

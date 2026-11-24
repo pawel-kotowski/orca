@@ -1,10 +1,10 @@
 import { useEffect } from 'react'
 import { useNativeChatStructuredSentCommands } from './drafts/native-chat-structured-sent-commands'
+import { useNativeChatDraftWritten } from './drafts/use-native-chat-draft-written'
 import { structuredAgentSessionDraftScopeKey } from './drafts/native-chat-draft-scope'
 import { useStructuredPromptCollapse } from './prompts/use-structured-prompt-collapse'
 import { nativeChatCtrlEnterShortcut } from './queue/NativeChatTerminalQueuedMessageList'
 import { useStructuredQueuedCardHint } from './queue/use-structured-queued-card-hint'
-import { useStructuredTerminalSendHold } from './native-chat-structured-terminal-hold'
 import { useStructuredChatTerminal } from './native-chat-structured-terminal-state'
 import { useAppStore } from '@/store'
 import { nativeChatQueueFollowUps } from '../../../../shared/native-chat/input/composer/native-chat-follow-up-behavior'
@@ -40,8 +40,6 @@ function useFollowChatTerminalHold(isVisible: boolean, held: boolean): void {
 export function useStructuredChatParity(chat: {
   sessionId: string
   agent: string
-  paneKey: string
-  worktreeId: string | null
   isWorking: boolean
   prompt: Parameters<typeof useStructuredPromptCollapse>[1]
   promptsOpen: boolean
@@ -50,15 +48,18 @@ export function useStructuredChatParity(chat: {
   const promptCollapse = useStructuredPromptCollapse(chat.sessionId, chat.prompt)
   const ctrlEnter = useNativeChatCtrlEnterSendsNow(chat.agent, 'structured')
   const queueFollowUps = useAppStore((state) => nativeChatQueueFollowUps(state.settings))
+  const terminal = useStructuredChatTerminal(chat.sessionId)
+  const drafting = useNativeChatDraftWritten(structuredAgentSessionDraftScopeKey(chat.sessionId))
   const cardHint = useStructuredQueuedCardHint({
     isWorking: chat.isWorking,
+    inTerminal: terminal !== null,
     promptOpen: chat.promptsOpen,
-    ctrlEnterSteersHead: ctrlEnter && (queueFollowUps || isMacPlatform())
+    // With words in the box the chord is theirs.
+    ctrlEnterSteersHead: ctrlEnter && !drafting && (queueFollowUps || isMacPlatform())
   })
   const sentCommands = useNativeChatStructuredSentCommands(
     structuredAgentSessionDraftScopeKey(chat.sessionId)
   )
-  const terminal = useStructuredChatTerminal(chat.sessionId, chat.paneKey, chat.worktreeId)
   useFollowChatTerminalHold(chat.isVisible, terminal !== null)
   return {
     promptCollapse,
@@ -66,7 +67,6 @@ export function useStructuredChatParity(chat: {
     promptHoldsInput: chat.prompt !== null && !promptCollapse.collapsed,
     queue: { cardHint, steerShortcut: ctrlEnter ? nativeChatCtrlEnterShortcut() : undefined },
     sentCommands,
-    terminal,
-    terminalHold: useStructuredTerminalSendHold(terminal !== null)
+    terminal
   }
 }

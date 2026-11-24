@@ -13,7 +13,7 @@ vi.mock('node:worker_threads', async (importOriginal) => {
           execArgv: [
             ...(options?.execArgv ?? []),
             '--import',
-            new URL('./claude-conversation-worker.test-loader.mjs', import.meta.url).href
+            new URL('./claude-conversation-worker-local.test-loader.mjs', import.meta.url).href
           ]
         })
       }

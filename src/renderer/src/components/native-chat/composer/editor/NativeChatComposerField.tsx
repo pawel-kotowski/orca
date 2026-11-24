@@ -25,6 +25,7 @@ import { useKeepFloatingTerminalTriggerClear } from '../../../floating-terminal/
 function noop(): void {}
 import { useNativeChatComposerCollapsed } from '../../native-chat-composer-collapse-store'
 import { NativeChatComposerToggleButton } from '../../NativeChatComposerToggleButton'
+import { useNativeChatAccountScope } from '../../native-chat-account-scope'
 import { NativeChatComposerFooter } from '../../NativeChatComposerFooter'
 
 import type { NativeChatComposerFieldProps as NativeChatComposerFieldBaseProps } from '../../native-chat-composer-field-props'
@@ -205,6 +206,7 @@ export function NativeChatComposerField({
   const launch = launchPrompt !== undefined
   // Why: the main message box is one line with only Attach, the option pickers and Stop.
   const compact = useCompactComposerSetting() && !launch && !editSession
+  const compactStructured = useNativeChatAccountScope()?.kind === 'structured' && compact
   const card = useRef<HTMLDivElement>(null)
   // Only a visible structured chat passes its dock, so hidden chats register nothing.
   useKeepFloatingTerminalTriggerClear(card, Boolean(dock) && !launch)
@@ -328,8 +330,8 @@ export function NativeChatComposerField({
                           )
                         : (placeholderHint ??
                           suggestion ??
-                          // Local: no hint text in the one-line box (Paweł, 2026-11-05).
-                          (compact ? undefined : idleHint) ??
+                          // Local: no hint text in a structured chat's one-line box (Paweł, 2026-11-05).
+                          (compactStructured ? undefined : idleHint) ??
                           nativeChatComposerPlaceholder(hasPty, canSend, afterStop, t))
                 }
                 // Let layout handle wrapping and touch targets; scroll after eight lines (a launch prompt: one line growing to six) without JavaScript measurement.
@@ -345,7 +347,7 @@ export function NativeChatComposerField({
                   // as the controls row (h-8) and centred in it, so text and controls share one middle.
                   compact && 'min-h-8 py-1.5 pointer-coarse:min-h-10',
                   // A suggested prompt longer than the line wraps and grows the box, never cut off.
-                  compact &&
+                  compactStructured &&
                     '[&_p.is-editor-empty:only-child]:before:!h-auto [&_p.is-editor-empty:only-child]:before:w-full [&_p.is-editor-empty:only-child]:before:mr-[-100%]',
                   // Why: the editor is a contenteditable, which `:disabled` never matches.
                   '[&[contenteditable=false]]:cursor-not-allowed [&[contenteditable=false]]:opacity-50'

@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { useTranslate } from '@/i18n/use-translate'
 import type { ChatTerminalHold } from './native-chat-structured-terminal-state'
+import { NativeChatStructuredTerminalKey } from './NativeChatStructuredTerminalButton'
 import { useNativeChatAccountScope } from './native-chat-account-scope'
 import {
   bringStructuredChatBack,
@@ -18,12 +19,16 @@ export function NativeChatStructuredTerminalStrip({
   const t = useTranslate()
   const scope = useNativeChatAccountScope()
   const [returning, setReturning] = useState(false)
-  if (!terminal || scope?.kind !== 'structured') {
+  if (scope?.kind !== 'structured') {
     return null
+  }
+  if (!terminal) {
+    return <NativeChatStructuredTerminalKey scope={scope} />
   }
   const { tabId } = terminal
   return (
     <div className="shrink-0 bg-chat-pane px-3 pt-1.5 sm:px-4">
+      <NativeChatStructuredTerminalKey scope={scope} />
       <div
         data-native-chat-surface="activity-line"
         data-native-chat-terminal-strip=""
@@ -31,7 +36,12 @@ export function NativeChatStructuredTerminalStrip({
       >
         <SquareTerminal aria-hidden="true" className="size-3.5 shrink-0" />
         <span className="min-w-0 flex-1 text-chat-foreground">
-          {t('components.native-chat.terminalSwitch.inTerminal', 'Open in a terminal')}
+          {terminal.cancel
+            ? t('components.native-chat.terminalSwitch.opening', 'Opening in a terminal…')
+            : t(
+                'components.native-chat.terminalSwitch.inTerminalWaits',
+                'Open in a terminal. What you send here waits until it is back.'
+              )}
         </span>
         {tabId ? (
           <Button
@@ -43,22 +53,22 @@ export function NativeChatStructuredTerminalStrip({
             {t('components.native-chat.terminalSwitch.show', 'Show terminal')}
           </Button>
         ) : null}
-        {terminal.launching ? null : (
-          <Button
-            type="button"
-            variant="outline"
-            size="xs"
-            disabled={returning}
-            onClick={() => {
-              setReturning(true)
-              void bringStructuredChatBack(scope, tabId).finally(() => setReturning(false))
-            }}
-          >
-            {returning
+        <Button
+          type="button"
+          variant="outline"
+          size="xs"
+          disabled={returning}
+          onClick={() => {
+            setReturning(true)
+            void bringStructuredChatBack(scope, tabId).finally(() => setReturning(false))
+          }}
+        >
+          {terminal.cancel
+            ? t('components.native-chat.terminalSwitch.cancel', 'Cancel')
+            : returning
               ? t('components.native-chat.terminalSwitch.returning', 'Bringing back…')
               : t('components.native-chat.terminalSwitch.back', 'Bring it back here')}
-          </Button>
-        )}
+        </Button>
       </div>
     </div>
   )

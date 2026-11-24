@@ -14,6 +14,7 @@ import {
   claimStructuredAgentSessionAgent as claimAgent,
   startStructuredAgentSessionAgent as startAgent
 } from '../startup/structured-agent-session-agent-start'
+import { wakeReturnedStructuredChat } from '../delivery/structured-agent-session-returned-chat'
 import * as mutationWiring from './structured-agent-session-host-mutation-wiring'
 import * as lifetime from '../termination/structured-agent-session-conversation-lifetime'
 import { createStructuredAgentSessionTabSurface as createTabs } from './structured-agent-session-host-tabs'
@@ -198,6 +199,14 @@ export class StructuredAgentSessionHost {
 
   /** Local: a start in flight has no indexed child yet. */
   sessionStarting = (id: string) => this.runtimeState.startFlights.has(id)
+
+  /** Local: a terminal gave the chat back: what waited for it goes out, also after a restart. */
+  wakeReturnedSession = (id: string) =>
+    wakeReturnedStructuredChat(this.deps.store, id, {
+      open: this.conversation,
+      refresh: () => this.queued.refresh(id),
+      wakeDelivery: () => void this.conversationDelivery.loop.wake(id)
+    })
 
   sessionOwesWork = (id: string) => this.lifetime.idleSweep.sessionOwesWork(id)
 

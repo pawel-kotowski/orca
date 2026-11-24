@@ -9,10 +9,13 @@ import { nativeChatCtrlEnterShortcut } from './NativeChatTerminalQueuedMessageLi
 /** When a plainly waiting card goes and how to send it now; a card on hold says its own why. */
 export function useStructuredQueuedCardHint({
   isWorking,
+  inTerminal,
   promptOpen,
   ctrlEnterSteersHead
 }: {
   isWorking: boolean
+  /** A terminal has the conversation: its host sends no card before it is back. */
+  inTerminal: boolean
   /** The host sends no card before the open question or approval is answered. */
   promptOpen: boolean
   ctrlEnterSteersHead: boolean
@@ -22,6 +25,12 @@ export function useStructuredQueuedCardHint({
     (card, index) => {
       if (card.hold !== 'turn') {
         return null
+      }
+      if (inTerminal) {
+        return t(
+          'components.native-chat.queuedMessages.structuredTerminalHint',
+          'Goes once this chat is back from its terminal'
+        )
       }
       if (promptOpen) {
         return t(
@@ -47,6 +56,6 @@ export function useStructuredQueuedCardHint({
           )
         : t('components.native-chat.queuedMessages.structuredHeadHint', 'Goes when the turn ends')
     },
-    [t, isWorking, promptOpen, ctrlEnterSteersHead]
+    [t, isWorking, inTerminal, promptOpen, ctrlEnterSteersHead]
   )
 }

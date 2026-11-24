@@ -17,6 +17,7 @@ import {
   type TurnOutcome,
   agentSessionAdmissionWriteRefusal
 } from '../operations/structured-agent-session-turns'
+import { structuredChatTerminalHold } from '../../../runtime/agent-session/ownership/structured-chat-terminal-holds'
 import { captureStructuredExecutionOptions } from '../options/structured-agent-session-execution-options'
 
 export type StructuredSendAdmissionParams = {
@@ -91,6 +92,8 @@ export async function admitStructuredAgentSessionSend(
         fromAgent: !fromPerson && params.body.from !== undefined,
         deliveryMode: params.delivery === 'queue-if-active' ? 'queue' : 'steer',
         ...(queueOnly ? { queueOnly: true } : {}),
+        // Local: a chat open in a terminal keeps every message as a card until it is back.
+        ...(structuredChatTerminalHold(ctx.sessionId) ? { waits: true as const } : {}),
         ...(params.usageLimitContinuationOfTurnItemId !== undefined
           ? { continuationOfTurnItemId: params.usageLimitContinuationOfTurnItemId }
           : {}),

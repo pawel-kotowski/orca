@@ -30,7 +30,11 @@ const workspaceRemoval = /\b(delete|remove)\b/i
 
 afterEach(cleanup)
 
-it.each(['single', 'bulk'])('keeps workspace removal out of the %s Activity row menu', (mode) => {
+// Local: one card's menu ends with Delete Workspace… (activity-thread-delete-workspace.tsx).
+it.each([
+  ['single', 'offers workspace removal last in'],
+  ['bulk', 'keeps workspace removal out of']
+])('the %s Activity row menu: %s it', (mode) => {
   const targets =
     mode === 'bulk' ? [thread, { ...thread, paneKey: 'terminal:second-leaf' }] : [thread]
   render(
@@ -60,7 +64,7 @@ it.each(['single', 'bulk'])('keeps workspace removal out of the %s Activity row 
   const row = screen.getByRole('listitem')
   expect(within(row).queryByRole('button', { name: workspaceRemoval })).toBeNull()
   fireEvent.contextMenu(row, { button: 2, clientX: 25, clientY: 15 })
-  expect(
-    within(screen.getByRole('menu')).queryByRole('menuitem', { name: workspaceRemoval })
-  ).toBeNull()
+  const items = within(screen.getByRole('menu')).getAllByRole('menuitem')
+  const removal = items.filter((item) => workspaceRemoval.test(item.textContent ?? ''))
+  expect(removal).toEqual(mode === 'single' ? [items.at(-1)] : [])
 })

@@ -70,7 +70,8 @@ export function useNativeChatContextClearFloor(
     current =
       latest > drawnTail.current
         ? { ...state, fading: latest, fadedSince: answered ? sent.at : null, sent: waiting }
-        : { ...state, floor: latest, sent: waiting }
+        : // Ends a fade on an older divider too: left set, it would keep this branch true forever.
+          { ...state, floor: latest, fading: null, fadedSince: null, sent: waiting }
     setState(current)
   } else if (
     state.sent !== null &&

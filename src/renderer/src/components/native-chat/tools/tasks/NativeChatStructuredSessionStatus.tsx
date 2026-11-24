@@ -235,7 +235,10 @@ export function NativeChatStructuredSessionStatus(props: {
         </Suspense>
       ) : null}
       {failure && !dialog ? (
-        <div role="alert" className="px-4 py-1 text-xs text-muted-foreground">
+        <div
+          role="alert"
+          className="mx-auto w-full max-w-(--chat-content-max-width) shrink-0 px-4 py-1 text-xs text-muted-foreground"
+        >
           {failure.message}
           {failure.retry ? (
             <Button variant="ghost" size="xs" onClick={failure.retry}>

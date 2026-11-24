@@ -105,7 +105,7 @@ export function NativeChatUsageLimitActionsProvider({
       (pane.target.kind === 'environment' ? pane.target.environmentId : null)
   const workspaceAccount = useStructuredUsageLimitAccount(active && pane.isVisible, view)
   let account: ReactNode = workspaceAccount
-  if (!account && pane.agent === 'claude' && active && pane.isVisible) {
+  if (account === null && pane.agent === 'claude' && active && pane.isVisible) {
     if (canSwitchAccount === undefined) {
       account = <ProviderAccountChatButton provider="claude" target={pane.target} disabled busy />
     } else if (canSwitchAccount) {

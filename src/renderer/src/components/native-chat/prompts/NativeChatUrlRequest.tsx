@@ -1,3 +1,4 @@
+import { useNativeChatStructuredSurface } from '../native-chat-account-scope'
 import { useTranslate } from '@/i18n/use-translate'
 import { Button } from '@/components/ui/button'
 import { openAppHttpLink } from '@/lib/browser/navigation/app-http-link-open'
@@ -39,12 +40,13 @@ export function NativeChatUrlRequestReceipt({
   subject: AgentJournalUrlApprovalSubject
   finished: boolean
 }): React.JSX.Element {
+  const surface = useNativeChatStructuredSurface('card')
   const t = useTranslate()
   if (finished) {
     return (
       <div
         data-native-chat-receipt="url-finished"
-        data-native-chat-surface="card"
+        {...surface}
         className="truncate rounded-lg border border-input bg-card px-3 py-2 text-xs text-muted-foreground"
       >
         {body.description
@@ -59,7 +61,7 @@ export function NativeChatUrlRequestReceipt({
   return (
     <div
       data-native-chat-receipt="url-opened"
-      data-native-chat-surface="card"
+      {...surface}
       className="space-y-1 rounded-lg border border-input bg-card px-4 py-3"
     >
       <p className="text-sm font-semibold text-foreground">

@@ -14,15 +14,17 @@ import type { NativeChatOrcaStopView } from '../messages/notices/native-chat-orc
 
 /**
  * The usage-limit row's account switch: the chat's own workspace moves, then the chat continues.
- * Null leaves the host-wide switcher to a host that cannot move one workspace.
+ * Null leaves the host-wide switcher to a host that cannot move one workspace; until the host has
+ * said, the button only waits, so a press never moves every workspace by mistake.
  */
 export function useStructuredUsageLimitAccount(
   offered: boolean,
   view: NativeChatOrcaStopView
-): React.JSX.Element | null {
+): React.JSX.Element | null | false {
   const scope = useNativeChatAccountScope()
   const chat = offered && scope?.kind === 'structured' && scope.agent === 'claude' ? scope : null
-  const usage = structuredClaudeUsage(useStructuredClaudeAccount(chat))
+  const account = useStructuredClaudeAccount(chat)
+  const usage = structuredClaudeUsage(account)
   const [moving, setMoving] = useState(false)
   const latest = useRef<NativeChatOrcaStopView | null>(view)
   useLayoutEffect(() => {
@@ -31,8 +33,11 @@ export function useStructuredUsageLimitAccount(
       latest.current = null
     }
   }, [view])
-  if (!chat || !usage || usage.choices.length < 2) {
+  if (!chat || account?.status === 'unsupported') {
     return null
+  }
+  if (!usage) {
+    return <ProviderAccountChatButton provider="claude" target={chat.target} disabled busy />
   }
   const moveAndContinue = async (accountId: string, email: string): Promise<void> => {
     const cut = view.usageLimitTurnItemId
@@ -46,6 +51,13 @@ export function useStructuredUsageLimitAccount(
     } else if (result && cut !== null && latest.current?.usageLimitTurnItemId === cut) {
       latest.current.continueUsageLimit()
     }
+  }
+  const choices = structuredSwitchChoices(usage, (accountId, email) => {
+    void moveAndContinue(accountId, email)
+  })
+  if (!choices.some(({ disabled }) => !disabled)) {
+    // Nowhere to move to: no button, and never the one that moves every workspace.
+    return false
   }
   return (
     <AccountSwitchMenu
@@ -66,9 +78,7 @@ export function useStructuredUsageLimitAccount(
           busy={moving}
         />
       }
-      choices={structuredSwitchChoices(usage, (accountId, email) => {
-        void moveAndContinue(accountId, email)
-      })}
+      choices={choices}
     />
   )
 }

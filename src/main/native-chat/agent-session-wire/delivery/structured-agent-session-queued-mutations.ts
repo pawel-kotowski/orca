@@ -30,6 +30,7 @@ import {
   structuredQueueHold
 } from './structured-agent-session-queued-gate'
 import { refuse } from '../../../../shared/agent-session/failures/agent-session-wire-refusals'
+import { structuredChatTerminalHold } from '../../../runtime/agent-session/ownership/structured-chat-terminal-holds'
 import { admitQueuedMessage } from './structured-agent-session-queued-mail'
 import { resumeStructuredQueue } from './structured-agent-session-queued-pause'
 import {
@@ -123,6 +124,12 @@ export function sendQueuedStructuredAgentMessage(
       }
       if (hold === 'prompt') {
         return invalid('Answer the pending request before sending this message.')
+      }
+      // Local: one writer. The card goes by itself once the chat is back.
+      if (structuredChatTerminalHold(ctx.sessionId)) {
+        return invalid(
+          'This conversation is open in a terminal. The message goes once it is back here.'
+        )
       }
       const row = await Promise.resolve(ctx.journal.queuedMessages.get(messageId))
       if (!row) {

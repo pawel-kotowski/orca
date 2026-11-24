@@ -25,6 +25,7 @@ import {
   suppressSavedResumeLaunch,
   type ResumeSpawnRefusal
 } from '../host-env/saved-resume-admission'
+import { takeChatHandoverSpawn } from './spawn-chat-handover'
 import { failPtySpawnExecute } from './spawn-execute-failure'
 import type { PtySpawnOperationState, PtySpawnExecutionFacts } from './spawn-operation-state'
 import { excludeReplacedPaneOwner } from '../pane/replaced-pane-owner'
@@ -39,6 +40,7 @@ export async function executePtySpawn(
 ): Promise<void> {
   const args = ctx.args
   let awaitingAnotherStart = false
+  const chatHandover = takeChatHandoverSpawn(ctx)
   try {
     if (facts.preAllocatedHandle) {
       ctx.deps.trustedTerminalHandleEnv.add(facts.preAllocatedHandle)
@@ -95,6 +97,7 @@ export async function executePtySpawn(
         throw new Error('client_disconnected')
       }
       facts.beforeProviderSpawn?.()
+      chatHandover?.admit({ ptyId: expectedPtyId ?? null, paneKey: facts.paneKey })
     }
     if (args.agentSessionEnsure && !ctx.preAdoptedStablePane) {
       // Claims can outlive this controller; import authoritative owner listings before deciding absence.
@@ -215,6 +218,11 @@ export async function executePtySpawn(
       )
       ctx.pendingRegistrationPtyId = ctx.result.id
     }
+    chatHandover?.bind({
+      ptyId: ctx.result.id,
+      incarnationId: ctx.result.incarnationId ?? null,
+      paneKey: facts.paneKey
+    })
     assertSpawnReplyWasLive(ctx.result)
     // Admit registration before mutating sequence/context or publishing durable state.
     if (
@@ -269,6 +277,7 @@ export async function executePtySpawn(
       joinedAnotherStart: awaitingAnotherStart
     })
   } finally {
+    chatHandover?.settle()
     if (facts.preAllocatedHandle) {
       ctx.deps.trustedTerminalHandleEnv.delete(facts.preAllocatedHandle)
     }

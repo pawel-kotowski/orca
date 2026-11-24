@@ -21,6 +21,7 @@ import { structuredAgentSessionEndedChildFailure } from '../termination/structur
 import { waitsForCodexTurnOptions } from '../options/structured-agent-session-message-options'
 import { sameProviderChild } from '../host/structured-agent-session-provider-child'
 import { DeliveryProgress } from './structured-agent-session-delivery-progress'
+import { structuredChatTerminalHold } from '../../../runtime/agent-session/ownership/structured-chat-terminal-holds'
 import { selectableStructuredSubmission } from './structured-agent-session-input-selection'
 
 type Prepared =
@@ -190,6 +191,10 @@ export class StructuredAgentSessionDeliveryLoop {
     const work = await this.deps.currentWork(sessionId)
     const oldest = await selectableStructuredSubmission(session.journal, work)
     if (!oldest || (session.child && work && structuredAgentSessionCommandRunning(work))) {
+      return this.stop(sessionId)
+    }
+    // Local: a chat open in a terminal starts no agent; the hold's end wakes delivery again.
+    if (!session.child && structuredChatTerminalHold(sessionId)) {
       return this.stop(sessionId)
     }
     if (this.deps.startFlights?.get(sessionId)) {

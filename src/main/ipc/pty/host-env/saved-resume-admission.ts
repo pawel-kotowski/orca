@@ -1,3 +1,4 @@
+/* eslint-disable max-lines -- Why: an upstream file at its limit that the local build's chat handover adds one check to. */
 import type { TuiAgent } from '../../../../shared/agent-launch/catalog/tui-agent'
 import {
   normalizeAgentProviderSession,
@@ -15,6 +16,7 @@ import {
   agentSessionLeasePossiblyWriting,
   listStructuredProviderSessionOwnership
 } from '../../../native-chat/agent-session-wire/host/structured-provider-session-ownership'
+import { conversationHeldForTerminal } from '../../../runtime/agent-session/ownership/structured-chat-terminal-holds'
 import { agentHookServer } from '../../../agent-hooks/server/agent-hook-server'
 // oxfmt-ignore
 import { LOCAL_EXECUTION_HOST_ID, type ExecutionHostId } from '../../../../shared/execution-host/execution-host'
@@ -144,6 +146,10 @@ async function judgeResumes(
   )
   const tabs = store.getVisibleSessionTabIndex()
   for (const refused of resumes) {
+    // Local: a handed-over chat's terminal that is gone is not restarted by itself; the chat is back.
+    if (conversationHeldForTerminal(refused.providerSession.id)) {
+      return { verdict: 'chat-home', refused }
+    }
     const holders = heads.filter((holding) =>
       keysOf(refused).some((key) => keysMayMatch(holding.key, key))
     )

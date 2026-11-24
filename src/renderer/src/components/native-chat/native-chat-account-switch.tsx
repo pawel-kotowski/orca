@@ -74,6 +74,8 @@ type SwitchChoice = {
   email: string
   current: boolean
   disabled: boolean
+  /** Why it cannot be picked, in place of its email. */
+  why?: string
   onSelect: () => void
 }
 
@@ -160,17 +162,38 @@ export function structuredSwitchChoices(
   { shown, movingTo, choices }: StructuredClaudeUsage,
   onSelect: (accountId: string, email: string) => void
 ): SwitchChoice[] {
-  return choices.map(({ accountId, email }) => {
-    const current = accountId === shown.accountId
+  // A login Orca does not manage names no account, so its email says which one it is.
+  const runsOn = ({ accountId, email }: StructuredClaudeUsage['choices'][number]): boolean =>
+    shown.accountId === null ? email === shown.email : accountId === shown.accountId
+  const listed = choices.map((choice) => {
+    const { accountId, email } = choice
+    const current = runsOn(choice)
     return {
       key: accountId,
       name: accountShortName(email),
       email,
       current,
-      disabled: movingTo ? accountId === movingTo.accountId : current,
+      disabled:
+        choice.signedOut === true || (movingTo ? accountId === movingTo.accountId : current),
+      ...(choice.signedOut && !current
+        ? { why: translate('components.native-chat.account.signedOut', 'Signed out') }
+        : {}),
       onSelect: () => onSelect(accountId, email)
     }
   })
+  return listed.some(({ current }) => current) || !shown.email
+    ? listed
+    : [
+        {
+          key: 'running',
+          name: accountShortName(shown.email),
+          email: shown.email,
+          current: true,
+          disabled: true,
+          onSelect: () => undefined
+        },
+        ...listed
+      ]
 }
 
 /** The same menu for a structured chat, on this machine or a paired one: its host's accounts. */
@@ -259,7 +282,9 @@ export function AccountSwitchMenu({
           <DropdownMenuItem key={choice.key} disabled={choice.disabled} onSelect={choice.onSelect}>
             <Check className={choice.current ? 'size-3.5' : 'size-3.5 opacity-0'} />
             <span className="font-medium">{choice.name}</span>
-            <span className="ml-auto truncate pl-3 text-muted-foreground">{choice.email}</span>
+            <span className="ml-auto truncate pl-3 text-muted-foreground">
+              {choice.why ?? choice.email}
+            </span>
           </DropdownMenuItem>
         ))}
         {note ? (

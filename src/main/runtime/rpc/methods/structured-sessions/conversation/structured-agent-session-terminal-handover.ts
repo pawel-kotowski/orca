@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import type { AgentSessionTerminalHandoverResult } from '../../../../../../shared/agent-session/lifecycle/operations/agent-session-terminal-handover'
 import { AgentSessionTerminalHandoverParams } from '../../../../../../shared/rpc-contract/structured-agent-session/structured-agent-session-terminal-handover-params'
 import { agentForksThroughChat } from '../../../../../../shared/agent-launch/startup/agent-resume-argv'
@@ -6,10 +7,12 @@ import { isNativeLocalLocation } from '../../../../../../shared/execution-host/e
 import { botOfSession } from '../../../../../bots/bot-session-tabs'
 import { recordConversationKey } from '../../../../../native-chat/conversation-adoption/structured-conversation-key'
 import {
+  abandonStructuredChatTerminalHold,
   beginStructuredChatTerminalHold,
-  bindStructuredChatTerminalHold,
+  forgetAbandonedStructuredChatTerminalHold,
   releaseStructuredChatTerminalHold,
-  structuredChatTerminalHold
+  structuredChatTerminalHold,
+  type StructuredChatTerminalHold
 } from '../../../../agent-session/ownership/structured-chat-terminal-holds'
 import { defineMethod, type RpcContext } from '../../../core'
 import { requireInstalledStructuredHost } from '../creation/structured-agent-session-gate'
@@ -31,6 +34,23 @@ async function handoverChat(sessionId: string, ctx: RpcContext) {
     : null
 }
 
+/** What clients are told of a hold: never its token. */
+function heldAnswer(
+  hold: StructuredChatTerminalHold
+): Extract<AgentSessionTerminalHandoverResult, { outcome: 'held' }> {
+  return {
+    outcome: 'held',
+    holdId: hold.id,
+    ...(hold.paneKey ? { paneKey: hold.paneKey } : {}),
+    ...(hold.phase === 'opening' ? { opening: true as const } : {})
+  }
+}
+
+function openAnswer(sessionId: string): AgentSessionTerminalHandoverResult {
+  const hold = structuredChatTerminalHold(sessionId)
+  return hold ? { ...heldAnswer(hold), outcome: 'open' } : { outcome: 'open' }
+}
+
 async function beginHandover(
   chat: NonNullable<Awaited<ReturnType<typeof handoverChat>>>,
   token: string,
@@ -38,38 +58,53 @@ async function beginHandover(
 ): Promise<AgentSessionTerminalHandoverResult> {
   const { host, record, conversationId } = chat
   const { sessionId } = record
-  const open = (): AgentSessionTerminalHandoverResult => {
-    const paneKey = structuredChatTerminalHold(sessionId)?.paneKey
-    return { outcome: 'open', ...(paneKey ? { paneKey } : {}) }
-  }
   if (
     structuredChatTerminalHold(sessionId) ||
-    (await ctx.runtime.structuredChatHeldByTerminal(record))
+    (await ctx.runtime.structuredChatRunsInTerminal(record)) ||
+    // Another client may have begun during that check.
+    structuredChatTerminalHold(sessionId)
   ) {
-    return open()
-  }
-  // Another client may have begun during that check.
-  if (structuredChatTerminalHold(sessionId)) {
-    return open()
+    return openAnswer(sessionId)
   }
   // A start already past its writer check would publish beside the terminal.
   if (host.sessionStarting(sessionId)) {
     return { outcome: 'busy' }
   }
   // Held first, so a message landing during the stop cannot start the agent again.
-  beginStructuredChatTerminalHold(sessionId, token, conversationId)
+  const held = beginStructuredChatTerminalHold(sessionId, {
+    token,
+    id: randomUUID(),
+    agent: record.provider,
+    conversationId
+  })
+  if (!held) {
+    return { outcome: 'free' }
+  }
+  ctx.runtime.watchStructuredChatTerminalHolds()
+  const giveUp = (): boolean => releaseStructuredChatTerminalHold(sessionId, token)
   try {
     await host.releaseIdleSession(sessionId, true)
   } catch (error) {
-    releaseStructuredChatTerminalHold(sessionId, token)
+    giveUp()
     throw error
   }
   if (host.loadedSessionIds().includes(sessionId) || host.sessionStarting(sessionId)) {
-    releaseStructuredChatTerminalHold(sessionId, token)
+    giveUp()
     return { outcome: 'busy' }
   }
-  ctx.runtime.watchStructuredChatTerminalHolds()
-  return { outcome: 'held' }
+  const hold = structuredChatTerminalHold(sessionId)
+  return hold?.token === token ? heldAnswer(hold) : { outcome: 'free' }
+}
+
+/** A client that goes away before its terminal was asked for can launch none: its hold ends. */
+function releaseWithClient(sessionId: string, token: string, ctx: RpcContext): void {
+  if (ctx.connectionId) {
+    ctx.runtime.registerSubscriptionCleanup(
+      `chat-terminal-handover:${token}`,
+      () => abandonStructuredChatTerminalHold(sessionId, token),
+      ctx.connectionId
+    )
+  }
 }
 
 export const STRUCTURED_AGENT_SESSION_TERMINAL_HANDOVER_METHODS = [
@@ -78,9 +113,16 @@ export const STRUCTURED_AGENT_SESSION_TERMINAL_HANDOVER_METHODS = [
     permission: 'workspace',
     params: AgentSessionTerminalHandoverParams,
     handler: async (
-      { sessionId, action, paneKey, token },
+      { sessionId, action, token, holdId },
       ctx
     ): Promise<AgentSessionTerminalHandoverResult> => {
+      if (action === 'abandon') {
+        // Before the chat is read: it may overtake its own `begin`.
+        if (token) {
+          abandonStructuredChatTerminalHold(sessionId, token)
+        }
+        return { outcome: 'free' }
+      }
       const chat = await handoverChat(sessionId, ctx)
       if (!chat) {
         return { outcome: 'unsupported' }
@@ -88,32 +130,30 @@ export const STRUCTURED_AGENT_SESSION_TERMINAL_HANDOVER_METHODS = [
       const { host, record } = chat
       switch (action) {
         case 'begin':
-          return token ? beginHandover(chat, token, ctx) : { outcome: 'unsupported' }
-        case 'bind':
-          if (token && paneKey) {
-            bindStructuredChatTerminalHold(sessionId, token, paneKey)
+          if (!token) {
+            return { outcome: 'unsupported' }
           }
-          return { outcome: 'held' }
-        case 'abandon':
-          // Nothing was launched; the chat stays at rest until someone writes.
-          if (token) {
-            releaseStructuredChatTerminalHold(sessionId, token)
-          }
-          return { outcome: 'free' }
+          releaseWithClient(sessionId, token, ctx)
+          return beginHandover(chat, token, ctx).finally(() =>
+            forgetAbandonedStructuredChatTerminalHold(token)
+          )
         case 'status': {
-          ctx.runtime.watchStructuredChatTerminalHolds()
           const hold = structuredChatTerminalHold(sessionId)
-          return hold
-            ? { outcome: 'held', ...(hold.paneKey ? { paneKey: hold.paneKey } : {}) }
-            : { outcome: 'free' }
+          return hold ? heldAnswer(hold) : { outcome: 'free' }
         }
-        case 'end':
-          if (!(await ctx.runtime.takeBackStructuredChat(record))) {
-            return { outcome: 'open' }
+        case 'end': {
+          if (!(await ctx.runtime.takeBackStructuredChat(record, holdId))) {
+            return openAnswer(sessionId)
           }
-          // Starting reads in what the terminal wrote; a start that fails says so in the chat.
-          await host.startSessionAgent(sessionId)
-          return { outcome: 'back' }
+          if (structuredChatTerminalHold(sessionId)) {
+            return { outcome: 'free' }
+          }
+          // Starting reads in what the terminal wrote; another failure says so in the chat.
+          const started = await host.startSessionAgent(sessionId)
+          return started.ok || started.refusal.code !== 'agent_session_conflict'
+            ? { outcome: 'back' }
+            : openAnswer(sessionId)
+        }
       }
     }
   })

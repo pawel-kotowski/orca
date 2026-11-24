@@ -1,3 +1,4 @@
+import { useNativeChatStructuredSurface } from '../native-chat-account-scope'
 import { Button } from '@/components/ui/button'
 import { useTranslate } from '@/i18n/use-translate'
 import { agentSessionSetupFor } from '../../../../../shared/agent-session/lifecycle/launch/agent-session-setup-commands'
@@ -66,6 +67,7 @@ export function NativeChatAntigravityAuthRecovery({
   /** The row reports a failure or warning; plain status lines never offer a switch. */
   problem: boolean
 }): React.JSX.Element | null {
+  const surface = useNativeChatStructuredSurface('card')
   const t = useTranslate()
   const auth = useNativeChatAntigravityAuth()
   if (!problem || !auth?.detection || agentSessionSetupFor(agentName)?.agent !== 'antigravity') {
@@ -89,7 +91,7 @@ export function NativeChatAntigravityAuthRecovery({
   return (
     <div
       data-antigravity-auth-recovery=""
-      data-native-chat-surface="card"
+      {...surface}
       className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-md border border-border bg-card/60 px-3 py-2 text-sm text-chat-foreground"
     >
       <p className="min-w-0 flex-1 basis-60">

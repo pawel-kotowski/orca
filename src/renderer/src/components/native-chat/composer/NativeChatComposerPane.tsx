@@ -395,6 +395,7 @@ export const NativeChatComposerPane = forwardRef<ComposerHandle, C.NativeChatCom
       ...(!editSession && headSteer ? { steerHead: headSteer } : {}),
       ctrlEnterSendsNow,
       chordSteersHead: sendButton.chordSteersHead,
+      structured: structuredBox,
       setActiveSuggestion: picker.navigateSuggestion,
       setDraft,
       setCaret

@@ -42,6 +42,8 @@ export type UseNativeChatComposerKeyDownArgs = {
   ctrlEnterSendsNow?: boolean
   /** Cmd/Ctrl+Enter on an empty composer sends the head card now: where its other way is a steer, or no turn runs (a stopped, paused queue). */
   chordSteersHead?: boolean
+  /** A structured chat's box, where off a Mac Ctrl+Enter is also the queueing chord. */
+  structured?: boolean
   setActiveSuggestion: Dispatch<SetStateAction<number>>
   setDraft: Dispatch<SetStateAction<string>>
   setCaret: Dispatch<SetStateAction<number>>
@@ -78,6 +80,7 @@ export function useNativeChatComposerKeyDown({
   steerHead,
   ctrlEnterSendsNow = false,
   chordSteersHead = false,
+  structured = false,
   setActiveSuggestion,
   setDraft,
   setCaret
@@ -155,8 +158,8 @@ export function useNativeChatComposerKeyDown({
         // Why also with an empty box: Claude then sends the messages it holds for the turn's end.
         // Local: on an empty box the head message Orca holds goes first, when there is one.
         const empty = draft.trim() === '' && !hasAttachments
-        // Off a Mac this is also the queueing chord, where a second press must not steer its own card.
-        const sendsHead = empty && (chordSteersHead || isMacPlatform())
+        // Off a Mac a structured chat's chord also queues, and a second press must not steer its own card.
+        const sendsHead = empty && (!structured || chordSteersHead || isMacPlatform())
         if (!event.repeat && !(sendsHead && steerHead?.())) {
           send({ sendNow: true })
         }
@@ -232,6 +235,7 @@ export function useNativeChatComposerKeyDown({
       steerHead,
       ctrlEnterSendsNow,
       chordSteersHead,
+      structured,
       setActiveSuggestion,
       setCaret,
       setDraft

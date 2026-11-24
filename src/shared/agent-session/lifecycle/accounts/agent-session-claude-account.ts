@@ -1,7 +1,12 @@
 import type { ClaudeSessionLogin } from '../../../agent-accounts/claude/claude-session-login'
 
 /** An account of the chat's host its workspace can run Claude on. */
-export type AgentSessionClaudeAccountChoice = { accountId: string; email: string }
+export type AgentSessionClaudeAccountChoice = {
+  accountId: string
+  email: string
+  /** The host cannot move a chat to it now. */
+  signedOut?: true
+}
 
 export type AgentSessionClaudeAccount =
   | {
@@ -12,6 +17,8 @@ export type AgentSessionClaudeAccount =
       next: ClaudeSessionLogin
       choices: AgentSessionClaudeAccountChoice[]
     }
+  /** The host has no such chat (yet): a new one reaches it a moment after its box is drawn. */
+  | { status: 'unknown_chat' }
   | { status: 'unsupported' }
 
 export type AgentSessionClaudeAccountRefusal =

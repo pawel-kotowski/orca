@@ -16,6 +16,7 @@ import {
   rejectPaneSpawnReservation,
   reserveIdlePaneSpawn
 } from '../pane/spawn-reservation'
+import { chatHandoverToken, failChatHandoverSpawn } from './spawn-chat-handover'
 import { restoreProvisionalPtySize } from './spawn-options-assembly'
 import { spawnWorktreeTarget } from '../../../../shared/worktree/host-qualified-identity'
 import { parsePaneKey } from '../../../../shared/workspace-layout/stable-pane-id'
@@ -80,6 +81,7 @@ export async function runPtySpawn<State extends PtySpawnOperationState>(
 ): Promise<PtySpawnOutcome> {
   const ctx = adapter.state
   const args = ctx.args
+  const chatHandover = chatHandoverToken(args.env)
   ctx.preAdoptedStablePane = args.adoptedStablePane ?? null
   ctx.paneSpawnOperation = args.paneSpawnOperation
   const replacementKey = adapter.replace ? resolveEarlyPaneSpawnReservationKey(args) : null
@@ -261,6 +263,7 @@ export async function runPtySpawn<State extends PtySpawnOperationState>(
       : fresh(ctx.paneSpawnOperation ?? { mustExist: false }))
   } catch (caught) {
     const error = adapter.onError?.(caught) ?? caught
+    failChatHandoverSpawn(chatHandover)
     adapter.releasePreparation?.()
     adapter.releaseHiddenMark?.()
     cancelRegistration(ctx)

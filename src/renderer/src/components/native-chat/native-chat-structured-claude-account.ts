@@ -2,6 +2,7 @@ import { useEffect, useSyncExternalStore } from 'react'
 import { toast } from 'sonner'
 import { useAppStore } from '@/store'
 import { translate } from '@/i18n/i18n'
+import { readIpcErrorMessage } from '@/runtime/errors/ipc-error'
 import { callStructuredAgentSession } from '@/runtime/native-chat/requests/structured-agent-session-call'
 import { getRuntimeTargetHostId } from '@/runtime/rpc/targets/runtime-client-target'
 import { getWindowParkVisible } from '@/lib/window-activity/window-park-visibility'
@@ -109,13 +110,13 @@ export function useStructuredClaudeAccount(
     const timer = window.setInterval(check, REFRESH_MS)
     return () => window.clearInterval(timer)
   }, [key, sessionId, target, stamp])
-  // A new chat's session reaches this computer's host a moment after its box is drawn. Once its row
-  // is here the host knows it, so an answer that stays `unsupported` then is final.
+  // A new chat's session reaches this computer's host a moment after its box is drawn. Any other
+  // answer is final, so no chat the host knows is asked about again this way.
   const unfound = useAppStore(
     (state) =>
       chat !== null &&
       target.kind === 'local' &&
-      account?.status === 'unsupported' &&
+      account?.status === 'unknown_chat' &&
       !state.agentStatusByPaneKey.has(structuredAgentSessionPaneKey(chat.tabId, sessionId))
   )
   useEffect(() => {
@@ -143,11 +144,15 @@ export async function moveStructuredClaudeAccount(
   accountId: string,
   name: string
 ): Promise<Exclude<AgentSessionSetClaudeAccountResult, { outcome: 'refused' }> | null> {
+  let failure: string | undefined
   const result = await callStructuredAgentSession<AgentSessionSetClaudeAccountResult>(
     chat.target,
     'agentSession.setClaudeAccount',
     { sessionId: chat.sessionId, accountId }
-  ).catch(() => null)
+  ).catch((error: unknown) => {
+    failure = readIpcErrorMessage(error)
+    return null
+  })
   const stamp = entries.get(entryKey(chat))?.stamp ?? ''
   void refresh(chat, `${stamp}\u0000moved`)
   if (result === null || result.outcome === 'refused') {
@@ -157,7 +162,7 @@ export async function moveStructuredClaudeAccount(
         'Could not move this chat to {{name}}',
         { name }
       ),
-      { description: result ? refusalText(result.reason) : undefined }
+      { description: result ? refusalText(result.reason) : failure }
     )
     return null
   }

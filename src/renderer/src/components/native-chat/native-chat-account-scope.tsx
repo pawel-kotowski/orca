@@ -33,6 +33,15 @@ export function useNativeChatAccountScope(): NativeChatAccountScope | null {
   return useContext(NativeChatAccountScopeContext)
 }
 
+/** Paweł's one surface (2026-11-05) for a box that only structured chats draw that way. */
+export function useNativeChatStructuredSurface(surface: 'card' | 'tab'): {
+  'data-native-chat-surface'?: string
+} {
+  return useContext(NativeChatAccountScopeContext)?.kind === 'structured'
+    ? { 'data-native-chat-surface': surface }
+    : {}
+}
+
 export function NativeChatAccountScopeProvider({
   agent,
   transcriptPath,

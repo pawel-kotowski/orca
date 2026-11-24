@@ -218,6 +218,7 @@ class OrcaRuntimeService extends OrcaRuntimeWithAgentQuestions {
     this.botChatTreeIndex = runtimeBotChatTreeIndex(this)
     this.automation.botChat = botGroups.withGroupRoomChats(this, this.automation.botChat)
     syncPRAutoRefreshCadence(this.store)
+    this.startStructuredChatTerminalHolds()
   }
 
   /** What mobileRelay.hosts.list answers changed. */

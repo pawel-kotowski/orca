@@ -11,6 +11,8 @@ export type JournalSendAdmission = {
   fromAgent: boolean
   deliveryMode: 'queue' | 'steer'
   queueOnly?: true
+  /** Local: the chat is open in a terminal, so the message waits as a card. */
+  waits?: true
   continuationOfTurnItemId?: string
   expectedContinuationLaunch?: JournalContinuationLaunch
 }

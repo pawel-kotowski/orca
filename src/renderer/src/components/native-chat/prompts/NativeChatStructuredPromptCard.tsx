@@ -20,6 +20,7 @@ export function NativeChatStructuredPromptCard({
   prompt,
   promptResponse,
   collapse,
+  stripTakesFocus = false,
   onCancel,
   shouldFocus,
   answerInputRef
@@ -27,6 +28,8 @@ export function NativeChatStructuredPromptCard({
   prompt: PromptItem | null
   promptResponse: PromptResponse
   collapse: ReturnType<typeof useStructuredPromptCollapse>
+  /** No message box shows below the fold (a subagent's view is open), so the strip takes focus. */
+  stripTakesFocus?: boolean
   onCancel: () => void
   shouldFocus: boolean
   answerInputRef: RefObject<HTMLTextAreaElement | null>
@@ -72,7 +75,13 @@ export function NativeChatStructuredPromptCard({
       <div data-native-chat-dock-contents hidden={collapsed} inert={collapsed} className="contents">
         {card}
       </div>
-      {collapsed ? <NativeChatPromptStrip card={strip} onExpand={collapse.expand} /> : null}
+      {collapsed ? (
+        <NativeChatPromptStrip
+          card={strip}
+          onExpand={collapse.expand}
+          takeFocus={stripTakesFocus}
+        />
+      ) : null}
     </>
   )
 }

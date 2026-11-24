@@ -177,8 +177,6 @@ export function NativeChatStructuredSession(props: Omit<NativeChatStructuredView
   const promptsUnanswerable = pendingPromptsAllUnanswerableHere(controller.prompts)
   const parity = useStructuredChatParity({
     ...props,
-    paneKey,
-    worktreeId: ownerWorktreeId,
     isWorking: controller.isWorking,
     prompt,
     promptsOpen: controller.prompts.length > 0 && !promptsUnanswerable
@@ -235,8 +233,7 @@ export function NativeChatStructuredSession(props: Omit<NativeChatStructuredView
     setOptionPickerRequest,
     onError: reportComposerError,
     reveal: submits,
-    sendBlockedReason:
-      hostSendGate.sendBlockedReason ?? install.sendBlockedReason ?? parity.terminalHold
+    sendBlockedReason: hostSendGate.sendBlockedReason ?? install.sendBlockedReason
   })
   const continuation = useNativeChatInterruptedContinuation({
     ...controller,
@@ -382,7 +379,7 @@ export function NativeChatStructuredSession(props: Omit<NativeChatStructuredView
                 chatWorktreeId={ownerWorktreeId ?? null}
                 agentName={agentLabel}
                 statedFailures={startFailures}
-                steerHeld={bot.stopControls.stopping || hostHeld}
+                steerHeld={bot.stopControls.stopping || hostHeld || parity.terminal !== null}
                 focusComposer={focusComposer}
                 {...parity.queue}
                 editAttachTo={{ terminalTabId: props.tabId, agent: props.agent, transport }}
@@ -392,6 +389,7 @@ export function NativeChatStructuredSession(props: Omit<NativeChatStructuredView
                 prompt={prompt}
                 promptResponse={promptResponse}
                 collapse={parity.promptCollapse}
+                stripTakesFocus={!composerShown}
                 onCancel={cancelPrompt}
                 shouldFocus={!promptsUnanswerable && props.isVisible && props.isFocusedGroup}
                 answerInputRef={questionAnswerInputRef}
@@ -422,7 +420,9 @@ export function NativeChatStructuredSession(props: Omit<NativeChatStructuredView
                   {...bot.stopControls.composer}
                   unavailableHint={install.unavailableHint}
                   steerHead={
-                    bot.stopControls.stopping ? undefined : submits.queuedMessages.steerHead
+                    bot.stopControls.stopping || parity.terminal !== null
+                      ? undefined
+                      : submits.queuedMessages.steerHead
                   }
                   structuredTransport={transport}
                   notices={notices}

@@ -15,6 +15,7 @@ import { restoreJournalSqlFailure } from '../../agent-session-journal/journal-sq
 import { AgentSessionJournalError } from '../../agent-session-journal/writing/journal-write-guards'
 import type { AgentSessionRecord } from '../../../../shared/agent-session/lifecycle/agent-session-record'
 import { QUEUED_MESSAGE_PAUSED_SEND_FAILED } from '../../../../shared/agent-session/requests/agent-session-queued-message-wire'
+import { structuredChatTerminalHold } from '../../../runtime/agent-session/ownership/structured-chat-terminal-holds'
 import { admitQueuedMessage } from './structured-agent-session-queued-mail'
 export { maybeQueueStructuredAgentSessionSend } from './structured-agent-session-send-admission'
 
@@ -73,7 +74,8 @@ export class StructuredAgentSessionQueuedMessageDrain {
 
   private async step(sessionId: string): Promise<void> {
     const session = this.deps.sessions.get(sessionId)
-    if (this.disposed || !session) {
+    // Local: a chat open in a terminal keeps its cards until it is back.
+    if (this.disposed || !session || structuredChatTerminalHold(sessionId)) {
       return
     }
     const journal = session.journal

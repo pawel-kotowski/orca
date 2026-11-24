@@ -42,7 +42,8 @@ export const STRUCTURED_AGENT_SESSION_CLAUDE_ACCOUNT_METHODS = [
     handler: async ({ sessionId }, ctx): Promise<AgentSessionClaudeAccount> => {
       const chat = await claudeChat(sessionId, ctx)
       if (!chat) {
-        return { status: 'unsupported' }
+        const host = await requireInstalledStructuredHost(ctx, sessionId)
+        return { status: host.deps.store.getRecord(sessionId) ? 'unsupported' : 'unknown_chat' }
       }
       const { host, record, router, runningHome } = chat
       const nextHome = agentSessionAccountHomePath(
@@ -69,7 +70,14 @@ export const STRUCTURED_AGENT_SESSION_CLAUDE_ACCOUNT_METHODS = [
               ? next
               : await readClaudeFolderSessionLogin(runningHome),
         next: { ...next, accountId: next.accountId ?? selected ?? null },
-        choices: accounts.map(({ id, email }) => ({ accountId: id, email }))
+        choices: accounts.map(({ id, email }) => ({
+          accountId: id,
+          email,
+          // As the move itself refuses it.
+          ...(router.coveredBySystemDefault(id) || router.accountLogin(id)
+            ? {}
+            : { signedOut: true as const })
+        }))
       }
     }
   }),

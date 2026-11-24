@@ -26,8 +26,13 @@ type Props = ComponentProps<typeof NativeChatBackgroundTasksStatus> & {
   readCommands: ReadShellCommands
 }
 
+/** A subagent's own commands show in its view, as in a terminal chat; only agents it runs are listed. */
 function withOwned(row: AgentChildRowModel): AgentChildRowModel[] {
-  return [row, ...row.owned.flatMap(withOwned)]
+  const owned =
+    row.kind === 'agent'
+      ? row.owned.filter(({ kind }) => kind === 'agent' || kind === 'workflow')
+      : row.owned
+  return [row, ...owned.flatMap(withOwned)]
 }
 
 /**

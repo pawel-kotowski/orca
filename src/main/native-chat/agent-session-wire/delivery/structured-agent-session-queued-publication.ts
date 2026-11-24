@@ -19,6 +19,7 @@ import type { StructuredAgentSessionCurrentWorkHost } from '../observations/stru
 import { captureHostStructuredAgentSessionWork } from '../observations/structured-agent-session-read-work'
 import { StructuredAgentSessionObservedWork } from '../observations/structured-agent-session-observed-work'
 import { journalSubmissionIsPersonal } from '../../agent-session-journal/submissions/journal-submission-fold'
+import { structuredChatTerminalHold } from '../../../runtime/agent-session/ownership/structured-chat-terminal-holds'
 import { readJournalSqlWorkAnswerOnce } from '../../agent-session-journal/journal-sql-work-answer'
 
 export type QueuePublication = {
@@ -74,7 +75,8 @@ export function structuredQueueSendGate(
       authority: captureHostStructuredAgentSessionWork(host, sessionId, journal),
       work,
       state: work.queueState(),
-      selected: answer.queue.card
+      // Local: no card is next while a terminal has the chat.
+      selected: structuredChatTerminalHold(sessionId) ? null : answer.queue.card
     }
   }
 }

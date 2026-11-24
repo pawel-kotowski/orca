@@ -1,3 +1,4 @@
+import { useNativeChatStructuredSurface } from '../native-chat-account-scope'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { Button } from '@/components/ui/button'
 import { translate } from '@/i18n/i18n'
@@ -43,6 +44,7 @@ export function NativeChatSignInStrip(props: {
   state: NativeChatSignInStripState
   agentLabel: string
 }): React.JSX.Element {
+  const surface = useNativeChatStructuredSurface('card')
   const t = useTranslate()
   const auth = useNativeChatAntigravityAuth()
   const { prompt, view, agent, host } = props.state
@@ -52,7 +54,7 @@ export function NativeChatSignInStrip(props: {
   return (
     <div
       data-native-chat-install="strip"
-      data-native-chat-surface="card"
+      {...surface}
       className="flex items-start gap-3 rounded-xl border border-input bg-card px-3.5 py-3 text-sm shadow-xs"
     >
       <NativeChatInstallTile agent={agent} failed={failed} large={false} />

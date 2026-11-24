@@ -1,3 +1,4 @@
+import { useNativeChatStructuredSurface } from '../native-chat-account-scope'
 import { useMemo } from 'react'
 import { ChevronLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -33,6 +34,7 @@ export function NativeChatSubagentStatusBar({
   backTo?: string
   onBack: () => void
 }): React.JSX.Element {
+  const surface = useNativeChatStructuredSurface('card')
   const t = useTranslate()
   const state = entry ? normalizeSubagentState(entry.state) : null
   const back =
@@ -43,7 +45,7 @@ export function NativeChatSubagentStatusBar({
     <div className="shrink-0 bg-chat-pane px-3 pt-2 pb-4 sm:px-4">
       <div className="@container/subagent-status mx-auto w-full max-w-(--chat-content-max-width)">
         <div
-          data-native-chat-surface="card"
+          {...surface}
           className="flex h-10 min-w-0 items-center gap-2 rounded-lg border border-border bg-muted/50 px-3 text-xs text-muted-foreground shadow-xs"
         >
           {state ? (

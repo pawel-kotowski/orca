@@ -1,6 +1,4 @@
-import { useMemo, useSyncExternalStore } from 'react'
-import { useAppStore } from '@/store'
-import type { AppState } from '@/store/types'
+import { useSyncExternalStore } from 'react'
 import { isAiVaultAgent } from '../../../../shared/ai-vault/contracts/ai-vault-types'
 import {
   agentForksConversations,
@@ -28,10 +26,12 @@ export function structuredTerminalSwitch(
     : 'copy'
 }
 
-/** A chat its host holds for a terminal; `launching` until its tab is known or will not be. */
-export type ChatTerminalHold = { tabId: string | null; launching: boolean }
+/**
+ * A chat its host holds for a terminal, as this client launched or learned it. `cancel` gives up a
+ * launch that has not answered yet; the host's own word decides whether a terminal came of it.
+ */
+export type ChatTerminalHold = { tabId: string | null; cancel?: () => void }
 
-// By chat session: what this client launched, or learned from the host after a reload.
 const heldChats = new Map<string, ChatTerminalHold>()
 const listeners = new Set<() => void>()
 
@@ -50,68 +50,18 @@ export function setChatTerminalHold(sessionId: string, hold: ChatTerminalHold | 
   }
 }
 
-type Panes = Pick<AppState, 'agentStatusByPaneKey' | 'tabsByWorktree'>
-
-// One index per status map: every store change asks, few change the map.
-const paneIndexes = new WeakMap<Panes['agentStatusByPaneKey'], Map<string, string[]>>()
-
-function panesByConversation(statuses: Panes['agentStatusByPaneKey']): Map<string, string[]> {
-  let index = paneIndexes.get(statuses)
-  if (!index) {
-    index = new Map()
-    for (const [paneKey, entry] of statuses) {
-      const id = entry.providerSession?.id
-      if (id) {
-        index.set(id, [...(index.get(id) ?? []), paneKey])
-      }
-    }
-    paneIndexes.set(statuses, index)
-  }
-  return index
-}
-
-/** The terminal pane that runs this chat's own conversation now, other than the chat itself. */
-export function structuredChatTerminalPane(
-  state: Panes,
-  chatPaneKey: string,
-  worktreeId: string | null
-): string | null {
-  const conversation = state.agentStatusByPaneKey.get(chatPaneKey)?.providerSession?.id
-  if (!conversation || !worktreeId) {
-    return null
-  }
-  const panes = panesByConversation(state.agentStatusByPaneKey).get(conversation) ?? []
-  return (
-    panes.find(
-      (paneKey) =>
-        paneKey !== chatPaneKey &&
-        (state.tabsByWorktree[worktreeId] ?? []).some((tab) => paneKey.startsWith(`${tab.id}:`))
-    ) ?? null
-  )
-}
-
 /** Where the chat's conversation is: here (null), or in a terminal (its tab, once known). */
-export function useStructuredChatTerminal(
-  sessionId: string,
-  chatPaneKey: string,
-  worktreeId: string | null
-): ChatTerminalHold | null {
-  const pane = useAppStore((state) => structuredChatTerminalPane(state, chatPaneKey, worktreeId))
-  const held = useSyncExternalStore(
+export function useStructuredChatTerminal(sessionId: string): ChatTerminalHold | null {
+  return useSyncExternalStore(
     (listener) => {
       listeners.add(listener)
       return () => listeners.delete(listener)
     },
-    () => heldChats.get(sessionId)
-  )
-  const paneTab = pane ? pane.slice(0, pane.indexOf(':')) : null
-  return useMemo(
-    () => (paneTab ? { tabId: paneTab, launching: false } : (held ?? null)),
-    [paneTab, held]
+    () => heldChats.get(sessionId) ?? null
   )
 }
 
-// The mounted button of each chat tab, which Cmd+Shift+J presses as it switches a terminal chat.
+// The mounted chat of each tab, whose switch Cmd+Shift+J presses as it switches a terminal chat.
 const switches = new Map<string, () => void>()
 
 export function registerStructuredTerminalSwitch(tabId: string, press: () => void): () => void {

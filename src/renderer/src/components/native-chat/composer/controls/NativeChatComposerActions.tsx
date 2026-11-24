@@ -1,5 +1,6 @@
 /* eslint-disable max-lines -- Why: upstream's actions sit at the limit; the local terminal chat's
    Ctrl+Enter label adds one prop, and moving upstream's own code out would fork it on every merge. */
+import { useNativeChatAccountScope } from '../../native-chat-account-scope'
 import { NativeChatComposerDraftNotSavedIcon } from '../../drafts/NativeChatComposerDraftNotSavedIcon'
 import { NativeChatRoomContext } from '../../native-chat-room-context'
 import { memo, useContext } from 'react'
@@ -114,6 +115,7 @@ export const NativeChatComposerActions = memo(function NativeChatComposerActions
   launchPrompt = false
 }: NativeChatComposerActionsProps): React.JSX.Element {
   const t = useTranslate()
+  const structuredChat = useNativeChatAccountScope()?.kind === 'structured'
   useUiLanguageRevision()
   const roomReplies = useContext(NativeChatRoomContext)?.replies
   const mode = useNativeChatPlanMode({
@@ -227,12 +229,16 @@ export const NativeChatComposerActions = memo(function NativeChatComposerActions
         leading={
           <>
             {attach}
-            {roomReplies}
-            <NativeChatComposerPermissionPicker
-              surface={sessionOptionsSurface}
-              snapshot={sessionOptionsSnapshot}
-              {...(agent ? { agent } : {})}
-            />
+            {structuredChat ? (
+              <>
+                {roomReplies}
+                <NativeChatComposerPermissionPicker
+                  surface={sessionOptionsSurface}
+                  snapshot={sessionOptionsSnapshot}
+                  {...(agent ? { agent } : {})}
+                />
+              </>
+            ) : null}
             {mode ? <NativeChatComposerPlanChip control={mode} /> : null}
             {onExitGoalMode ? <NativeChatComposerGoalChip onExit={onExitGoalMode} /> : null}
           </>
