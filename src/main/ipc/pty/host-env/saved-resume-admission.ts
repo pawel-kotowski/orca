@@ -146,20 +146,22 @@ async function judgeResumes(
   )
   const tabs = store.getVisibleSessionTabIndex()
   for (const refused of resumes) {
-    // Local: a handed-over chat's terminal that is gone is not restarted by itself; the chat is back.
-    if (conversationHeldForTerminal(refused.providerSession.id)) {
-      return { verdict: 'chat-home', refused }
-    }
     const holders = heads.filter((holding) =>
       keysOf(refused).some((key) => keysMayMatch(holding.key, key))
     )
+    const home = holders.some((holding) => tabs?.sessionIds.includes(holding.sessionId))
+    // Local: a handed-over chat's terminal that is gone is not restarted by itself; the chat is back,
+    // or, with its tab closed, the pane keeps its resume for a later restore.
+    if (conversationHeldForTerminal(refused.providerSession.id)) {
+      return { verdict: home ? 'chat-home' : 'unverifiable', refused }
+    }
     if (holders.some((holding) => agentSessionLeasePossiblyWriting(holding.ownerObservation))) {
       return { verdict: 'chat-writing', refused }
     }
     if (holders.length > 0 && (!tabs || !tabs.present)) {
       return { verdict: 'unverifiable', refused }
     }
-    if (tabs && holders.some((holding) => tabs.sessionIds.includes(holding.sessionId))) {
+    if (home) {
       return { verdict: 'chat-home', refused }
     }
   }

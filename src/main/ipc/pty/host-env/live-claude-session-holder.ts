@@ -84,6 +84,36 @@ function userDataDir(): string | null {
   }
 }
 
+/** Local: the conversation each recorded Claude process runs, by pid; null when a record cannot be
+ *  read. A session put in the background keeps its conversation, and only its record names it. */
+export async function readClaudeSessionRecords(
+  recordDirs?: () => Promise<string[]>
+): Promise<{ pid: number; sessionId: string | null }[]> {
+  const dirs = recordDirs ? await recordDirs() : await claudeSessionRecordDirs(userDataDir())
+  const records: { pid: number; sessionId: string | null }[] = []
+  for (const dir of dirs) {
+    for (const name of await readdir(dir).catch(() => [] as string[])) {
+      const pid = Number(/^(\d+)\.json$/.exec(name)?.[1])
+      if (!pid) {
+        continue
+      }
+      try {
+        const { sessionId } = JSON.parse(
+          await readFile(join(dir, name), 'utf8')
+        ) as ClaudeProcessRecord
+        if (typeof sessionId === 'string') {
+          records.push({ pid, sessionId })
+        }
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+          records.push({ pid, sessionId: null })
+        }
+      }
+    }
+  }
+  return records
+}
+
 /** The first resume whose Claude conversation a live process already runs, if any. */
 export async function firstResumeRunningElsewhere(
   resumes: readonly RefusedPaneResume[],

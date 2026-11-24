@@ -215,7 +215,7 @@ export class StructuredAgentSessionHost {
         this.queued.queuedMessageSend(...returnedChatSend(this.deps, id, messageId)),
       cancelUsageLimitContinue: async () => {
         const cut = await this.clientDelivery.readUsageLimitCut(id)
-        if (cut?.resetsAt !== undefined) {
+        if (cut) {
           const { turnItemId, resetsAt } = cut
           await this.usageLimitContinue.cancel({ sessionId: id, turnItemId, resetsAt })
         }

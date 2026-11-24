@@ -191,7 +191,7 @@ it.each([
   await eventually(async () => expect(await rig.handoff(messageId)).toBeDefined())
 })
 
-async function usageLimit(): Promise<void> {
+async function usageLimit(resetsAt?: number): Promise<void> {
   const id = await rig.workingSend()
   await rig.settleAccepted(id, 'working')
   await turn(id, 'running')
@@ -203,7 +203,7 @@ async function usageLimit(): Promise<void> {
       kind: 'status',
       ...agentSessionFailureWords(
         agentSessionFailureFact('usageLimitReached', {
-          usageLimit: { resetsAt: HOST_TEST_NOW + 60_000 }
+          usageLimit: resetsAt === undefined ? {} : { resetsAt }
         }),
         { surface: 'row' }
       )
@@ -224,7 +224,7 @@ async function usageLimit(): Promise<void> {
 }
 
 it('a usage limit the conversation went past in the terminal holds nothing more', async () => {
-  await usageLimit()
+  await usageLimit(HOST_TEST_NOW + 60_000)
   show()
   hold()
   const result = await rig.send('the task', 'queue-if-active', { internal: true, from: TASK })
@@ -237,8 +237,23 @@ it('a usage limit the conversation went past in the terminal holds nothing more'
   await eventually(async () => expect(await rig.handoff(messageId)).toBeDefined())
 })
 
+it.each([HOST_TEST_NOW + 60_000, undefined])(
+  'a usage limit (reset %s) the conversation went past gets no Continue',
+  async (resetsAt) => {
+    await usageLimit(resetsAt)
+    show()
+    hold()
+    const cancel = vi.spyOn(rig.store, 'cancelUsageLimitContinue')
+    await giveBack()
+    expect(cancel).toHaveBeenCalledOnce()
+    expect(rig.store.getRecord(SESSION)?.usageLimitContinueCancel?.turnItemId).toBe(
+      cancel.mock.calls[0][1].turnItemId
+    )
+  }
+)
+
 it('frees a limited queue for mail, which is redriven after the hold', async () => {
-  await usageLimit()
+  await usageLimit(HOST_TEST_NOW + 60_000)
   show()
   hold()
   await giveBack()
