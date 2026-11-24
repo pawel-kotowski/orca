@@ -52,6 +52,10 @@ it('claims the starts a held conversation is in, and no others', () => {
   // The host refuses or reattaches these itself.
   expect(claims({ command: `claude --resume ${ID}`, resumeOrigin: 'saved' })).toBe(false)
   expect(claims({ command: `claude --resume ${ID}`, sessionId: 'pty' })).toBe(false)
+  // An account restart in place starts anew under an id of its own.
+  expect(
+    claims({ command: `claude --resume ${ID}`, sessionId: 'minted', isNewSession: true })
+  ).toBe(true)
   expect(claims({ command: `claude --resume ${ID}`, connectionId: 'ssh' })).toBe(false)
 })
 

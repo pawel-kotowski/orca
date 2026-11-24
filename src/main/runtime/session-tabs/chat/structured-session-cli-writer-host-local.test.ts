@@ -108,7 +108,7 @@ function runtime() {
     },
     wakeReturnedSession: async (id: string) => {
       woken.push(`chat ${id}`)
-      return true
+      return 'done'
     }
   }
   return { host, state, woken }
@@ -349,7 +349,7 @@ it('one check that fails does not starve the others', async () => {
         isSessionUnreadable: () => false
       }
     },
-    wakeReturnedSession: async () => true
+    wakeReturnedSession: async () => 'done'
   }
   await check(host)
   expect(heldStructuredChats()).toEqual(['first'])

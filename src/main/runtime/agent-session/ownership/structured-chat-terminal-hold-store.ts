@@ -22,6 +22,8 @@ export type StructuredChatTerminalHold = {
   terminals: StructuredChatHoldTerminal[]
   /** The cards of messages that came meanwhile, oldest first. */
   waiting: string[]
+  /** The conversation went on in an earlier terminal, whose return was not through. */
+  ranBefore: boolean
 }
 
 export type StructuredChatHoldTerminal = {
@@ -75,7 +77,8 @@ function parsedHold(value: unknown): StructuredChatTerminalHold | null {
     Array.isArray(hold.terminals) &&
     hold.terminals.every(isTerminal) &&
     Array.isArray(hold.waiting) &&
-    hold.waiting.every((id) => typeof id === 'string')
+    hold.waiting.every((id) => typeof id === 'string') &&
+    typeof hold.ranBefore === 'boolean'
     ? {
         token: hold.token,
         id: hold.id,
@@ -83,7 +86,8 @@ function parsedHold(value: unknown): StructuredChatTerminalHold | null {
         conversationId: hold.conversationId,
         phase: hold.phase,
         terminals: hold.terminals,
-        waiting: hold.waiting
+        waiting: hold.waiting,
+        ranBefore: hold.ranBefore
       }
     : null
 }

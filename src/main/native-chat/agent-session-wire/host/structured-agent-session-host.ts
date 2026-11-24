@@ -14,6 +14,7 @@ import {
   claimStructuredAgentSessionAgent as claimAgent,
   startStructuredAgentSessionAgent as startAgent
 } from '../startup/structured-agent-session-agent-start'
+import type { StructuredChatReturn } from '../../../runtime/agent-session/ownership/structured-chat-returns'
 import {
   returnedChatSend,
   wakeReturnedStructuredChat
@@ -204,9 +205,10 @@ export class StructuredAgentSessionHost {
   sessionStarting = (id: string) => this.runtimeState.startFlights.has(id)
 
   /** Local: a terminal gave the chat back: what waited for it goes out, also after a restart. */
-  wakeReturnedSession = (id: string, hold: { waiting: readonly string[]; ran: boolean }) =>
+  wakeReturnedSession = (id: string, hold: StructuredChatReturn) =>
     wakeReturnedStructuredChat(this.deps.store, id, hold, {
       open: this.conversation,
+      working: async () => (await this.currentWork(id))?.working() === true,
       asleep: (workspaceId) =>
         this.deps.usageLimitAutoContinue?.isWorkspaceAsleep(workspaceId) === true,
       send: (messageId) =>

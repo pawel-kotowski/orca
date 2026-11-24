@@ -10,7 +10,13 @@ import type { PtySpawnOperationState } from './spawn-operation-state'
 export function claimChatHandoverSpawn(
   args: Pick<
     PtySpawnOperationState['args'],
-    'env' | 'command' | 'resumeProviderSession' | 'connectionId' | 'sessionId' | 'resumeOrigin'
+    | 'env'
+    | 'command'
+    | 'resumeProviderSession'
+    | 'connectionId'
+    | 'sessionId'
+    | 'resumeOrigin'
+    | 'isNewSession'
   >
 ): StructuredChatTerminalSpawn | null {
   const token = args.env?.[CHAT_HANDOVER_ENV]
@@ -22,7 +28,7 @@ export function claimChatHandoverSpawn(
     token,
     (conversationId) =>
       // A reattach's terminal is known already, and a saved restore of a held conversation is refused.
-      !args.sessionId &&
+      (!args.sessionId || args.isNewSession === true) &&
       args.resumeOrigin !== 'saved' &&
       (args.resumeProviderSession?.id === conversationId ||
         commandResumesConversation(command, conversationId)),

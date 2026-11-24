@@ -22,6 +22,7 @@ import {
   type TerminalHoldPane
 } from '../../agent-session/ownership/structured-chat-terminal-holds'
 import {
+  noteStructuredChatReturnSent,
   structuredChatReturns,
   takeStructuredChatReturn
 } from '../../agent-session/ownership/structured-chat-returns'
@@ -225,10 +226,15 @@ export abstract class OrcaRuntimeWithStructuredChatTerminalHolds extends OrcaRun
       try {
         await this.ensureStructuredAgentSessionHost()
         const host = getStructuredAgentSessionHost()
-        if (await host?.wakeReturnedSession(sessionId, entry)) {
+        const outcome = await host?.wakeReturnedSession(sessionId, entry)
+        if (outcome === 'done') {
           takeStructuredChatReturn(sessionId, entry)
+        } else if (outcome === 'sent') {
+          noteStructuredChatReturnSent(sessionId, entry)
         }
-        this.redriveStructuredSessionMail(sessionId)
+        if (outcome !== 'later' || !entry.sent) {
+          this.redriveStructuredSessionMail(sessionId)
+        }
       } catch (error) {
         console.warn('[chat-terminal] waking a returned chat failed', sessionId, error)
       } finally {

@@ -5,7 +5,12 @@ import { getAppEnvironment } from '../../../../shared/app-lifecycle/app-environm
 
 /** A chat that is back from its terminal and whose waiting messages were not sent yet (local build).
  *  Saved, so an Orca that stops in between sends them at its next start. */
-export type StructuredChatReturn = { waiting: readonly string[]; ran: boolean }
+export type StructuredChatReturn = {
+  waiting: readonly string[]
+  ran: boolean
+  /** Its first waiting message went out. */
+  sent?: true
+}
 
 const FILE = 'structured-chat-returns.json'
 let returns: Map<string, StructuredChatReturn> | null = null
@@ -67,6 +72,16 @@ function save(): void {
 export function noteStructuredChatReturn(sessionId: string, entry: StructuredChatReturn): void {
   loaded().set(sessionId, entry)
   save()
+}
+
+export function noteStructuredChatReturnSent(sessionId: string, entry: StructuredChatReturn): void {
+  if (loaded().get(sessionId) === entry) {
+    noteStructuredChatReturn(sessionId, { ...entry, sent: true })
+  }
+}
+
+export function structuredChatReturn(sessionId: string): StructuredChatReturn | undefined {
+  return loaded().get(sessionId)
 }
 
 export function structuredChatReturns(): readonly [string, StructuredChatReturn][] {

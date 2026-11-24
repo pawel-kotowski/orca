@@ -60,10 +60,10 @@ const hold = () =>
     conversationId: 'c'
   })
 
-async function giveBack(): Promise<void> {
+async function giveBack() {
   const waiting = structuredChatTerminalHold(SESSION)?.waiting ?? []
   releaseStructuredChatTerminalHold(SESSION, 't')
-  expect(await rig.host.wakeReturnedSession(SESSION, { waiting, ran: true })).toBe(true)
+  return rig.host.wakeReturnedSession(SESSION, { waiting, ran: true })
 }
 
 async function restart(): Promise<void> {
@@ -244,6 +244,30 @@ it('frees a limited queue for mail, which is redriven after the hold', async () 
   await giveBack()
   const journal = rig.host.collaboratorsForTests().sessions.get(SESSION)!.journal
   expect(await journal.queuedMessages.pauses()).toEqual([])
+})
+
+it("a person's message behind an automation's goes out after a restart too", async () => {
+  await endedTurn('done')
+  show()
+  hold()
+  const automation = await sentWhileHeld('the automation', true)
+  const mine = await sentWhileHeld('mine')
+  const waiting = structuredChatTerminalHold(SESSION)!.waiting
+  expect(waiting).toEqual([automation, mine])
+  await restart()
+  expect(await giveBack()).toBe('sent')
+  const journal = rig.host.collaboratorsForTests().sessions.get(SESSION)!.journal
+  await eventually(async () => expect(await rig.handoff(automation)).toBeDefined())
+  // The rig's provider cannot resume; what matters is that the automation's turn freed nothing of mine.
+  expect((await journal.queuedMessages.get(mine))?.state).toBe('waiting')
+  vi.spyOn(journal.queuedMessages, 'pauses').mockResolvedValue(
+    (await journal.queuedMessages.pauses()).filter(({ reason }) => reason === 'restarted')
+  )
+  await eventually(async () => {
+    const again = await rig.host.wakeReturnedSession(SESSION, { waiting, ran: true, sent: true })
+    expect(again).toBe('sent')
+  })
+  expect(await rig.handoff(mine)).toBeDefined()
 })
 
 it('leaves a chat the person closed alone', async () => {

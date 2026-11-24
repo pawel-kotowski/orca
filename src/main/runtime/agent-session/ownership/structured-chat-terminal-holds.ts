@@ -12,6 +12,7 @@ import {
 import {
   noteStructuredChatReturn,
   resetStructuredChatReturnsForTests,
+  structuredChatReturn,
   takeStructuredChatReturn
 } from './structured-chat-returns'
 
@@ -88,12 +89,15 @@ export function beginStructuredChatTerminalHold(
   if (abandoned.has(handover.token)) {
     return false
   }
+  const back = structuredChatReturn(sessionId)
   commitHold(sessionId, {
     ...handover,
     phase: 'opening',
     terminals: [],
-    waiting: [...(takeStructuredChatReturn(sessionId)?.waiting ?? [])]
+    waiting: [...(back?.waiting ?? [])],
+    ranBefore: back?.ran === true
   })
+  takeStructuredChatReturn(sessionId)
   return true
 }
 
@@ -105,7 +109,7 @@ export function releaseStructuredChatTerminalHold(sessionId: string, token: stri
   endInheritedHold(token)
   noteStructuredChatReturn(sessionId, {
     waiting: hold.waiting,
-    ran: hold.terminals.some(({ ran }) => ran)
+    ran: hold.ranBefore || hold.terminals.some(({ ran }) => ran)
   })
   dropHold(sessionId)
   const ended = { sessionId, hold }

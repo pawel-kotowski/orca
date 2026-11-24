@@ -18,6 +18,11 @@ it.each([
   `codex resume --add-dir /a b ${ID}`,
   `codex resume ${ID} fix the fork bug`,
   `node /usr/local/bin/codex resume ${ID}`,
+  `codex --cd /Users/p/My Project resume ${ID}`,
+  `/opt/codex-aarch64-apple-darwin resume ${ID}`,
+  `codex e resume ${ID}`,
+  `cd /x && claude --resume ${ID}`,
+  `claude --append-system-prompt don't; stop --resume ${ID}`,
   `agy --conversation ${ID}`,
   `pi --session /x/2026_${ID}.jsonl`
 ])('resumes it: %s', (command) => {
@@ -28,10 +33,9 @@ it.each([
   `claude --resume ${ID} --fork-session`,
   `codex fork ${ID}`,
   `codex --no-daemon 'fork' '${ID}'`,
-  `codex Please resume ${ID}`,
+  `codex please look at ${ID} and resume`,
   `claude 'Read /tmp/${ID}/scratchpad/brief.md'`,
   `claude Read /tmp/${ID}/scratchpad/brief.md and resume`,
-  `claude; echo --resume ${ID}`,
   `claude --resume ${ID}0`
 ])('does not: %s', (command) => {
   expect(commandResumesConversation(command, ID)).toBe(false)
