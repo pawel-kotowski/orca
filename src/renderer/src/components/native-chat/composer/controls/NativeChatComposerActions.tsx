@@ -252,7 +252,12 @@ export const NativeChatComposerActions = memo(function NativeChatComposerActions
                 {t('common.cancel', 'Cancel')}
               </Button>
             ) : null}
-            {alternateSendChip}
+            {structuredChat && alternateSendChip ? (
+              // As far from the box's edge as the controls it stands in for.
+              <span className="pr-2">{alternateSendChip}</span>
+            ) : (
+              alternateSendChip
+            )}
             {stops ? sendButton : null}
           </>
         }

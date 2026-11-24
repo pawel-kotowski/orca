@@ -10,7 +10,7 @@ import { recordConversationKey } from '../../../native-chat/conversation-adoptio
 import { getStructuredAgentSessionHost } from '../../../native-chat/agent-session-wire/host/structured-agent-session-registry'
 import {
   heldStructuredChats,
-  noteStructuredChatTerminalSeen,
+  noteStructuredChatTerminalRan,
   onStructuredChatTerminalHoldEnded,
   releaseStructuredChatTerminalHold,
   releaseUnlaunchedStructuredChatTerminalHolds,
@@ -25,6 +25,7 @@ import { readTerminalProcesses } from '../../agent-session/ownership/structured-
 import { OrcaRuntimeWithGetWorktreePs } from '../../workspaces/process-listing/workspace-process-listing'
 
 const TERMINAL_HOLD_CHECK_MS = 2_000
+const TERMINAL_START_CHECK_MS = 250
 
 // Lazy: the daemon modules' xterm polyfill defines a global `window` on import.
 async function listLiveDaemonSessionIds(): Promise<string[] | null> {
@@ -192,8 +193,11 @@ export abstract class OrcaRuntimeWithStructuredChatTerminalHolds extends OrcaRun
     const inputAt = () => (ptyId === null ? null : this.terminalRunFacts.readLastInputAt(ptyId))
     const inputBefore = inputAt()
     const { pane, ran } = await this.readTerminalHoldPane(hold, id)
-    const launch = ptyId === null ? undefined : this.ptysById.get(ptyId)?.launchEvidence
-    noteStructuredChatTerminalSeen(sessionId, { ran, launchHeld: launch?.kind === 'held' })
+    const pty = ptyId === null ? undefined : this.ptysById.get(ptyId)
+    // Its launch command started and finished too soon to be seen (not signed in, not installed).
+    if (ran || (pane === 'shell' && pty?.commandPaint?.ranCommand)) {
+      noteStructuredChatTerminalRan(sessionId)
+    }
     const rowsMayWrite = await this.terminalRowsMayWrite({ agent: hold.agent, id })
     const current = structuredChatTerminalHold(sessionId)
     return (
@@ -201,11 +205,7 @@ export abstract class OrcaRuntimeWithStructuredChatTerminalHolds extends OrcaRun
       current.ptyId !== ptyId ||
       // Typed into meanwhile: it may have started the agent again after its processes were read.
       inputAt() !== inputBefore ||
-      structuredChatTerminalMayWrite(current, {
-        pane,
-        launchGone: launch?.kind === 'gone',
-        rowsMayWrite
-      })
+      structuredChatTerminalMayWrite(current, { pane, rowsMayWrite })
     )
   }
 
@@ -238,17 +238,36 @@ export abstract class OrcaRuntimeWithStructuredChatTerminalHolds extends OrcaRun
     if (this.terminalHoldWatch || heldStructuredChats().length === 0) {
       return
     }
-    this.terminalHoldWatch = setTimeout(() => {
-      void this.releaseFinishedTerminalHolds()
-        .catch((error: unknown) =>
-          console.warn('[chat-terminal] checking handed-over chats failed', error)
-        )
-        .finally(() => {
-          this.terminalHoldWatch = null
-          this.watchStructuredChatTerminalHolds()
-        })
-    }, TERMINAL_HOLD_CHECK_MS)
+    this.terminalHoldWatch = setTimeout(
+      () => {
+        void this.releaseFinishedTerminalHolds()
+          .catch((error: unknown) =>
+            console.warn('[chat-terminal] checking handed-over chats failed', error)
+          )
+          .finally(() => {
+            this.terminalHoldWatch = null
+            this.watchStructuredChatTerminalHolds()
+          })
+      },
+      this.agentIsStarting() ? TERMINAL_START_CHECK_MS : TERMINAL_HOLD_CHECK_MS
+    )
     this.terminalHoldWatch.unref?.()
+  }
+
+  /** A handover whose agent was not seen yet, in a terminal that is busy: one that fails at once may
+   *  come and go between two slow looks. */
+  private agentIsStarting(): boolean {
+    return heldStructuredChats().some((sessionId) => {
+      const hold = structuredChatTerminalHold(sessionId)
+      const pty = hold?.ptyId ? this.ptysById.get(hold.ptyId) : undefined
+      return (
+        hold !== null &&
+        !hold.ran &&
+        (hold.phase === 'opening' ||
+          (pty !== undefined &&
+            Date.now() - (pty.lastOutputAt ?? Date.now()) < TERMINAL_HOLD_CHECK_MS))
+      )
+    })
   }
 
   private async releaseFinishedTerminalHolds(): Promise<void> {

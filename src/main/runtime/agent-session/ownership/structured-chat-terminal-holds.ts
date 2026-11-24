@@ -24,8 +24,6 @@ export type StructuredChatTerminalHold = {
   paneKey: string | null
   /** The conversation's agent was seen in that terminal, so a bare shell there means it ended. */
   ran: boolean
-  /** Orca's launch was seen held by that terminal, so its retirement means the command ended. */
-  launchHeld: boolean
 }
 
 /** A terminal's spawn carries its handover's token here; the host strips it before the spawn. */
@@ -66,8 +64,7 @@ function parsedHold(value: unknown): StructuredChatTerminalHold | null {
     (hold.ptyId === null || typeof hold.ptyId === 'string') &&
     (hold.incarnationId === null || typeof hold.incarnationId === 'string') &&
     (hold.paneKey === null || typeof hold.paneKey === 'string') &&
-    typeof hold.ran === 'boolean' &&
-    typeof hold.launchHeld === 'boolean'
+    typeof hold.ran === 'boolean'
     ? {
         token: hold.token,
         id: hold.id,
@@ -77,8 +74,7 @@ function parsedHold(value: unknown): StructuredChatTerminalHold | null {
         ptyId: hold.ptyId,
         incarnationId: hold.incarnationId,
         paneKey: hold.paneKey,
-        ran: hold.ran,
-        launchHeld: hold.launchHeld
+        ran: hold.ran
       }
     : null
 }
@@ -206,8 +202,7 @@ export function beginStructuredChatTerminalHold(
     ptyId: null,
     incarnationId: null,
     paneKey: null,
-    ran: false,
-    launchHeld: false
+    ran: false
   })
   return true
 }
@@ -263,7 +258,7 @@ export function admitStructuredChatTerminalSpawn(
     throw new Error('This conversation went back to its chat before the terminal opened.')
   }
   const [sessionId, hold] = found
-  commit(sessionId, { ...hold, ...terminal, phase: 'terminal', ran: false, launchHeld: false })
+  commit(sessionId, { ...hold, ...terminal, phase: 'terminal', ran: false })
   spawning.add(token)
 }
 
@@ -294,7 +289,7 @@ export function failStructuredChatTerminalSpawn(token: string): void {
   }
 }
 
-/** A hook from a terminal named a conversation: proof its agent ran there. */
+/** An agent process in a terminal named its conversation: it runs there. */
 export function noteStructuredChatTerminalReport(
   ptyId: string,
   conversationId: string | undefined
@@ -306,17 +301,9 @@ export function noteStructuredChatTerminalReport(
   }
 }
 
-export function noteStructuredChatTerminalSeen(
-  sessionId: string,
-  seen: { ran?: boolean; launchHeld?: boolean }
-): void {
-  const hold = loaded().get(sessionId)
-  const facts = {
-    ...(seen.ran && !hold?.ran ? { ran: true } : {}),
-    ...(seen.launchHeld && !hold?.launchHeld ? { launchHeld: true } : {})
-  }
-  if (Object.keys(facts).length > 0) {
-    learn(sessionId, facts)
+export function noteStructuredChatTerminalRan(sessionId: string): void {
+  if (loaded().get(sessionId)?.ran === false) {
+    learn(sessionId, { ran: true })
   }
 }
 
@@ -324,7 +311,7 @@ export function noteStructuredChatTerminalSeen(
  *  is alone after the conversation's agent ran in it. `rowsMayWrite`: another terminal may have it. */
 export function structuredChatTerminalMayWrite(
   hold: StructuredChatTerminalHold,
-  now: { pane: TerminalHoldPane; launchGone: boolean; rowsMayWrite: boolean }
+  now: { pane: TerminalHoldPane; rowsMayWrite: boolean }
 ): boolean {
   if (hold.phase === 'opening' || now.rowsMayWrite) {
     return true
@@ -336,7 +323,9 @@ export function structuredChatTerminalMayWrite(
     case 'absent':
       return false
     case 'shell':
-      return !(hold.ran || (hold.launchHeld && now.launchGone))
+      // Alone before the agent ran in it, it is only about to be given the command. A finished-command
+      // mark proves nothing here: a shell's first prompt can send one.
+      return !hold.ran
   }
 }
 

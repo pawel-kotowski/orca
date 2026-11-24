@@ -186,15 +186,32 @@ it('H3: a terminal closed before it was ever seen is gone', async () => {
   expect(heldStructuredChats()).toEqual([])
 })
 
-it('H3: an agent that never reported ends with its launch command', async () => {
+it('H3: an agent that never reported is seen among its terminal processes', async () => {
+  const { host, state } = runtime()
+  open()
+  state.listed = [RUNNING]
+  // The shell is at its first prompt, whose finished-command mark retires the launch already.
+  state.ptys.set('pty', { launchEvidence: { kind: 'gone' } })
+  processesAre(true, false)
+  await check(host)
+  expect(heldStructuredChats()).toEqual(['chat'])
+  processesAre(false, true)
+  await check(host)
+  expect(heldStructuredChats()).toEqual(['chat'])
+  processesAre(true, false)
+  await check(host)
+  expect(heldStructuredChats()).toEqual([])
+})
+
+it('H3: a launch command that came and went unseen is over, by the shell that ran it', async () => {
   const { host, state } = runtime()
   open()
   state.listed = [RUNNING]
   processesAre(true, false)
-  state.ptys.set('pty', { launchEvidence: { kind: 'held' } })
+  state.ptys.set('pty', { commandPaint: { ranCommand: false } })
   await check(host)
   expect(heldStructuredChats()).toEqual(['chat'])
-  state.ptys.set('pty', { launchEvidence: { kind: 'gone' } })
+  state.ptys.set('pty', { commandPaint: { ranCommand: true } })
   await check(host)
   expect(heldStructuredChats()).toEqual([])
 })

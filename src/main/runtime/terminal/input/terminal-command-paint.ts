@@ -28,6 +28,8 @@ export class TerminalCommandPaint {
   private reattach: 'unknown' | 'vouched' | 'armed' = 'unknown'
   /** A 133;C parsed since the last 133;D or reattach fence; later ones are the agent's own. */
   private startSeen = false
+  /** Local: a command was started here and finished; a first prompt's lone 133;D is no command. */
+  ranCommand = false
   /** A command finished or started since the reattach fence; lost output never erases it. */
   private boundarySinceReattach = false
   // Output lost before this process was proven could hide a boundary, so its retained frame can't be vouched.
@@ -78,6 +80,7 @@ export class TerminalCommandPaint {
       // program's reports must stay retired even then.
       this.retiredTitleAt = reports.lastOscTitleAt ?? null
       this.retiredStatus = reports.lastExplicitAgentStatus ?? null
+      this.ranCommand ||= this.startSeen || this.markerEndInChunk !== -1
       this.startSeen = false
       this.repaintRequestable = false
       this.composers = new Map()

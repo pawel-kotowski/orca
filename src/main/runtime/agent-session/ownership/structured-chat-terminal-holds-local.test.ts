@@ -17,7 +17,7 @@ import {
   failStructuredChatTerminalSpawn,
   heldStructuredChats,
   noteStructuredChatTerminalReport,
-  noteStructuredChatTerminalSeen,
+  noteStructuredChatTerminalRan,
   onStructuredChatTerminalHoldEnded,
   releaseStructuredChatTerminalHold,
   releaseUnlaunchedStructuredChatTerminalHolds,
@@ -50,12 +50,8 @@ function open(token = 'a', sessionId = 'chat'): void {
   bindStructuredChatTerminal(token, { ptyId: 'pty', incarnationId: 'i', paneKey: 'tab:leaf' })
 }
 
-const mayWrite = (pane: TerminalHoldPane, more: { gone?: boolean; rows?: boolean } = {}) =>
-  structuredChatTerminalMayWrite(structuredChatTerminalHold('chat')!, {
-    pane,
-    launchGone: more.gone ?? false,
-    rowsMayWrite: more.rows ?? false
-  })
+const mayWrite = (pane: TerminalHoldPane, rows = false) =>
+  structuredChatTerminalMayWrite(structuredChatTerminalHold('chat')!, { pane, rowsMayWrite: rows })
 
 it('holds from the press, through a shell that has not run the agent yet', () => {
   begin()
@@ -74,7 +70,7 @@ it('H1: a terminal that runs anything holds, whatever its rows say', () => {
   expect(mayWrite('unknown')).toBe(true)
   expect(mayWrite('shell')).toBe(false)
   // Another terminal may have the same conversation.
-  expect(mayWrite('shell', { rows: true })).toBe(true)
+  expect(mayWrite('shell', true)).toBe(true)
 })
 
 it('H3: ends when the terminal is gone, also one never seen alive', () => {
@@ -82,17 +78,15 @@ it('H3: ends when the terminal is gone, also one never seen alive', () => {
   expect(mayWrite('absent')).toBe(false)
 })
 
-it('H3: an agent that quit without a report is done once its launch is proven over', () => {
+it('H3: an agent that quit without a report is done once it was seen to run', () => {
   open()
-  expect(mayWrite('shell', { gone: true })).toBe(true)
-  noteStructuredChatTerminalSeen('chat', { launchHeld: true })
-  expect(mayWrite('shell')).toBe(true)
-  expect(mayWrite('shell', { gone: true })).toBe(false)
+  noteStructuredChatTerminalRan('chat')
+  expect(mayWrite('shell')).toBe(false)
 })
 
 it('H3: what was seen of the terminal outlives a restart', () => {
   open()
-  noteStructuredChatTerminalSeen('chat', { ran: true })
+  noteStructuredChatTerminalRan('chat')
   resetStructuredChatTerminalHoldsForTests()
   expect(structuredChatTerminalHold('chat')).toMatchObject({ ran: true, incarnationId: 'i' })
   expect(mayWrite('unknown')).toBe(true)

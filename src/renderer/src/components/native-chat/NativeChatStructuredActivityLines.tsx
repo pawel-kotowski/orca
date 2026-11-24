@@ -99,7 +99,7 @@ export function NativeChatStructuredActivityLines(props: Props): React.JSX.Eleme
         ...(row.kind === 'command' && providerId
           ? {
               onOpen: (opener: HTMLElement) =>
-                props.onShowProviderDetails?.(commandDetailsRow(row, label), opener)
+                props.onShowProviderDetails?.(commandDetailsRow(row, label, command), opener)
             }
           : {}),
         ...(stopId
@@ -154,14 +154,19 @@ export function NativeChatStructuredActivityLines(props: Props): React.JSX.Eleme
 }
 
 /** What the details dialog needs to show one shell's command and output. */
-function commandDetailsRow(row: AgentChildRowModel, label: string): WorkerDockRowView {
+function commandDetailsRow(
+  row: AgentChildRowModel,
+  label: string,
+  command: string | undefined
+): WorkerDockRowView {
   return {
     kind: 'command',
     id: row.id,
     dispatchId: row.id,
     source: '',
     name: label,
-    title: label,
+    // Under the name: what it runs, not the name again.
+    title: command ?? label,
     model: null,
     state: 'running',
     changedAt: row.firstObservedAt || null,

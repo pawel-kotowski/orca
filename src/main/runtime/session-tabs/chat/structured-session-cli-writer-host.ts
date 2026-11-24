@@ -69,9 +69,6 @@ export abstract class OrcaRuntimeWithStructuredSessionCliWriterHost extends Orca
   /** A local hook that names its agent process supersedes the launch result saved for this PTY. */
   clearSavedTerminalLaunchOnAgentHook(event: EnrichedAgentHookEventPayload): void {
     const pty = this.getPtyRecordForPaneKey(event.paneKey)
-    if (pty && event.connectionId === null && !event.structuredHost) {
-      noteStructuredChatTerminalReport(pty.ptyId, event.providerSession?.id)
-    }
     if (
       pty &&
       event.connectionId === null &&
@@ -79,6 +76,8 @@ export abstract class OrcaRuntimeWithStructuredSessionCliWriterHost extends Orca
       event.agentPresence?.process
     ) {
       delete pty.savedTerminalLaunchResult
+      // Only with its process: Orca itself names a resumed conversation before its agent runs.
+      noteStructuredChatTerminalReport(pty.ptyId, event.providerSession?.id)
     }
   }
 

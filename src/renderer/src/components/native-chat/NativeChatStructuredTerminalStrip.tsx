@@ -38,10 +38,7 @@ export function NativeChatStructuredTerminalStrip({
         <span className="min-w-0 flex-1 text-chat-foreground">
           {terminal.cancel
             ? t('components.native-chat.terminalSwitch.opening', 'Opening in a terminal…')
-            : t(
-                'components.native-chat.terminalSwitch.inTerminalWaits',
-                'Open in a terminal. What you send here waits until it is back.'
-              )}
+            : t('components.native-chat.terminalSwitch.inTerminal', 'Open in a terminal')}
         </span>
         {tabId ? (
           <Button
