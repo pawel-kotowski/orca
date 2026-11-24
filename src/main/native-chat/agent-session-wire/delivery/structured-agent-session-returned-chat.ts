@@ -132,6 +132,12 @@ async function firstWaiting(
       card?.state === 'waiting' &&
       card.holdReason === null &&
       pauses.some((pause) => past(pause) && queuePauseHolding([pause], card) !== undefined) &&
+      // The person's own Stop or clear over it stays.
+      !pauses.some(
+        (pause) =>
+          (pause.reason === 'stopped' || pause.reason === 'cleared') &&
+          queuePauseHolding([pause], card) !== undefined
+      ) &&
       !orchestrationMailNotice(from) &&
       !(from && agentsWait)
     ) {

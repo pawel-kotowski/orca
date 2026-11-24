@@ -17,6 +17,7 @@ import {
 } from '../../../../agent-session/ownership/structured-chat-terminal-holds'
 import { structuredAgentSessionSendBlock } from '../../../../../native-chat/agent-session-wire/operations/structured-agent-session-send-preparation'
 import { isQueuedAgentJournalSubmission } from '../../../../../../shared/agent-session/requests/agent-session-queued-submission'
+import { readTerminalProcesses } from '../../../../agent-session/ownership/structured-chat-terminal-process'
 import { defineMethod, type RpcContext } from '../../../core'
 import { requireInstalledStructuredHost } from '../creation/structured-agent-session-gate'
 
@@ -110,6 +111,11 @@ async function beginHandover(
   if (host.loadedSessionIds().includes(sessionId) || host.sessionStarting(sessionId)) {
     giveUp()
     return { outcome: 'busy' }
+  }
+  // The chat's own agent is stopped, so any other on its conversation is a writer.
+  if ((await readTerminalProcesses()).runsAnywhere(conversationId) === true) {
+    giveUp()
+    return { outcome: 'open' }
   }
   // Accepted just before the hold and still to be handed over: that is work.
   const { submissions } = await (

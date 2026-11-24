@@ -270,6 +270,25 @@ it("a person's message behind an automation's goes out after a restart too", asy
   expect(await rig.handoff(mine)).toBeDefined()
 })
 
+it('leaves a card the person stopped over alone, though a restart holds it too', async () => {
+  await endedTurn('done')
+  show()
+  hold()
+  const id = await sentWhileHeld('meanwhile')
+  const waiting = structuredChatTerminalHold(SESSION)!.waiting
+  await restart()
+  const { journal } = await rig.host.conversation(SESSION)
+  const at = (await journal.queuedMessages.get(id))!.queuedAt!
+  const stopped = { reason: 'stopped', since: { ...at, sequence: at.sequence + 1 } } as never
+  vi.spyOn(journal.queuedMessages, 'pauses').mockResolvedValue([
+    stopped,
+    ...(await journal.queuedMessages.pauses())
+  ])
+  releaseStructuredChatTerminalHold(SESSION, 't')
+  expect(await rig.host.wakeReturnedSession(SESSION, { waiting, ran: true })).toBe('done')
+  expect(await rig.handoff(id)).toBeUndefined()
+})
+
 it('leaves a chat the person closed alone', async () => {
   await endedTurn('failed')
   hold()

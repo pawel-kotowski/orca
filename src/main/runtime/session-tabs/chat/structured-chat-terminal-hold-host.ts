@@ -319,11 +319,15 @@ export abstract class OrcaRuntimeWithStructuredChatTerminalHolds extends OrcaRun
     }
     await this.resumeReturnedChats()
     if (structuredChatTerminalHoldsUnreadable()) {
-      const { processes, table } = await this.readHoldTerminals()
+      const { processes, daemon, table } = await this.readHoldTerminals()
       const agents = processes?.map(({ rootProcessId }) =>
         rootProcessId ? table.runsAgentBelow(rootProcessId) : null
       )
-      if (agents?.every((runs) => runs === false)) {
+      const listed = new Set(processes?.map(({ id }) => id))
+      if (
+        daemon?.sessions.every(({ sessionId }) => listed.has(sessionId)) &&
+        agents?.every((runs) => runs === false)
+      ) {
         forgetUnreadableStructuredChatTerminalHolds()
       }
     }
