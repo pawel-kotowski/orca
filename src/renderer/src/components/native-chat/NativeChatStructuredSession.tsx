@@ -266,6 +266,12 @@ export function NativeChatStructuredSession(props: Omit<NativeChatStructuredView
     hostNotice: botServerDown ? null : hostNotice,
     kickoffSignIn: bot.signInOwed
   })
+  const runningLines = (
+    <>
+      {subagents.activityLines}
+      <NativeChatStructuredTerminalStrip terminal={parity.terminal} />
+    </>
+  )
   return (
     <NativeChatAntigravityAuthProvider target={install.antigravityAuth}>
       <NativeChatSlackMirrorContext.Provider value={slackMirror}>
@@ -384,6 +390,8 @@ export function NativeChatStructuredSession(props: Omit<NativeChatStructuredView
                 {...parity.queue}
                 editAttachTo={{ terminalTabId: props.tabId, agent: props.agent, transport }}
               />
+              {/* Local: an open card is the dock's last thing, so the lines go above it. */}
+              {promptHoldsInput ? runningLines : null}
               <NativeChatStructuredPromptCard
                 key={prompt ? `${prompt.itemId}:${prompt.revision}` : undefined}
                 prompt={prompt}
@@ -395,8 +403,7 @@ export function NativeChatStructuredSession(props: Omit<NativeChatStructuredView
                 answerInputRef={questionAnswerInputRef}
               />
               {nativeChatStructuredAsyncQuestion(props, controller, session, transport, submits)}
-              {subagents.activityLines}
-              <NativeChatStructuredTerminalStrip terminal={parity.terminal} />
+              {promptHoldsInput ? null : runningLines}
               {botServerDown && hostOutage ? (
                 <BotServerOutageCard key={hostOutage.environmentId} outage={hostOutage} />
               ) : null}
