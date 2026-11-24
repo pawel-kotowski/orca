@@ -65,7 +65,11 @@ export function useStructuredChatParity(chat: {
     promptCollapse,
     /** The prompt's card has the input; folded, it gives the box back. */
     promptHoldsInput: chat.prompt !== null && !promptCollapse.collapsed,
-    queue: { cardHint, steerShortcut: ctrlEnter ? nativeChatCtrlEnterShortcut() : undefined },
+    queue: {
+      cardHint,
+      // With words in the box that chord is theirs; the card then names its own.
+      steerShortcut: ctrlEnter && !drafting ? nativeChatCtrlEnterShortcut() : undefined
+    },
     sentCommands,
     terminal
   }

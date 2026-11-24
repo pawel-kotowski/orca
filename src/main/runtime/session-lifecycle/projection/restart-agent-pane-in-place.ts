@@ -1,5 +1,6 @@
 import { OrcaRuntimeWithResumeAgentSessionInWorkspace } from './resume-agent-session-in-workspace'
 import { retireReplacedPaneBinding } from '../../../ipc/pty/pane/pane-owner-replacement'
+import { keepStructuredChatHold } from '../../agent-session/ownership/structured-chat-terminal-holds'
 import { makePaneKey, parsePaneKey } from '../../../../shared/workspace-layout/stable-pane-id'
 import { isRemoteRuntimePtyId } from '../../../../shared/remote-runtime/remote-runtime-pty-id'
 import type { TuiAgent } from '../../../../shared/agent-launch/catalog/tui-agent'
@@ -58,6 +59,8 @@ export abstract class OrcaRuntimeWithRestartAgentPaneInPlace extends OrcaRuntime
       return { ok: false, reason: 'busy' }
     }
     this.agentPaneRestartsByPaneKey.add(paneKey)
+    // Local: from the stop to the new terminal a held chat's conversation is still the terminal's.
+    const releaseHold = keepStructuredChatHold(session.providerSession.id)
     let held: AgentSessionResumeClaim | null = null
     let dispatched = false
     try {
@@ -213,6 +216,7 @@ export abstract class OrcaRuntimeWithRestartAgentPaneInPlace extends OrcaRuntime
       console.warn('[runtime] could not restart an agent pane in place', { ptyId, error })
       return { ok: false, reason: 'create_failed' }
     } finally {
+      releaseHold()
       this.agentPaneRestartsByPaneKey.delete(paneKey)
     }
   }

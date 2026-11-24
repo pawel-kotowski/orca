@@ -25,7 +25,7 @@ import {
   suppressSavedResumeLaunch,
   type ResumeSpawnRefusal
 } from '../host-env/saved-resume-admission'
-import { takeChatHandoverSpawn } from './spawn-chat-handover'
+import { stripChatHandoverToken } from './spawn-chat-handover'
 import { failPtySpawnExecute } from './spawn-execute-failure'
 import type { PtySpawnOperationState, PtySpawnExecutionFacts } from './spawn-operation-state'
 import { excludeReplacedPaneOwner } from '../pane/replaced-pane-owner'
@@ -40,7 +40,8 @@ export async function executePtySpawn(
 ): Promise<void> {
   const args = ctx.args
   let awaitingAnotherStart = false
-  const chatHandover = takeChatHandoverSpawn(ctx)
+  const { chatHandover } = ctx
+  stripChatHandoverToken(ctx)
   try {
     if (facts.preAllocatedHandle) {
       ctx.deps.trustedTerminalHandleEnv.add(facts.preAllocatedHandle)
@@ -277,7 +278,6 @@ export async function executePtySpawn(
       joinedAnotherStart: awaitingAnotherStart
     })
   } finally {
-    chatHandover?.settle()
     if (facts.preAllocatedHandle) {
       ctx.deps.trustedTerminalHandleEnv.delete(facts.preAllocatedHandle)
     }

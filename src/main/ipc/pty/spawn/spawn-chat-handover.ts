@@ -1,47 +1,44 @@
 import {
-  admitStructuredChatTerminalSpawn,
-  bindStructuredChatTerminal,
   CHAT_HANDOVER_ENV,
-  failStructuredChatTerminalSpawn,
-  settleStructuredChatTerminalSpawn
+  claimStructuredChatTerminalSpawn,
+  type StructuredChatTerminalSpawn
 } from '../../../runtime/agent-session/ownership/structured-chat-terminal-holds'
 import type { PtySpawnOperationState } from './spawn-operation-state'
 
-type HandoverTerminal = { ptyId: string | null; paneKey: string | null }
+// A copy has its own conversation, though its command names the source.
+const COPIES = /--fork-session|\bcodex['"]?\s+(?:.*\s)?['"]?fork\b/
 
-/**
- * Local: the terminal of a chat's handover. Its token leaves the environment here, so no agent and
- * no later start of the pane carries it; the spawn goes on only while the chat is still held for it.
- */
-export function takeChatHandoverSpawn(ctx: Pick<PtySpawnOperationState, 'args' | 'spawnOptions'>): {
-  admit: (terminal: HandoverTerminal) => void
-  bind: (terminal: Parameters<typeof bindStructuredChatTerminal>[1]) => void
-  settle: () => void
-} | null {
-  const token = ctx.spawnOptions.env?.[CHAT_HANDOVER_ENV] ?? ctx.args.env?.[CHAT_HANDOVER_ENV]
-  if (!token) {
+/** Local: a start that a held chat's conversation is in, claimed before anything is stopped for it. */
+export function claimChatHandoverSpawn(
+  args: Pick<
+    PtySpawnOperationState['args'],
+    'env' | 'command' | 'resumeProviderSession' | 'connectionId' | 'sessionId' | 'resumeOrigin'
+  >
+): StructuredChatTerminalSpawn | null {
+  const token = args.env?.[CHAT_HANDOVER_ENV]
+  if (args.connectionId) {
     return null
   }
+  const command = args.command ?? ''
+  return claimStructuredChatTerminalSpawn(
+    token,
+    (conversationId) =>
+      // A reattach's terminal is known already, and a saved restore of a held conversation is refused.
+      !args.sessionId &&
+      args.resumeOrigin !== 'saved' &&
+      !COPIES.test(command) &&
+      (args.resumeProviderSession?.id === conversationId || command.includes(conversationId))
+  )
+}
+
+/** Local: the token stays with Orca, so no agent and no later start of the pane carries it. */
+export function stripChatHandoverToken(
+  ctx: Pick<PtySpawnOperationState, 'args' | 'spawnOptions'>
+): void {
   for (const holder of [ctx.spawnOptions, ctx.args]) {
-    if (holder.env) {
+    if (holder.env?.[CHAT_HANDOVER_ENV] !== undefined) {
       const { [CHAT_HANDOVER_ENV]: _token, ...env } = holder.env
       holder.env = env
     }
   }
-  return {
-    admit: (terminal) => admitStructuredChatTerminalSpawn(token, terminal),
-    bind: (terminal) => bindStructuredChatTerminal(token, terminal),
-    settle: () => settleStructuredChatTerminalSpawn(token)
-  }
-}
-
-/** Local: a spawn that failed before its terminal was asked for leaves the chat free. */
-export function failChatHandoverSpawn(token: string | undefined): void {
-  if (token) {
-    failStructuredChatTerminalSpawn(token)
-  }
-}
-
-export function chatHandoverToken(env: Record<string, string> | undefined): string | undefined {
-  return env?.[CHAT_HANDOVER_ENV]
 }

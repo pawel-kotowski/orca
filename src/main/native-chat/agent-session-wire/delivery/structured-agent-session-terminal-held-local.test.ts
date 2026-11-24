@@ -47,9 +47,9 @@ const hold = () =>
     conversationId: 'c'
   })
 
-async function giveBack(): Promise<void> {
+async function giveBack(outlivedRestart = false): Promise<void> {
   releaseStructuredChatTerminalHold(SESSION, 't')
-  await rig.host.wakeReturnedSession(SESSION)
+  await rig.host.wakeReturnedSession(SESSION, { outlivedRestart, ran: true })
 }
 
 const submissionInput = () => ({
@@ -89,8 +89,9 @@ it('delivers it after an Orca restart too, though nobody opened the chat', async
   const mine = await sentWhileHeld('from the phone')
   await rig.quitRestartHostProcess()
   resetStructuredChatTerminalHoldsForTests()
+  vi.spyOn(rig.host, 'isSessionTabVisible').mockReturnValue(true)
 
-  await giveBack()
+  await giveBack(true)
   await eventually(async () => expect(await rig.handoff(automation)).toBeDefined())
   expect((await rig.handoff(automation))?.dispatchState).not.toBe('rejected')
   expect((await rig.drafts()).find((draft) => draft.messageId === mine)).not.toMatchObject({
@@ -128,4 +129,17 @@ it('starts no agent for a message accepted as the chat was handed over', async (
   // The rig's provider cannot resume; that a start is asked for is what the hold kept back.
   await giveBack()
   await eventually(async () => expect(rig.starts.mock.calls.length).toBe(starts + 1))
+})
+
+it("leaves a pause that is the person's own", async () => {
+  hold()
+  const automation = await sentWhileHeld('the automation', true)
+  await rig.quitRestartHostProcess()
+  resetStructuredChatTerminalHoldsForTests()
+  // Given back by a handover no restart passed under, or in a chat that was closed meanwhile.
+  await giveBack()
+  vi.spyOn(rig.host, 'isSessionTabVisible').mockReturnValue(false)
+  await rig.host.wakeReturnedSession(SESSION, { outlivedRestart: true, ran: true })
+  await rig.host.serialize(SESSION, async () => {})
+  expect(await rig.handoff(automation)).toBeUndefined()
 })

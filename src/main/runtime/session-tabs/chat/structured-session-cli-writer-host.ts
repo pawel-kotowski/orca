@@ -10,10 +10,8 @@ import { assertCliConversationWritersExited } from '../../agent-session/lifecycl
 import type { EnrichedAgentHookEventPayload } from '../../../agent-hooks/server/server-types'
 import type { AgentSessionRecord } from '../../../../shared/agent-session/lifecycle/agent-session-record'
 import type { StructuredAgentCliSourceRoute } from '../../../native-chat/conversation-adoption/structured-agent-cli-source'
-import {
-  chatConversation,
-  OrcaRuntimeWithStructuredChatTerminalHolds
-} from './structured-chat-terminal-hold-host'
+import { chatConversation } from '../../../native-chat/conversation-adoption/structured-chat-conversation'
+import { OrcaRuntimeWithStructuredChatTerminalHolds } from './structured-chat-terminal-hold-host'
 
 export abstract class OrcaRuntimeWithStructuredSessionCliWriterHost extends OrcaRuntimeWithStructuredChatTerminalHolds {
   getStructuredAgentCliSourceRoute(source: {

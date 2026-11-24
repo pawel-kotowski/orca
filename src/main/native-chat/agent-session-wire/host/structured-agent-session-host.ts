@@ -201,9 +201,17 @@ export class StructuredAgentSessionHost {
   sessionStarting = (id: string) => this.runtimeState.startFlights.has(id)
 
   /** Local: a terminal gave the chat back: what waited for it goes out, also after a restart. */
-  wakeReturnedSession = (id: string) =>
-    wakeReturnedStructuredChat(this.deps.store, id, {
+  wakeReturnedSession = (id: string, hold: { outlivedRestart: boolean; ran: boolean }) =>
+    wakeReturnedStructuredChat(this.deps.store, id, hold, {
       open: this.conversation,
+      shown: () => this.isSessionTabVisible(id),
+      cancelUsageLimitContinue: async () => {
+        const cut = await this.clientDelivery.readUsageLimitCut(id)
+        if (cut?.resetsAt !== undefined) {
+          const { turnItemId, resetsAt } = cut
+          await this.usageLimitContinue.cancel({ sessionId: id, turnItemId, resetsAt })
+        }
+      },
       refresh: () => this.queued.refresh(id),
       wakeDelivery: () => void this.conversationDelivery.loop.wake(id)
     })

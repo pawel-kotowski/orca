@@ -5,7 +5,11 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   path: '',
-  daemon: vi.fn<() => Promise<string[] | null>>(),
+  daemon:
+    vi.fn<
+      () => Promise<{ sessionId: string; incarnationId?: string; isAlive: boolean }[] | null>
+    >(),
+  installed: true,
   processes: vi.fn(),
   host: null as unknown
 }))
@@ -15,7 +19,8 @@ vi.mock('../../../../shared/app-lifecycle/app-environment', async (original) => 
 }))
 vi.mock('../../../daemon/providers/lifecycle/daemon-provider-state', async (original) => ({
   ...(await original<object>()),
-  listLiveDaemonPtyIds: mocks.daemon
+  getDaemonProvider: () => (mocks.installed ? {} : null),
+  listLiveDaemonSessions: mocks.daemon
 }))
 vi.mock('../../agent-session/ownership/structured-chat-terminal-process', () => ({
   readTerminalProcesses: mocks.processes
@@ -29,12 +34,11 @@ vi.mock(
 )
 
 import {
-  admitStructuredChatTerminalSpawn,
   beginStructuredChatTerminalHold,
-  bindStructuredChatTerminal,
+  claimStructuredChatTerminalSpawn,
   heldStructuredChats,
+  keepStructuredChatHold,
   resetStructuredChatTerminalHoldsForTests,
-  settleStructuredChatTerminalSpawn,
   structuredChatTerminalHold
 } from '../../agent-session/ownership/structured-chat-terminal-holds'
 import { OrcaRuntimeWithStructuredSessionCliWriterHost } from './structured-session-cli-writer-host'
@@ -92,6 +96,7 @@ function runtime() {
           ? null
           : { presence: async () => state.presence, current: () => true, topology: 'pane-owned' },
       createTerminalIdentityReadContext: () => ({}),
+      cleanupSubscription: () => {},
       ensureStructuredAgentSessionHost: async () => {},
       redriveStructuredSessionMail: (id: string) => woken.push(`mail ${id}`)
     }
@@ -113,8 +118,18 @@ const ROW: Row = {
 const RUNNING = { id: 'pty', incarnationId: 'i', rootProcessId: 10 }
 const check = (host: { releaseFinishedTerminalHolds(): Promise<void> }) =>
   host.releaseFinishedTerminalHolds()
-const processesAre = (shellAlone: boolean, runsConversation: boolean) =>
-  mocks.processes.mockResolvedValue({ shellAlone, runsConversation })
+function processesAre(
+  shellAlone: boolean,
+  runsConversation: boolean,
+  runsAnywhere: boolean | null = runsConversation
+): void {
+  mocks.processes.mockResolvedValue({
+    shellAlone: async () => shellAlone,
+    runsBelow: () => runsConversation,
+    runsAnywhere: () => runsAnywhere,
+    runsAgentBelow: () => runsConversation
+  })
+}
 
 function begin(token = 'a'): void {
   beginStructuredChatTerminalHold('chat', {
@@ -126,15 +141,18 @@ function begin(token = 'a'): void {
 }
 function open(token = 'a'): void {
   begin(token)
-  admitStructuredChatTerminalSpawn(token, { ptyId: 'pty', paneKey: 'tab:leaf' })
-  bindStructuredChatTerminal(token, { ptyId: 'pty', incarnationId: 'i', paneKey: 'tab:leaf' })
-  settleStructuredChatTerminalSpawn(token)
+  const claim = claimStructuredChatTerminalSpawn(token, () => false)!
+  claim.admit({ ptyId: 'pty', paneKey: 'tab:leaf' })
+  claim.bind({ ptyId: 'pty', incarnationId: 'i', paneKey: 'tab:leaf' })
+  claim.settle(false)
 }
 
 beforeEach(() => {
   mocks.path = mkdtempSync(join(tmpdir(), 'terminal-holds-'))
   mocks.daemon.mockReset().mockResolvedValue([])
   mocks.processes.mockReset()
+  mocks.installed = true
+  processesAre(false, false)
   resetStructuredChatTerminalHoldsForTests()
 })
 afterEach(() => rmSync(mocks.path, { recursive: true, force: true }))
@@ -168,7 +186,7 @@ it('H2: a hold ends after a restart with nobody looking, and wakes what waited',
     mocks.daemon.mockResolvedValue(null)
     await vi.advanceTimersByTimeAsync(6_000)
     expect(heldStructuredChats()).toEqual(['chat'])
-    mocks.daemon.mockResolvedValue(['another'])
+    mocks.daemon.mockResolvedValue([{ sessionId: 'another', isAlive: true }])
     await vi.advanceTimersByTimeAsync(3_000)
     expect(heldStructuredChats()).toEqual([])
     expect(woken).toEqual(['chat chat', 'mail chat'])
@@ -208,10 +226,15 @@ it('H3: a launch command that came and went unseen is over, by the shell that ra
   open()
   state.listed = [RUNNING]
   processesAre(true, false)
-  state.ptys.set('pty', { commandPaint: { ranCommand: false } })
+  const pty = (ranCommand: boolean, tail: string) =>
+    state.ptys.set('pty', { commandPaint: { ranCommand }, tailBuffer: [tail], tailPartialLine: '' })
+  pty(false, '$ codex resume conversation')
+  await check(host)
+  // Some other command, before the launch was typed.
+  pty(true, '$ ls')
   await check(host)
   expect(heldStructuredChats()).toEqual(['chat'])
-  state.ptys.set('pty', { commandPaint: { ranCommand: true } })
+  pty(true, '$ codex resume conver\r\nsation: command not found')
   await check(host)
   expect(heldStructuredChats()).toEqual([])
 })
@@ -219,13 +242,86 @@ it('H3: a launch command that came and went unseen is over, by the shell that ra
 it('holds while its terminal is being spawned, though no list has it yet', async () => {
   const { host } = runtime()
   begin()
-  admitStructuredChatTerminalSpawn('a', { ptyId: 'pty', paneKey: 'tab:leaf' })
+  const claim = claimStructuredChatTerminalSpawn('a', () => false)!
+  claim.admit({ ptyId: 'pty', paneKey: 'tab:leaf' })
   await check(host)
   expect(heldStructuredChats()).toEqual(['chat'])
   // The spawn failed after all, and every daemon says there is no such terminal.
-  settleStructuredChatTerminalSpawn('a')
+  claim.settle(true)
   await check(host)
   expect(heldStructuredChats()).toEqual([])
+})
+
+it('holds between the stop and the start of a restart, also in the same shell', async () => {
+  const { host, state } = runtime()
+  open()
+  const release = keepStructuredChatHold('conversation')
+  state.verdicts.set('pty', { verdict: { status: 'exited', incarnationId: 'i' } })
+  await check(host)
+  expect(heldStructuredChats()).toEqual(['chat'])
+  release()
+  await check(host)
+  expect(heldStructuredChats()).toEqual([])
+})
+
+it('a cold-restored shell under the same id is not the terminal that is gone', async () => {
+  const { host, state } = runtime()
+  open()
+  state.listed = [{ ...RUNNING, incarnationId: 'fresh' }]
+  mocks.daemon.mockResolvedValue([{ sessionId: 'pty', incarnationId: 'fresh', isAlive: true }])
+  await check(host)
+  expect(heldStructuredChats()).toEqual([])
+})
+
+it('an agent elsewhere on the machine (a detached tmux) keeps the hold', async () => {
+  const { host } = runtime()
+  open()
+  processesAre(false, false, true)
+  await check(host)
+  expect(heldStructuredChats()).toEqual(['chat'])
+  processesAre(false, false, null)
+  await check(host)
+  expect(heldStructuredChats()).toEqual(['chat'])
+})
+
+it('without a daemon, its own list proves the end of a terminal this Orca asked for', async () => {
+  const { host } = runtime()
+  mocks.installed = false
+  open()
+  await check(host)
+  expect(heldStructuredChats()).toEqual([])
+  open('b')
+  resetStructuredChatTerminalHoldsForTests()
+  await check(host)
+  expect(heldStructuredChats()).toEqual(['chat'])
+})
+
+it('one check that fails does not starve the others', async () => {
+  const { host, state } = runtime()
+  beginStructuredChatTerminalHold('first', {
+    token: 'f',
+    id: 'f',
+    agent: 'codex',
+    conversationId: 'other'
+  })
+  open()
+  state.verdicts.set('pty', { verdict: { status: 'exited', incarnationId: 'i' } })
+  mocks.host = {
+    deps: {
+      store: {
+        getConversation: (id: string) => {
+          if (id === 'first') {
+            throw new Error('unreadable')
+          }
+          return RECORD
+        },
+        isSessionUnreadable: () => false
+      }
+    },
+    wakeReturnedSession: async () => {}
+  }
+  await check(host)
+  expect(heldStructuredChats()).toEqual(['first'])
 })
 
 it('a stand-in shell under the same pty id is not the terminal', async () => {
@@ -233,7 +329,7 @@ it('a stand-in shell under the same pty id is not the terminal', async () => {
   open()
   state.listed = [{ ...RUNNING, incarnationId: 'other' }]
   processesAre(true, true)
-  mocks.daemon.mockResolvedValue(['pty'])
+  mocks.daemon.mockResolvedValue([{ sessionId: 'pty', incarnationId: 'i', isAlive: true }])
   await check(host)
   expect(heldStructuredChats()).toEqual(['chat'])
 })
@@ -242,10 +338,11 @@ it('a key pressed while its processes were read keeps the hold', async () => {
   const { host, state } = runtime()
   open()
   state.listed = [RUNNING]
-  processesAre(true, false)
+  processesAre(true, true, false)
+  const table = await mocks.processes()
   mocks.processes.mockImplementation(async () => {
     state.inputAt += 1
-    return { shellAlone: true, runsConversation: true }
+    return table
   })
   await check(host)
   expect(heldStructuredChats()).toEqual(['chat'])
@@ -268,9 +365,11 @@ it('M2: taking back one handover never ends a newer one', async () => {
   expect(structuredChatTerminalHold('chat')?.token).toBe('a')
   // It ended, and another began, while the press was looking at it.
   state.listed = [RUNNING]
+  processesAre(true, true, false)
+  const table = await mocks.processes()
   mocks.processes.mockImplementation(async () => {
     begin('b')
-    return { shellAlone: true, runsConversation: true }
+    return table
   })
   expect(await host.takeBackStructuredChat(RECORD, 'id-a')).toBe(false)
   expect(structuredChatTerminalHold('chat')?.token).toBe('b')

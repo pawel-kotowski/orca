@@ -2,13 +2,12 @@ import type { AgentSessionRecord } from '../../../../shared/agent-session/lifecy
 import type { StructuredAgentId } from '../../../../shared/agent-session/lifecycle/provider-handles/agent-session-provider-handle'
 import { LOCAL_EXECUTION_HOST_ID } from '../../../../shared/execution-host/execution-host'
 import { isAgentSessionRefusalError } from '../../../../shared/agent-session/failures/agent-session-wire-refusals'
-import {
-  CLI_CONVERSATION_ADOPTING_AGENTS,
-  namesCliConversation
-} from '../../../../shared/agent-session/view/structured-agent-cli-conversation-adoption'
-import { recordConversationKey } from '../../../native-chat/conversation-adoption/structured-conversation-key'
+import { namesCliConversation } from '../../../../shared/agent-session/view/structured-agent-cli-conversation-adoption'
+import { chatConversation } from '../../../native-chat/conversation-adoption/structured-chat-conversation'
 import { getStructuredAgentSessionHost } from '../../../native-chat/agent-session-wire/host/structured-agent-session-registry'
 import {
+  chatTerminalHandoverSubscription,
+  forgetUnreadableStructuredChatTerminalHolds,
   heldStructuredChats,
   noteStructuredChatTerminalRan,
   onStructuredChatTerminalHoldEnded,
@@ -17,36 +16,22 @@ import {
   structuredChatTerminalHold,
   structuredChatTerminalHoldsUnreadable,
   structuredChatTerminalMayWrite,
-  structuredChatTerminalSpawning,
+  structuredChatTerminalStarting,
+  type EndedStructuredChatTerminalHold,
+  type StructuredChatHoldTerminal,
   type StructuredChatTerminalHold,
   type TerminalHoldPane
 } from '../../agent-session/ownership/structured-chat-terminal-holds'
 import { readTerminalProcesses } from '../../agent-session/ownership/structured-chat-terminal-process'
+import {
+  readLiveDaemonSessions,
+  readTerminalHoldPane,
+  type TerminalHoldReads
+} from './structured-chat-terminal-hold-reads'
 import { OrcaRuntimeWithGetWorktreePs } from '../../workspaces/process-listing/workspace-process-listing'
 
 const TERMINAL_HOLD_CHECK_MS = 2_000
 const TERMINAL_START_CHECK_MS = 250
-
-// Lazy: the daemon modules' xterm polyfill defines a global `window` on import.
-async function listLiveDaemonSessionIds(): Promise<string[] | null> {
-  const { listLiveDaemonPtyIds } =
-    await import('../../../daemon/providers/lifecycle/daemon-provider-state')
-  return listLiveDaemonPtyIds()
-}
-
-/** The provider conversation of a chat whose terminal writers the host can tell. */
-export function chatConversation(
-  record: AgentSessionRecord
-): { agent: StructuredAgentId; id: string } | null {
-  const head = record.providerHandleChain.at(-1)
-  const key = head ? recordConversationKey(record, head) : null
-  return key?.id &&
-    Object.values(CLI_CONVERSATION_ADOPTING_AGENTS).some((agents: readonly string[]) =>
-      agents.includes(record.provider)
-    )
-    ? { agent: record.provider, id: key.id }
-    : null
-}
 
 /** Local: chats handed to a terminal, and the proofs that end a hold. */
 export abstract class OrcaRuntimeWithStructuredChatTerminalHolds extends OrcaRuntimeWithGetWorktreePs {
@@ -109,10 +94,10 @@ export abstract class OrcaRuntimeWithStructuredChatTerminalHolds extends OrcaRun
   /** Whether another terminal may write the conversation. Stricter than upstream's check, which
    *  admits what it cannot judge (Codex reports no process): such a row counts until its terminal is
    *  gone or its shell is alone. */
-  private async terminalRowsMayWrite(key: {
-    agent: StructuredAgentId
-    id: string
-  }): Promise<boolean> {
+  private async terminalRowsMayWrite(
+    key: { agent: StructuredAgentId; id: string },
+    reads?: TerminalHoldReads
+  ): Promise<boolean> {
     for (const row of this.getAgentProviderSessionRows()) {
       if (row.structuredHost || !namesCliConversation(row, key.agent, key.id)) {
         continue
@@ -125,13 +110,14 @@ export abstract class OrcaRuntimeWithStructuredChatTerminalHolds extends OrcaRun
         return true
       }
       const pty = this.getPtyRecordForPaneKey(row.paneKey)
-      const { pane } = await this.readTerminalHoldPane(
+      const { pane } = await this.readHoldPane(
         {
           ptyId: pty?.ptyId ?? null,
           incarnationId: pty?.incarnationId ?? null,
           paneKey: row.paneKey
         },
-        key.id
+        key.id,
+        reads ?? (await this.readHoldTerminals())
       )
       if (pane === 'running' || pane === 'unknown') {
         return true
@@ -140,82 +126,92 @@ export abstract class OrcaRuntimeWithStructuredChatTerminalHolds extends OrcaRun
     return false
   }
 
-  /** The terminal as its host has it now, after an Orca restart too: a terminal that was not
-   *  reattached yet is in the daemon's own list. */
-  private async readTerminalHoldPane(
-    terminal: Pick<StructuredChatTerminalHold, 'ptyId' | 'incarnationId' | 'paneKey'>,
-    conversationId: string
-  ): Promise<{ pane: TerminalHoldPane; ran: boolean }> {
-    const { ptyId, incarnationId, paneKey } = terminal
-    const same = (other: string | null | undefined) =>
-      incarnationId === null || other === incarnationId
-    const answer = (pane: TerminalHoldPane, ran = false) => ({ pane, ran })
-    const processes = await this.ptyController
-      ?.listProcesses?.(LOCAL_EXECUTION_HOST_ID)
-      .catch(() => null)
-    const listed = processes?.find((process) =>
-      ptyId === null
-        ? paneKey !== null && process.paneKey === paneKey
-        : process.id === ptyId && same(process.incarnationId)
-    )
-    if (listed) {
-      if (process.platform === 'win32') {
-        const alone = await this.confirmTerminalShellAlone(listed.id)
-        return answer(alone ? 'shell' : 'running')
-      }
-      const read = listed.rootProcessId
-        ? await readTerminalProcesses(listed.rootProcessId, conversationId)
-        : { shellAlone: false, runsConversation: false }
-      return answer(read.shellAlone ? 'shell' : 'running', read.runsConversation)
+  private async readHoldTerminals(): Promise<TerminalHoldReads> {
+    const listed = this.ptyController?.listProcesses?.(LOCAL_EXECUTION_HOST_ID)
+    const processes = listed ? await listed.catch(() => null) : null
+    const daemon = processes ? await readLiveDaemonSessions().catch(() => null) : null
+    return {
+      processes,
+      daemon,
+      table: await readTerminalProcesses()
     }
-    if (ptyId !== null) {
-      const verdict = this.ptyLivenessVerdictByPtyId.get(ptyId)?.verdict
-      if (verdict?.status === 'exited' && same(verdict.incarnationId)) {
-        return answer('absent')
-      }
-      if (this.ptyController?.hasPty?.(ptyId)) {
-        return answer('unknown')
-      }
-    }
-    // Only every daemon's own answer proves a terminal this process does not have is gone.
-    const live = processes ? await listLiveDaemonSessionIds().catch(() => null) : null
-    return answer(live === null || (ptyId !== null && live.includes(ptyId)) ? 'unknown' : 'absent')
+  }
+
+  private readHoldPane(
+    terminal: Pick<StructuredChatHoldTerminal, 'ptyId' | 'incarnationId' | 'paneKey'>,
+    conversationId: string,
+    reads: TerminalHoldReads
+  ) {
+    return readTerminalHoldPane(terminal, conversationId, reads, {
+      shellAloneOnWindows: (ptyId) => this.confirmTerminalShellAlone(ptyId),
+      verdict: (ptyId) => this.ptyLivenessVerdictByPtyId.get(ptyId)?.verdict
+    })
   }
 
   private async structuredChatTerminalActive(
     sessionId: string,
     hold: StructuredChatTerminalHold
   ): Promise<boolean> {
-    if (hold.phase === 'opening' || structuredChatTerminalSpawning(hold.token)) {
+    if (hold.phase === 'opening' || structuredChatTerminalStarting(hold)) {
       return true
     }
-    const { ptyId, conversationId: id } = hold
-    const inputAt = () => (ptyId === null ? null : this.terminalRunFacts.readLastInputAt(ptyId))
+    const { conversationId: id, terminals } = hold
+    const inputAt = () =>
+      terminals.map(({ ptyId }) =>
+        ptyId === null ? null : this.terminalRunFacts.readLastInputAt(ptyId)
+      )
     const inputBefore = inputAt()
-    const { pane, ran } = await this.readTerminalHoldPane(hold, id)
-    const pty = ptyId === null ? undefined : this.ptysById.get(ptyId)
-    // Its launch command started and finished too soon to be seen (not signed in, not installed).
-    if (ran || (pane === 'shell' && pty?.commandPaint?.ranCommand)) {
-      noteStructuredChatTerminalRan(sessionId)
+    const reads = await this.readHoldTerminals()
+    const anywhere = reads.table.runsAnywhere(id)
+    const panes: TerminalHoldPane[] = []
+    for (const terminal of terminals) {
+      const { pane, ran } = await this.readHoldPane(terminal, id, reads)
+      panes.push(pane)
+      if (ran || (pane === 'shell' && this.launchCommandEnded(terminal, id))) {
+        noteStructuredChatTerminalRan(sessionId, terminal.ptyId)
+      }
     }
-    const rowsMayWrite = await this.terminalRowsMayWrite({ agent: hold.agent, id })
+    const rowsMayWrite = await this.terminalRowsMayWrite({ agent: hold.agent, id }, reads)
     const current = structuredChatTerminalHold(sessionId)
     return (
       current?.token !== hold.token ||
-      current.ptyId !== ptyId ||
+      current.terminals.length !== terminals.length ||
+      structuredChatTerminalStarting(current) ||
+      (process.platform !== 'win32' && anywhere !== false) ||
+      rowsMayWrite ||
       // Typed into meanwhile: it may have started the agent again after its processes were read.
-      inputAt() !== inputBefore ||
-      structuredChatTerminalMayWrite(current, { pane, rowsMayWrite })
+      inputAt().some((at, index) => at !== inputBefore[index]) ||
+      current.terminals.some(
+        (terminal, index) =>
+          terminal.ptyId !== terminals[index].ptyId ||
+          terminal.incarnationId !== terminals[index].incarnationId ||
+          structuredChatTerminalMayWrite(terminal, panes[index])
+      )
+    )
+  }
+
+  /** Its launch command started and finished too soon to be seen (not signed in, not installed): the
+   *  shell ran a command, and the launch is among what it was given. */
+  private launchCommandEnded(terminal: StructuredChatHoldTerminal, id: string): boolean {
+    const pty = terminal.ptyId === null ? undefined : this.ptysById.get(terminal.ptyId)
+    return (
+      pty?.commandPaint?.ranCommand === true &&
+      terminal.restarted !== true &&
+      [...pty.tailBuffer, pty.tailPartialLine].join('').replace(/\s/g, '').includes(id)
     )
   }
 
   abstract redriveStructuredSessionMail(sessionId: string): void
 
   /** What waited for a chat goes to it once its terminal is done, also when nobody looks at it. */
-  private async resumeReturnedChat(sessionId: string): Promise<void> {
+  private async resumeReturnedChat(ended: EndedStructuredChatTerminalHold): Promise<void> {
+    const { sessionId, hold, outlivedRestart } = ended
     try {
       await this.ensureStructuredAgentSessionHost()
-      await getStructuredAgentSessionHost()?.wakeReturnedSession(sessionId)
+      await getStructuredAgentSessionHost()?.wakeReturnedSession(sessionId, {
+        outlivedRestart,
+        ran: hold.terminals.some(({ ran }) => ran)
+      })
     } catch (error) {
       console.warn('[chat-terminal] waking a returned chat failed', error)
     }
@@ -226,7 +222,10 @@ export abstract class OrcaRuntimeWithStructuredChatTerminalHolds extends OrcaRun
 
   /** While any chat is handed over, from startup on: gives it back once its terminal is done. */
   protected startStructuredChatTerminalHolds(): void {
-    onStructuredChatTerminalHoldEnded((sessionId) => void this.resumeReturnedChat(sessionId))
+    onStructuredChatTerminalHoldEnded((ended) => {
+      this.cleanupSubscription(chatTerminalHandoverSubscription(ended.hold.token))
+      void this.resumeReturnedChat(ended)
+    })
     const first = setTimeout(() => {
       releaseUnlaunchedStructuredChatTerminalHolds()
       this.watchStructuredChatTerminalHolds()
@@ -235,19 +234,18 @@ export abstract class OrcaRuntimeWithStructuredChatTerminalHolds extends OrcaRun
   }
 
   watchStructuredChatTerminalHolds(): void {
-    if (this.terminalHoldWatch || heldStructuredChats().length === 0) {
+    if (
+      this.terminalHoldWatch ||
+      (heldStructuredChats().length === 0 && !structuredChatTerminalHoldsUnreadable())
+    ) {
       return
     }
     this.terminalHoldWatch = setTimeout(
       () => {
-        void this.releaseFinishedTerminalHolds()
-          .catch((error: unknown) =>
-            console.warn('[chat-terminal] checking handed-over chats failed', error)
-          )
-          .finally(() => {
-            this.terminalHoldWatch = null
-            this.watchStructuredChatTerminalHolds()
-          })
+        void this.releaseFinishedTerminalHolds().finally(() => {
+          this.terminalHoldWatch = null
+          this.watchStructuredChatTerminalHolds()
+        })
       },
       this.agentIsStarting() ? TERMINAL_START_CHECK_MS : TERMINAL_HOLD_CHECK_MS
     )
@@ -259,13 +257,15 @@ export abstract class OrcaRuntimeWithStructuredChatTerminalHolds extends OrcaRun
   private agentIsStarting(): boolean {
     return heldStructuredChats().some((sessionId) => {
       const hold = structuredChatTerminalHold(sessionId)
-      const pty = hold?.ptyId ? this.ptysById.get(hold.ptyId) : undefined
       return (
-        hold !== null &&
-        !hold.ran &&
-        (hold.phase === 'opening' ||
-          (pty !== undefined &&
-            Date.now() - (pty.lastOutputAt ?? Date.now()) < TERMINAL_HOLD_CHECK_MS))
+        hold?.phase === 'opening' ||
+        hold?.terminals.some(({ ptyId, ran }) => {
+          const pty = ptyId === null || ran ? undefined : this.ptysById.get(ptyId)
+          return (
+            pty !== undefined &&
+            Date.now() - (pty.lastOutputAt ?? Date.now()) < TERMINAL_HOLD_CHECK_MS
+          )
+        }) === true
       )
     })
   }
@@ -277,13 +277,26 @@ export abstract class OrcaRuntimeWithStructuredChatTerminalHolds extends OrcaRun
       if (!hold) {
         continue
       }
-      const deleted =
-        store !== undefined &&
-        store.getConversation(sessionId) === null &&
-        !store.isSessionUnreadable(sessionId)
-      // Only its own handover ends, after the checks' waits.
-      if (deleted || !(await this.structuredChatTerminalActive(sessionId, hold))) {
-        releaseStructuredChatTerminalHold(sessionId, hold.token)
+      try {
+        const deleted =
+          store !== undefined &&
+          store.getConversation(sessionId) === null &&
+          !store.isSessionUnreadable(sessionId)
+        // Only its own handover ends, after the checks' waits.
+        if (deleted || !(await this.structuredChatTerminalActive(sessionId, hold))) {
+          releaseStructuredChatTerminalHold(sessionId, hold.token)
+        }
+      } catch (error) {
+        console.warn('[chat-terminal] checking a handed-over chat failed', sessionId, error)
+      }
+    }
+    if (structuredChatTerminalHoldsUnreadable()) {
+      const { processes, table } = await this.readHoldTerminals()
+      const agents = processes?.map(({ rootProcessId }) =>
+        rootProcessId ? table.runsAgentBelow(rootProcessId) : null
+      )
+      if (agents?.every((runs) => runs === false)) {
+        forgetUnreadableStructuredChatTerminalHolds()
       }
     }
   }

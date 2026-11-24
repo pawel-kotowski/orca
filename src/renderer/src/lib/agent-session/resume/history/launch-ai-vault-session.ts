@@ -10,6 +10,7 @@ import { getSavedTerminalSessionName } from '@/lib/agent-session/history/session
 import { setWebRuntimeTabProps } from '@/runtime/hosted-terminals/actions/web-runtime-tab-properties'
 import { createWebRuntimeSessionTerminal } from '@/runtime/hosted-terminals/creation/web-runtime-terminal-creation'
 import { isWebRuntimeSessionActive } from '@/runtime/web-session-tabs-sync/identity/web-runtime-session-environment'
+import { CHAT_HANDOVER_ENV } from '../../../../../../shared/agent-session/lifecycle/operations/agent-session-terminal-handover'
 import type { AiVaultAgent } from '../../../../../../shared/ai-vault/contracts/ai-vault-types'
 import type {
   AgentProviderSessionMetadata,
@@ -58,6 +59,8 @@ export function launchAiVaultSessionInNewTab(args: {
         command: args.command,
         ...(args.cwd ? { cwd: args.cwd } : {}),
         ...(args.env ? { env: args.env } : {}),
+        // Local: only this create carries the environment, which a chat's handover needs.
+        ...(args.env?.[CHAT_HANDOVER_ENV] ? { preparedAgentCommand: true } : {}),
         ...(args.envToDelete ? { envToDelete: args.envToDelete } : {}),
         ...(args.launchConfig ? { launchConfig: args.launchConfig } : {}),
         ...(args.providerSession ? { providerSession: args.providerSession } : {}),
