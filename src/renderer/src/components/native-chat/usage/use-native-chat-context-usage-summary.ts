@@ -25,7 +25,7 @@ export function useNativeChatContextUsageSummary(
   const scope = useNativeChatAccountScope()
   const transcript = useNativeChatTranscriptContextUsage(
     agent,
-    structuredTransport ? null : scope?.transcriptPath,
+    structuredTransport || scope?.kind !== 'terminal' ? null : scope.transcriptPath,
     conversation?.messages ?? NO_MESSAGES
   )
   return structured ?? transcript

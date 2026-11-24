@@ -303,7 +303,10 @@ function UsageLimitCard({
 
   const stack = slotKey === 'continue' ? STACK.continue : STACK.tools
   return (
-    <div className="@container rounded-md border border-border bg-muted/20 text-sm">
+    <div
+      data-native-chat-surface="card"
+      className="@container rounded-md border border-border bg-muted/20 text-sm"
+    >
       <div
         className={cn('flex min-h-10 items-start gap-x-2 gap-y-1 py-1.5 pl-2.5 pr-1.5', stack.row)}
       >

@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, type ReactNode } from 'react'
+import { useContext, useEffect } from 'react'
 import { useAppStore } from '@/store'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useResetCountdownClock } from '@/components/status-bar/usage/useResetCountdownClock'
@@ -13,7 +13,8 @@ import { clampUsedPercent } from '../../../../shared/agent-usage/display/usage-p
 import { NativeChatMeter } from './native-chat-meter'
 import {
   NativeChatAccountSwitch,
-  NativeChatRemoteAccountSwitch
+  NativeChatRemoteAccountSwitch,
+  NativeChatStructuredAccountSwitch
 } from './native-chat-account-switch'
 import { workspaceClaudeAccountId } from '../../../../shared/claude-workspace-account'
 import { claudeAccountOrgName } from '../../../../shared/agent-accounts/claude-account-org-name'
@@ -25,38 +26,25 @@ import {
   useClaudeSessionLogin,
   type ClaudeSessionLoginState
 } from './native-chat-claude-session-login'
+import {
+  NativeChatAccountScopeContext,
+  type NativeChatAccountScope,
+  type NativeChatStructuredAccountScope,
+  type NativeChatTerminalAccountScope
+} from './native-chat-account-scope'
+import { useStructuredClaudeAccount } from './native-chat-structured-claude-account'
+import {
+  structuredClaudeUsage,
+  type StructuredClaudeUsage
+} from './native-chat-structured-claude-usage'
 import { claudeConfigDirFromTranscriptPath } from '../../../../shared/agent-accounts/claude/claude-session-login'
 
-/** Which chat the message box belongs to, so its controls can show that chat's Claude account. */
-export type NativeChatAccountScope = {
-  agent: string
-  transcriptPath: string | null
-  terminalTabId: string
-}
-
-const NativeChatAccountScopeContext = createContext<NativeChatAccountScope | null>(null)
-
-/** The chat the message box belongs to, or null outside a terminal-backed chat. */
-export function useNativeChatAccountScope(): NativeChatAccountScope | null {
-  return useContext(NativeChatAccountScopeContext)
-}
-
-export function NativeChatAccountScopeProvider({
-  agent,
-  transcriptPath,
-  terminalTabId,
-  children
-}: NativeChatAccountScope & { children: ReactNode }): React.JSX.Element {
-  const value = useMemo(
-    () => ({ agent, transcriptPath, terminalTabId }),
-    [agent, transcriptPath, terminalTabId]
-  )
-  return (
-    <NativeChatAccountScopeContext.Provider value={value}>
-      {children}
-    </NativeChatAccountScopeContext.Provider>
-  )
-}
+export {
+  NativeChatAccountScopeProvider,
+  NativeChatStructuredAccountScopeProvider,
+  useNativeChatAccountScope,
+  type NativeChatAccountScope
+} from './native-chat-account-scope'
 
 const PROFILE_PATH =
   /\/claude-profiles\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\//i
@@ -142,6 +130,8 @@ export type ChatClaudeUsage = {
   worktreeId?: string | null
   /** The paired machine whose own logins a switch offers; null for this machine's chat. */
   environmentId?: string | null
+  /** A structured chat's account, as its host reads it. */
+  structured?: StructuredClaudeUsage
 }
 
 /**
@@ -160,11 +150,7 @@ export function resolveRemoteChatClaudeUsage(
     (transcriptPath ? null : claude.activeAccountId)
   const account = claude.accounts.find((entry) => entry.id === accountId) ?? null
   if (account) {
-    const limits =
-      account.id === claude.activeAccountId
-        ? (rateLimits?.claude ?? null)
-        : (rateLimits?.inactiveClaudeAccounts.find((entry) => entry.accountId === account.id)
-            ?.rateLimits ?? null)
+    const limits = managedLimits(snapshot, account.id)
     return { name: accountShortName(account.email), email: account.email, limits }
   }
   const email = claude.systemDefaultEmail ?? claude.systemLoginEmail ?? null
@@ -205,7 +191,72 @@ export function sessionLoginUsage(
     : null
 }
 
+function managedLimits(
+  snapshot: Pick<ProviderAccountsSnapshot, 'claude' | 'rateLimits'>,
+  accountId: string | null
+): ProviderRateLimits | null {
+  return accountId === null
+    ? null
+    : accountId === snapshot.claude.activeAccountId
+      ? (snapshot.rateLimits?.claude ?? null)
+      : (snapshot.rateLimits?.inactiveClaudeAccounts.find((entry) => entry.accountId === accountId)
+          ?.rateLimits ?? null)
+}
+
+function useLocalClaudeAccountLimits(accountId: string | null): ProviderRateLimits | null {
+  const isActive = useAppStore(
+    (state) => accountId !== null && state.settings?.activeClaudeManagedAccountId === accountId
+  )
+  const limits = useAppStore((state) =>
+    accountId === null
+      ? null
+      : isActive
+        ? state.rateLimits.claude
+        : (state.rateLimits.inactiveClaudeAccounts.find((entry) => entry.accountId === accountId)
+            ?.rateLimits ?? null)
+  )
+  const needsFetch = accountId !== null && !isActive
+  useEffect(() => {
+    if (!needsFetch || window.performance.now() - lastInactiveFetchAt < INACTIVE_REFRESH_MS) {
+      return
+    }
+    lastInactiveFetchAt = window.performance.now()
+    void useAppStore.getState().fetchInactiveClaudeAccountUsage()
+  }, [needsFetch])
+  return limits
+}
+
+function useStructuredChatClaudeUsage(
+  chat: NativeChatStructuredAccountScope | null
+): ChatClaudeUsage | null {
+  const usage = structuredClaudeUsage(useStructuredClaudeAccount(chat))
+  const environmentId = chat?.target.kind === 'environment' ? chat.target.environmentId : null
+  const accountId = usage?.shown.accountId ?? null
+  const snapshot = useRemoteProviderAccounts(usage ? environmentId : null)
+  const local = useLocalClaudeAccountLimits(environmentId === null ? accountId : null)
+  if (!usage) {
+    return null
+  }
+  const { email, limits } = usage.shown
+  return {
+    name: email ? accountShortName(email) : null,
+    email,
+    limits:
+      limits ??
+      (environmentId === null ? local : snapshot ? managedLimits(snapshot, accountId) : null),
+    structured: usage
+  }
+}
+
 function useChatClaudeUsage(scope: NativeChatAccountScope): ChatClaudeUsage | null {
+  const terminal = useTerminalChatClaudeUsage(scope.kind === 'terminal' ? scope : NO_SCOPE)
+  const structured = useStructuredChatClaudeUsage(
+    scope.kind === 'structured' && scope.agent === 'claude' ? scope : null
+  )
+  return scope.kind === 'structured' ? structured : terminal
+}
+
+function useTerminalChatClaudeUsage(scope: NativeChatTerminalAccountScope): ChatClaudeUsage | null {
   const worktreeId = useAppStore((state) =>
     worktreeIdForTab(state.tabsByWorktree, scope.terminalTabId)
   )
@@ -232,25 +283,7 @@ function useChatClaudeUsage(scope: NativeChatAccountScope): ChatClaudeUsage | nu
         })
       : null
   )
-  const isActive = useAppStore(
-    (state) => account !== null && state.settings?.activeClaudeManagedAccountId === account.id
-  )
-  const limits = useAppStore((state) =>
-    account === null
-      ? null
-      : isActive
-        ? state.rateLimits.claude
-        : (state.rateLimits.inactiveClaudeAccounts.find((entry) => entry.accountId === account.id)
-            ?.rateLimits ?? null)
-  )
-  const needsFetch = account !== null && !isActive
-  useEffect(() => {
-    if (!needsFetch || window.performance.now() - lastInactiveFetchAt < INACTIVE_REFRESH_MS) {
-      return
-    }
-    lastInactiveFetchAt = window.performance.now()
-    void useAppStore.getState().fetchInactiveClaudeAccountUsage()
-  }, [needsFetch])
+  const limits = useLocalClaudeAccountLimits(account?.id ?? null)
   const fromFolder = unmanaged ? sessionLoginUsage(sessionLogin) : undefined
   if (fromFolder !== undefined) {
     return (
@@ -281,7 +314,12 @@ function useChatClaudeUsage(scope: NativeChatAccountScope): ChatClaudeUsage | nu
  * The Claude subscription this chat runs on and how much of its session (5 h) and weekly limits
  * are used, as a short bar each with its reset time, on a quiet line under the message box.
  */
-const NO_SCOPE: NativeChatAccountScope = { agent: '', transcriptPath: null, terminalTabId: '' }
+const NO_SCOPE: NativeChatTerminalAccountScope = {
+  kind: 'terminal',
+  agent: '',
+  transcriptPath: null,
+  terminalTabId: ''
+}
 
 /** The chat's subscription owner (what its footer names), for opening its links in their Chrome. */
 export function useNativeChatClaudeIdentity(): {
@@ -361,7 +399,11 @@ function ClaudeAccountUsageChip({
         // Why: whose subscription this is reads at a glance, in the theme's blue; a click moves
         // the chat to another one (native-chat-account-switch). Outside the tooltip, which would
         // otherwise cover its open menu.
-        usage.environmentId ? (
+        scope.kind === 'structured' ? (
+          usage.structured ? (
+            <NativeChatStructuredAccountSwitch name={name} chat={scope} usage={usage.structured} />
+          ) : null
+        ) : usage.environmentId ? (
           <NativeChatRemoteAccountSwitch
             name={name}
             environmentId={usage.environmentId}

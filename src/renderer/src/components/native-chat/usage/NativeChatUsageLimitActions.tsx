@@ -14,6 +14,7 @@ import { useStructuredChatTabConversationName } from '@/runtime/native-chat/nami
 import { AgentSessionContinuationDialog } from '@/components/agent-session-continuation/AgentSessionContinuationDialog'
 import { buildAgentSessionContinuationPrompt } from '../../../../../shared/agent-session/conversation-context/agent-session-continuation'
 import type { AgentSessionContinuationRequest } from '../../../../../shared/agent-session/conversation-context/agent-session-continuation'
+import { useStructuredUsageLimitAccount } from './NativeChatStructuredUsageLimitAccount'
 import { ClaudeSwitcherMenu } from '@/components/status-bar/accounts/ClaudeSwitcherMenu'
 import { ProviderAccountChatButton } from '@/components/status-bar/accounts/ProviderAccountChatButton'
 import { isTuiAgent } from '../../../../../shared/agent-launch/catalog/tui-agent-config'
@@ -102,8 +103,9 @@ export function NativeChatUsageLimitActionsProvider({
     isTuiAgent(pane.agent) &&
     directory.runtimeEnvironmentId ===
       (pane.target.kind === 'environment' ? pane.target.environmentId : null)
-  let account: ReactNode = null
-  if (pane.agent === 'claude' && active && pane.isVisible) {
+  const workspaceAccount = useStructuredUsageLimitAccount(active && pane.isVisible, view)
+  let account: ReactNode = workspaceAccount
+  if (!account && pane.agent === 'claude' && active && pane.isVisible) {
     if (canSwitchAccount === undefined) {
       account = <ProviderAccountChatButton provider="claude" target={pane.target} disabled busy />
     } else if (canSwitchAccount) {

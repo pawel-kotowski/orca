@@ -17,8 +17,14 @@ import { useNativeChatAccountScope, worktreeIdForTab } from './native-chat-accou
  */
 export function NativeChatPlaceLine(): React.JSX.Element | null {
   const scope = useNativeChatAccountScope()
-  // Why: only a terminal-backed chat has a tab to place; the store is read only for one.
-  return scope ? <TerminalChatPlaceLine terminalTabId={scope.terminalTabId} /> : null
+  if (!scope) {
+    return null
+  }
+  return scope.kind === 'structured' ? (
+    <WorkspacePlaceLine worktreeId={scope.worktreeId} botName={scope.botName} />
+  ) : (
+    <TerminalChatPlaceLine terminalTabId={scope.terminalTabId} />
+  )
 }
 
 function TerminalChatPlaceLine({
@@ -26,9 +32,19 @@ function TerminalChatPlaceLine({
 }: {
   terminalTabId: string
 }): React.JSX.Element | null {
+  const worktreeId = useAppStore((state) => worktreeIdForTab(state.tabsByWorktree, terminalTabId))
+  return <WorkspacePlaceLine worktreeId={worktreeId} botName={null} />
+}
+
+function WorkspacePlaceLine({
+  worktreeId,
+  botName
+}: {
+  worktreeId: string | null
+  botName: string | null
+}): React.JSX.Element | null {
   const place = useAppStore(
     useShallow((state) => {
-      const worktreeId = worktreeIdForTab(state.tabsByWorktree, terminalTabId)
       if (!worktreeId) {
         return null
       }
@@ -49,7 +65,9 @@ function TerminalChatPlaceLine({
         local,
         machine: local ? null : selectWorktreeHostDisplayLabel(state, worktreeId)?.trim() || null,
         repo: repo ?? null,
-        workspace: worktree ? getActivityThreadWorkspaceTitle(worktree).trim() || null : null
+        // A bot's home folder is its own; its name says more than the folder's.
+        workspace:
+          botName ?? (worktree ? getActivityThreadWorkspaceTitle(worktree).trim() || null : null)
       }
     })
   )

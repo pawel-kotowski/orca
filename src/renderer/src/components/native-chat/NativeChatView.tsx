@@ -7,7 +7,10 @@ import { useNativeChatStatusEntry } from './session/status/use-native-chat-statu
 import type { NativeChatViewProps } from './native-chat-view-types'
 import { NativeChatPaneFileDropSurface } from './attachments/intake/NativeChatPaneFileDropSurface'
 import { NativeChatWorkersProvider } from './native-chat-workers-context'
-import { NativeChatAccountScopeProvider } from './native-chat-account-usage'
+import {
+  NativeChatAccountScopeProvider,
+  NativeChatStructuredAccountScopeProvider
+} from './native-chat-account-scope'
 import { NativeChatTabTranscriptScope } from './native-chat-transcript-scope'
 
 export type { NativeChatViewProps } from './native-chat-view-types'
@@ -29,7 +32,9 @@ export default function NativeChatView(props: NativeChatViewProps): React.JSX.El
             visible={props.isVisible}
           >
             <BotChatRoom tabId={props.tabId} sessionId={props.sessionId}>
-              <NativeChatStructuredSession {...props} />
+              <NativeChatStructuredAccountScopeProvider chat={props}>
+                <NativeChatStructuredSession {...props} />
+              </NativeChatStructuredAccountScopeProvider>
             </BotChatRoom>
           </NativeChatWorkersProvider>
         </NativeChatTabTranscriptScope>

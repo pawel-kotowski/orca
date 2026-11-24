@@ -16,6 +16,12 @@ import type { ClaudeManagedAccount } from '../../../../shared/agent-accounts/man
 import { accountShortName } from './native-chat-account-usage'
 import { queueClaudeRestartsAtTurnEnd } from './native-chat-account-restart-at-turn-end'
 import { useRemoteChatClaudeLogins } from './native-chat-remote-claude-logins'
+import {
+  moveStructuredClaudeAccount,
+  toastStructuredClaudeMove
+} from './native-chat-structured-claude-account'
+import type { StructuredClaudeUsage } from './native-chat-structured-claude-usage'
+import type { NativeChatStructuredAccountScope } from './native-chat-account-scope'
 
 /**
  * Move this chat to another Claude subscription (Paweł, 2026-11-09: "option to switch subscription
@@ -149,16 +155,71 @@ export function NativeChatRemoteAccountSwitch({
   )
 }
 
-function AccountSwitchMenu({
+/** The host's accounts as the menu lists them; while a move waits, the running one calls it off. */
+export function structuredSwitchChoices(
+  { shown, movingTo, choices }: StructuredClaudeUsage,
+  onSelect: (accountId: string, email: string) => void
+): SwitchChoice[] {
+  return choices.map(({ accountId, email }) => {
+    const current = accountId === shown.accountId
+    return {
+      key: accountId,
+      name: accountShortName(email),
+      email,
+      current,
+      disabled: movingTo ? accountId === movingTo.accountId : current,
+      onSelect: () => onSelect(accountId, email)
+    }
+  })
+}
+
+/** The same menu for a structured chat, on this machine or a paired one: its host's accounts. */
+export function NativeChatStructuredAccountSwitch({
+  name,
+  chat,
+  usage
+}: {
+  name: string
+  chat: NativeChatStructuredAccountScope
+  usage: StructuredClaudeUsage
+}): React.JSX.Element {
+  const move = async (accountId: string, email: string): Promise<void> => {
+    const target = accountShortName(email)
+    const result = await moveStructuredClaudeAccount(chat, accountId, target)
+    if (result) {
+      toastStructuredClaudeMove(result.outcome, target)
+    }
+  }
+  return (
+    <AccountSwitchMenu
+      name={name}
+      movingTo={usage.movingTo?.email ? accountShortName(usage.movingTo.email) : null}
+      note={translate(
+        'components.native-chat.account.switchMovesWorkspace',
+        "All of this workspace's chats move."
+      )}
+      choices={structuredSwitchChoices(usage, (accountId, email) => {
+        void move(accountId, email)
+      })}
+    />
+  )
+}
+
+export function AccountSwitchMenu({
   name,
   movingTo = null,
   note = null,
+  title,
+  trigger,
   choices,
   onOpen
 }: {
   name: string
   movingTo?: string | null
   note?: string | null
+  title?: string
+  /** Opens the menu in place of the name. */
+  trigger?: React.JSX.Element
   choices: readonly SwitchChoice[]
   onOpen?: () => void
 }): React.JSX.Element {
@@ -174,22 +235,24 @@ function AccountSwitchMenu({
   return (
     <DropdownMenu modal={false} onOpenChange={(open) => (open ? onOpen?.() : undefined)}>
       <DropdownMenuTrigger asChild>
-        <button
-          type="button"
-          className="cursor-pointer rounded font-medium underline-offset-2 outline-none hover:underline focus-visible:ring-1 focus-visible:ring-ring"
-          style={nameStyle}
-          aria-label={translate(
-            'components.native-chat.account.switchLabel',
-            'Claude subscription {{name}}: switch',
-            { name: shown }
-          )}
-        >
-          {shown}
-        </button>
+        {trigger ?? (
+          <button
+            type="button"
+            className="cursor-pointer rounded font-medium underline-offset-2 outline-none hover:underline focus-visible:ring-1 focus-visible:ring-ring"
+            style={nameStyle}
+            aria-label={translate(
+              'components.native-chat.account.switchLabel',
+              'Claude subscription {{name}}: switch',
+              { name: shown }
+            )}
+          >
+            {shown}
+          </button>
+        )}
       </DropdownMenuTrigger>
       <DropdownMenuContent side="top" align="start" className="min-w-56">
         <DropdownMenuLabel>
-          {translate('components.native-chat.account.switchTitle', 'Run this chat on')}
+          {title ?? translate('components.native-chat.account.switchTitle', 'Run this chat on')}
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         {choices.map((choice) => (
