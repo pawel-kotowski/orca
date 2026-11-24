@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from 'react'
+import { useMemo, useSyncExternalStore } from 'react'
 import { useAppStore } from '@/store'
 import type { AppState } from '@/store/types'
 import { isAiVaultAgent } from '../../../../shared/ai-vault/contracts/ai-vault-types'
@@ -28,63 +28,87 @@ export function structuredTerminalSwitch(
     : 'copy'
 }
 
-// Chats on their way to a terminal, which reports only once its agent starts; by chat session.
-export const chatTerminalOpening = new Map<string, string | null>()
+/** A chat its host holds for a terminal; `launching` until its tab is known or will not be. */
+export type ChatTerminalHold = { tabId: string | null; launching: boolean }
+
+// By chat session: what this client launched, or learned from the host after a reload.
+const heldChats = new Map<string, ChatTerminalHold>()
 const listeners = new Set<() => void>()
 
-export function setChatTerminalOpening(
-  sessionId: string,
-  terminalTabId: string | null | undefined
-): void {
-  if (terminalTabId === undefined) {
-    chatTerminalOpening.delete(sessionId)
-  } else {
-    chatTerminalOpening.set(sessionId, terminalTabId)
+export function chatTerminalHold(sessionId: string): ChatTerminalHold | undefined {
+  return heldChats.get(sessionId)
+}
+
+export function setChatTerminalHold(sessionId: string, hold: ChatTerminalHold | null): void {
+  if (hold) {
+    heldChats.set(sessionId, hold)
+  } else if (!heldChats.delete(sessionId)) {
+    return
   }
   for (const listener of listeners) {
     listener()
   }
 }
 
+type Panes = Pick<AppState, 'agentStatusByPaneKey' | 'tabsByWorktree'>
+
+// One index per status map: every store change asks, few change the map.
+const paneIndexes = new WeakMap<Panes['agentStatusByPaneKey'], Map<string, string[]>>()
+
+function panesByConversation(statuses: Panes['agentStatusByPaneKey']): Map<string, string[]> {
+  let index = paneIndexes.get(statuses)
+  if (!index) {
+    index = new Map()
+    for (const [paneKey, entry] of statuses) {
+      const id = entry.providerSession?.id
+      if (id) {
+        index.set(id, [...(index.get(id) ?? []), paneKey])
+      }
+    }
+    paneIndexes.set(statuses, index)
+  }
+  return index
+}
+
 /** The terminal pane that runs this chat's own conversation now, other than the chat itself. */
 export function structuredChatTerminalPane(
-  state: Pick<AppState, 'agentStatusByPaneKey' | 'tabsByWorktree'>,
+  state: Panes,
   chatPaneKey: string,
   worktreeId: string | null
 ): string | null {
   const conversation = state.agentStatusByPaneKey.get(chatPaneKey)?.providerSession?.id
-  const tabs = worktreeId ? state.tabsByWorktree[worktreeId] : undefined
-  if (!conversation || !tabs) {
+  if (!conversation || !worktreeId) {
     return null
   }
-  for (const tab of tabs) {
-    for (const [paneKey, entry] of state.agentStatusByPaneKey) {
-      if (paneKey.startsWith(`${tab.id}:`) && entry.providerSession?.id === conversation) {
-        return paneKey
-      }
-    }
-  }
-  return null
+  const panes = panesByConversation(state.agentStatusByPaneKey).get(conversation) ?? []
+  return (
+    panes.find(
+      (paneKey) =>
+        paneKey !== chatPaneKey &&
+        (state.tabsByWorktree[worktreeId] ?? []).some((tab) => paneKey.startsWith(`${tab.id}:`))
+    ) ?? null
+  )
 }
 
-/** Where the chat's conversation is: here, on its way to a terminal, or in one (its tab). */
+/** Where the chat's conversation is: here (null), or in a terminal (its tab, once known). */
 export function useStructuredChatTerminal(
   sessionId: string,
   chatPaneKey: string,
   worktreeId: string | null
-): { tabId: string | null } | null {
+): ChatTerminalHold | null {
   const pane = useAppStore((state) => structuredChatTerminalPane(state, chatPaneKey, worktreeId))
-  const pending = useSyncExternalStore(
+  const held = useSyncExternalStore(
     (listener) => {
       listeners.add(listener)
       return () => listeners.delete(listener)
     },
-    () => chatTerminalOpening.get(sessionId)
+    () => heldChats.get(sessionId)
   )
-  if (pane) {
-    return { tabId: pane.slice(0, pane.indexOf(':')) }
-  }
-  return pending === undefined ? null : { tabId: pending }
+  const paneTab = pane ? pane.slice(0, pane.indexOf(':')) : null
+  return useMemo(
+    () => (paneTab ? { tabId: paneTab, launching: false } : (held ?? null)),
+    [paneTab, held]
+  )
 }
 
 // The mounted button of each chat tab, which Cmd+Shift+J presses as it switches a terminal chat.

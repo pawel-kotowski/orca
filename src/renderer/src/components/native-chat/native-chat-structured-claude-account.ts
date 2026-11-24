@@ -4,6 +4,8 @@ import { useAppStore } from '@/store'
 import { translate } from '@/i18n/i18n'
 import { callStructuredAgentSession } from '@/runtime/native-chat/requests/structured-agent-session-call'
 import { getRuntimeTargetHostId } from '@/runtime/rpc/targets/runtime-client-target'
+import { getWindowParkVisible } from '@/lib/window-activity/window-park-visibility'
+import { structuredAgentSessionPaneKey } from '../../../../shared/agent-session/view/structured-agent-session-projection'
 import { workspaceClaudeAccountId } from '../../../../shared/claude-workspace-account'
 import type { RuntimeClientTarget } from '../../../../shared/remote-runtime/host-catalog/runtime-client-target'
 import type {
@@ -107,15 +109,31 @@ export function useStructuredClaudeAccount(
     const timer = window.setInterval(check, REFRESH_MS)
     return () => window.clearInterval(timer)
   }, [key, sessionId, target, stamp])
-  // A new chat's session reaches this computer's host a moment after its box is drawn.
-  const unfound = target.kind === 'local' && account?.status === 'unsupported'
+  // A new chat's session reaches this computer's host a moment after its box is drawn. Once its row
+  // is here the host knows it, so an answer that stays `unsupported` then is final.
+  const unfound = useAppStore(
+    (state) =>
+      chat !== null &&
+      target.kind === 'local' &&
+      account?.status === 'unsupported' &&
+      !state.agentStatusByPaneKey.has(structuredAgentSessionPaneKey(chat.tabId, sessionId))
+  )
   useEffect(() => {
-    if (!unfound) {
+    if (!unfound || key === null) {
       return
     }
-    const timer = window.setInterval(() => void refresh({ sessionId, target }, stamp), UNFOUND_MS)
+    const timer = window.setInterval(() => {
+      const entry = entries.get(key)
+      // Every reader of the chat shares one ask, and a hidden window asks nothing.
+      if (
+        getWindowParkVisible() &&
+        (!entry || window.performance.now() - entry.fetchedAt >= UNFOUND_MS)
+      ) {
+        void refresh({ sessionId, target }, stamp)
+      }
+    }, UNFOUND_MS)
     return () => window.clearInterval(timer)
-  }, [unfound, sessionId, target, stamp])
+  }, [unfound, key, sessionId, target, stamp])
   return account
 }
 

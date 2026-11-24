@@ -75,7 +75,7 @@ export const STRUCTURED_AGENT_SESSION_CLAUDE_ACCOUNT_METHODS = [
   }),
   defineMethod({
     name: 'agentSession.setClaudeAccount',
-    permission: 'settings-write',
+    permission: 'accounts-admin',
     params: AgentSessionSetClaudeAccountParams,
     handler: async ({ sessionId, accountId }, ctx): Promise<AgentSessionSetClaudeAccountResult> => {
       const chat = await claudeChat(sessionId, ctx)

@@ -61,7 +61,8 @@ export const MOVE_TO_INBOX_HANDLERS: Record<string, CommandHandler> = {
   'move-to-inbox': async ({ flags, client, json }) => {
     const message = getRequiredStringFlag(flags, 'message')
     // A chat's agent has no pane, and a terminal it opened may inherit another agent's.
-    const sessionId = readInjectedAgentSessionId()
+    // The injected id is this machine's, so a call routed to a paired host must not carry it.
+    const sessionId = client.isRemote ? undefined : readInjectedAgentSessionId()
     if (sessionId) {
       await moveChatToInbox(client, sessionId, message)
       reportMoved(json, { sessionId, message })

@@ -14,6 +14,8 @@ export const STRUCTURED_AGENT_SESSION_METHOD_TIMEOUT_MS: ReadonlyMap<string, num
   ['agentSession.mcp', 90_000],
   // It can read the folder's usage from Claude first.
   ['agentSession.claudeAccount', 30_000],
+  // It stops the chat's agent, or starts it again.
+  ['agentSession.terminalHandover', 195_000],
   // It sets up the account's folder first.
   ['agentSession.setClaudeAccount', 120_000],
   ['agentSession.restartContinue', AGENT_SESSION_RESTART_CONTINUE_TIMEOUT_MS],

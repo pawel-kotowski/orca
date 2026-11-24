@@ -8,8 +8,8 @@ import { recordConversationKey } from '../../../../../native-chat/conversation-a
 import {
   beginStructuredChatTerminalHold,
   bindStructuredChatTerminalHold,
-  endStructuredChatTerminalHold,
-  forgetUnboundStructuredChatTerminalHold
+  releaseStructuredChatTerminalHold,
+  structuredChatTerminalHold
 } from '../../../../agent-session/ownership/structured-chat-terminal-holds'
 import { defineMethod, type RpcContext } from '../../../core'
 import { requireInstalledStructuredHost } from '../creation/structured-agent-session-gate'
@@ -27,8 +27,49 @@ async function handoverChat(sessionId: string, ctx: RpcContext) {
     isNativeLocalLocation(record.location) &&
     // A bot keeps answering its mail and Slack here; a terminal takes a copy instead.
     botOfSession(ctx.runtime.bots, sessionId, host) === null
-    ? { host, record }
+    ? { host, record, conversationId: key.id }
     : null
+}
+
+async function beginHandover(
+  chat: NonNullable<Awaited<ReturnType<typeof handoverChat>>>,
+  token: string,
+  ctx: RpcContext
+): Promise<AgentSessionTerminalHandoverResult> {
+  const { host, record, conversationId } = chat
+  const { sessionId } = record
+  const open = (): AgentSessionTerminalHandoverResult => {
+    const paneKey = structuredChatTerminalHold(sessionId)?.paneKey
+    return { outcome: 'open', ...(paneKey ? { paneKey } : {}) }
+  }
+  if (
+    structuredChatTerminalHold(sessionId) ||
+    (await ctx.runtime.structuredChatHeldByTerminal(record))
+  ) {
+    return open()
+  }
+  // Another client may have begun during that check.
+  if (structuredChatTerminalHold(sessionId)) {
+    return open()
+  }
+  // A start already past its writer check would publish beside the terminal.
+  if (host.sessionStarting(sessionId)) {
+    return { outcome: 'busy' }
+  }
+  // Held first, so a message landing during the stop cannot start the agent again.
+  beginStructuredChatTerminalHold(sessionId, token, conversationId)
+  try {
+    await host.releaseIdleSession(sessionId, true)
+  } catch (error) {
+    releaseStructuredChatTerminalHold(sessionId, token)
+    throw error
+  }
+  if (host.loadedSessionIds().includes(sessionId) || host.sessionStarting(sessionId)) {
+    releaseStructuredChatTerminalHold(sessionId, token)
+    return { outcome: 'busy' }
+  }
+  ctx.runtime.watchStructuredChatTerminalHolds()
+  return { outcome: 'held' }
 }
 
 export const STRUCTURED_AGENT_SESSION_TERMINAL_HANDOVER_METHODS = [
@@ -37,7 +78,7 @@ export const STRUCTURED_AGENT_SESSION_TERMINAL_HANDOVER_METHODS = [
     permission: 'workspace',
     params: AgentSessionTerminalHandoverParams,
     handler: async (
-      { sessionId, action, paneKey },
+      { sessionId, action, paneKey, token },
       ctx
     ): Promise<AgentSessionTerminalHandoverResult> => {
       const chat = await handoverChat(sessionId, ctx)
@@ -45,34 +86,35 @@ export const STRUCTURED_AGENT_SESSION_TERMINAL_HANDOVER_METHODS = [
         return { outcome: 'unsupported' }
       }
       const { host, record } = chat
-      if (action === 'begin') {
-        // Held first, so a message landing during the stop cannot start the agent again.
-        beginStructuredChatTerminalHold(sessionId, Date.now())
-        try {
-          await host.releaseIdleSession(sessionId, true)
-        } catch (error) {
-          endStructuredChatTerminalHold(sessionId)
-          throw error
+      switch (action) {
+        case 'begin':
+          return token ? beginHandover(chat, token, ctx) : { outcome: 'unsupported' }
+        case 'bind':
+          if (token && paneKey) {
+            bindStructuredChatTerminalHold(sessionId, token, paneKey)
+          }
+          return { outcome: 'held' }
+        case 'abandon':
+          // Nothing was launched; the chat stays at rest until someone writes.
+          if (token) {
+            releaseStructuredChatTerminalHold(sessionId, token)
+          }
+          return { outcome: 'free' }
+        case 'status': {
+          ctx.runtime.watchStructuredChatTerminalHolds()
+          const hold = structuredChatTerminalHold(sessionId)
+          return hold
+            ? { outcome: 'held', ...(hold.paneKey ? { paneKey: hold.paneKey } : {}) }
+            : { outcome: 'free' }
         }
-        if (host.loadedSessionIds().includes(sessionId)) {
-          endStructuredChatTerminalHold(sessionId)
-          return { outcome: 'busy' }
-        }
-        return { outcome: 'held' }
+        case 'end':
+          if (!(await ctx.runtime.takeBackStructuredChat(record))) {
+            return { outcome: 'open' }
+          }
+          // Starting reads in what the terminal wrote; a start that fails says so in the chat.
+          await host.startSessionAgent(sessionId)
+          return { outcome: 'back' }
       }
-      if (action === 'bind') {
-        if (paneKey) {
-          bindStructuredChatTerminalHold(sessionId, paneKey)
-        }
-        return { outcome: 'held' }
-      }
-      forgetUnboundStructuredChatTerminalHold(sessionId)
-      if (await ctx.runtime.structuredChatHeldByTerminal(record)) {
-        return { outcome: 'open' }
-      }
-      // Starting reads in what the terminal wrote; a start that fails says so in the chat itself.
-      await host.startSessionAgent(sessionId)
-      return { outcome: 'back' }
     }
   })
 ]

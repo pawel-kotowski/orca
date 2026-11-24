@@ -28,8 +28,6 @@ export function withNativeChatTerminalSendNow<T extends NativeChatComposerSendSt
   if (structured) {
     return {
       ...state,
-      // An empty box's chord sends the head card, as a terminal chat's does.
-      chordSteersHead: true,
       ...(state.alternateSend ? { alternateSendShortcut: nativeChatCtrlEnterLabel() } : {})
     }
   }

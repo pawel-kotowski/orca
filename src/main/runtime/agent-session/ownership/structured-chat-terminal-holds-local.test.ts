@@ -1,45 +1,73 @@
-import { afterEach, expect, it } from 'vitest'
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { afterEach, beforeEach, expect, it, vi } from 'vitest'
+
+const dir = vi.hoisted(() => ({ path: '' }))
+vi.mock('../../../../shared/app-lifecycle/app-environment', () => ({
+  getAppEnvironment: () => ({ getPath: () => dir.path })
+}))
+
 import {
   beginStructuredChatTerminalHold,
   bindStructuredChatTerminalHold,
-  endStructuredChatTerminalHold,
-  forgetUnboundStructuredChatTerminalHold,
-  structuredChatTerminalHeld
+  noteStructuredChatTerminalReport,
+  releaseStructuredChatTerminalHold,
+  resetStructuredChatTerminalHoldsForTests,
+  structuredChatTerminalHold,
+  structuredChatTerminalMayWrite
 } from './structured-chat-terminal-holds'
 
-const ALIVE = { reportedAt: null, paneAlive: () => true }
+beforeEach(() => {
+  dir.path = mkdtempSync(join(tmpdir(), 'terminal-holds-'))
+  resetStructuredChatTerminalHoldsForTests()
+})
+afterEach(() => rmSync(dir.path, { recursive: true, force: true }))
 
-afterEach(() => endStructuredChatTerminalHold('chat'))
-
-it('keeps the chat from starting until the terminal reports, even before a pane is known', () => {
-  expect(structuredChatTerminalHeld('chat', ALIVE)).toBe(false)
-  beginStructuredChatTerminalHold('chat', 100)
-  expect(structuredChatTerminalHeld('chat', { reportedAt: null, paneAlive: () => false })).toBe(
-    true
-  )
-  bindStructuredChatTerminalHold('chat', 'tab:leaf')
-  expect(structuredChatTerminalHeld('chat', ALIVE)).toBe(true)
-  // An older terminal's report of the same conversation proves nothing about this one.
-  expect(structuredChatTerminalHeld('chat', { ...ALIVE, reportedAt: 99 })).toBe(true)
-  // Reported: the live-writer check decides from here, and the hold is spent.
-  expect(structuredChatTerminalHeld('chat', { ...ALIVE, reportedAt: 101 })).toBe(false)
-  expect(structuredChatTerminalHeld('chat', ALIVE)).toBe(false)
+it('holds the chat from the press, before the terminal exists and until its agent reports', () => {
+  expect(structuredChatTerminalMayWrite('chat', 'missing', false)).toBe(false)
+  beginStructuredChatTerminalHold('chat', 'a', 'conversation')
+  // The pane is bound before its process is spawned: not there yet is not gone.
+  bindStructuredChatTerminalHold('chat', 'a', 'tab:leaf')
+  expect(structuredChatTerminalMayWrite('chat', 'missing', false)).toBe(true)
+  expect(structuredChatTerminalMayWrite('chat', 'dead', false)).toBe(true)
+  // The shell is up and the agent's command is about to be typed into it.
+  expect(structuredChatTerminalMayWrite('chat', 'shell', false)).toBe(true)
 })
 
-it('gives the chat back when the terminal it was handed to is gone', () => {
-  beginStructuredChatTerminalHold('chat', 100)
-  bindStructuredChatTerminalHold('chat', 'tab:leaf')
-  expect(structuredChatTerminalHeld('chat', { reportedAt: null, paneAlive: () => false })).toBe(
-    false
-  )
+it('gives the chat back once the agent is done or its pane is gone', () => {
+  beginStructuredChatTerminalHold('chat', 'a', 'conversation')
+  bindStructuredChatTerminalHold('chat', 'a', 'tab:leaf')
+  noteStructuredChatTerminalReport('another')
+  expect(structuredChatTerminalMayWrite('chat', 'shell', false)).toBe(true)
+  noteStructuredChatTerminalReport('conversation')
+  expect(structuredChatTerminalMayWrite('chat', 'running', true)).toBe(true)
+  expect(structuredChatTerminalMayWrite('chat', 'shell', false)).toBe(false)
+
+  beginStructuredChatTerminalHold('closed', 'b', 'other')
+  structuredChatTerminalMayWrite('closed', 'running', false)
+  expect(structuredChatTerminalMayWrite('closed', 'dead', false)).toBe(false)
 })
 
-it('gives up only a launch that never named its pane', () => {
-  beginStructuredChatTerminalHold('chat', 100)
-  bindStructuredChatTerminalHold('chat', 'tab:leaf')
-  forgetUnboundStructuredChatTerminalHold('chat')
-  expect(structuredChatTerminalHeld('chat', ALIVE)).toBe(true)
-  beginStructuredChatTerminalHold('chat', 100)
-  forgetUnboundStructuredChatTerminalHold('chat')
-  expect(structuredChatTerminalHeld('chat', ALIVE)).toBe(false)
+it('lets only the handover that began it bind or abandon it', () => {
+  beginStructuredChatTerminalHold('chat', 'a', 'conversation')
+  bindStructuredChatTerminalHold('chat', 'b', 'other:leaf')
+  expect(structuredChatTerminalHold('chat')?.paneKey).toBeNull()
+  expect(releaseStructuredChatTerminalHold('chat', 'b')).toBe(false)
+  expect(releaseStructuredChatTerminalHold('chat', 'a')).toBe(true)
+})
+
+it('outlives a restart, where a pane not yet reattached is unknown rather than gone', async () => {
+  beginStructuredChatTerminalHold('chat', 'a', 'conversation')
+  bindStructuredChatTerminalHold('chat', 'a', 'tab:leaf')
+  noteStructuredChatTerminalReport('conversation')
+  structuredChatTerminalMayWrite('chat', 'running', true)
+  expect(readFileSync(join(dir.path, 'structured-chat-terminal-holds.json'), 'utf8')).toContain(
+    'tab:leaf'
+  )
+  vi.resetModules()
+  const restarted = await import('./structured-chat-terminal-holds')
+  expect(restarted.structuredChatTerminalHold('chat')?.reported).toBe(true)
+  expect(restarted.structuredChatTerminalMayWrite('chat', 'missing', false)).toBe(true)
+  expect(restarted.structuredChatTerminalMayWrite('chat', 'shell', false)).toBe(false)
 })

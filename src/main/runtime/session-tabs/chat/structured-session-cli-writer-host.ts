@@ -4,12 +4,19 @@ import {
 } from '../../../../shared/agent-session/lifecycle/agent-session-resume'
 import { LOCAL_EXECUTION_HOST_ID } from '../../../../shared/execution-host/execution-host'
 import type { StructuredAgentId } from '../../../../shared/agent-session/lifecycle/provider-handles/agent-session-provider-handle'
-import { structuredChatTerminalHeld } from '../../agent-session/ownership/structured-chat-terminal-holds'
+import {
+  heldStructuredChats,
+  noteStructuredChatTerminalReport,
+  releaseStructuredChatTerminalHold,
+  structuredChatTerminalHold,
+  structuredChatTerminalMayWrite,
+  type TerminalHoldPane
+} from '../../agent-session/ownership/structured-chat-terminal-holds'
+import { getStructuredAgentSessionHost } from '../../../native-chat/agent-session-wire/host/structured-agent-session-registry'
 import {
   agentSessionRefusalError,
   isAgentSessionRefusalError
 } from '../../../../shared/agent-session/failures/agent-session-wire-refusals'
-import { isShellProcess } from '../../../../shared/agent-status/process/shell-process-detection'
 import { namesCliConversation } from '../../../../shared/agent-session/view/structured-agent-cli-conversation-adoption'
 import { assertCliConversationWritersExited } from '../../agent-session/lifecycle/structured-agent-cli-writers'
 import type { EnrichedAgentHookEventPayload } from '../../../agent-hooks/server/server-types'
@@ -18,6 +25,8 @@ import { CLI_CONVERSATION_ADOPTING_AGENTS } from '../../../../shared/agent-sessi
 import { recordConversationKey } from '../../../native-chat/conversation-adoption/structured-conversation-key'
 import type { StructuredAgentCliSourceRoute } from '../../../native-chat/conversation-adoption/structured-agent-cli-source'
 import { OrcaRuntimeWithGetWorktreePs } from '../../workspaces/process-listing/workspace-process-listing'
+
+const TERMINAL_HOLD_CHECK_MS = 2_000
 
 export abstract class OrcaRuntimeWithStructuredSessionCliWriterHost extends OrcaRuntimeWithGetWorktreePs {
   getStructuredAgentCliSourceRoute(source: {
@@ -72,6 +81,9 @@ export abstract class OrcaRuntimeWithStructuredSessionCliWriterHost extends Orca
 
   /** A local hook that names its agent process supersedes the launch result saved for this PTY. */
   clearSavedTerminalLaunchOnAgentHook(event: EnrichedAgentHookEventPayload): void {
+    if (event.connectionId === null && !event.structuredHost) {
+      noteStructuredChatTerminalReport(event.providerSession?.id)
+    }
     const pty = this.getPtyRecordForPaneKey(event.paneKey)
     if (
       pty &&
@@ -93,12 +105,17 @@ export abstract class OrcaRuntimeWithStructuredSessionCliWriterHost extends Orca
       )
     ) {
       await this.assertStructuredAdoptionTerminalWritersExited(record.provider, key.id)
-      await this.assertNoUnjudgedTerminalWriter(record.sessionId, record.provider, key.id)
+      if (await this.structuredChatTerminalActive(record)) {
+        throw agentSessionRefusalError('agent_session_conflict', {
+          reason: 'conversationHeldElsewhere'
+        })
+      }
     }
   }
 
-  /** Local: whether the terminal a chat was handed to may still write its conversation. */
+  /** Local: whether a terminal runs the chat's conversation, or may be about to. */
   async structuredChatHeldByTerminal(record: AgentSessionRecord): Promise<boolean> {
+    this.watchStructuredChatTerminalHolds()
     try {
       await this.assertStructuredChatAcquireAdmissible(record)
       return false
@@ -110,47 +127,146 @@ export abstract class OrcaRuntimeWithStructuredSessionCliWriterHost extends Orca
     }
   }
 
-  /**
-   * Local: the writer check admits an agent whose process it cannot judge (Codex reports none), and
-   * one not yet reported; here those hold the chat until their pane is gone or back at its shell.
-   */
-  private async assertNoUnjudgedTerminalWriter(
-    sessionId: string,
-    agent: StructuredAgentId,
-    providerSessionId: string
-  ): Promise<void> {
-    const rows = this.getAgentProviderSessionRows().filter(
-      (row) => !row.structuredHost && namesCliConversation(row, agent, providerSessionId)
-    )
-    const settled: number[] = []
-    let held = false
-    for (const row of rows) {
-      const observation = this.readHookCliWriterObservationFn?.(row)
-      const judged = observation ? await observation.presence() : null
-      const pty = this.getPtyRecordForPaneKey(row.paneKey)
-      // A record outlives its terminal; only a connected one can still run the agent.
-      if (judged !== null || !pty?.connected || (await this.terminalAtShell(pty.ptyId))) {
-        settled.push(row.receivedAt)
-      } else {
-        held = true
-      }
+  /** Local: a person asked for the chat back; only a terminal that can be running keeps it. */
+  async takeBackStructuredChat(record: AgentSessionRecord): Promise<boolean> {
+    const hold = structuredChatTerminalHold(record.sessionId)
+    if (!hold) {
+      return !(await this.structuredChatHeldByTerminal(record))
     }
-    if (
-      held ||
-      structuredChatTerminalHeld(sessionId, {
-        reportedAt: settled.length > 0 ? Math.max(...settled) : null,
-        paneAlive: (paneKey) => this.getPtyRecordForPaneKey(paneKey)?.connected === true
-      })
-    ) {
-      throw agentSessionRefusalError('agent_session_conflict', {
-        reason: 'conversationHeldElsewhere'
-      })
+    const key = { agent: record.provider, id: hold.conversationId }
+    if (await this.terminalRowsMayWrite(key)) {
+      return false
     }
+    const pane = hold.paneKey === null ? null : await this.terminalHoldPane(hold.paneKey)
+    const running =
+      pane === null
+        ? await this.unreportedAgentTerminalRuns(record)
+        : pane === 'running' || (pane === 'shell' && !hold.reported)
+    if (running) {
+      return false
+    }
+    this.releaseStructuredChatHold(record.sessionId)
+    return true
   }
 
-  private async terminalAtShell(ptyId: string): Promise<boolean> {
-    const foreground = await this.ptyController?.getForegroundProcess(ptyId).catch(() => null)
-    return typeof foreground === 'string' && isShellProcess(foreground)
+  /** The writer check admits an agent whose process it cannot judge (Codex reports none); here such
+   *  a row counts until its pane is gone or its shell is alone. */
+  private async terminalRowsMayWrite(key: {
+    agent: StructuredAgentId
+    id: string
+  }): Promise<boolean> {
+    for (const row of this.getAgentProviderSessionRows()) {
+      if (row.structuredHost || !namesCliConversation(row, key.agent, key.id)) {
+        continue
+      }
+      const judged = await this.readHookCliWriterObservationFn?.(row)?.presence()
+      if (judged === 'live') {
+        return true
+      }
+      const pty = judged ? null : this.getPtyRecordForPaneKey(row.paneKey)
+      if (pty?.connected && !(await this.confirmTerminalShellAlone(pty.ptyId))) {
+        return true
+      }
+    }
+    return false
+  }
+
+  private async terminalHoldPane(paneKey: string): Promise<TerminalHoldPane> {
+    const pty = this.getPtyRecordForPaneKey(paneKey)
+    if (!pty) {
+      return 'missing'
+    }
+    if (!pty.connected) {
+      return 'dead'
+    }
+    return (await this.confirmTerminalShellAlone(pty.ptyId)) ? 'shell' : 'running'
+  }
+
+  /** A terminal of this agent in the workspace that runs something and has reported nothing yet. */
+  private async unreportedAgentTerminalRuns(record: AgentSessionRecord): Promise<boolean> {
+    const reported = new Set(
+      this.getAgentProviderSessionRows().map(
+        (row) => this.getPtyRecordForPaneKey(row.paneKey)?.ptyId
+      )
+    )
+    for (const pty of this.ptysById.values()) {
+      if (
+        pty.connected &&
+        pty.worktreeId === record.location.workspaceId &&
+        pty.launchAgent === record.provider &&
+        !reported.has(pty.ptyId) &&
+        !(await this.confirmTerminalShellAlone(pty.ptyId))
+      ) {
+        return true
+      }
+    }
+    return false
+  }
+
+  private async structuredChatTerminalActive(record: AgentSessionRecord): Promise<boolean> {
+    const hold = structuredChatTerminalHold(record.sessionId)
+    const head = record.providerHandleChain.at(-1)
+    const id = hold?.conversationId ?? (head ? recordConversationKey(record, head)?.id : undefined)
+    const rows = id ? await this.terminalRowsMayWrite({ agent: record.provider, id }) : false
+    // A pane never named (a paired host's tab) is judged by what its agent reports.
+    const pane =
+      hold === null || hold.paneKey === null
+        ? hold?.reported
+          ? 'shell'
+          : 'missing'
+        : await this.terminalHoldPane(hold.paneKey)
+    return structuredChatTerminalMayWrite(record.sessionId, pane, rows)
+  }
+
+  abstract redriveStructuredSessionMail(sessionId: string): void
+
+  private releaseStructuredChatHold(sessionId: string): void {
+    releaseStructuredChatTerminalHold(sessionId)
+    // What waited for the chat goes to it now, as at an idle edge.
+    this.redriveStructuredSessionMail(sessionId)
+    getStructuredAgentSessionHost()?.wakeQueuedMessages(sessionId)
+  }
+
+  private terminalHoldWatch: ReturnType<typeof setInterval> | null = null
+
+  /** While a chat is handed over: gives it back by itself once its terminal is done. */
+  watchStructuredChatTerminalHolds(): void {
+    if (this.terminalHoldWatch || heldStructuredChats().length === 0) {
+      return
+    }
+    let checking = false
+    this.terminalHoldWatch = setInterval(() => {
+      if (checking) {
+        return
+      }
+      checking = true
+      void this.releaseFinishedTerminalHolds()
+        .catch((error: unknown) =>
+          console.warn('[chat-terminal] checking handed-over chats failed', error)
+        )
+        .finally(() => {
+          checking = false
+          if (heldStructuredChats().length === 0 && this.terminalHoldWatch) {
+            clearInterval(this.terminalHoldWatch)
+            this.terminalHoldWatch = null
+          }
+        })
+    }, TERMINAL_HOLD_CHECK_MS)
+    this.terminalHoldWatch.unref?.()
+  }
+
+  private async releaseFinishedTerminalHolds(): Promise<void> {
+    const store = getStructuredAgentSessionHost()?.deps.store
+    for (const sessionId of heldStructuredChats()) {
+      const hold = structuredChatTerminalHold(sessionId)
+      const record = store?.getRecord(sessionId)
+      if (hold && record && !(await this.structuredChatTerminalActive(record))) {
+        // The same handover still, after the checks' waits.
+        if (structuredChatTerminalHold(sessionId)?.token === hold.token) {
+          this.releaseStructuredChatHold(sessionId)
+        }
+      }
+    }
   }
 
   async assertStructuredAdoptionTerminalWritersExited(

@@ -78,7 +78,17 @@ it('names every subagent and shell without a click, opens one and stops only the
 
 it('keeps a failed worker on its line until it is cleared', () => {
   const onWorkerAction = vi.fn()
-  lines({ tasks: [], workerRows: new Map([['w1', failed]]), onWorkerAction })
+  const workerIdentities = [
+    {
+      id: 'w1',
+      state: 'failed' as const,
+      changedAt: 1,
+      settlement: 's',
+      ownerActionsAvailable: true
+    }
+  ]
+  const workerRows = new Map([['w1', failed]])
+  lines({ tasks: [], workerRows, workerIdentities, onWorkerAction })
   expect(document.querySelector('[data-native-chat-activity-line=workers]')).toHaveTextContent(
     'migrate-dbexit 1'
   )
@@ -113,4 +123,9 @@ it('reads a background shell and its full command from the chat, by the id the r
     }
   ])
   expect(commands.get('b1')).toBe('pnpm dev')
+})
+
+it('drops a worker the host no longer lists, though its row was read before', () => {
+  lines({ tasks: [], workerRows: new Map([['w1', failed]]), workerIdentities: [] })
+  expect(document.querySelector('[data-native-chat-activity-line=workers]')).toBeNull()
 })

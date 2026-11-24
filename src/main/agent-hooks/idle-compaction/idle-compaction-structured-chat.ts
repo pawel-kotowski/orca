@@ -4,6 +4,8 @@ import { agentSessionConversationCommandFields } from '../../../shared/agent-ses
 import { structuredAgentSessionPayloadFingerprint } from '../../../shared/agent-session/lifecycle/operations/structured-agent-session-mutation'
 import { getStructuredAgentSessionHost } from '../../native-chat/agent-session-wire/host/structured-agent-session-registry'
 import { structuredAgentSessionProviderSessionMetadata } from '../../native-chat/agent-session-wire/publication/history/structured-agent-session-history-result'
+import { isBotGroupMemberSession } from '../../../shared/bots/bot-group'
+import { structuredChatTerminalHold } from '../../runtime/agent-session/ownership/structured-chat-terminal-holds'
 import { resolveSessionFilePath } from '../../native-chat/session-file-resolver'
 import { mintAgentSessionOperationId } from '../../runtime/orchestration/mailbox/structured-pointer/structured-pointer-operation-id'
 import {
@@ -67,8 +69,13 @@ export const structuredIdleCompactionTarget: IdleCompactionChatTarget = {
     if (!store || !record || store.isSessionTabRetired(sessionId)) {
       return 'no_terminal'
     }
-    // A send would end the user's own Sleep.
-    if (record.sleptAt !== undefined) {
+    // A send would end the user's own Sleep; a group room spends its members' turns itself; a
+    // terminal has the conversation.
+    if (
+      record.sleptAt !== undefined ||
+      isBotGroupMemberSession(sessionId) ||
+      structuredChatTerminalHold(sessionId) !== null
+    ) {
       return 'held'
     }
     return structuredAgentSessionProviderSessionMetadata(record)?.id === providerSessionId

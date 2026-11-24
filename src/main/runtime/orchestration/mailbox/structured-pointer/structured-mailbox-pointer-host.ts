@@ -1,3 +1,4 @@
+import { structuredChatTerminalHold } from '../../../agent-session/ownership/structured-chat-terminal-holds'
 import { structuredAgentSessionSendBlock } from '../../../../native-chat/agent-session-wire/operations/structured-agent-session-send-preparation'
 import type {
   ChatMailAdmitFacts,
@@ -147,7 +148,9 @@ export function createStructuredMailboxPointerHost(
 ): StructuredMailboxPointerHost {
   return {
     narrowBatch: owner?.narrowBatch,
-    mailHeld: owner?.mailHeld,
+    // Local: a chat open in a terminal takes no mail; it is handed over once the chat is back.
+    mailHeld: (sessionId) =>
+      structuredChatTerminalHold(sessionId) !== null || owner?.mailHeld(sessionId) === true,
     async observeMail(attempt) {
       const host = getStructuredAgentSessionHost()
       try {

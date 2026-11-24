@@ -1,4 +1,4 @@
-import { useMemo, useRef, type ComponentProps } from 'react'
+import { useEffect, useMemo, useRef, type ComponentProps } from 'react'
 import { CircleAlert, CircleHelp, Loader2, X } from 'lucide-react'
 import { useTranslate } from '@/i18n/use-translate'
 import { cn } from '@/lib/class-names'
@@ -46,7 +46,18 @@ export function NativeChatStructuredActivityLines(props: Props): React.JSX.Eleme
     [tasks, settledTasks, childViews, childRowContext]
   )
   const rows = groups.flatMap((group) => group.tasks.flatMap(({ row }) => withOwned(row)))
-  const workerRows = [...(props.workerRows?.values() ?? [])].filter((row) => row.kind === 'worker')
+  // The feed keeps rows it once read; only the host's own list says which workers there are now.
+  const { workerIdentities, workerRows: readRows, loadWindow } = props
+  const workerRows = (workerIdentities ?? []).flatMap(({ id }) => {
+    const row = readRows?.get(id)
+    return row?.kind === 'worker' ? [row] : []
+  })
+  const unread = workerIdentities?.find(({ id }) => readRows?.has(id) !== true)?.id
+  useEffect(() => {
+    if (unread !== undefined) {
+      void loadWindow?.(unread)
+    }
+  }, [unread, loadWindow])
   const now = useNow(1_000, props.isVisible && rows.length + workerRows.length > 0)
   const { readCommands } = props
   // Read per slow tick, never per streamed frame; unchanged messages answer from its cache.

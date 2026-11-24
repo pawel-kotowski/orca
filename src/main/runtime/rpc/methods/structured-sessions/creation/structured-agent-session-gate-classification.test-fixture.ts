@@ -44,6 +44,14 @@ export const CLEANUP_METHODS = [
 
 /** Starts, extends, retains or reads work. */
 export const WORK_METHODS = [
+  { method: 'agentSession.claudeAccount', params: { sessionId: SESSION } },
+  {
+    method: 'agentSession.setClaudeAccount',
+    params: { sessionId: SESSION, accountId: 'account-1' }
+  },
+  { method: 'agentSession.moveToInbox', params: { sessionId: SESSION, message: 'Look' } },
+  { method: 'agentSession.resumeList', params: { sessionId: SESSION } },
+  { method: 'agentSession.terminalHandover', params: { sessionId: SESSION, action: 'status' } },
   { method: 'agentSession.createSupport', params: { worktree: 'id:workspace-1', agent: 'codex' } },
   {
     method: 'agentSession.create',

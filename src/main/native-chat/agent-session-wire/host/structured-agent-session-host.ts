@@ -196,6 +196,9 @@ export class StructuredAgentSessionHost {
   /** Local: start an agent at rest, which reads in the turns a terminal added. */
   startSessionAgent = (id: string) => startAgent(this.attachContext(), id)
 
+  /** Local: a start in flight has no indexed child yet. */
+  sessionStarting = (id: string) => this.runtimeState.startFlights.has(id)
+
   sessionOwesWork = (id: string) => this.lifetime.idleSweep.sessionOwesWork(id)
 
   /** Stop hidden children too, using one bounded host snapshot. */
