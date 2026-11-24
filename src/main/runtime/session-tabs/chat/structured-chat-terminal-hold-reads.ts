@@ -3,6 +3,7 @@ import type { AgentStatusIpcPayload } from '../../../../shared/agent-status/cont
 import type { PtyProcessInfo } from '../../../providers/pty/process-info'
 import type { PtyLivenessVerdict } from '../../../../shared/terminal/pty/lifecycle/pty-liveness-verdict'
 import {
+  forgetUnreadableStructuredChatTerminalHolds,
   structuredChatTerminalAskedHere,
   type StructuredChatHoldTerminal,
   type StructuredChatTerminalHold,
@@ -86,6 +87,40 @@ export async function readTerminalHoldPane(
       : session.sessionId === ptyId && same(session.incarnationId)
   )
   return answer(lives ? 'unknown' : 'absent')
+}
+
+/** Lost holds are needed no more: every terminal there is was looked at, and no agent runs in any. */
+export function forgotLostHolds(
+  { processes, daemon, table }: TerminalHoldReads,
+  conversation: { agent: string; id: string }
+): boolean {
+  const listed = new Set(processes?.map(({ id }) => id))
+  const over =
+    daemon?.sessions.every(({ sessionId }) => listed.has(sessionId)) === true &&
+    processes?.every(
+      ({ rootProcessId }) => rootProcessId && table.runsAgentBelow(rootProcessId) === false
+    ) === true &&
+    table.runsAnywhere(conversation) === false
+  if (over) {
+    forgetUnreadableStructuredChatTerminalHolds()
+  }
+  return over
+}
+
+/** Proven: no agent runs in this terminal, whatever else does, and none anywhere names the
+ *  conversation. One the daemon has and this host does not list yet is not known. */
+export function terminalHasNoAgent(
+  { processes, daemon, table }: TerminalHoldReads,
+  ptyId: string | undefined,
+  conversation: { agent: string; id: string }
+): boolean {
+  if (processes === null || daemon === null || table.runsAnywhere(conversation) !== false) {
+    return false
+  }
+  const listed = processes.find(({ id }) => id === ptyId)
+  return listed
+    ? Boolean(listed.rootProcessId && table.runsAgentBelow(listed.rootProcessId) === false)
+    : !daemon.installed
 }
 
 /** Terminals whose live agent was started on the conversation and reported another since (`/clear`).

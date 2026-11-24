@@ -35,6 +35,9 @@ import {
   conversationCommandBlocked
 } from './structured-conversation-command-admission'
 import { maybeQueueStructuredAgentSessionSend } from '../delivery/structured-agent-session-queued-messages'
+import { admitStructuredAgentSessionSend } from '../delivery/structured-agent-session-send-admission'
+import type { AgentSessionTurnContext, TurnOutcome } from './structured-agent-session-turns'
+import type { AgentSessionWireRefusal } from '../../../../shared/agent-session/failures/agent-session-wire-refusals'
 import { structuredAgentSessionCompactBody } from './structured-agent-session-command-turn'
 
 /** RPC success means handed over, not finished; queued commands answer immediately as cards. */
@@ -163,6 +166,9 @@ function acceptUnderSerialize(
     {
       ...plan,
       run: async (ctx) => {
+        if (params.atRest) {
+          return (await commandBlocked(context, ctx)) ?? acceptAtRest(context, ctx, params)
+        }
         // Queue first so commands obey the same holds as sends before active-work admission.
         const queued = await maybeQueueStructuredAgentSessionSend(context, ctx, {
           envelope: params.envelope,
@@ -183,27 +189,44 @@ function acceptUnderSerialize(
                 : { clientMessageId: value.submission.clientMessageId }
           }
         }
-        const record = context.deps.store.requireWritableRecord(ctx.sessionId)
-        const refusal =
-          record &&
-          (await conversationCommandBlocked(
-            ctx,
-            record,
-            compactionChildWork(ctx.agents.capabilities(record.provider), () => ({
-              views: context.readChildWork(ctx.sessionId),
-              open: context.childWorkOpen(ctx.sessionId)
-            })),
-            context.sessions.get(ctx.sessionId)?.child ? undefined : 'at-rest'
-          ))
-        const blocked =
-          structuredAgentSessionSendBlock(record) ??
-          (refusal ? { ok: false as const, refusal } : null)
-        if (blocked) {
-          return blocked
-        }
-        return plan.run(ctx)
+        return (await commandBlocked(context, ctx)) ?? plan.run(ctx)
       }
     },
     sendPreparation(context, params.envelope, arrival, selection)
   )
+}
+
+async function commandBlocked(
+  context: StructuredAgentSessionMutationContext,
+  ctx: AgentSessionTurnContext
+): Promise<{ ok: false; refusal: AgentSessionWireRefusal } | null> {
+  const record = context.deps.store.requireWritableRecord(ctx.sessionId)
+  const refusal =
+    record &&
+    (await conversationCommandBlocked(
+      ctx,
+      record,
+      compactionChildWork(ctx.agents.capabilities(record.provider), () => ({
+        views: context.readChildWork(ctx.sessionId),
+        open: context.childWorkOpen(ctx.sessionId)
+      })),
+      context.sessions.get(ctx.sessionId)?.child ? undefined : 'at-rest'
+    ))
+  return (
+    structuredAgentSessionSendBlock(record) ?? (refusal ? { ok: false as const, refusal } : null)
+  )
+}
+
+/** Local: the writer accepts it or refuses it at one position; it is no one's message. */
+async function acceptAtRest(
+  context: StructuredAgentSessionMutationContext,
+  ctx: AgentSessionTurnContext,
+  params: ConversationCommandParams
+): Promise<TurnOutcome<ConversationCommandAcceptance>> {
+  const sent = await admitStructuredAgentSessionSend(context, ctx, {
+    envelope: params.envelope,
+    body: structuredAgentSessionCompactBody(params.instructions),
+    atRest: true
+  })
+  return sent.ok ? { ok: true, value: { clientMessageId: sent.value.clientMessageId } } : sent
 }

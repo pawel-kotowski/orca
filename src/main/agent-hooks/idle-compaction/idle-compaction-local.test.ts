@@ -166,7 +166,7 @@ function harness(overrides: Partial<IdleCompactionDeps> = {}, facts?: IdleCompac
       h.sent.push(handle)
     },
     chats: {
-      transcriptPath: async () => null,
+      source: async () => ({ transcriptPath: '/h/projects/p/s.jsonl', configDir: '/h' }),
       readFacts: async () => facts ?? { contextTokens: 400_000, compactedSince: false },
       hold: () => null,
       compact: async (chat) => h.sent.push(chat.sessionId) > 0

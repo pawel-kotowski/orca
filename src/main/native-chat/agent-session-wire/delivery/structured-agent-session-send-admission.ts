@@ -32,6 +32,8 @@ export type StructuredSendAdmissionParams = {
   selection?: Readonly<Record<string, string>>
   userSend?: true
   personsMessage?: true
+  /** Local: see `JournalSendAdmission`. */
+  atRest?: true
   usageLimitContinuationOfTurnItemId?: string
   expectedContinuationLaunch?: JournalContinuationLaunch
 }
@@ -95,6 +97,7 @@ export async function admitStructuredAgentSessionSend(
         fromAgent: !fromPerson && params.body.from !== undefined,
         deliveryMode: params.delivery === 'queue-if-active' ? 'queue' : 'steer',
         ...(queueOnly ? { queueOnly: true } : {}),
+        ...(params.atRest ? { atRest: true as const } : {}),
         // Local: a chat open in a terminal keeps every message as a card until it is back.
         ...(structuredChatTerminalHold(ctx.sessionId) ? { waits: true as const } : {}),
         ...(params.usageLimitContinuationOfTurnItemId !== undefined

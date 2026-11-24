@@ -46,6 +46,8 @@ export type ConversationCommandParams = {
   /** Only /compact queues: the drain delivers provider messages; /clear needs host-side execution. */
   delivery?: 'queue-if-active'
   userSend?: true
+  /** Local, /compact only: the host's own, which a chat that is not at rest refuses. */
+  atRest?: true
 }
 export function runStructuredConversationCommand(
   context: StructuredAgentSessionMutationContext,

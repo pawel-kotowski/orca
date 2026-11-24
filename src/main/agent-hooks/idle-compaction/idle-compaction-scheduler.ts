@@ -47,7 +47,11 @@ export type IdleCompactionDeps = {
   setTimer: (run: () => void, ms: number) => { cancel: () => void }
   minTokens: number
   /** False turns the feature off for this agent's session (Claude's own `idleCompaction: false`). */
-  allowedBySettings: (agent: IdleCompactionAgent, transcriptPath: string) => Promise<boolean>
+  allowedBySettings: (
+    agent: IdleCompactionAgent,
+    transcriptPath: string,
+    accountDir: string | null
+  ) => Promise<boolean>
   readFacts: (
     agent: IdleCompactionAgent,
     transcriptPath: string,
@@ -192,11 +196,17 @@ export class IdleCompactionScheduler {
     if (this.deps.now() - turnEndedAt > IDLE_COMPACTION_DELAY_MS + IDLE_COMPACTION_LATE_LIMIT_MS) {
       return 'lapsed'
     }
+    const source = 'chat' in target ? await this.deps.chats.source(agent, target.chat) : null
     const transcriptPath =
-      'chat' in target
-        ? await this.deps.chats.transcriptPath(agent, target.chat)
-        : target.transcriptPath
-    if (transcriptPath && !(await this.deps.allowedBySettings(agent, transcriptPath))) {
+      'chat' in target ? (source?.transcriptPath ?? null) : target.transcriptPath
+    // Without its transcript nothing says that Claude's cache still lives.
+    if (chat && agent === 'claude' && !transcriptPath) {
+      return 'unreadable'
+    }
+    if (
+      transcriptPath &&
+      !(await this.deps.allowedBySettings(agent, transcriptPath, source?.configDir ?? null))
+    ) {
       return 'disabled'
     }
     const facts = await this.readFacts(armed, transcriptPath)

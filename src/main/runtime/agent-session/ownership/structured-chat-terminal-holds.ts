@@ -18,6 +18,7 @@ import {
 
 export {
   forgetUnreadableStructuredChatTerminalHolds,
+  structuredChatTerminalHoldsUnread,
   structuredChatTerminalHoldsUnreadable,
   type StructuredChatHoldTerminal,
   type StructuredChatTerminalHold

@@ -39,6 +39,7 @@ const FILE = 'structured-chat-terminal-holds.json'
 const UNREADABLE_FILE = 'structured-chat-terminal-holds.unreadable.json'
 let holds: Map<string, StructuredChatTerminalHold> | null = null
 let unreadable = false
+let readFailed = false
 // Holds an earlier Orca left, which a client of this one cannot be launching.
 const inherited = new Set<string>()
 
@@ -92,8 +93,8 @@ function parsedHold(value: unknown): StructuredChatTerminalHold | null {
     : null
 }
 
-function readSaved(path: string): Map<string, StructuredChatTerminalHold> {
-  const saved: unknown = JSON.parse(readFileSync(path, 'utf8'))
+function parsedHolds(text: string): Map<string, StructuredChatTerminalHold> {
+  const saved: unknown = JSON.parse(text)
   if (typeof saved !== 'object' || saved === null || Array.isArray(saved)) {
     throw new Error('not a list of holds')
   }
@@ -122,22 +123,35 @@ export function loadedHolds(): Map<string, StructuredChatTerminalHold> {
     return new Map()
   }
   unreadable = existsSync(storagePath(UNREADABLE_FILE) ?? path)
+  let text: string | null = null
   try {
-    holds = readSaved(path)
+    text = readFileSync(path, 'utf8')
+  } catch (error) {
+    if (!isMissing(error)) {
+      // The file may well be whole: it is left as it is and read again at the next call.
+      unreadable = true
+      if (!readFailed) {
+        readFailed = true
+        console.warn('[chat-terminal] could not read the handed-over chats yet', error)
+      }
+      return new Map()
+    }
+  }
+  readFailed = false
+  try {
+    holds = text === null ? new Map() : parsedHolds(text)
     for (const { token } of holds.values()) {
       inherited.add(token)
     }
   } catch (error) {
     holds = new Map()
-    if (!isMissing(error)) {
-      // Which chats were handed over is unknown, not "none": set the file aside and say so.
-      unreadable = true
-      console.warn('[chat-terminal] could not read the handed-over chats', error)
-      try {
-        renameSync(path, storagePath(UNREADABLE_FILE) ?? path)
-      } catch {
-        // It stays where it is and is read again at the next start.
-      }
+    // Which chats were handed over is unknown, not "none": set the file aside and say so.
+    unreadable = true
+    console.warn('[chat-terminal] could not read the handed-over chats', error)
+    try {
+      renameSync(path, storagePath(UNREADABLE_FILE) ?? path)
+    } catch {
+      // It stays where it is and is read again at the next start.
     }
   }
   return holds
@@ -154,6 +168,10 @@ function save(next: Map<string, StructuredChatTerminalHold>): void {
 /** For a change that must not be lost: nothing changes when it cannot be saved. */
 export function commitHold(sessionId: string, hold: StructuredChatTerminalHold | null): void {
   const next = new Map(loadedHolds())
+  if (readFailed) {
+    // Saving now would write over the holds that could not be read.
+    throw new Error('chat_terminal_holds_unavailable')
+  }
   if (hold) {
     next.set(sessionId, hold)
   } else {
@@ -190,7 +208,13 @@ export function forgetUnreadableStructuredChatTerminalHolds(): void {
   if (path) {
     rmSync(path, { force: true })
   }
-  unreadable = false
+  unreadable = readFailed
+}
+
+/** The holds could not be read this time, and are read again at the next call. */
+export function structuredChatTerminalHoldsUnread(): boolean {
+  loadedHolds()
+  return readFailed
 }
 
 /** Left by an earlier Orca, and held still. */
@@ -215,5 +239,6 @@ export function dropHold(sessionId: string): void {
 export function resetHoldStoreForTests(): void {
   holds = null
   unreadable = false
+  readFailed = false
   inherited.clear()
 }

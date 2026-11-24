@@ -1,12 +1,11 @@
 import { appendFile, mkdir, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { getAppEnvironment } from '../../../shared/app-lifecycle/app-environment'
+import { claudeConfigDirEnv } from '../../claude-accounts/session-login/claude-host-logins-read'
+import { claudeStateFileAsync } from '../../claude-accounts/sign-in/claude-account-folder'
 import type { AgentHookServer } from '../server/agent-hook-server'
 import type { OrcaRuntimeService } from '../../runtime/orca-runtime'
-import {
-  readIdleCompactionSessionFacts,
-  type IdleCompactionAgent
-} from './idle-compaction-session-facts'
+import { readIdleCompactionSessionFacts } from './idle-compaction-session-facts'
 import { structuredIdleCompactionTarget } from './idle-compaction-structured-chat'
 import { IDLE_COMPACTION_MIN_TOKENS, IdleCompactionScheduler } from './idle-compaction-scheduler'
 
@@ -26,15 +25,23 @@ async function readJson(path: string): Promise<Record<string, unknown> | null> {
 
 /** Claude's own switches turn Orca's fallback off too: `idleCompaction: false` or auto-compact off.
  *  The config folder is the transcript's (`<config>/projects/<project>/<session>.jsonl`). */
-export async function claudeAllowsIdleCompaction(transcriptPath: string): Promise<boolean> {
+export async function claudeAllowsIdleCompaction(
+  transcriptPath: string,
+  accountDir: string | null = null
+): Promise<boolean> {
   const marker = transcriptPath.lastIndexOf('/projects/')
-  if (marker === -1) {
+  // Local: a chat's transcript may be reached through its account's link to another folder.
+  const configDir = accountDir ?? (marker === -1 ? null : transcriptPath.slice(0, marker))
+  if (configDir === null) {
     return true
   }
-  const configDir = transcriptPath.slice(0, marker)
   const [settings, globalConfig] = await Promise.all([
     readJson(join(configDir, 'settings.json')),
-    readJson(join(configDir, '.claude.json'))
+    readJson(
+      accountDir === null
+        ? join(configDir, '.claude.json')
+        : await claudeStateFileAsync(claudeConfigDirEnv(accountDir))
+    )
   ])
   return (
     settings?.idleCompaction !== false &&
@@ -83,8 +90,10 @@ export function installIdleCompaction(
       return { cancel: () => clearTimeout(timer) }
     },
     minTokens: minTokensFromEnv(),
-    allowedBySettings: (agent: IdleCompactionAgent, transcriptPath: string) =>
-      agent === 'claude' ? claudeAllowsIdleCompaction(transcriptPath) : Promise.resolve(true),
+    allowedBySettings: (agent, transcriptPath, accountDir) =>
+      agent === 'claude'
+        ? claudeAllowsIdleCompaction(transcriptPath, accountDir)
+        : Promise.resolve(true),
     readFacts: readIdleCompactionSessionFacts,
     terminalHandle: (paneKey) => getRuntime()?.getTerminalHandleForPaneKey(paneKey) ?? null,
     inputHold: (handle) => {

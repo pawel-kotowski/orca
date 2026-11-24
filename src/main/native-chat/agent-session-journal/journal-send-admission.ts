@@ -13,6 +13,8 @@ export type JournalSendAdmission = {
   queueOnly?: true
   /** Local: the chat is open in a terminal, so the message waits as a card. */
   waits?: true
+  /** Local: nobody asked for it, so it is refused unless the chat is at rest, and never queued. */
+  atRest?: true
   continuationOfTurnItemId?: string
   expectedContinuationLaunch?: JournalContinuationLaunch
 }

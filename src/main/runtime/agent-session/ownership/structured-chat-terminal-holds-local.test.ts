@@ -1,4 +1,12 @@
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  writeFileSync
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
@@ -25,6 +33,7 @@ import {
   releaseUnlaunchedStructuredChatTerminalHolds,
   resetStructuredChatTerminalHoldsForTests,
   structuredChatTerminalHold,
+  structuredChatTerminalHoldsUnread,
   structuredChatTerminalHoldsUnreadable,
   structuredChatTerminalMayWrite,
   structuredChatTerminalStarting,
@@ -218,6 +227,28 @@ it('M1: an unreadable file is not an empty one, across restarts, until the termi
   forgetUnreadableStructuredChatTerminalHolds()
   expect(structuredChatTerminalHoldsUnreadable()).toBe(false)
   expect(existsSync(aside())).toBe(false)
+})
+
+it('a file that could not be read once is neither set aside nor written over, and is read again', () => {
+  open()
+  begin('b', 'second', 'other')
+  resetStructuredChatTerminalHoldsForTests()
+  // EISDIR: any failure but a missing file.
+  renameSync(file(), `${file()}.kept`)
+  mkdirSync(file())
+  expect(heldStructuredChats()).toEqual([])
+  expect(structuredChatTerminalHoldsUnread()).toBe(true)
+  expect(structuredChatTerminalHoldsUnreadable()).toBe(true)
+  expect(() => begin('c', 'third', 'another')).toThrow()
+  forgetUnreadableStructuredChatTerminalHolds()
+  expect(existsSync(aside())).toBe(false)
+  rmSync(file(), { recursive: true })
+  renameSync(`${file()}.kept`, file())
+  expect(heldStructuredChats()).toEqual(['chat', 'second'])
+  expect(structuredChatTerminalHoldsUnreadable()).toBe(false)
+  // Nothing can launch what an earlier Orca only opened.
+  releaseUnlaunchedStructuredChatTerminalHolds()
+  expect(heldStructuredChats()).toEqual(['chat'])
 })
 
 it('M1: no hold is begun that cannot be saved', () => {

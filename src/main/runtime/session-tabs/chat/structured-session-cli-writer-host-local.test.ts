@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync } from 'node:fs'
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
@@ -39,7 +39,8 @@ import {
   heldStructuredChats,
   keepStructuredChatHold,
   resetStructuredChatTerminalHoldsForTests,
-  structuredChatTerminalHold
+  structuredChatTerminalHold,
+  structuredChatTerminalHoldsUnreadable
 } from '../../agent-session/ownership/structured-chat-terminal-holds'
 import { OrcaRuntimeWithStructuredSessionCliWriterHost } from './structured-session-cli-writer-host'
 
@@ -429,4 +430,75 @@ it('M5: a chat that is not held starts as before, beside a pane that runs someth
   expect(await host.structuredChatRunsInTerminal(RECORD)).toBe(true)
   open()
   await expect(host.assertStructuredChatAcquireAdmissible(RECORD)).rejects.toThrow()
+})
+
+function lostHolds(): void {
+  writeFileSync(join(mocks.path, 'structured-chat-terminal-holds.json'), '{"chat":{"tok')
+}
+
+it('after holds were lost, a chat starts beside a busy terminal no agent runs in', async () => {
+  lostHolds()
+  const { host, state } = runtime()
+  state.rows = [ROW]
+  // Another terminal's agent always runs, so the lost holds are never all proven over.
+  state.listed = [RUNNING, { id: 'server', incarnationId: 's', rootProcessId: 20 }]
+  mocks.daemon.mockResolvedValue([
+    { sessionId: 'pty', isAlive: true },
+    { sessionId: 'server', isAlive: true }
+  ])
+  state.paneOf.set('tab:leaf', { ptyId: 'pty', incarnationId: 'i', connected: true })
+  const agents = new Set([10, 20])
+  let anywhere = false
+  mocks.processes.mockResolvedValue({
+    shellAlone: async () => false,
+    runsBelow: () => false,
+    runsAnywhere: () => anywhere,
+    runsAgentBelow: (root: number) => agents.has(root)
+  })
+  await expect(host.assertStructuredChatAcquireAdmissible(RECORD)).rejects.toThrow()
+  // A dev server has that terminal now.
+  agents.delete(10)
+  await expect(host.assertStructuredChatAcquireAdmissible(RECORD)).resolves.toBeUndefined()
+  expect(structuredChatTerminalHoldsUnreadable()).toBe(true)
+  // A detached tmux still runs the conversation.
+  anywhere = true
+  await expect(host.assertStructuredChatAcquireAdmissible(RECORD)).rejects.toThrow()
+  anywhere = false
+  // Every terminal is free of agents: none of the lost holds is needed any more.
+  agents.delete(20)
+  await expect(host.assertStructuredChatAcquireAdmissible(RECORD)).resolves.toBeUndefined()
+  expect(structuredChatTerminalHoldsUnreadable()).toBe(false)
+})
+
+it('after holds were lost, a row of a terminal that cannot be read is judged by the processes', async () => {
+  lostHolds()
+  mocks.installed = false
+  const { host, state } = runtime()
+  state.rows = [ROW]
+  state.listed = [{ id: 'server', incarnationId: 's', rootProcessId: 20 }]
+  const processes = (runsAnywhere: boolean | null) =>
+    mocks.processes.mockResolvedValue({
+      shellAlone: async () => false,
+      runsBelow: () => false,
+      runsAnywhere: () => runsAnywhere,
+      runsAgentBelow: () => true
+    })
+  processes(null)
+  await expect(host.assertStructuredChatAcquireAdmissible(RECORD)).rejects.toThrow()
+  processes(false)
+  await expect(host.assertStructuredChatAcquireAdmissible(RECORD)).resolves.toBeUndefined()
+})
+
+it('lost holds alone keep no watch on the terminals', async () => {
+  lostHolds()
+  const { host } = runtime()
+  vi.useFakeTimers()
+  try {
+    host.startStructuredChatTerminalHolds()
+    await vi.advanceTimersByTimeAsync(20_000)
+    expect(mocks.processes).not.toHaveBeenCalled()
+    expect(vi.getTimerCount()).toBe(0)
+  } finally {
+    vi.useRealTimers()
+  }
 })

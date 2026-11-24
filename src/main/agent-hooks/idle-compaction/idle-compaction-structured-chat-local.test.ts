@@ -46,7 +46,7 @@ async function run(
     inputHold: () => null,
     sendCompact: () => Promise.reject(new Error('a chat has no terminal')),
     chats: {
-      transcriptPath: async () => null,
+      source: async () => ({ transcriptPath: '/h/projects/p/s.jsonl', configDir: '/h' }),
       readFacts: async () => ({ contextTokens: 400_000, compactedSince: false }),
       hold: () => null,
       compact: async (chat) => compacted.push(chat) > 0,
@@ -97,6 +97,13 @@ describe('idle compaction of a chat', () => {
       }
     )
     expect(outcome).toBe('compacted')
+  })
+
+  it('a Claude chat whose transcript is not found is left alone; Codex keeps no cache there', async () => {
+    const source = async () => ({ transcriptPath: null, configDir: null })
+    expect((await run({ source })).outcome).toBe('unreadable')
+    const codex = chatDone({ payload: { state: 'done', prompt: 'p', agentType: 'codex' } })
+    expect((await run({ source }, [codex])).outcome).toBe('compacted')
   })
 
   it('a chat without a provider conversation is never armed', async () => {

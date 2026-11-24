@@ -7,13 +7,13 @@ import { chatConversation } from '../../../native-chat/conversation-adoption/str
 import { getStructuredAgentSessionHost } from '../../../native-chat/agent-session-wire/host/structured-agent-session-registry'
 import {
   chatTerminalHandoverSubscription,
-  forgetUnreadableStructuredChatTerminalHolds,
   heldStructuredChats,
   noteStructuredChatTerminalRan,
   onStructuredChatTerminalHoldEnded,
   releaseStructuredChatTerminalHold,
   releaseUnlaunchedStructuredChatTerminalHolds,
   structuredChatTerminalHold,
+  structuredChatTerminalHoldsUnread,
   structuredChatTerminalHoldsUnreadable,
   structuredChatTerminalMayWrite,
   structuredChatTerminalStarting,
@@ -30,6 +30,8 @@ import { readTerminalProcesses } from '../../agent-session/ownership/structured-
 import {
   readLiveDaemonSessions,
   readTerminalHoldPane,
+  forgotLostHolds,
+  terminalHasNoAgent,
   terminalsOfOtherConversations,
   type TerminalHoldReads
 } from './structured-chat-terminal-hold-reads'
@@ -52,7 +54,7 @@ export abstract class OrcaRuntimeWithStructuredChatTerminalHolds extends OrcaRun
     const hold = structuredChatTerminalHold(sessionId)
     return hold
       ? this.structuredChatTerminalActive(sessionId, hold)
-      : structuredChatTerminalHoldsUnreadable() && (await this.terminalRowsMayWrite(key))
+      : structuredChatTerminalHoldsUnreadable() && (await this.lostHoldMayWrite(key))
   }
 
   /** Local: whether a terminal runs the conversation of a chat that is about to be handed over. */
@@ -101,7 +103,8 @@ export abstract class OrcaRuntimeWithStructuredChatTerminalHolds extends OrcaRun
    *  gone or its shell is alone. */
   private async terminalRowsMayWrite(
     key: { agent: StructuredAgentId; id: string },
-    reads?: TerminalHoldReads
+    reads?: TerminalHoldReads,
+    agentsOnly = false
   ): Promise<boolean> {
     for (const row of this.getAgentProviderSessionRows()) {
       if (row.structuredHost || !namesCliConversation(row, key.agent, key.id)) {
@@ -124,11 +127,21 @@ export abstract class OrcaRuntimeWithStructuredChatTerminalHolds extends OrcaRun
         key.id,
         reads ?? (await this.readHoldTerminals())
       )
-      if (pane === 'running' || pane === 'unknown') {
+      if (
+        (pane === 'running' || pane === 'unknown') &&
+        !(agentsOnly && reads && terminalHasNoAgent(reads, pty?.ptyId, key))
+      ) {
         return true
       }
     }
     return false
+  }
+
+  /** Saved holds were lost, so this chat's may be among them. Looked at only as a chat starts: an
+   *  agent that always runs somewhere would have the terminals read for good. */
+  private async lostHoldMayWrite(key: { agent: StructuredAgentId; id: string }): Promise<boolean> {
+    const reads = await this.readHoldTerminals()
+    return !forgotLostHolds(reads, key) && this.terminalRowsMayWrite(key, reads, true)
   }
 
   private async readHoldTerminals(): Promise<TerminalHoldReads> {
@@ -263,7 +276,7 @@ export abstract class OrcaRuntimeWithStructuredChatTerminalHolds extends OrcaRun
       this.terminalHoldWatch ||
       (heldStructuredChats().length === 0 &&
         structuredChatReturns().length === 0 &&
-        !structuredChatTerminalHoldsUnreadable())
+        !structuredChatTerminalHoldsUnread())
     ) {
       return
     }
@@ -298,6 +311,8 @@ export abstract class OrcaRuntimeWithStructuredChatTerminalHolds extends OrcaRun
   }
 
   private async releaseFinishedTerminalHolds(): Promise<void> {
+    // Again here: they may not have been readable at the start.
+    releaseUnlaunchedStructuredChatTerminalHolds()
     const store = getStructuredAgentSessionHost()?.deps.store
     for (const sessionId of heldStructuredChats()) {
       const hold = structuredChatTerminalHold(sessionId)
@@ -318,18 +333,5 @@ export abstract class OrcaRuntimeWithStructuredChatTerminalHolds extends OrcaRun
       }
     }
     await this.resumeReturnedChats()
-    if (structuredChatTerminalHoldsUnreadable()) {
-      const { processes, daemon, table } = await this.readHoldTerminals()
-      const agents = processes?.map(({ rootProcessId }) =>
-        rootProcessId ? table.runsAgentBelow(rootProcessId) : null
-      )
-      const listed = new Set(processes?.map(({ id }) => id))
-      if (
-        daemon?.sessions.every(({ sessionId }) => listed.has(sessionId)) &&
-        agents?.every((runs) => runs === false)
-      ) {
-        forgetUnreadableStructuredChatTerminalHolds()
-      }
-    }
   }
 }

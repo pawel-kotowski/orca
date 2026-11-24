@@ -1,3 +1,10 @@
+import { join } from 'node:path'
+import type { AgentSessionRecord } from '../../../shared/agent-session/lifecycle/agent-session-record'
+import {
+  agentSessionAccountHomePath,
+  type AgentSessionAccountHome
+} from '../../../shared/agent-session/lifecycle/accounts/agent-session-account-home'
+import { rateLimitSpentUntil } from '../../../shared/agent-usage/rate-limits/rate-limit-spent-windows'
 import type { AgentSessionContextUsage } from '../../../shared/agent-session/conversation-context/agent-session-context-usage'
 import { contextTokensFromUsage } from '../../../shared/agent-session/conversation-context/agent-session-context-usage'
 import { agentSessionConversationCommandFields } from '../../../shared/agent-session/conversation-context/agent-session-conversation-command'
@@ -17,8 +24,14 @@ import {
 /** A chat whose turn ended, as its status row names it. */
 export type IdleCompactionChat = { sessionId: string; providerSessionId: string }
 
+/** Claude only: the folder of the account the chat's agent would compact on, and its transcript there. */
+export type IdleCompactionChatSource = { transcriptPath: string | null; configDir: string | null }
+
 export type IdleCompactionChatTarget = {
-  transcriptPath: (agent: IdleCompactionAgent, chat: IdleCompactionChat) => Promise<string | null>
+  source: (
+    agent: IdleCompactionAgent,
+    chat: IdleCompactionChat
+  ) => Promise<IdleCompactionChatSource>
   readFacts: (
     agent: IdleCompactionAgent,
     chat: IdleCompactionChat,
@@ -27,7 +40,7 @@ export type IdleCompactionChatTarget = {
   ) => Promise<IdleCompactionSessionFacts>
   /** Why compacting now would be wrong: a chat that is closed, asleep or on another conversation. */
   hold: (chat: IdleCompactionChat) => 'no_terminal' | 'held' | 'superseded' | null
-  /** False when the host refused it: a pending prompt, a running turn, an unsettled message. */
+  /** False when the host refused it: the chat is not at rest, or its account's limit is spent. */
   compact: (chat: IdleCompactionChat) => Promise<boolean>
 }
 
@@ -53,8 +66,39 @@ export function chatCompactionFacts(
   }
 }
 
+/** The account home a start of the chat's agent would run under now. */
+async function compactionHome(record: AgentSessionRecord): Promise<AgentSessionAccountHome | null> {
+  const launch = await getStructuredAgentSessionHost()?.deps.launchAccountHome?.(record)
+  return launch ?? record.accountHome
+}
+
+/** The compaction would only fail, and its failure would hold what other agents send. */
+async function limitSpent(record: AgentSessionRecord): Promise<boolean> {
+  const usage = getStructuredAgentSessionHost()?.deps.usageLimitAutoContinue?.accountUsage
+  const home = usage && record.location.wslDistro === null ? await compactionHome(record) : null
+  const reading = home && (await usage?.(record.provider, home))?.account?.read()
+  const until = reading ? rateLimitSpentUntil(reading) : undefined
+  return until === null || (until !== undefined && until > Date.now())
+}
+
 export const structuredIdleCompactionTarget: IdleCompactionChatTarget = {
-  transcriptPath: (agent, chat) => resolveSessionFilePath(agent, chat.providerSessionId),
+  source: async (agent, { sessionId, providerSessionId }) => {
+    if (agent !== 'claude') {
+      const transcriptPath = await resolveSessionFilePath(agent, providerSessionId)
+      return { transcriptPath, configDir: null }
+    }
+    const record = getStructuredAgentSessionHost()?.deps.store.getRecord(sessionId)
+    const home = record?.location.wslDistro === null ? await compactionHome(record) : null
+    const configDir = agentSessionAccountHomePath(home)
+    return {
+      configDir,
+      transcriptPath: configDir
+        ? await resolveSessionFilePath(agent, providerSessionId, {
+            claudeProjectsDir: join(configDir, 'projects')
+          })
+        : null
+    }
+  },
   readFacts: async (agent, chat, transcriptPath, since) => {
     const reads = await getStructuredAgentSessionHost()?.journalReads(chat.sessionId)
     const tokens = reads ? contextTokensOfUsage(await reads.contextUsage()) : null
@@ -85,14 +129,19 @@ export const structuredIdleCompactionTarget: IdleCompactionChatTarget = {
   compact: async ({ sessionId }) => {
     const host = getStructuredAgentSessionHost()
     const fence = host?.deps.store.getConversation(sessionId)?.currentFence
-    if (!host || fence === undefined) {
+    const record = host?.deps.store.getRecord(sessionId)
+    if (!host || !record || fence === undefined) {
       throw new Error('no_host')
     }
-    // No `delivery`: a busy chat refuses instead of queueing. A stopped agent is started for it.
+    if (await limitSpent(record)) {
+      return false
+    }
+    // Refused unless the chat is at rest as the host accepts it. A stopped agent is started for it.
     const result = await host.conversationCommand(
       { callerKey: 'trusted-local:idle-compaction' },
       {
         command: 'compact',
+        atRest: true,
         envelope: {
           sessionId,
           clientOperationId: mintAgentSessionOperationId(Date.now()),

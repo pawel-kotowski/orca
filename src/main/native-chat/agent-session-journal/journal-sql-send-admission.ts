@@ -1,6 +1,7 @@
 import type Database from '../../sqlite/sync-database'
 import { pendingPromptsAllUnanswerableHere } from '../../../shared/agent-session/requests/prompts/agent-session-approval-subject'
 import { refuse } from '../../../shared/agent-session/failures/agent-session-wire-refusals'
+import { journalDomainChatAtRest } from './journal-domain-chat-at-rest'
 import { journalDomainInputEligibility } from './journal-domain-input-eligibility'
 import { JournalSqlScope } from './journal-sql-scope'
 import { journalDomainSubmission } from './journal-domain-status-inputs'
@@ -125,6 +126,12 @@ export function applyJournalSqlSendAdmission(
         'agent_session_rewind:outcome-unknown'
       )
     })
+  }
+  if (
+    operation.atRest &&
+    (operation.waits || !journalDomainChatAtRest(db, scope, eligibility, facts.reopenFloor ?? null))
+  ) {
+    return superseded()
   }
   let queue = operation.waits === true
   if (queue) {
