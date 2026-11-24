@@ -328,7 +328,8 @@ export function NativeChatComposerField({
                           )
                         : (placeholderHint ??
                           suggestion ??
-                          idleHint ??
+                          // Local: no hint text in the one-line box (Paweł, 2026-11-05).
+                          (compact ? undefined : idleHint) ??
                           nativeChatComposerPlaceholder(hasPty, canSend, afterStop, t))
                 }
                 // Let layout handle wrapping and touch targets; scroll after eight lines (a launch prompt: one line growing to six) without JavaScript measurement.
@@ -343,6 +344,9 @@ export function NativeChatComposerField({
                   // Why: after the base sizes, so the compact box's one line wins. The line is as tall
                   // as the controls row (h-8) and centred in it, so text and controls share one middle.
                   compact && 'min-h-8 py-1.5 pointer-coarse:min-h-10',
+                  // A suggested prompt longer than the line wraps and grows the box, never cut off.
+                  compact &&
+                    '[&_p.is-editor-empty:only-child]:before:!h-auto [&_p.is-editor-empty:only-child]:before:w-full [&_p.is-editor-empty:only-child]:before:mr-[-100%]',
                   // Why: the editor is a contenteditable, which `:disabled` never matches.
                   '[&[contenteditable=false]]:cursor-not-allowed [&[contenteditable=false]]:opacity-50'
                 )}

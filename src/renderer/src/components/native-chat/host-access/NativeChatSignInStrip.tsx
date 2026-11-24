@@ -52,6 +52,7 @@ export function NativeChatSignInStrip(props: {
   return (
     <div
       data-native-chat-install="strip"
+      data-native-chat-surface="card"
       className="flex items-start gap-3 rounded-xl border border-input bg-card px-3.5 py-3 text-sm shadow-xs"
     >
       <NativeChatInstallTile agent={agent} failed={failed} large={false} />

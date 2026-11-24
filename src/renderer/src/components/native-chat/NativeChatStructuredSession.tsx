@@ -1,3 +1,6 @@
+/* eslint-disable max-lines -- Why: upstream's view sits at the limit; the terminal chat's features
+   (use-structured-chat-parity) add a few wiring lines, and moving upstream's own code out would fork
+   the view from upstream on every merge. */
 import { useBotLinkPrompt } from '@/lib/agent-session/open/bot-link-item-target'
 import {
   NativeChatCrewContext,
@@ -75,6 +78,9 @@ import { pendingPromptsAllUnanswerableHere } from '../../../../shared/agent-sess
 import { NativeChatHostSetupContext } from '@/components/native-chat/host-access/native-chat-host-setup'
 import type { NativeChatComposerHandle } from './composer/native-chat-composer-types'
 import { nativeChatWorkerApprovalParty } from './worker-approvals/NativeChatWorkerApprovals'
+import { structuredHeldByBackgroundWork } from './conversation/turns/structured-held-by-background-work'
+import { useStructuredChatParity } from './use-structured-chat-parity'
+import { NativeChatStructuredTerminalStrip } from './NativeChatStructuredTerminalStrip'
 import { NativeChatWorkerTimeline } from './tools/tasks/dock/NativeChatWorkerResultTimeline'
 
 export function NativeChatStructuredSession(props: Omit<NativeChatStructuredViewProps, 'mode'>) {
@@ -169,6 +175,15 @@ export function NativeChatStructuredSession(props: Omit<NativeChatStructuredView
   const prompt = useBotLinkPrompt(props.sessionId, controller.prompts)
   // Unknown prompts leave the composer usable; a send starts a turn whose cancel can resolve them.
   const promptsUnanswerable = pendingPromptsAllUnanswerableHere(controller.prompts)
+  const parity = useStructuredChatParity({
+    ...props,
+    paneKey,
+    worktreeId: ownerWorktreeId,
+    isWorking: controller.isWorking,
+    prompt,
+    promptsOpen: controller.prompts.length > 0 && !promptsUnanswerable
+  })
+  const { promptHoldsInput } = parity
   // A bot's page whose server is down keeps its last read; the recovery card stands in for the composer.
   const pageBot = useBotForWorkspace(ownerWorktreeId ?? null)
   const botServerDown = pageBot !== null && hostOutage !== null && hostOutage.kind !== 'stopped'
@@ -176,7 +191,7 @@ export function NativeChatStructuredSession(props: Omit<NativeChatStructuredView
   const subagentOpen = subagents.openId !== null
   // A subagent's view takes the composer's place; the main agent's prompts still show.
   const composerShown =
-    (prompt === null || promptsUnanswerable) &&
+    (!promptHoldsInput || promptsUnanswerable) &&
     readFailure?.final !== true &&
     !botServerDown &&
     !subagentOpen
@@ -220,7 +235,8 @@ export function NativeChatStructuredSession(props: Omit<NativeChatStructuredView
     setOptionPickerRequest,
     onError: reportComposerError,
     reveal: submits,
-    sendBlockedReason: hostSendGate.sendBlockedReason ?? install.sendBlockedReason
+    sendBlockedReason:
+      hostSendGate.sendBlockedReason ?? install.sendBlockedReason ?? parity.terminalHold
   })
   const continuation = useNativeChatInterruptedContinuation({
     ...controller,
@@ -316,6 +332,10 @@ export function NativeChatStructuredSession(props: Omit<NativeChatStructuredView
                               railOutline={controller.railOutline}
                               isVisible={props.isVisible}
                               isWorking={controller.isWorking}
+                              heldByBackgroundWork={structuredHeldByBackgroundWork(
+                                controller.backgroundTasks,
+                                controller.isWorking
+                              )}
                               expandSignal={false}
                               workingStartedAt={controller.workingStartedAt}
                               settledTurns={controller.settledTurns}
@@ -339,7 +359,7 @@ export function NativeChatStructuredSession(props: Omit<NativeChatStructuredView
             <NativeChatDock shown={!readFailure?.final}>
               {composerShown ? null : subagents.dock}
               {subagents.pairedAsks}
-              {prompt || subagentOpen ? null : (
+              {promptHoldsInput || subagentOpen ? null : (
                 <NativeChatStructuredComposerTabStrips
                   tabId={props.tabId}
                   runtimeContext={imageRuntimeContext}
@@ -364,17 +384,21 @@ export function NativeChatStructuredSession(props: Omit<NativeChatStructuredView
                 statedFailures={startFailures}
                 steerHeld={bot.stopControls.stopping || hostHeld}
                 focusComposer={focusComposer}
+                {...parity.queue}
                 editAttachTo={{ terminalTabId: props.tabId, agent: props.agent, transport }}
               />
               <NativeChatStructuredPromptCard
                 key={prompt ? `${prompt.itemId}:${prompt.revision}` : undefined}
                 prompt={prompt}
                 promptResponse={promptResponse}
+                collapse={parity.promptCollapse}
                 onCancel={cancelPrompt}
                 shouldFocus={!promptsUnanswerable && props.isVisible && props.isFocusedGroup}
                 answerInputRef={questionAnswerInputRef}
               />
               {nativeChatStructuredAsyncQuestion(props, controller, session, transport, submits)}
+              {subagents.activityLines}
+              <NativeChatStructuredTerminalStrip terminal={parity.terminal} />
               {botServerDown && hostOutage ? (
                 <BotServerOutageCard key={hostOutage.environmentId} outage={hostOutage} />
               ) : null}
@@ -402,7 +426,11 @@ export function NativeChatStructuredSession(props: Omit<NativeChatStructuredView
                   }
                   structuredTransport={transport}
                   notices={notices}
-                  recallSource={{ messages: session.messages, withoutImageMarkers: true }}
+                  recallSource={{
+                    messages: session.messages,
+                    commands: parity.sentCommands,
+                    withoutImageMarkers: true
+                  }}
                 />
               ) : null}
             </NativeChatDock>

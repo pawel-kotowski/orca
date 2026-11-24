@@ -24,6 +24,7 @@ import {
   isNativeChatTabWideFallbackSafe,
   resolveNativeChatActiveLayoutLeafId
 } from './native-chat-leaf-routing'
+import { pressStructuredTerminalSwitch } from '../../native-chat-structured-terminal'
 import { addAppKeyListener, removeAppKeyListener } from '@/lib/keyboard/app-keyboard-router'
 
 export function resolveNativeChatToggleShortcutDetectedAgent({
@@ -100,6 +101,11 @@ export function useNativeChatToggleShortcut(worktreeId: string, isWorktreeActive
       const tab = (state.unifiedTabsByWorktree[worktreeId] ?? []).find(
         (candidate) => candidate.id === group.activeTabId
       )
+      if (tab?.contentType === 'agent-session' && pressStructuredTerminalSwitch(tab.id)) {
+        e.preventDefault()
+        e.stopImmediatePropagation()
+        return
+      }
       if (!tab || tab.contentType !== 'terminal') {
         return
       }

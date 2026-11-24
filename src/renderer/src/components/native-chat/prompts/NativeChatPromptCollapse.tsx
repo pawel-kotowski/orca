@@ -12,7 +12,8 @@ export function NativeChatPromptCollapseToggle({
   disabled = false,
   onToggle,
   ref,
-  wantsFocus = false
+  wantsFocus = false,
+  escapeFolds = true
 }: {
   expanded: boolean
   disabled?: boolean
@@ -20,6 +21,8 @@ export function NativeChatPromptCollapseToggle({
   ref?: Ref<HTMLButtonElement>
   /** Names this control as the pane's prompt focus target, as an open card is. */
   wantsFocus?: boolean
+  /** False where Escape cancels instead. */
+  escapeFolds?: boolean
 }): React.JSX.Element {
   const t = useTranslate()
   const label = expanded
@@ -44,7 +47,7 @@ export function NativeChatPromptCollapseToggle({
       </TooltipTrigger>
       <TooltipContent side="top" sideOffset={4}>
         {label}
-        {expanded ? <ShortcutKeyCombo keys={['Esc']} /> : null}
+        {expanded && escapeFolds ? <ShortcutKeyCombo keys={['Esc']} /> : null}
       </TooltipContent>
     </Tooltip>
   )

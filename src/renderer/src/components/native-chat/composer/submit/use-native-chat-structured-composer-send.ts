@@ -1,3 +1,4 @@
+import { noteNativeChatStructuredSentCommand } from '../../drafts/native-chat-structured-sent-commands'
 import { serializeNativeChatAgentReferences } from '../pickers/native-chat-agent-reference-send'
 import {
   hasNativeChatStagedFiles,
@@ -224,6 +225,9 @@ export function useNativeChatStructuredComposerSend({
             return false
           }
           transferred = true
+          if (hostCommand) {
+            noteNativeChatStructuredSentCommand(draftScopeKey, submittedText)
+          }
           completeNativeChatStructuredUserAction(
             agent,
             structuredTransport,

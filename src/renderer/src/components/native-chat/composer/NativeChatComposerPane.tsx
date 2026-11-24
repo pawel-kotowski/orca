@@ -268,7 +268,11 @@ export const NativeChatComposerPane = forwardRef<ComposerHandle, C.NativeChatCom
 
     // Local: a terminal chat's message box (not an edit or launch prompt) holds while its agent works.
     const terminalBox = !structuredTransport && !editSession && !launchPrompt
-    const ctrlEnterSendsNow = useNativeChatCtrlEnterSendsNow(agent, terminalBox)
+    const structuredBox = Boolean(structuredTransport) && !editSession && !launchPrompt
+    const ctrlEnterSendsNow = useNativeChatCtrlEnterSendsNow(
+      agent,
+      terminalBox ? 'terminal' : structuredBox ? 'structured' : null
+    )
     const holdWhileWorking = useNativeChatTerminalHold(paneKey, terminalBox && isWorking)
     // The parent's steer (a structured chat's queue) or the head message this box holds.
     const heldSteerHead = useNativeChatTerminalSteerHead(
@@ -341,7 +345,8 @@ export const NativeChatComposerPane = forwardRef<ComposerHandle, C.NativeChatCom
         mentionHold: mentions.sendHeld
       }),
       ctrlEnterSendsNow && isWorking && submission.messageDelivery,
-      followUp.queueFollowUps
+      followUp.queueFollowUps,
+      structuredBox
     )
 
     const { send, chooseEditItem, fieldOverrides, dispatchPickerCommand } =

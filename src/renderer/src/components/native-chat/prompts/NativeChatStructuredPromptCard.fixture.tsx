@@ -3,6 +3,7 @@ import { defineFixture } from '../../../component-fixtures/component-fixture'
 import { targetBotLinkItem, useBotLinkPrompt } from '@/lib/agent-session/open/bot-link-item-target'
 import type { StructuredPromptItem } from '../../../../../shared/agent-session/view/structured-agent-session-message-projection'
 import { NativeChatStructuredPromptCard } from './NativeChatStructuredPromptCard'
+import { useStructuredPromptCollapse } from './use-structured-prompt-collapse'
 import { nativeChatAppearanceStyle } from '../appearance/native-chat-appearance-style'
 
 const prompts: StructuredPromptItem[] = [
@@ -26,6 +27,7 @@ const prompts: StructuredPromptItem[] = [
 
 function LinkedQuestion() {
   const prompt = useBotLinkPrompt('seeded-session', prompts)
+  const collapse = useStructuredPromptCollapse('seeded-session', prompt)
   const input = useRef<HTMLTextAreaElement>(null)
   return (
     <div
@@ -34,6 +36,7 @@ function LinkedQuestion() {
     >
       <NativeChatStructuredPromptCard
         prompt={prompt}
+        collapse={collapse}
         promptResponse={{ holds: () => false, respond: async () => null }}
         onCancel={() => {}}
         shouldFocus={false}

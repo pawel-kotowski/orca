@@ -326,6 +326,22 @@
   box-shadow: 0 1px 2px rgb(0 0 0 / 0.05);
 }
 
+/* A strip on the message box's top edge (goal, worker lifetime, MCP) stays a tab: open at the
+   bottom, square where it stacks on another strip. */
+[data-native-chat-surface='tab'] {
+  border-bottom-width: 0;
+  border-bottom-right-radius: 0;
+  border-bottom-left-radius: 0;
+  box-shadow: none;
+}
+
+[data-native-chat-composer-tab-strip]
+  + [data-native-chat-composer-tab-strip]
+  [data-native-chat-surface='tab'] {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
 /* The background-task strip joins the tab strip under it: square bottom, no shadow between them. */
 [data-native-chat-background-tasks]:has(+ [data-native-chat-composer-tab-strip])
   [data-native-chat-surface] {

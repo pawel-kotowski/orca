@@ -9,6 +9,7 @@ import { translate } from '@/i18n/i18n'
  */
 export function NativeChatViewSwitchButton({
   to,
+  label: ownLabel,
   onSwitch,
   className,
   style,
@@ -16,6 +17,8 @@ export function NativeChatViewSwitchButton({
   size = 'icon'
 }: {
   to: 'terminal' | 'chat'
+  /** Says what the switch does where it is more than a change of view. */
+  label?: string
   onSwitch: () => void
   className?: string
   style?: React.CSSProperties
@@ -24,9 +27,10 @@ export function NativeChatViewSwitchButton({
   size?: 'icon' | 'icon-xs'
 }): React.JSX.Element {
   const label =
-    to === 'terminal'
+    ownLabel ??
+    (to === 'terminal'
       ? translate('components.native-chat.toggle.showTerminal', 'Show terminal')
-      : translate('components.native-chat.toggle.showChat', 'Show Chat UI')
+      : translate('components.native-chat.toggle.showChat', 'Show Chat UI'))
   return (
     <Tooltip>
       <TooltipTrigger asChild>

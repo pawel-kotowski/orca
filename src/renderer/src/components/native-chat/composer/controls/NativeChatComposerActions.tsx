@@ -227,6 +227,12 @@ export const NativeChatComposerActions = memo(function NativeChatComposerActions
         leading={
           <>
             {attach}
+            {roomReplies}
+            <NativeChatComposerPermissionPicker
+              surface={sessionOptionsSurface}
+              snapshot={sessionOptionsSnapshot}
+              {...(agent ? { agent } : {})}
+            />
             {mode ? <NativeChatComposerPlanChip control={mode} /> : null}
             {onExitGoalMode ? <NativeChatComposerGoalChip onExit={onExitGoalMode} /> : null}
           </>

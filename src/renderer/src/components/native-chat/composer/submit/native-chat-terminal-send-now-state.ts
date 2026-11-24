@@ -18,10 +18,20 @@ export function withNativeChatTerminalSendNow<T extends NativeChatComposerSendSt
   /** Ctrl+Enter sends now here, the agent works, and the draft is a message. */
   sendsNow: boolean,
   /** Settings → Chat → Queue follow-ups; absent = on. */
-  queueFollowUps = true
+  queueFollowUps = true,
+  /** A structured chat: its host already says what the chord does, so only the chord's name changes. */
+  structured = false
 ): T & { alternateSendShortcut?: string } {
   if (!sendsNow) {
     return state
+  }
+  if (structured) {
+    return {
+      ...state,
+      // An empty box's chord sends the head card, as a terminal chat's does.
+      chordSteersHead: true,
+      ...(state.alternateSend ? { alternateSendShortcut: nativeChatCtrlEnterLabel() } : {})
+    }
   }
   return {
     ...state,

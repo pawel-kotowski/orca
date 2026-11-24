@@ -1,3 +1,4 @@
+/* eslint-disable max-lines -- Why: an upstream file at its limit that the local build's patches push a few lines over; the ratchet does not run on local/orca-glass. */
 import { SecuritySurface } from '@/components/ui/security-surface'
 import { useId, useRef } from 'react'
 import { ChevronDown, ShieldQuestion, X } from 'lucide-react'
@@ -33,7 +34,7 @@ export type NativeChatApprovalCardProps = {
   onChoose: (option: string) => void
   /** Cancel the active provider turn while this card owns the composer region. */
   onCancel?: () => void
-  /** Without `onCancel`: fold the card to a strip and give the input back, writing nothing. */
+  /** Fold the card to a strip and give the input back, writing nothing. */
   onCollapse?: () => void
   /** A choice is being delivered: the options wait for its answer. */
   isSubmitting?: boolean
@@ -216,6 +217,14 @@ export function NativeChatApprovalCard({
                     </p>
                   ) : null}
                 </div>
+                {onCancel && onCollapse ? (
+                  <NativeChatPromptCollapseToggle
+                    expanded
+                    escapeFolds={false}
+                    disabled={isSubmitting}
+                    onToggle={onCollapse}
+                  />
+                ) : null}
                 {onCancel ? (
                   <button
                     type="button"

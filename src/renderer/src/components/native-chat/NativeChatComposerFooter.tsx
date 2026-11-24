@@ -1,5 +1,7 @@
 import { NativeChatAccountUsageChip } from './native-chat-account-usage'
 import { NativeChatViewSwitchButton } from './NativeChatViewSwitchButton'
+import { NativeChatStructuredTerminalButton } from './NativeChatStructuredTerminalButton'
+import { useNativeChatAccountScope } from './native-chat-account-scope'
 import { NativeChatPlaceLine } from './native-chat-place-line'
 import { NativeChatResumeButton } from './native-chat-resume-button'
 import { NativeChatContextUsageChip } from './native-chat-context-usage-chip'
@@ -17,6 +19,7 @@ export function NativeChatComposerFooter({
   onSwitchToTerminal?: () => void
   contextUsage?: NativeChatContextUsageSummary | null
 }): React.JSX.Element {
+  const scope = useNativeChatAccountScope()
   return (
     // Why a container: the limit bars collapse to percentages when this line is narrow.
     // Why one line: the place takes what is left and truncates, instead of dropping to a second
@@ -34,6 +37,7 @@ export function NativeChatComposerFooter({
           className="text-chat-foreground-faint hover:text-chat-foreground"
         />
       ) : null}
+      {scope?.kind === 'structured' ? <NativeChatStructuredTerminalButton scope={scope} /> : null}
       <NativeChatResumeButton />
       <NativeChatPlaceLine />
     </div>

@@ -169,8 +169,10 @@ describe('the model picker lists each Claude model once (local)', () => {
       ['claude-opus-5-5', 'Claude Opus 5.5'],
       ['claude-fable-5-2', 'Claude Fable 5.2']
     ])
-    // A chat still on the family row keeps it, named without "alias".
-    expect(nativeChatPickerModels(LISTED, 'opus').map(({ label }) => label)).toContain('Opus 5.5')
+    // A chat still on the family row keeps it, named as the model it runs.
+    expect(nativeChatPickerModels(LISTED, 'opus').map(({ label }) => label)).toContain(
+      'Claude Opus 5.5'
+    )
     // A family row with no versioned row listed (structured chats) stays.
     expect(nativeChatPickerModels([LISTED[2]!], null)).toEqual([
       { ...LISTED[2]!, label: 'Opus 5.5' }

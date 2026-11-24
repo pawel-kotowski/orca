@@ -1,17 +1,28 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { History } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { cn } from '@/lib/class-names'
-import { formatShortTimeAgo } from '@/lib/time-format/short-time-ago'
-import { useNow } from '@/lib/window-activity/use-now'
+import { useConfirmationDialog } from '@/components/dismiss/confirmation/confirmation-dialog-context'
 import { translate } from '@/i18n/i18n'
 import { useAppStore } from '@/store'
 import { makePaneKey } from '../../../../shared/workspace-layout/stable-pane-id'
 import type { ClaudeProjectSession } from '../../../../shared/native-chat/claude-project-session-types'
-import { useNativeChatAccountScope } from './native-chat-account-usage'
+import {
+  useNativeChatAccountScope,
+  type NativeChatStructuredAccountScope
+} from './native-chat-account-scope'
+import {
+  NativeChatConversationList,
+  type NativeChatListedConversation
+} from './native-chat-conversation-list'
+import {
+  listStructuredResumeConversations,
+  resumeStructuredConversation,
+  structuredChatOffersResume,
+  type StructuredResumeConversation
+} from './native-chat-structured-resume'
 import { sendNativeChatTypedCommand } from './session/terminal/send/native-chat-runtime-send'
 
 function sessionIdFromTranscript(transcriptPath: string | null): string | null {
@@ -31,7 +42,9 @@ function chatPtyId(terminalTabId: string): string | null {
   return (claude ?? entries[0])?.[1] ?? null
 }
 
-function SessionList({
+type TerminalConversation = NativeChatListedConversation & { session: ClaudeProjectSession }
+
+function TerminalSessionList({
   transcriptPath,
   terminalTabId,
   onPicked
@@ -40,31 +53,21 @@ function SessionList({
   terminalTabId: string
   onPicked: () => void
 }): React.JSX.Element {
-  const [sessions, setSessions] = useState<ClaudeProjectSession[] | null>(null)
-  const [query, setQuery] = useState('')
-  const currentId = sessionIdFromTranscript(transcriptPath)
-  useEffect(() => {
-    let live = true
-    void (
-      window.api?.nativeChat?.listClaudeProjectSessions?.(transcriptPath) ?? Promise.resolve([])
-    )
-      .then((list) => live && setSessions(list))
-      .catch(() => live && setSessions([]))
-    return () => {
-      live = false
-    }
+  const load = useCallback(async (): Promise<TerminalConversation[]> => {
+    const currentId = sessionIdFromTranscript(transcriptPath)
+    const sessions =
+      (await window.api?.nativeChat?.listClaudeProjectSessions?.(transcriptPath)) ?? []
+    return sessions.map((session) => ({
+      id: session.sessionId,
+      title: session.title,
+      firstPrompt: session.firstPrompt,
+      updatedAt: session.updatedAt,
+      current: session.sessionId === currentId,
+      session
+    }))
   }, [transcriptPath])
-  const shown = useMemo(() => {
-    const needle = query.trim().toLowerCase()
-    return (sessions ?? []).filter(
-      (session) =>
-        !needle ||
-        `${session.title ?? ''} ${session.firstPrompt ?? ''}`.toLowerCase().includes(needle)
-    )
-  }, [query, sessions])
-  const now = useNow(30_000)
-  const pick = (session: ClaudeProjectSession): void => {
-    if (session.sessionId === currentId) {
+  const pick = ({ session, current }: TerminalConversation): void => {
+    if (current) {
       onPicked()
       return
     }
@@ -83,60 +86,27 @@ function SessionList({
     sendNativeChatTypedCommand(ptyId, `/resume ${session.sessionId}`)
     onPicked()
   }
+  return <NativeChatConversationList load={load} onPick={pick} />
+}
+
+function StructuredSessionList({
+  scope,
+  onPicked
+}: {
+  scope: NativeChatStructuredAccountScope
+  onPicked: () => void
+}): React.JSX.Element {
+  const confirm = useConfirmationDialog()
+  const load = useCallback(() => listStructuredResumeConversations(scope), [scope])
   return (
-    <div className="flex max-h-[min(480px,60vh)] w-[min(460px,80vw)] flex-col">
-      <input
-        autoFocus
-        value={query}
-        onChange={(event) => setQuery(event.target.value)}
-        placeholder={translate('components.native-chat.resumeList.search', 'Search conversations')}
-        className="mx-2 mt-2 mb-1 rounded-md border border-border/70 bg-background/60 px-2 py-1.5 text-xs leading-normal outline-none focus:border-ring"
-      />
-      <div className="min-h-0 flex-1 overflow-y-auto p-1 scrollbar-sleek" role="listbox">
-        {sessions === null ? (
-          <div className="px-2 py-3 text-xs text-muted-foreground">
-            {translate('components.native-chat.resumeList.loading', 'Loading…')}
-          </div>
-        ) : shown.length === 0 ? (
-          <div className="px-2 py-3 text-xs text-muted-foreground">
-            {translate('components.native-chat.resumeList.empty', 'No conversations to resume.')}
-          </div>
-        ) : (
-          shown.map((session) => {
-            const current = session.sessionId === currentId
-            return (
-              <button
-                key={session.sessionId}
-                type="button"
-                role="option"
-                aria-selected={current}
-                onClick={() => pick(session)}
-                className={cn(
-                  'flex w-full cursor-pointer flex-col gap-0.5 rounded-md px-2 py-1.5 text-left outline-none hover:bg-accent focus-visible:bg-accent',
-                  current && 'bg-accent/50'
-                )}
-              >
-                <span className="flex min-w-0 items-baseline gap-2 text-xs">
-                  <span className="min-w-0 flex-1 truncate font-medium text-foreground">
-                    {session.title ?? session.firstPrompt}
-                  </span>
-                  <span className="shrink-0 tabular-nums text-muted-foreground">
-                    {current
-                      ? translate('components.native-chat.resumeList.current', 'this chat')
-                      : formatShortTimeAgo(session.updatedAt, now)}
-                  </span>
-                </span>
-                {session.title && session.firstPrompt ? (
-                  <span className="truncate text-2xs text-muted-foreground">
-                    {session.firstPrompt}
-                  </span>
-                ) : null}
-              </button>
-            )
-          })
-        )}
-      </div>
-    </div>
+    <NativeChatConversationList
+      load={load}
+      onPick={({ session, current }: StructuredResumeConversation) =>
+        current
+          ? onPicked()
+          : resumeStructuredConversation({ scope, session, dismiss: onPicked, confirm })
+      }
+    />
   )
 }
 
@@ -151,7 +121,11 @@ export function NativeChatResumeButton(): React.JSX.Element | null {
   // Why controlled: closing the list handed focus back to the button, which opened its tooltip,
   // and with the pointer elsewhere nothing closed it again (Paweł, 2026-11-09).
   const [tooltipOpen, setTooltipOpen] = useState(false)
-  if (!scope || scope.agent !== 'claude' || !scope.transcriptPath) {
+  const offered =
+    scope?.kind === 'structured'
+      ? structuredChatOffersResume(scope.agent)
+      : scope?.agent === 'claude' && Boolean(scope.transcriptPath)
+  if (!scope || !offered) {
     return null
   }
   const label = translate('components.native-chat.resumeButton', 'Resume a conversation')
@@ -187,8 +161,10 @@ export function NativeChatResumeButton(): React.JSX.Element | null {
         className="w-auto p-0"
         onCloseAutoFocus={(event) => event.preventDefault()}
       >
-        {open ? (
-          <SessionList
+        {!open ? null : scope.kind === 'structured' ? (
+          <StructuredSessionList scope={scope} onPicked={() => setOpen(false)} />
+        ) : scope.transcriptPath ? (
+          <TerminalSessionList
             transcriptPath={scope.transcriptPath}
             terminalTabId={scope.terminalTabId}
             onPicked={() => setOpen(false)}

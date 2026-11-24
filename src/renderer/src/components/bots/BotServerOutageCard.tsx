@@ -26,7 +26,7 @@ export function BotServerOutageCard({
     <div className="relative min-h-20 shrink-0">
       <RemoteRuntimeRecoveryCard
         icon={stopped ? 'stopped' : 'retrying'}
-        data={{ 'data-bot-server-outage': outage.kind }}
+        data={{ 'data-bot-server-outage': outage.kind, 'data-native-chat-surface': 'card' }}
         title={
           stopped
             ? t('bots.page.serverDownTitle', 'Can’t reach {{host}}', { host })

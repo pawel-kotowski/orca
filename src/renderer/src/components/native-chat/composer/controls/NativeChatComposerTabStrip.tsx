@@ -20,6 +20,7 @@ export function NativeChatComposerTabStrip({
       <div className="mx-auto w-full max-w-(--chat-content-max-width) px-2">
         {/* Right after the task strip, that strip's bottom border is this tab's top edge; stacked tabs square off. */}
         <div
+          data-native-chat-surface="tab"
           className={cn(
             'rounded-t-md border border-b-0 border-border bg-muted/30 text-xs text-muted-foreground group-[[data-native-chat-background-tasks]+&]/goal:rounded-t-none group-[[data-native-chat-background-tasks]+&]/goal:border-t-0 group-[[data-native-chat-composer-tab-strip]+&]/goal:rounded-t-none',
             layout === 'row' ? 'flex items-start gap-2 py-1 pr-1 pl-3' : 'flex flex-col'

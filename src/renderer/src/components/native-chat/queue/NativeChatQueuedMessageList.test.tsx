@@ -7,6 +7,7 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import { NativeChatQueuedMessageList } from './NativeChatQueuedMessageList'
 import { NativeChatDock } from '../pane/dock/NativeChatDock'
 import { NativeChatStructuredPromptCard } from '../prompts/NativeChatStructuredPromptCard'
+import { useStructuredPromptCollapse } from '../prompts/use-structured-prompt-collapse'
 import type { StructuredPromptItem } from '../../../../../shared/agent-session/view/structured-agent-session-message-projection'
 import type { StructuredAgentSessionQueuedMessagesController } from './use-structured-agent-session-queued-messages'
 import type { QueuedMessageCard } from '../../../../../shared/agent-session/view/structured-agent-session-queued-cards'
@@ -138,6 +139,7 @@ it('fits the live synchronous card, caps the queue while it is open, and submits
   const queue = controller([1, 2, 3, 4, 5, 6].map((i) => card(i)))
   function Pane() {
     const answerInputRef = useRef<HTMLTextAreaElement>(null)
+    const collapse = useStructuredPromptCollapse('session', prompt)
     return (
       <TooltipProvider>
         <div data-native-chat-root="">
@@ -146,6 +148,7 @@ it('fits the live synchronous card, caps the queue while it is open, and submits
             <NativeChatStructuredPromptCard
               prompt={prompt}
               promptResponse={{ respond, holds: () => false }}
+              collapse={collapse}
               onCancel={() => {}}
               shouldFocus={false}
               answerInputRef={answerInputRef}

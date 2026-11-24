@@ -718,8 +718,8 @@
         "compactComposerDescription": "One line with only Attach, the model and option pickers, and Stop while the agent works. Enter sends.",
         "composerWorkspaceLine": "Show Orca's workspace line under the message box",
         "composerWorkspaceLineDescription": "The machine, folder, worktree and branch under the box. Off leaves only the limits and place line.",
-        "ctrlEnterSendsNow": "Ctrl+Enter sends now while Claude works",
-        "ctrlEnterSendsNowDescription": "In a Claude chat that runs in its terminal, Ctrl+Enter gives Claude the message right away, as Ctrl+Enter does in Claude's terminal. Enter waits until Claude finishes what it is doing.",
+        "ctrlEnterSendsNow": "Ctrl+Enter sends now while the agent works",
+        "ctrlEnterSendsNowDescription": "While the agent works, Ctrl+Enter sends the message right away and Enter holds it until the turn ends; with Queue follow-ups off it is the other way round. In Claude chats that run in their terminal and in structured chats.",
         "activityFollowsConversation": "Activity view follows the conversation",
         "activityFollowsConversationDescription": "Each card shows the first and latest prompt, the latest steps and the answer.",
         "activityHoverChat": "Show the chat when hovering an activity card",
@@ -22013,7 +22013,10 @@
         "terminalHeadHint": "Goes when the turn ends · {{shortcut}} on an empty box sends it now",
         "terminalHeadNowHint": "Goes when the turn ends · Send sends it now",
         "terminalHeadSendHint": "Goes when the turn ends · Send types it now",
-        "terminalWaitingHint": "Goes after the ones above · Send sends it now"
+        "terminalWaitingHint": "Goes after the ones above · Send sends it now",
+        "structuredHeadHint": "Goes when the turn ends",
+        "structuredPromptHint": "Goes after you answer the agent",
+        "structuredWaitingHint": "Goes after the ones above"
       },
       "thought": "Thought",
       "thoughtForDuration": "Thought for {{duration}}",
@@ -22388,7 +22391,12 @@
         "moveElsewhere": "Another terminal runs this conversation.",
         "moveBusy": "Something else runs in the chat's terminal.",
         "moveStopFailed": "Claude did not stop, so it stays where it was.",
-        "moveStartFailed": "Claude did not come up on it. The chat's terminal shows why."
+        "moveStartFailed": "Claude did not come up on it. The chat's terminal shows why.",
+        "movesNextMessage": "It moves with your next message, and so does every other chat of this workspace.",
+        "movesAfterWork": "It moves with the first message after its work ends, and so does every other chat of this workspace.",
+        "switchMovesWorkspace": "All of this workspace's chats move.",
+        "moveSetupFailed": "Its Claude folder could not be set up.",
+        "moveNotLocal": "This chat does not run on one of its machine's accounts."
       },
       "resumeButton": "Resume a conversation",
       "resumeList": {
@@ -22396,7 +22404,8 @@
         "search": "Search conversations",
         "loading": "Loading…",
         "empty": "No conversations to resume.",
-        "current": "this chat"
+        "current": "this chat",
+        "elsewhere": "This conversation belongs to another workspace."
       },
       "composerWorkspace": {
         "copyFailed": "Failed to copy",
@@ -22962,6 +22971,27 @@
         "sampleCall": "Sample call",
         "sampleNote": "Starts a real run",
         "send": "Send"
+      },
+      "runningWork": {
+        "waiting": "Waiting",
+        "all": "background work",
+        "unlisted": "Other work is running",
+        "allRunning": "All background work",
+        "clear": "Clear {{name}}",
+        "stopping": "Stopping {{name}}",
+        "stop": "Stop {{name}}"
+      },
+      "terminalSwitch": {
+        "open": "Continue this conversation in a terminal",
+        "openCopy": "Open a copy in a terminal (this chat goes on here)",
+        "inTerminal": "Open in a terminal",
+        "show": "Show terminal",
+        "returning": "Bringing back…",
+        "back": "Bring it back here",
+        "sendHeld": "This conversation is open in a terminal. Bring it back here to write.",
+        "busy": "This chat is working. Its terminal opens once the work and its background tasks end.",
+        "unsupported": "This chat cannot move to a terminal on its host.",
+        "stillOpen": "A terminal still runs this conversation. Close it, then bring it back."
       }
     },
     "tab": {

@@ -48,7 +48,7 @@ export function NativeChatTerminalQueuedMessageList({
     ready: composerReady,
     composerRef
   })
-  const ctrlEnterSendsNow = useNativeChatCtrlEnterSendsNow(agent, true)
+  const ctrlEnterSendsNow = useNativeChatCtrlEnterSendsNow(agent, 'terminal')
   const shortcut = ctrlEnterSendsNow ? nativeChatCtrlEnterShortcut() : undefined
   const working = controller.isWorking
   const cardHint = (_card: unknown, index: number): string => {

@@ -193,7 +193,10 @@ export function useNativeChatComposerSubmit(args: {
   )
 
   const send = useCallback(
-    (intent?: NativeChatComposerSendIntent) => {
+    (pressed?: NativeChatComposerSendIntent) => {
+      // Local: a structured chat's Ctrl+Enter is the alternate send, which its host decides.
+      const intent: NativeChatComposerSendIntent | undefined =
+        structuredTransport && pressed?.sendNow ? { alternate: true } : pressed
       // Before goal mode too: a navigation command must never become an objective.
       if (orcaCommands?.consume(draft)) {
         return

@@ -202,11 +202,11 @@ export function AppearanceChatSection({
       <SettingsSwitchRow
         label={t(
           'settings.chat.appearance.ctrlEnterSendsNow',
-          'Ctrl+Enter sends now while Claude works'
+          'Ctrl+Enter sends now while the agent works'
         )}
         description={t(
           'settings.chat.appearance.ctrlEnterSendsNowDescription',
-          "In a Claude chat that runs in its terminal, Ctrl+Enter gives Claude the message right away, as Ctrl+Enter does in Claude's terminal. Enter waits until Claude finishes what it is doing."
+          'While the agent works, Ctrl+Enter sends the message right away and Enter holds it until the turn ends; with Queue follow-ups off it is the other way round. In Claude chats that run in their terminal and in structured chats.'
         )}
         checked={nativeChatCtrlEnterSendsNow(settings)}
         onChange={() => update({ ctrlEnterSendsNow: !nativeChatCtrlEnterSendsNow(settings) })}

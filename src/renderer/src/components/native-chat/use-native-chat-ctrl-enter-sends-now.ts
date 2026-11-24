@@ -9,13 +9,14 @@ const useCtrlEnterSendsNowSetting: () => boolean =
     : () => true
 
 /**
- * Whether Ctrl+Enter sends now in this message box: only a Claude chat running in its terminal,
- * where it types Claude's own send-now key, and only for a message (not an edit or a launch prompt).
+ * Whether Ctrl+Enter sends now in this message box (not an edit or a launch prompt): a Claude chat
+ * running in its terminal, where it types Claude's own send-now key, and any structured chat, whose
+ * host steers the message into the running turn.
  */
 export function useNativeChatCtrlEnterSendsNow(
   agent: AgentType,
-  terminalMessageBox: boolean
+  box: 'terminal' | 'structured' | null
 ): boolean {
   const enabled = useCtrlEnterSendsNowSetting()
-  return enabled && agent === 'claude' && terminalMessageBox
+  return enabled && (box === 'structured' || (box === 'terminal' && agent === 'claude'))
 }
