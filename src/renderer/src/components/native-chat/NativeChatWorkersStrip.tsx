@@ -6,7 +6,21 @@ import { createActivityThreadActions } from '@/components/activity/thread-list/a
 import { ActivityWorkerRow } from '@/components/activity/activity-thread-workers'
 import { useCoordinatorWorkers } from '@/components/activity/activity-workers-feed'
 import { activityThreadRowCopy } from '@/components/activity/threads/activity-thread-presentation'
-import { NativeChatActivityLine } from './NativeChatActivityLine'
+import { NativeChatActivityLine, type NativeChatActivityCell } from './NativeChatActivityLine'
+import type { AgentPaneThread } from '@/components/activity/threads/activity-thread-types'
+
+/** A worker the chat's host reports, drawn as one cell; `settled` ones failed and await a Clear. */
+export type NativeChatDockWorkers = ReadonlyMap<
+  string,
+  { cell: NativeChatActivityCell; settled: boolean }
+>
+
+const NO_DOCK_WORKERS: NativeChatDockWorkers = new Map()
+
+function workerDispatchId(worker: AgentPaneThread): string {
+  const entry = worker.currentAgentEntry ?? worker.latestEvent?.entry
+  return entry?.orchestration?.dispatchId ?? worker.paneKey
+}
 
 /**
  * Orca workers in a chat (Paweł, 2026-11-10: "I need to see both native harness subagents and orca
@@ -16,9 +30,15 @@ import { NativeChatActivityLine } from './NativeChatActivityLine'
  * latest line; a click opens the worker), wrapping onto more rows only when asked.
  */
 export function NativeChatWorkersStrip({
-  paneKey
+  paneKey,
+  dockWorkers = NO_DOCK_WORKERS,
+  onClearAll
 }: {
   paneKey: string | null
+  /** A structured chat's workers as its host reports them, by dispatch; a terminal chat has none. */
+  dockWorkers?: NativeChatDockWorkers
+  /** Clears every failed worker at once, where more than one waits for it. */
+  onClearAll?: () => void
 }): React.JSX.Element | null {
   const { coordinator, workers, parent } = useCoordinatorWorkers(paneKey)
   const actions = useMemo(() => {
@@ -30,9 +50,14 @@ export function NativeChatWorkersStrip({
       setSelectedPaneKey: () => {}
     })
   }, [])
-  if (!paneKey || !coordinator) {
+  if (!paneKey || (!coordinator && dockWorkers.size === 0)) {
     return null
   }
+  const listed = new Set(workers.map(workerDispatchId))
+  // The host's own row speaks for a worker with no agent here, and for one that failed.
+  const dockCells = [...dockWorkers].flatMap(([dispatchId, worker]) =>
+    worker.settled || !listed.has(dispatchId) ? [worker.cell] : []
+  )
   // The coordinator's agent name (its conversation), as its own card titles it; not its workspace.
   const parentName = parent ? activityThreadRowCopy(parent).taskTitle : ''
   return (
@@ -67,17 +92,40 @@ export function NativeChatWorkersStrip({
       ) : null}
       <NativeChatActivityLine
         kind="workers"
-        cells={workers.map((worker) => ({
-          key: worker.paneKey,
-          node: (
-            <ActivityWorkerRow
-              compact
-              worker={worker}
-              coordinator={coordinator}
-              onOpenWorker={(target) => actions.selectThread(target)}
-            />
-          )
-        }))}
+        cells={[
+          ...dockCells,
+          ...(coordinator
+            ? workers
+                .filter((worker) => !dockWorkers.get(workerDispatchId(worker))?.settled)
+                .map((worker) => ({
+                  key: worker.paneKey,
+                  node: (
+                    <ActivityWorkerRow
+                      compact
+                      worker={worker}
+                      coordinator={coordinator}
+                      onOpenWorker={(target) => actions.selectThread(target)}
+                    />
+                  )
+                }))
+            : []),
+          ...(onClearAll
+            ? [
+                {
+                  key: 'clear-all',
+                  node: (
+                    <button
+                      type="button"
+                      onClick={onClearAll}
+                      className="h-4 cursor-pointer rounded px-1 outline-none hover:bg-foreground/[0.06] hover:text-foreground focus-visible:ring-1 focus-visible:ring-ring"
+                    >
+                      {translate('components.native-chat.workerDock.clearAll', 'Clear all')}
+                    </button>
+                  )
+                }
+              ]
+            : [])
+        ]}
       />
     </>
   )

@@ -5,6 +5,9 @@ import type { StructuredSessionBackgroundTasksView } from '../../../../../shared
 import { NativeChatStructuredSessionStatus } from '../tools/tasks/NativeChatStructuredSessionStatus'
 import { useStructuredSessionTaskStop } from '../tools/tasks/use-structured-session-task-stop'
 import { useTranslate } from '@/i18n/use-translate'
+import type { NativeChatMessage } from '../../../../../shared/native-chat/native-chat-types'
+import { useStructuredChatShellCommands } from '../native-chat-structured-shell-commands'
+import { NativeChatStructuredActivityArea } from '../NativeChatStructuredActivityArea'
 import { useWorkerDockColdSeed } from '../tools/tasks/dock/worker-dock-feed'
 import { NativeChatStructuredDock } from './NativeChatStructuredDock'
 import {
@@ -32,6 +35,7 @@ export function useStructuredNativeChatSubagents({
     subagentRoster?: StructuredAgentSubagentRoster
     backgroundTasks: StructuredSessionBackgroundTasksView
     stopBackgroundTask: (taskId?: string) => Promise<AgentSessionCancelResult | null>
+    messages?: readonly NativeChatMessage[]
   }
 }) {
   const t = useTranslate()
@@ -47,6 +51,7 @@ export function useStructuredNativeChatSubagents({
     background.children?.length ||
     background.incomplete
   )
+  const readCommands = useStructuredChatShellCommands(controller.messages)
   const strip = (
     <NativeChatStructuredSessionStatus
       sessionId={sessionId}
@@ -56,6 +61,7 @@ export function useStructuredNativeChatSubagents({
       backgroundTasks={controller.backgroundTasks}
       stop={stop}
       currentAgentId={openId}
+      readCommands={readCommands}
     />
   )
   const party = nativeChatWorkerApprovalParty({ sessionId })
@@ -65,13 +71,18 @@ export function useStructuredNativeChatSubagents({
     onKeyDown: (event: React.KeyboardEvent) => closeNativeChatSubagentOnEscape(event, paneKey),
     dock: isVisible ? (
       <NativeChatStructuredDock
-        hasWork={hasWork}
+        // Local: running work shows in `activityLines`; only a crew panel's strip docks.
+        hasWork={false}
         strip={strip}
         target={target}
         party={party}
         isVisible={isVisible}
       />
     ) : null,
+    /** Local: the one-line strips above the message box; they stay under a prompt or a subagent. */
+    activityLines: (
+      <NativeChatStructuredActivityArea hasWork={hasWork} strip={strip} paneKey={paneKey} />
+    ),
     /** Agents in this paired server's chat asking agents on this computer: answered here. */
     pairedAsks: <NativeChatPairedServerAskStack target={target} party={party} />,
     statusBar:

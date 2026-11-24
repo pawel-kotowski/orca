@@ -8,7 +8,8 @@ import { openOrchestrationCrewAgent } from '@/lib/agent-session/open/open-agent-
 import { useWorkerDockOwnerActions } from './dock/use-worker-dock-owner-actions'
 import { useWorkerDockRosterState } from './dock/NativeChatWorkerDockFrame'
 import { Button } from '@/components/ui/button'
-import { NativeChatBackgroundTasksStatus } from './NativeChatBackgroundTasksStatus'
+import type { ReadShellCommands } from '../../native-chat-structured-shell-commands'
+import { NativeChatStructuredActivityLines } from '../../NativeChatStructuredActivityLines'
 import { NativeChatCrewBackgroundTasksStatus } from './NativeChatCrewBackgroundTasksStatus'
 import type { StructuredSessionBackgroundTasksView } from '../../../../../../shared/agent-session/view/structured-session-background-tasks-view'
 import { useStructuredSessionChildRowContext } from './use-structured-session-child-row-context'
@@ -41,6 +42,8 @@ export function NativeChatStructuredSessionStatus(props: {
   stop: StructuredSessionTaskStop
   /** The agent whose view the pane shows, marked current in the strip. */
   currentAgentId?: string | null
+  /** Local: the full commands of listed shells, for the one-line strip's hover. */
+  readCommands: ReadShellCommands
 }): React.JSX.Element {
   // The chat's crew, when it has one: the strip then shows even with no background work.
   const crew = useNativeChatCrew(useContext(NativeChatCrewContext))
@@ -61,7 +64,8 @@ export function NativeChatStructuredSessionStatus(props: {
     props.sessionId,
     props.isVisible,
     backgroundTasks.workerDock,
-    expandedHere
+    // Local: the one-line strip names its workers without a click, so it always reads their rows.
+    true
   )
   const approvals = useNativeChatPinnedWorkerApprovals(target, feed.party)
   const openApprovals = useMemo(
@@ -186,7 +190,9 @@ export function NativeChatStructuredSessionStatus(props: {
   }
   return (
     <>
-      <NativeChatBackgroundTasksStatus
+      <NativeChatStructuredActivityLines
+        paneKey={props.paneKey}
+        readCommands={props.readCommands}
         isVisible={props.isVisible}
         sessionId={props.sessionId}
         workerRows={controlledWorkerRows}

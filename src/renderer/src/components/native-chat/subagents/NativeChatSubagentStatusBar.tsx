@@ -42,7 +42,10 @@ export function NativeChatSubagentStatusBar({
   return (
     <div className="shrink-0 bg-chat-pane px-3 pt-2 pb-4 sm:px-4">
       <div className="@container/subagent-status mx-auto w-full max-w-(--chat-content-max-width)">
-        <div className="flex h-10 min-w-0 items-center gap-2 rounded-lg border border-border bg-muted/50 px-3 text-xs text-muted-foreground shadow-xs">
+        <div
+          data-native-chat-surface="card"
+          className="flex h-10 min-w-0 items-center gap-2 rounded-lg border border-border bg-muted/50 px-3 text-xs text-muted-foreground shadow-xs"
+        >
           {state ? (
             <span className="flex min-w-0 items-center gap-1.5 tabular-nums">
               <NativeChatSubagentStatusIcon state={state} />

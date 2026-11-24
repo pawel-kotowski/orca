@@ -3,13 +3,11 @@ import { NativeChatStructuredWorkerLifetimeStrip } from '../../worker-lifetime/N
 import type { StructuredAgentSessionThreadGoal } from '../../session/goals/use-structured-agent-session-thread-goal'
 import type { NativeChatImageRuntimeContext } from '../../media/images/native-chat-image-runtime-context'
 import { NativeChatTextAttachments } from '../../media/text/NativeChatTextAttachments'
-import { NativeChatWorkersStrip } from '../../NativeChatWorkersStrip'
-import { structuredAgentSessionPaneKey } from '../../../../../../shared/agent-session/view/structured-agent-session-projection'
 import { NativeChatMcpTray } from '../../mcp/NativeChatMcpTray'
 import type { RuntimeClientTarget } from '../../../../../../shared/remote-runtime/host-catalog/runtime-client-target'
 import type { NativeChatStructuredComposerTransport } from '../../composer/submit/native-chat-structured-composer-transport'
 
-/** The strips on the composer's top edge: Orca workers, the thread goal, a temporary worker's lifetime, then `/mcp`'s tray. */
+/** The strips on the composer's top edge: the thread goal, a temporary worker's lifetime, then `/mcp`'s tray. */
 export function NativeChatStructuredComposerTabStrips(props: {
   tabId: string
   target: RuntimeClientTarget
@@ -25,9 +23,6 @@ export function NativeChatStructuredComposerTabStrips(props: {
   const mcpPanel = props.transport.mcpPanel
   return (
     <>
-      <NativeChatWorkersStrip
-        paneKey={structuredAgentSessionPaneKey(props.tabId, props.transport.sessionId)}
-      />
       <NativeChatStructuredGoalStrip {...props} sessionId={props.transport.sessionId} />
       <NativeChatStructuredWorkerLifetimeStrip
         tabId={props.tabId}

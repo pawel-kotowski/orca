@@ -6,8 +6,9 @@ import { useStructuredNativeChatSubagents } from './use-structured-native-chat-s
 
 const strip = vi.hoisted(() => ({ renders: 0 }))
 
-vi.mock('../tools/tasks/NativeChatBackgroundTasksStatus', () => ({
-  NativeChatBackgroundTasksStatus: () => {
+// Local build: the strip is the one-line activity lines, outside the dock.
+vi.mock('../NativeChatStructuredActivityLines', () => ({
+  NativeChatStructuredActivityLines: () => {
     strip.renders++
     return null
   }
@@ -35,7 +36,7 @@ function Chat(_props: { update: number }) {
     isVisible: true,
     controller: { backgroundTasks: RUNNING, stopBackgroundTask: async () => null }
   })
-  return subagents.dock
+  return subagents.activityLines
 }
 
 it('keeps the agents strip still while its session updates and its work does not change', () => {
