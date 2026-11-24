@@ -1,3 +1,4 @@
+import { structuredChatTerminalHold } from '../../runtime/agent-session/ownership/structured-chat-terminal-holds'
 import { resolveChatAutomationRun } from './automation-chat-run-observation'
 
 import type { JournalPublication } from '../../native-chat/agent-session-wire/host/structured-agent-session-conversations'
@@ -72,13 +73,21 @@ export async function observeAutomationChatRun(
       }
     }
     const abort = (): void => finish(undefined, new Error('request_aborted'))
-    const deadline = setTimeout(
-      () =>
-        finish({
-          status: 'dispatch_failed',
-          error: `${agent} did not report a result within 6 hours. Open the chat before running again.`
-        }),
-      Math.max(1, (run.dispatchedAt ?? run.createdAt) + 6 * 60 * 60 * 1000 - Date.now())
+    const limitMs = 6 * 60 * 60 * 1000
+    // Local: a run waiting for a chat that is open in a terminal has not begun; its time starts then.
+    const pastLimit = (): void => {
+      if (structuredChatTerminalHold(sessionId)) {
+        deadline = setTimeout(pastLimit, limitMs)
+        return
+      }
+      finish({
+        status: 'dispatch_failed',
+        error: `${agent} did not report a result within 6 hours. Open the chat before running again.`
+      })
+    }
+    let deadline = setTimeout(
+      pastLimit,
+      Math.max(1, (run.dispatchedAt ?? run.createdAt) + limitMs - Date.now())
     )
     // Keys and reads start when called, so a later turn id cannot change an earlier hint's answer.
     const interest = async (): Promise<string> => {

@@ -3,7 +3,8 @@ import {
   collectDescendantsFromIndex,
   getProcessTableIndex
 } from '../../../../shared/process-observation/tables/process-table-index'
-import { isConversationCopyCommand } from './structured-chat-copy-command'
+import { recognizeAgentProcessFromCommandLine } from '../../../../shared/agent-status/process/agent-process-recognition'
+import { commandResumesConversation } from './structured-chat-conversation-command'
 import {
   confirmRootShellAloneFromProcessTable,
   paneAgentProcess
@@ -25,9 +26,13 @@ export type TerminalProcesses = {
 export async function readTerminalProcesses(): Promise<TerminalProcesses> {
   try {
     const index = getProcessTableIndex(await getFreshShellForegroundSnapshot())
-    const isAgent = paneAgentProcess()
+    const interactive = paneAgentProcess()
+    // A one-shot `claude -p --resume … &` writes the conversation too.
+    const isAgent = (row: { command: string; stat?: string }) =>
+      interactive(row) ||
+      recognizeAgentProcessFromCommandLine(row.command, { includeHeadlessOneShot: true }) !== null
     const names = (row: { command: string; stat?: string }, id: string) =>
-      row.command.includes(id) && !isConversationCopyCommand(row.command) && isAgent(row)
+      commandResumesConversation(row.command, id) && isAgent(row)
     const below = (rootPid: number) => collectDescendantsFromIndex(index, rootPid).filter(isAgent)
     return {
       runsAnywhere: (id, except = []) => {

@@ -41,7 +41,8 @@ async function handoverChat(sessionId: string, ctx: RpcContext) {
 function heldAnswer(
   hold: StructuredChatTerminalHold
 ): Extract<AgentSessionTerminalHandoverResult, { outcome: 'held' }> {
-  const paneKey = hold.terminals.at(-1)?.paneKey
+  // The handover's own; others join after it.
+  const paneKey = hold.terminals[0]?.paneKey
   return {
     outcome: 'held',
     holdId: hold.id,

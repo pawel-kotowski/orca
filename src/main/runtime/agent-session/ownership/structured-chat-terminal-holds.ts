@@ -9,6 +9,11 @@ import {
   type StructuredChatHoldTerminal,
   type StructuredChatTerminalHold
 } from './structured-chat-terminal-hold-store'
+import {
+  noteStructuredChatReturn,
+  resetStructuredChatReturnsForTests,
+  takeStructuredChatReturn
+} from './structured-chat-returns'
 
 export {
   forgetUnreadableStructuredChatTerminalHolds,
@@ -83,7 +88,12 @@ export function beginStructuredChatTerminalHold(
   if (abandoned.has(handover.token)) {
     return false
   }
-  commitHold(sessionId, { ...handover, phase: 'opening', terminals: [], waiting: [] })
+  commitHold(sessionId, {
+    ...handover,
+    phase: 'opening',
+    terminals: [],
+    waiting: [...(takeStructuredChatReturn(sessionId)?.waiting ?? [])]
+  })
   return true
 }
 
@@ -92,8 +102,12 @@ export function releaseStructuredChatTerminalHold(sessionId: string, token: stri
   if (hold?.token !== token) {
     return false
   }
-  dropHold(sessionId)
   endInheritedHold(token)
+  noteStructuredChatReturn(sessionId, {
+    waiting: hold.waiting,
+    ran: hold.terminals.some(({ ran }) => ran)
+  })
+  dropHold(sessionId)
   const ended = { sessionId, hold }
   for (const { ptyId } of hold.terminals) {
     askedHere.delete(ptyId ?? '')
@@ -156,12 +170,15 @@ function withTerminal(
   terminal: Pick<StructuredChatHoldTerminal, 'ptyId' | 'incarnationId' | 'paneKey'>,
   asked: { ptyId: string | null } | null
 ): StructuredChatTerminalHold {
-  const others = hold.terminals.filter(
-    (other) =>
-      !(asked && other.incarnationId === null && other.ptyId === asked.ptyId) &&
-      !(other.ptyId === terminal.ptyId && other.incarnationId === terminal.incarnationId)
-  )
-  return { ...hold, phase: 'terminal', terminals: [...others, { ...terminal, ran: false }] }
+  const isIt = (other: StructuredChatHoldTerminal): boolean =>
+    (asked !== null && other.incarnationId === null && other.ptyId === asked.ptyId) ||
+    (other.ptyId === terminal.ptyId && other.incarnationId === terminal.incarnationId)
+  const at = hold.terminals.findIndex(isIt)
+  // A start that joined a terminal known already says nothing new of its agent.
+  const entry = { ...terminal, ran: hold.terminals.some((other) => isIt(other) && other.ran) }
+  const terminals = hold.terminals.filter((other) => !isIt(other))
+  terminals.splice(at === -1 ? terminals.length : at, 0, entry)
+  return { ...hold, phase: 'terminal', terminals }
 }
 
 /**
@@ -286,6 +303,7 @@ export function releaseUnlaunchedStructuredChatTerminalHolds(): void {
 
 export function resetStructuredChatTerminalHoldsForTests(): void {
   resetHoldStoreForTests()
+  resetStructuredChatReturnsForTests()
   for (const memory of [beginning, abandoned, askedHere, listeners]) {
     memory.clear()
   }

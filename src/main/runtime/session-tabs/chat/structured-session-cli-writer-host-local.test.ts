@@ -78,6 +78,7 @@ function runtime() {
     Object.create(OrcaRuntimeWithStructuredSessionCliWriterHost.prototype),
     {
       terminalHoldWatch: null,
+      resuming: new Set(),
       ptysById: state.ptys,
       ptyLivenessVerdictByPtyId: state.verdicts,
       ptyController: {
@@ -105,7 +106,10 @@ function runtime() {
     deps: {
       store: { getConversation: () => RECORD, isSessionUnreadable: () => false }
     },
-    wakeReturnedSession: async (id: string) => void woken.push(`chat ${id}`)
+    wakeReturnedSession: async (id: string) => {
+      woken.push(`chat ${id}`)
+      return true
+    }
   }
   return { host, state, woken }
 }
@@ -341,7 +345,7 @@ it('one check that fails does not starve the others', async () => {
         isSessionUnreadable: () => false
       }
     },
-    wakeReturnedSession: async () => {}
+    wakeReturnedSession: async () => true
   }
   await check(host)
   expect(heldStructuredChats()).toEqual(['first'])

@@ -17,11 +17,14 @@ import {
   structuredChatTerminalHoldsUnreadable,
   structuredChatTerminalMayWrite,
   structuredChatTerminalStarting,
-  type EndedStructuredChatTerminalHold,
   type StructuredChatHoldTerminal,
   type StructuredChatTerminalHold,
   type TerminalHoldPane
 } from '../../agent-session/ownership/structured-chat-terminal-holds'
+import {
+  structuredChatReturns,
+  takeStructuredChatReturn
+} from '../../agent-session/ownership/structured-chat-returns'
 import { readTerminalProcesses } from '../../agent-session/ownership/structured-chat-terminal-process'
 import {
   readLiveDaemonSessions,
@@ -221,19 +224,28 @@ export abstract class OrcaRuntimeWithStructuredChatTerminalHolds extends OrcaRun
 
   abstract redriveStructuredSessionMail(sessionId: string): void
 
+  private readonly resuming = new Set<string>()
+
   /** What waited for a chat goes to it once its terminal is done, also when nobody looks at it. */
-  private async resumeReturnedChat(ended: EndedStructuredChatTerminalHold): Promise<void> {
-    const { sessionId, hold } = ended
-    try {
-      await this.ensureStructuredAgentSessionHost()
-      await getStructuredAgentSessionHost()?.wakeReturnedSession(sessionId, {
-        waiting: hold.waiting,
-        ran: hold.terminals.some(({ ran }) => ran)
-      })
-    } catch (error) {
-      console.warn('[chat-terminal] waking a returned chat failed', error)
+  private async resumeReturnedChats(): Promise<void> {
+    for (const [sessionId, entry] of structuredChatReturns()) {
+      if (this.resuming.has(sessionId)) {
+        continue
+      }
+      this.resuming.add(sessionId)
+      try {
+        await this.ensureStructuredAgentSessionHost()
+        const host = getStructuredAgentSessionHost()
+        if (await host?.wakeReturnedSession(sessionId, entry)) {
+          takeStructuredChatReturn(sessionId)
+          this.redriveStructuredSessionMail(sessionId)
+        }
+      } catch (error) {
+        console.warn('[chat-terminal] waking a returned chat failed', sessionId, error)
+      } finally {
+        this.resuming.delete(sessionId)
+      }
     }
-    this.redriveStructuredSessionMail(sessionId)
   }
 
   private terminalHoldWatch: ReturnType<typeof setTimeout> | null = null
@@ -242,7 +254,7 @@ export abstract class OrcaRuntimeWithStructuredChatTerminalHolds extends OrcaRun
   protected startStructuredChatTerminalHolds(): void {
     onStructuredChatTerminalHoldEnded((ended) => {
       this.cleanupSubscription(chatTerminalHandoverSubscription(ended.hold.token))
-      void this.resumeReturnedChat(ended)
+      void this.resumeReturnedChats().then(() => this.watchStructuredChatTerminalHolds())
     })
     const first = setTimeout(() => {
       releaseUnlaunchedStructuredChatTerminalHolds()
@@ -254,7 +266,9 @@ export abstract class OrcaRuntimeWithStructuredChatTerminalHolds extends OrcaRun
   watchStructuredChatTerminalHolds(): void {
     if (
       this.terminalHoldWatch ||
-      (heldStructuredChats().length === 0 && !structuredChatTerminalHoldsUnreadable())
+      (heldStructuredChats().length === 0 &&
+        structuredChatReturns().length === 0 &&
+        !structuredChatTerminalHoldsUnreadable())
     ) {
       return
     }
@@ -308,6 +322,7 @@ export abstract class OrcaRuntimeWithStructuredChatTerminalHolds extends OrcaRun
         console.warn('[chat-terminal] checking a handed-over chat failed', sessionId, error)
       }
     }
+    await this.resumeReturnedChats()
     if (structuredChatTerminalHoldsUnreadable()) {
       const { processes, table } = await this.readHoldTerminals()
       const agents = processes?.map(({ rootProcessId }) =>

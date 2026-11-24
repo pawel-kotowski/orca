@@ -43,6 +43,12 @@ it('claims the starts a held conversation is in, and no others', () => {
   expect(claims({ command: `claude --resume '${ID}' --fork-session` })).toBe(false)
   expect(claims({ command: `codex --no-daemon 'fork' '${ID}'` })).toBe(false)
   expect(claims({ command: 'claude' })).toBe(false)
+  expect(claims({ command: `codex -c a=b 'resume' -m x '${ID}'` })).toBe(true)
+  // A worker told to read the conversation's scratch files is another conversation.
+  expect(claims({ command: `claude 'Read /tmp/x/${ID}/scratchpad/brief.md and do it'` })).toBe(
+    false
+  )
+  expect(claims({ command: `claude 'the chat is ${ID} today'` })).toBe(false)
   // The host refuses or reattaches these itself.
   expect(claims({ command: `claude --resume ${ID}`, resumeOrigin: 'saved' })).toBe(false)
   expect(claims({ command: `claude --resume ${ID}`, sessionId: 'pty' })).toBe(false)

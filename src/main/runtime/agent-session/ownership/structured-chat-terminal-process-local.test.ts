@@ -27,6 +27,8 @@ it('sees the conversation wherever its agent runs, and not its copies or other p
   expect(await anywhere(`codex --no-daemon resume ${ID}`)).toBe(true)
   expect(await anywhere(`claude --resume ${ID} --fork-session`)).toBe(false)
   expect(await anywhere(`codex --no-daemon fork ${ID}`)).toBe(false)
+  expect(await anywhere(`claude -p --resume ${ID} hello`)).toBe(true)
+  expect(await anywhere(`claude Read /tmp/${ID}/scratchpad/brief.md`)).toBe(false)
   expect(await anywhere(`tail -f /x/${ID}.jsonl`)).toBe(false)
   expect(await anywhere(`claude --resume ${ID}`, [10])).toBe(false)
 })

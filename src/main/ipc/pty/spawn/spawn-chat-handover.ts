@@ -3,7 +3,10 @@ import {
   claimStructuredChatTerminalSpawn,
   type StructuredChatTerminalSpawn
 } from '../../../runtime/agent-session/ownership/structured-chat-terminal-holds'
-import { isConversationCopyCommand } from '../../../runtime/agent-session/ownership/structured-chat-copy-command'
+import {
+  commandResumesConversation,
+  isConversationCopyCommand
+} from '../../../runtime/agent-session/ownership/structured-chat-conversation-command'
 import type { PtySpawnOperationState } from './spawn-operation-state'
 
 /** Local: a start that a held chat's conversation is in, claimed before anything is stopped for it. */
@@ -25,7 +28,8 @@ export function claimChatHandoverSpawn(
       !args.sessionId &&
       args.resumeOrigin !== 'saved' &&
       !isConversationCopyCommand(command) &&
-      (args.resumeProviderSession?.id === conversationId || command.includes(conversationId)),
+      (args.resumeProviderSession?.id === conversationId ||
+        commandResumesConversation(command, conversationId)),
     command !== ''
   )
 }

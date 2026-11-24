@@ -15,6 +15,7 @@ import {
   resetStructuredChatTerminalHoldsForTests,
   structuredChatTerminalHold
 } from '../../../runtime/agent-session/ownership/structured-chat-terminal-holds'
+import type { AgentMessageSource } from '../../../../shared/agent-session/journal/agent-session-message-source'
 import { agentJournalSubmissionKey } from '../../../../shared/agent-session/journal/agent-session-journal-item-key'
 import { AGENT_JOURNAL_THREAD_SCOPE } from '../../../../shared/agent-session/journal/agent-session-journal-types'
 import {
@@ -57,7 +58,7 @@ const hold = () =>
 async function giveBack(): Promise<void> {
   const waiting = structuredChatTerminalHold(SESSION)?.waiting ?? []
   releaseStructuredChatTerminalHold(SESSION, 't')
-  await rig.host.wakeReturnedSession(SESSION, { waiting, ran: true })
+  expect(await rig.host.wakeReturnedSession(SESSION, { waiting, ran: true })).toBe(true)
 }
 
 async function restart(): Promise<void> {
@@ -157,6 +158,33 @@ it.each(CASES)(
     expect((await rig.handoff(id))?.dispatchState).not.toBe('rejected')
   }
 )
+
+const TASK = {
+  kind: 'agent',
+  senders: [],
+  orchestration: { message: 'task', taskId: 't', dispatchId: 'd' }
+} as never as AgentMessageSource
+
+it.each([
+  ['done', true],
+  ['failed', false],
+  ['failed', true]
+] as const)('a dispatched task goes out too (turn %s, restart %s)', async (how, restarts) => {
+  await endedTurn(how)
+  show()
+  hold()
+  const result = await rig.send('the task', 'queue-if-active', { internal: true, from: TASK })
+    .result
+  if (!result.ok || !('queued' in result.value)) {
+    throw new Error('expected a waiting card')
+  }
+  const { messageId } = result.value.queued
+  if (restarts) {
+    await restart()
+  }
+  await giveBack()
+  await eventually(async () => expect(await rig.handoff(messageId)).toBeDefined())
+})
 
 it('leaves a chat the person closed alone', async () => {
   await endedTurn('failed')

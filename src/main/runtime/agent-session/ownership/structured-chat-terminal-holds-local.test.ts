@@ -31,6 +31,8 @@ import {
   type TerminalHoldPane
 } from './structured-chat-terminal-holds'
 
+import { structuredChatReturns } from './structured-chat-returns'
+
 const file = () => join(dir.path, 'structured-chat-terminal-holds.json')
 const aside = () => join(dir.path, 'structured-chat-terminal-holds.unreadable.json')
 
@@ -176,6 +178,29 @@ it('remembers what waits, across a restart', () => {
   noteWaitingForStructuredChat('not held', 'two')
   resetStructuredChatTerminalHoldsForTests()
   expect(structuredChatTerminalHold('chat')?.waiting).toEqual(['one'])
+})
+
+it('a chat that is back keeps what waits until it was sent, across a restart', () => {
+  open()
+  noteWaitingForStructuredChat('chat', 'one')
+  releaseStructuredChatTerminalHold('chat', 'a')
+  resetStructuredChatTerminalHoldsForTests()
+  expect(structuredChatReturns()).toEqual([['chat', { waiting: ['one'], ran: false }]])
+  // Handed over again before that: it waits on.
+  begin('b')
+  expect(structuredChatReturns()).toEqual([])
+  expect(structuredChatTerminalHold('chat')?.waiting).toEqual(['one'])
+})
+
+it('a start that joins a known terminal does not unsee its agent', () => {
+  open()
+  noteStructuredChatTerminalRan('chat', 'pty')
+  claimStructuredChatTerminalSpawn(undefined, (id) => id === 'conversation')!.bind({
+    ptyId: 'pty',
+    incarnationId: 'i',
+    paneKey: 'tab:leaf'
+  })
+  expect(structuredChatTerminalHold('chat')?.terminals).toMatchObject([{ ran: true }])
 })
 
 it('a bare shell of a pane that once was a handover is no start', () => {

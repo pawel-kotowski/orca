@@ -207,6 +207,8 @@ export class StructuredAgentSessionHost {
   wakeReturnedSession = (id: string, hold: { waiting: readonly string[]; ran: boolean }) =>
     wakeReturnedStructuredChat(this.deps.store, id, hold, {
       open: this.conversation,
+      asleep: (workspaceId) =>
+        this.deps.usageLimitAutoContinue?.isWorkspaceAsleep(workspaceId) === true,
       send: (messageId) =>
         this.queued.queuedMessageSend(...returnedChatSend(this.deps, id, messageId)),
       cancelUsageLimitContinue: async () => {
