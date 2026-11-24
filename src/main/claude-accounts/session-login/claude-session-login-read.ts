@@ -80,6 +80,15 @@ export async function readClaudeSessionLogin(
   if (!attested) {
     return null
   }
+  return readClaudeFolderSessionLogin(configDir, deps)
+}
+
+/** The login of a folder this host itself named; a client's own path needs the attested read above. */
+export async function readClaudeFolderSessionLogin(
+  configDir: string,
+  deps: Omit<ClaudeSessionLoginDeps, 'rows'> = {}
+): Promise<ClaudeSessionLogin> {
+  const folder = normalizeFolder(configDir)
   const userHome = deps.userHome ?? homedir()
   const system = systemClaudeFolder(userHome)
   const isSystemDefault = normalizeFolder(system.dir) === folder
@@ -107,7 +116,7 @@ export async function readClaudeSessionLogin(
 
 async function folderUsage(
   folder: string,
-  deps: ClaudeSessionLoginDeps,
+  deps: Omit<ClaudeSessionLoginDeps, 'rows'>,
   authPreparation: ClaudeRuntimeAuthPreparation
 ): Promise<ProviderRateLimits | null> {
   const now = deps.now ?? Date.now

@@ -222,6 +222,11 @@ export class StructuredAgentSessionIdleSweep {
     )
   }
 
+  async sessionOwesWork(sessionId: string): Promise<boolean> {
+    const session = this.deps.sessions.get(sessionId)
+    return session !== undefined && (await this.owesWork(sessionId, session))
+  }
+
   /** Without a child, leftover turns/prompts are history and cannot retain the handle. */
   private async owesWork(
     sessionId: string,
