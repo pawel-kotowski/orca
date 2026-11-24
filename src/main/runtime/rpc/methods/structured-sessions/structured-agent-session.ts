@@ -1,6 +1,7 @@
 import { STRUCTURED_AGENT_SESSION_CANCEL_METHOD } from '../structured-agent-session-cancel-method'
 import { STRUCTURED_AGENT_SESSION_MCP_METHODS } from './catalog/structured-agent-session-mcp'
 import { STRUCTURED_AGENT_SESSION_AUTO_REVIEW_METHODS } from './conversation/structured-agent-session-auto-review-approval'
+import { STRUCTURED_AGENT_SESSION_CLAUDE_ACCOUNT_METHODS } from './catalog/structured-agent-session-claude-account'
 import { STRUCTURED_AGENT_SESSION_ACCOUNT_USAGE_METHODS } from './catalog/structured-agent-session-account-usage'
 import { STRUCTURED_AGENT_SESSION_USAGE_LIMIT_CONTINUE_METHODS } from './catalog/structured-agent-session-usage-limit-continue'
 import { STRUCTURED_AGENT_SESSION_SKIP_ASYNC_QUESTIONS_METHODS } from './conversation/structured-agent-session-skip-async-questions'
@@ -32,6 +33,9 @@ import { STRUCTURED_AGENT_SESSION_HOLD_METHODS } from './conversation/structured
 import { STRUCTURED_AGENT_SESSION_PROMPT_RESPONSE_METHODS } from './conversation/structured-agent-session-prompt-response'
 import { STRUCTURED_AGENT_SESSION_REVEAL_METHODS } from './conversation/structured-agent-session-reveal'
 import { STRUCTURED_AGENT_SESSION_REGENERATE_NAME_METHODS } from './conversation/structured-agent-session-regenerate-name'
+import { STRUCTURED_AGENT_SESSION_MOVE_TO_INBOX_METHODS } from './conversation/structured-agent-session-move-to-inbox'
+import { STRUCTURED_AGENT_SESSION_RESUME_LIST_METHODS } from './conversation/structured-agent-session-resume-list'
+import { STRUCTURED_AGENT_SESSION_TERMINAL_HANDOVER_METHODS } from './conversation/structured-agent-session-terminal-handover'
 import { STRUCTURED_AGENT_SESSION_RENAME_METHODS } from './conversation/structured-agent-session-rename'
 import { STRUCTURED_AGENT_SESSION_QUEUED_METHODS } from './conversation/structured-agent-session-queued-methods'
 import { STRUCTURED_AGENT_SESSION_RESTART_RESUME_METHODS } from './conversation/structured-agent-session-restart-resume'
@@ -213,6 +217,9 @@ export const STRUCTURED_AGENT_SESSION_METHODS = [
   ...STRUCTURED_AGENT_SESSION_REVEAL_METHODS,
   ...STRUCTURED_AGENT_SESSION_REGENERATE_NAME_METHODS,
   ...STRUCTURED_AGENT_SESSION_RENAME_METHODS,
+  ...STRUCTURED_AGENT_SESSION_RESUME_LIST_METHODS,
+  ...STRUCTURED_AGENT_SESSION_TERMINAL_HANDOVER_METHODS,
+  ...STRUCTURED_AGENT_SESSION_MOVE_TO_INBOX_METHODS,
   ...STRUCTURED_AGENT_SESSION_RESTART_RESUME_METHODS,
   ...STRUCTURED_AGENT_SESSION_USAGE_LIMIT_CONTINUE_METHODS,
   ...STRUCTURED_AGENT_SESSION_SKIP_ASYNC_QUESTIONS_METHODS,
@@ -225,6 +232,7 @@ export const STRUCTURED_AGENT_SESSION_METHODS = [
   ...STRUCTURED_AGENT_SESSION_SEND_RECORDED_METHODS,
   ...STRUCTURED_AGENT_SESSION_CURRENT_REQUESTS_METHODS,
   ...STRUCTURED_AGENT_SESSION_ACCOUNT_USAGE_METHODS,
+  ...STRUCTURED_AGENT_SESSION_CLAUDE_ACCOUNT_METHODS,
   ...STRUCTURED_AGENT_SESSION_MCP_METHODS,
   ...STRUCTURED_AGENT_SESSION_AUTO_REVIEW_METHODS,
   ...STRUCTURED_AGENT_SESSION_OPTIONS_READ_METHODS

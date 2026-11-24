@@ -1,3 +1,5 @@
+/* eslint-disable max-lines -- Why: upstream's host sits at the limit; local features (Inbox, account
+   and terminal moves) add one delegate line each, and moving upstream's own out would fork it. */
 import * as usageLimit from '../recovery/structured-agent-session-host-background'
 import { createStructuredAgentSessionConversationReads } from './structured-agent-session-conversation-reads'
 import { continuationContextReader as contextReader } from '../recovery/structured-agent-session-continuation-context'
@@ -8,7 +10,10 @@ import { createStartupRecovery } from '../recovery/structured-agent-session-rest
 import { StructuredAgentSessionTaskQueue } from './structured-agent-session-task-queue'
 import { StructuredAgentSessionHostRuntimeState } from './structured-agent-session-host-runtime-state'
 import { structuredAgentSessionEntryDelegates } from '../acquisition/structured-agent-session-entry-delegates'
-import { claimStructuredAgentSessionAgent as claimAgent } from '../startup/structured-agent-session-agent-start'
+import {
+  claimStructuredAgentSessionAgent as claimAgent,
+  startStructuredAgentSessionAgent as startAgent
+} from '../startup/structured-agent-session-agent-start'
 import * as mutationWiring from './structured-agent-session-host-mutation-wiring'
 import * as lifetime from '../termination/structured-agent-session-conversation-lifetime'
 import { createStructuredAgentSessionTabSurface as createTabs } from './structured-agent-session-host-tabs'
@@ -187,6 +192,11 @@ export class StructuredAgentSessionHost {
   /** Stop a finished background run's agent now, as the idle sweep would; owed work keeps it, and
    *  so does a viewer unless `anyway`. */
   releaseIdleSession = (id: string, anyway?: boolean) => this.lifetime.idleSweep.release(id, anyway)
+
+  /** Local: start an agent at rest, which reads in the turns a terminal added. */
+  startSessionAgent = (id: string) => startAgent(this.attachContext(), id)
+
+  sessionOwesWork = (id: string) => this.lifetime.idleSweep.sessionOwesWork(id)
 
   /** Stop hidden children too, using one bounded host snapshot. */
   sleepWorkspace = createStructuredAgentSessionWorkspaceSleeper(() => this.collaborators())

@@ -4,6 +4,9 @@ import {
 } from '../../../../shared/agent-session/lifecycle/agent-session-resume'
 import { LOCAL_EXECUTION_HOST_ID } from '../../../../shared/execution-host/execution-host'
 import type { StructuredAgentId } from '../../../../shared/agent-session/lifecycle/provider-handles/agent-session-provider-handle'
+import { structuredChatTerminalHeld } from '../../agent-session/ownership/structured-chat-terminal-holds'
+import { agentSessionRefusalError } from '../../../../shared/agent-session/failures/agent-session-wire-refusals'
+import { namesCliConversation } from '../../../../shared/agent-session/view/structured-agent-cli-conversation-adoption'
 import { assertCliConversationWritersExited } from '../../agent-session/lifecycle/structured-agent-cli-writers'
 import type { EnrichedAgentHookEventPayload } from '../../../agent-hooks/server/server-types'
 import type { AgentSessionRecord } from '../../../../shared/agent-session/lifecycle/agent-session-record'
@@ -86,6 +89,32 @@ export abstract class OrcaRuntimeWithStructuredSessionCliWriterHost extends Orca
       )
     ) {
       await this.assertStructuredAdoptionTerminalWritersExited(record.provider, key.id)
+      this.assertStructuredChatNotHeldForTerminal(record.sessionId, record.provider, key.id)
+    }
+  }
+
+  /** Local: a chat handed to a terminal stays held until that terminal's agent reports or is gone. */
+  private assertStructuredChatNotHeldForTerminal(
+    sessionId: string,
+    agent: StructuredAgentId,
+    providerSessionId: string
+  ): void {
+    const reports = this.getAgentProviderSessionRows()
+      .filter(
+        (row) =>
+          !row.structuredHost &&
+          namesCliConversation(row, agent, providerSessionId) &&
+          this.readHookCliWriterObservationFn?.(row)
+      )
+      .map((row) => row.receivedAt)
+    const held = structuredChatTerminalHeld(sessionId, {
+      reportedAt: reports.length > 0 ? Math.max(...reports) : null,
+      paneAlive: (paneKey) => this.getPtyRecordForPaneKey(paneKey) !== null
+    })
+    if (held) {
+      throw agentSessionRefusalError('agent_session_conflict', {
+        reason: 'conversationHeldElsewhere'
+      })
     }
   }
 

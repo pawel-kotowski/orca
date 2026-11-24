@@ -923,8 +923,13 @@ import {
 } from './structured-agent-session/agent-session-attachment-params'
 import { CurrentRequestsParams } from './structured-agent-session/agent-session-current-requests-params'
 import { ReadVisualParams } from './structured-agent-session/agent-session-visual-params'
+import { MoveToInboxParams } from './structured-agent-session/move-to-inbox-params'
 import { SkipAsyncQuestionsParams } from './structured-agent-session/skip-async-questions-params'
 import { AutoReviewApprovalParams } from './structured-agent-session/structured-agent-session-auto-review-params'
+import {
+  AgentSessionClaudeAccountParams,
+  AgentSessionSetClaudeAccountParams
+} from './structured-agent-session/structured-agent-session-claude-account-params'
 import { ContinueInterruptedParams } from './structured-agent-session/structured-agent-session-continue-params'
 import { ContinuationContextParams } from './structured-agent-session/structured-agent-session-identifiers'
 import { AgentSessionMcpParams } from './structured-agent-session/structured-agent-session-mcp-params'
@@ -968,6 +973,10 @@ import {
 import { RenameParams } from './structured-agent-session/structured-agent-session-rename-params'
 import { SendRecordedParams } from './structured-agent-session/structured-agent-session-send-recorded-params'
 import { SubscribeParams } from './structured-agent-session/structured-agent-session-subscribe-params'
+import {
+  AgentSessionResumeListParams,
+  AgentSessionTerminalHandoverParams
+} from './structured-agent-session/structured-agent-session-terminal-handover-params'
 import { CancelUsageLimitContinueParams } from './structured-agent-session/usage-limit-continue-params'
 import { CreateAgentSessionParams, EnsureAgentSessionParams } from './terminal/agent-session-params'
 import { TerminalInferCodexQuestionSkip } from './terminal/terminal-codex-question-params'
@@ -1168,6 +1177,7 @@ export const RPC_PARAMS_BY_METHOD = {
   'agentSession.approveAutoReviewDenial': AutoReviewApprovalParams,
   'agentSession.cancel': CancelParams,
   'agentSession.cancelUsageLimitContinue': CancelUsageLimitContinueParams,
+  'agentSession.claudeAccount': AgentSessionClaudeAccountParams,
   'agentSession.close': OptionsParams,
   'agentSession.commands': OptionsParams,
   'agentSession.continuationContext': ContinuationContextParams,
@@ -1185,6 +1195,7 @@ export const RPC_PARAMS_BY_METHOD = {
   'agentSession.item': ItemParams,
   'agentSession.mcp': AgentSessionMcpParams,
   'agentSession.modelCatalog': ModelCatalogParams,
+  'agentSession.moveToInbox': MoveToInboxParams,
   'agentSession.options': OptionsParams,
   'agentSession.queuedMessageDelete': QueuedMessageActionParams,
   'agentSession.queuedMessageEditHold': QueuedMessageEditHoldParams,
@@ -1203,10 +1214,12 @@ export const RPC_PARAMS_BY_METHOD = {
   'agentSession.restartResumable': RestartResumableParams,
   'agentSession.restartResumableDismiss': RestartResumableParams,
   'agentSession.restartResume': RestartResumeParams,
+  'agentSession.resumeList': AgentSessionResumeListParams,
   'agentSession.reveal': RevealParams,
   'agentSession.rewind': RewindParams,
   'agentSession.send': SendParams,
   'agentSession.sendRecorded': SendRecordedParams,
+  'agentSession.setClaudeAccount': AgentSessionSetClaudeAccountParams,
   'agentSession.setOption': SetOptionParams,
   'agentSession.skipAsyncQuestions': SkipAsyncQuestionsParams,
   'agentSession.sleepWorkspace': SleepWorkspaceParams,
@@ -1214,6 +1227,7 @@ export const RPC_PARAMS_BY_METHOD = {
   'agentSession.subscribeAvailability': AvailabilityParams,
   'agentSession.subscribeStatus': null,
   'agentSession.subscribeTurnCompletions': SubscribeTurnCompletionsParams,
+  'agentSession.terminalHandover': AgentSessionTerminalHandoverParams,
   'agentSession.threadGoal': ThreadGoalParams,
   'agentSession.toolCaller': ToolCallerParams,
   'agentSession.unsubscribe': UnsubscribeParams,

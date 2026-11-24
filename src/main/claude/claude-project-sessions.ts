@@ -128,10 +128,16 @@ export async function listClaudeProjectSessions(
   transcriptPath: string,
   limit = DEFAULT_LIMIT
 ): Promise<ClaudeProjectSession[]> {
-  if (claudeConfigDirForTranscript(transcriptPath) === null) {
-    return []
-  }
-  const folder = dirname(transcriptPath)
+  return claudeConfigDirForTranscript(transcriptPath) === null
+    ? []
+    : listClaudeProjectFolderSessions(dirname(transcriptPath), limit)
+}
+
+/** The same list for a project folder the host itself resolved. */
+export async function listClaudeProjectFolderSessions(
+  folder: string,
+  limit = DEFAULT_LIMIT
+): Promise<ClaudeProjectSession[]> {
   const names = (await readdir(folder).catch(() => [] as string[])).filter((name) =>
     name.endsWith('.jsonl')
   )
