@@ -275,7 +275,9 @@ export function NativeChatComposerField({
               glowing && 'native-chat-composer-glow'
             )}
           >
-            {dock}
+            {/* Why: the compact box is a wrapping flex row; without a full row of its own the dock
+                (running commands, workers) squeezes in beside the text. */}
+            {dock && compact ? <div className="min-w-0 basis-full empty:hidden">{dock}</div> : dock}
             {imageAttachments.length > 0 ? (
               <div className={cn('mb-2 flex flex-wrap gap-2 px-1 pt-1.5', compact && 'basis-full')}>
                 {imageAttachments.map((attachment, index) => (
