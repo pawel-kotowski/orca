@@ -10,6 +10,7 @@ import {
   decodePersistedAgentSessionProviderHandleChain,
   encodePersistedAgentSessionProviderHandleChain
 } from '../provider-handles/agent-session-provider-handle'
+import { normalizeAgentReachOutField } from '../../../agent-status/contracts/agent-reach-out'
 import { isAgentSessionLastTurn } from './agent-session-last-turn'
 import type { AgentSessionDeathEvidence } from '../leases/agent-session-death-evidence'
 import type { AgentSessionRecord } from '../agent-session-record'
@@ -56,6 +57,7 @@ export function decodePersistedAgentSessionRecord<L extends PersistedAgentSessio
     lastTurn,
     instructionsKey,
     asyncQuestionsSkippedThrough: skipped,
+    reachOut: storedReachOut,
     ...rest
   } = record
   const validSleep = typeof sleptAt === 'number' && Number.isFinite(sleptAt) && sleptAt > 0
@@ -63,6 +65,7 @@ export function decodePersistedAgentSessionRecord<L extends PersistedAgentSessio
     typeof instructionsKey === 'string' &&
     instructionsKey.length > 0 &&
     instructionsKey.length <= 128
+  const reachOut = normalizeAgentReachOutField(storedReachOut)
   const lease = normalizeLegacyHandoffLease(record.lease)
   return {
     record: {
@@ -71,6 +74,7 @@ export function decodePersistedAgentSessionRecord<L extends PersistedAgentSessio
       ...(validKey ? { instructionsKey } : {}),
       ...(isAgentSessionLastTurn(lastTurn) ? { lastTurn } : {}),
       ...(typeof skipped === 'string' && skipped ? { asyncQuestionsSkippedThrough: skipped } : {}),
+      ...(reachOut ? { reachOut } : {}),
       providerHandleChain,
       lease: { ...lease, deathEvidence: decodeDeathEvidence(lease.deathEvidence) }
     },

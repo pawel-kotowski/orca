@@ -7,6 +7,7 @@ import {
   readIdleCompactionSessionFacts,
   type IdleCompactionAgent
 } from './idle-compaction-session-facts'
+import { structuredIdleCompactionTarget } from './idle-compaction-structured-chat'
 import { IDLE_COMPACTION_MIN_TOKENS, IdleCompactionScheduler } from './idle-compaction-scheduler'
 
 type IdleCompactionRuntime = Pick<
@@ -108,6 +109,7 @@ export function installIdleCompaction(
         throw new Error('not_accepted')
       }
     },
+    chats: structuredIdleCompactionTarget,
     log: decisionLog()
   })
   const unsubscribe = server.subscribeEnrichedStatus((event) => scheduler.onStatus(event))

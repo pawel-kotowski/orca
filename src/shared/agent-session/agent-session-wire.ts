@@ -26,6 +26,7 @@ import type {
   AgentJournalTurnLifecycle
 } from './journal/agent-session-journal-types'
 import type { AgentTurnOutcome } from '../agent-status/lifecycle/agent-turn-outcome'
+import type { AgentReachOut } from '../agent-status/contracts/agent-reach-out'
 import type { AgentSessionRecord } from './lifecycle/agent-session-record'
 import type { AgentProviderSessionMetadata } from './lifecycle/agent-session-resume'
 import type { NativeChatSubagentEntry } from '../native-chat/native-chat-types'
@@ -287,6 +288,12 @@ export type AgentSessionStatusSummary = {
   updatedAt: number
   /** Date the lead status by its own lifecycle edge, never updatedAt (child rows change it). Missing/older-host dates leave readers tracking time themselves. */
   statusStartedAt?: number
+  /** Local: when the newest user message arrived, as `AgentStatusEntry.turnStartedAt`. Older hosts omit it. */
+  turnStartedAt?: number
+  /** Local: when the newest turn, a finished /compact, ended; gone once the chat goes on. */
+  compactedAt?: number
+  /** Local: the agent's last `orca move-to-inbox`. */
+  reachOut?: AgentReachOut
 } & AgentSessionStatusPermissionFields
 
 /** `failedAt` dates the run, so a repeat failure with the same message still republishes. */

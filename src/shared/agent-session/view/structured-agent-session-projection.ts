@@ -1,3 +1,7 @@
+import {
+  newestRootTurn,
+  structuredAgentSessionLocalClocks
+} from './structured-agent-session-local-status'
 import { memoizeStringResult } from '../../collections/string-result-cache'
 import { isAgentSessionSlotTabId } from './agent-session-slot-tab-id'
 import {
@@ -26,6 +30,7 @@ import { statusStructuredAgentSessionToolCall } from './structured-agent-session
 import {
   hasStructuredAgentSessionRequest,
   latestStructuredAgentSessionPrompt,
+  latestStructuredAgentSessionUserItem,
   latestStructuredAgentSessionRequest,
   type StructuredAgentSessionLatestRequest
 } from '../requests/structured-agent-session-latest-request'
@@ -170,6 +175,8 @@ export type StructuredAgentSessionStatusProjection = Pick<
   /** Idle-only latest-request verdict: turn outcome, host-observed end if absent, or refused-send failure. */
   turnOutcome?: AgentTurnOutcome
   statusStartedAt?: number
+  turnStartedAt?: number
+  compactedAt?: number
   /** The newest async question still waiting for the person's next message; set by the host's
    *  journal reads and folded with the person's Skip into the published `awaitsAnswer`. */
   openAsyncQuestion?: AgentSessionAwaitedQuestion
@@ -204,6 +211,7 @@ export function projectStructuredAgentSessionStatusState(
   pendingPromptIds: string[]
 } {
   const latestPrompt = latestStructuredAgentSessionPrompt(items)
+  const userItem = latestStructuredAgentSessionUserItem(items)
   if (!hasStructuredAgentSessionRequest(items, submissions, currentFence)) {
     return {
       summary: { status: null, latestPrompt: '' },
@@ -255,6 +263,7 @@ export function projectStructuredAgentSessionStatusState(
       ...(lastAssistantMessage ? { lastAssistantMessage } : {}),
       ...(turnOutcome ? { turnOutcome } : {}),
       ...(statusStartedAt !== undefined ? { statusStartedAt } : {}),
+      ...structuredAgentSessionLocalClocks(userItem, newestRootTurn(items)),
       ...structuredAgentSessionAwaitedPrompt(pending[0])
     }
   }

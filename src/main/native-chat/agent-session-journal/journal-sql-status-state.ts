@@ -8,6 +8,7 @@ import {
   structuredAgentSessionToolCallBlock
 } from '../../../shared/agent-session/view/messages/structured-agent-session-tool-call-block'
 import { nativeChatStatusRequestOutcome } from '../../../shared/native-chat/transcript/continuation/native-chat-orca-stop-cut'
+import { structuredAgentSessionLocalClocks } from '../../../shared/agent-session/view/structured-agent-session-local-status'
 import { structuredAgentSessionStatusStartedAt } from '../../../shared/agent-session/view/structured-agent-session-status-started-at'
 import {
   AGENT_STATUS_TOOL_INPUT_MAX_LENGTH,
@@ -127,6 +128,11 @@ export function readJournalSqlStatusState(
         : {}),
       ...(turnOutcome ? { turnOutcome } : {}),
       ...(statusStartedAt !== undefined ? { statusStartedAt } : {}),
+      ...structuredAgentSessionLocalClocks(
+        selects({ kind: 'prompt' })[Symbol.iterator]().next().value?.item,
+        selects({ kind: 'turns', root: true, first: true, floor })[Symbol.iterator]().next().value
+          ?.item
+      ),
       ...(openAsyncQuestion ? { openAsyncQuestion } : {}),
       ...awaited
     }

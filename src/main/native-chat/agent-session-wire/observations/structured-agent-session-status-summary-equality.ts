@@ -24,6 +24,9 @@ export function structuredStatusSummariesEqual(
     a.rewindBlockedReason === b.rewindBlockedReason &&
     // State clocks affect ranking; undated idle/live-child rows also use publication time as evidence.
     a.statusStartedAt === b.statusStartedAt &&
+    a.turnStartedAt === b.turnStartedAt &&
+    a.compactedAt === b.compactedAt &&
+    a.reachOut?.at === b.reachOut?.at &&
     (a.status !== 'idle' ||
       a.updatedAt === b.updatedAt ||
       (a.statusStartedAt !== undefined && !isIdleHeldOpenByChildWork(b))) &&

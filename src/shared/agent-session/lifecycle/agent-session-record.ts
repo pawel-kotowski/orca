@@ -1,3 +1,4 @@
+import type { AgentReachOut } from '../../agent-status/contracts/agent-reach-out'
 import { isOptionalUsageLimitContinueCancel } from './stopping/agent-session-usage-limit-continue'
 import type { AgentSessionDeathEvidence } from './leases/agent-session-death-evidence'
 import { isAgentSessionRewindRecord } from './rewind/agent-session-rewind'
@@ -139,6 +140,8 @@ export type AgentSessionRecord = {
   conversationNameSource?: 'user'
   /** When the user's Sleep stopped this chat; the next admitted send clears it. */
   sleptAt?: number
+  /** The agent's last `orca move-to-inbox`. */
+  reachOut?: AgentReachOut
   /** Latest turn edge for lists that must not open conversation history. */
   lastTurn?: AgentSessionLastTurn
   launchArgs?: AgentSessionLaunchArgs

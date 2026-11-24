@@ -9,6 +9,8 @@ export type AgentSessionLastTurn = {
   at: number
   prompt?: string
   reply?: string
+  turnStartedAt?: number
+  compactedAt?: number
 }
 
 export const AGENT_SESSION_TURN_PREVIEW_CHARS = 280
@@ -26,9 +28,15 @@ export function isAgentSessionLastTurn(value: unknown): value is AgentSessionLas
     Number.isSafeInteger(value.at) &&
     value.at >= 0 &&
     (!('outcome' in value) || value.outcome === undefined || isAgentTurnOutcome(value.outcome)) &&
+    (!('turnStartedAt' in value) || isTime(value.turnStartedAt)) &&
+    (!('compactedAt' in value) || isTime(value.compactedAt)) &&
     (!('prompt' in value) || isPreview(value.prompt)) &&
     (!('reply' in value) || isPreview(value.reply))
   )
+}
+
+function isTime(value: unknown): boolean {
+  return value === undefined || (typeof value === 'number' && Number.isFinite(value))
 }
 
 function isPreview(value: unknown): boolean {

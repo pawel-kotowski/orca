@@ -24,6 +24,7 @@ import {
   structuredSendAnswer
 } from '../delivery/structured-agent-session-queued-send-answer'
 import type { JournalMailAttempt } from '../../agent-session-journal/journal-mail-observation'
+import { normalizeAgentReachOutField } from '../../../../shared/agent-status/contracts/agent-reach-out'
 import { compareAgentJournalItems } from '../../../../shared/agent-session/journal/agent-session-journal-position'
 
 type ReadContext = {
@@ -162,6 +163,19 @@ export function createStructuredAgentSessionConversationReads(context: () => Rea
         await deps.store.skipAsyncQuestions(sessionId, itemId)
         publishStatus(sessionId)
       })
+    },
+    /** `orca move-to-inbox` from a chat's agent; false for a blank message. */
+    moveToInbox: async (sessionId: string, message: string): Promise<boolean> => {
+      const { deps, conversation, publishStatus } = context()
+      const reachOut = normalizeAgentReachOutField({ message, at: Date.now() })
+      if (!reachOut) {
+        return false
+      }
+      // A background command can outlive its chat's handle, and only an open chat republishes.
+      await conversation(sessionId)
+      await deps.store.updateRecord(sessionId, { kind: 'reach-out', reachOut })
+      publishStatus(sessionId)
+      return true
     },
     holdMailSources: (attempts: readonly JournalMailAttempt[], signal: AbortSignal) => {
       const { serialize, sessions, deps, conversation, seal } = context()

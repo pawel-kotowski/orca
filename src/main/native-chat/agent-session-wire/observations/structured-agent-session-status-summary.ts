@@ -113,6 +113,7 @@ export function structuredAgentSessionStatusSummary({
     ...(isAgentSessionInteractionMode(interactionMode) ? { interactionMode } : {}),
     ...childWork,
     ...(providerSession ? { providerSession } : {}),
+    ...(record?.reachOut ? { reachOut: record.reachOut } : {}),
     ...(launchDirectory ? { launchDirectory } : {}),
     ...structuredSummaryHostProgram(record),
     ...structuredSummaryConversationNaming(record, namingFailure),
@@ -185,12 +186,14 @@ export function renamedStructuredStatusSummary(
     conversationNameSource: _source,
     forkedFrom: _forkedFrom,
     sleptAt: _sleptAt,
+    reachOut: _reachOut,
     ...rest
   } = previous
   const summary = {
     ...rest,
     ...structuredSummaryConversationNaming(record, deps.namingFailure?.(sessionId)),
-    ...(typeof record?.sleptAt === 'number' ? { sleptAt: record.sleptAt } : {})
+    ...(typeof record?.sleptAt === 'number' ? { sleptAt: record.sleptAt } : {}),
+    ...(record?.reachOut ? { reachOut: record.reachOut } : {})
   }
   return structuredStatusSummariesEqual(previous, summary) ? null : summary
 }

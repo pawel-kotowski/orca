@@ -13,6 +13,7 @@ export function structuredStatusLegacyEvent(
     connectionId: row.connectionId,
     receivedAt: row.receivedAt,
     stateStartedAt: row.stateStartedAt,
+    ...(row.turnStartedAt !== undefined ? { turnStartedAt: row.turnStartedAt } : {}),
     evidenceObservedAt: row.evidenceObservedAt,
     structuredHost: row.structuredHost,
     launchToken: row.launchToken,

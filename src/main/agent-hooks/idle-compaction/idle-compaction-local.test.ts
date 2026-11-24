@@ -165,6 +165,12 @@ function harness(overrides: Partial<IdleCompactionDeps> = {}, facts?: IdleCompac
     sendCompact: async (handle) => {
       h.sent.push(handle)
     },
+    chats: {
+      transcriptPath: async () => null,
+      readFacts: async () => facts ?? { contextTokens: 400_000, compactedSince: false },
+      hold: () => null,
+      compact: async (chat) => h.sent.push(chat.sessionId) > 0
+    },
     log: (line) => h.logs.push(line),
     ...overrides
   })
@@ -189,9 +195,7 @@ function status(
 }
 
 async function flush(): Promise<void> {
-  for (let i = 0; i < 5; i += 1) {
-    await Promise.resolve()
-  }
+  await new Promise((resolve) => setImmediate(resolve))
 }
 
 describe('IdleCompactionScheduler', () => {

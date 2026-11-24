@@ -1,4 +1,9 @@
+import { structuredAgentSessionIdFromTabId } from '../../../shared/agent-session/view/structured-agent-session-tab-id'
 import type { EnrichedAgentHookEventPayload } from '../server/server-types'
+import type {
+  IdleCompactionChat,
+  IdleCompactionChatTarget
+} from './idle-compaction-structured-chat'
 import {
   isIdleCompactionAgent,
   type IdleCompactionAgent,
@@ -53,16 +58,31 @@ export type IdleCompactionDeps = {
   /** Why typing now would be unsafe (draft, dialog, prompt, unsettled screen); null when it is not. */
   inputHold: (handle: string) => string | null
   sendCompact: (handle: string, agent: IdleCompactionAgent) => Promise<void>
+  /** Chats Orca runs itself: no terminal to type in, the host compacts. */
+  chats: IdleCompactionChatTarget
   log: (line: string) => void
 }
 
 type Armed = {
   agent: IdleCompactionAgent
-  transcriptPath: string
+  target: { transcriptPath: string } | { chat: IdleCompactionChat }
   turnEndedAt: number
   /** The pane's event count when armed; any later event means the agent moved on. */
   seq: number
   timer: { cancel: () => void }
+}
+
+function compactionTarget(event: EnrichedAgentHookEventPayload): Armed['target'] | null {
+  const { providerSession } = event
+  if (!event.structuredHost) {
+    return providerSession?.transcriptPath
+      ? { transcriptPath: providerSession.transcriptPath }
+      : null
+  }
+  const sessionId = event.tabId ? structuredAgentSessionIdFromTabId(event.tabId) : null
+  return sessionId && providerSession
+    ? { chat: { sessionId, providerSessionId: providerSession.id } }
+    : null
 }
 
 export class IdleCompactionScheduler {
@@ -81,23 +101,24 @@ export class IdleCompactionScheduler {
     const { paneKey } = event
     const turnEndedAt = event.turnEndedAt ?? event.stateStartedAt
     const current = this.armed.get(paneKey)
-    if (current && current.turnEndedAt === turnEndedAt && event.payload.state === 'done') {
+    // A handled turn restated (a chat's row republishes when it is opened to be read) is no news.
+    const known = current?.turnEndedAt ?? this.handledTurn.get(paneKey)
+    if (known === turnEndedAt && event.payload.state === 'done') {
       return
     }
     const seq = (this.seqByPane.get(paneKey) ?? 0) + 1
     this.seqByPane.set(paneKey, seq)
     this.cancel(paneKey)
     const agent = event.payload.agentType ?? event.source
-    const transcriptPath = event.providerSession?.transcriptPath
+    const target = compactionTarget(event)
     if (
       event.payload.state !== 'done' ||
       event.restoredUnconfirmed ||
-      event.structuredHost ||
       event.isReplay ||
       // Relayed from another host: that host compacts its own panes.
       event.connectionId !== null ||
       !isIdleCompactionAgent(agent) ||
-      !transcriptPath ||
+      !target ||
       this.handledTurn.get(paneKey) === turnEndedAt
     ) {
       return
@@ -107,7 +128,7 @@ export class IdleCompactionScheduler {
       return
     }
     const timer = this.deps.setTimer(() => void this.fire(paneKey, turnEndedAt), Math.max(0, wait))
-    this.armed.set(paneKey, { agent, transcriptPath, turnEndedAt, seq, timer })
+    this.armed.set(paneKey, { agent, target, turnEndedAt, seq, timer })
   }
 
   /** The pane's terminal closed or its agent left. */
@@ -143,15 +164,45 @@ export class IdleCompactionScheduler {
     )
   }
 
+  private async readFacts(
+    { agent, target, turnEndedAt }: Armed,
+    transcriptPath: string | null
+  ): Promise<IdleCompactionSessionFacts | null> {
+    if ('chat' in target) {
+      return this.deps.chats.readFacts(agent, target.chat, transcriptPath, turnEndedAt)
+    }
+    return transcriptPath ? this.deps.readFacts(agent, transcriptPath, turnEndedAt) : null
+  }
+
+  private async compactChat(chat: IdleCompactionChat): Promise<IdleCompactionOutcome> {
+    const hold = this.deps.chats.hold(chat)
+    if (hold) {
+      return hold
+    }
+    try {
+      return (await this.deps.chats.compact(chat)) ? 'compacted' : 'held'
+    } catch {
+      return 'send_failed'
+    }
+  }
+
   private async decideAndSend(paneKey: string, armed: Armed): Promise<IdleCompactionOutcome> {
-    const { agent, transcriptPath, turnEndedAt } = armed
+    const { agent, target, turnEndedAt } = armed
+    const chat = 'chat' in target ? target.chat : null
     if (this.deps.now() - turnEndedAt > IDLE_COMPACTION_DELAY_MS + IDLE_COMPACTION_LATE_LIMIT_MS) {
       return 'lapsed'
     }
-    if (!(await this.deps.allowedBySettings(agent, transcriptPath))) {
+    const transcriptPath =
+      'chat' in target
+        ? await this.deps.chats.transcriptPath(agent, target.chat)
+        : target.transcriptPath
+    if (transcriptPath && !(await this.deps.allowedBySettings(agent, transcriptPath))) {
       return 'disabled'
     }
-    const facts = await this.deps.readFacts(agent, transcriptPath, turnEndedAt)
+    const facts = await this.readFacts(armed, transcriptPath)
+    if (!facts) {
+      return 'unreadable'
+    }
     if (facts.compactedSince) {
       return 'already_compacted'
     }
@@ -168,6 +219,9 @@ export class IdleCompactionScheduler {
     // The agent moved on (a new turn, a question) while the file was read.
     if (this.seqByPane.get(paneKey) !== armed.seq) {
       return 'superseded'
+    }
+    if (chat) {
+      return this.compactChat(chat)
     }
     const handle = this.deps.terminalHandle(paneKey)
     if (!handle) {

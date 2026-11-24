@@ -20,6 +20,7 @@ import {
   structuredSummaryConversationNaming,
   structuredSummaryHostProgram
 } from './structured-agent-session-status-summary'
+import { structuredAgentSessionProviderSessionMetadata } from '../publication/history/structured-agent-session-history-result'
 import { agentSessionPinnedLaunchDirectory } from '../../../runtime/agent-session/records/agent-session-record-launch-directory'
 import {
   normalizeOptionalField,
@@ -38,6 +39,7 @@ export function savedStructuredAgentSessionStatus(
     turn?.state === 'open' || (!turn && markerAt !== undefined) ? 'cancellation' : turn?.outcome
   const model = normalizeOptionalField(record.options?.model, AGENT_MODEL_MAX_LENGTH)
   const interactionMode = record.options?.interactionMode
+  const providerSession = structuredAgentSessionProviderSessionMetadata(record)
   const launchDirectory = agentSessionPinnedLaunchDirectory(record)
   return {
     sessionId: record.sessionId,
@@ -49,6 +51,10 @@ export function savedStructuredAgentSessionStatus(
     ...(turn?.reply ? { lastAssistantMessage: turn.reply } : {}),
     ...(outcome ? { turnOutcome: outcome } : {}),
     ...(at !== undefined ? { statusStartedAt: at } : {}),
+    ...(turn?.turnStartedAt !== undefined ? { turnStartedAt: turn.turnStartedAt } : {}),
+    ...(turn?.compactedAt !== undefined ? { compactedAt: turn.compactedAt } : {}),
+    ...(record.reachOut ? { reachOut: record.reachOut } : {}),
+    ...(providerSession ? { providerSession } : {}),
     ...(model ? { model } : {}),
     ...(isAgentSessionInteractionMode(interactionMode) ? { interactionMode } : {}),
     ...(isAgentChatPermissionMode(record.permissionMode)
@@ -63,7 +69,7 @@ export function savedStructuredAgentSessionStatus(
 }
 
 function savedTurnEdge(turn: AgentSessionLastTurn | undefined): string | null {
-  return turn ? JSON.stringify([turn.state, turn.outcome, turn.at]) : null
+  return turn ? JSON.stringify([turn.state, turn.outcome, turn.at, turn.compactedAt]) : null
 }
 
 /** Only turn edges write; streamed prose and synthetic startup rows never reach this observer.
@@ -93,6 +99,10 @@ export class StructuredAgentSessionSavedStatus {
             state,
             at,
             ...(outcome ? { outcome } : {}),
+            ...(summary.turnStartedAt !== undefined
+              ? { turnStartedAt: summary.turnStartedAt }
+              : {}),
+            ...(summary.compactedAt !== undefined ? { compactedAt: summary.compactedAt } : {}),
             prompt: summary.latestPrompt.slice(0, AGENT_SESSION_TURN_PREVIEW_CHARS),
             ...(summary.lastAssistantMessage
               ? { reply: summary.lastAssistantMessage.slice(0, AGENT_SESSION_TURN_PREVIEW_CHARS) }

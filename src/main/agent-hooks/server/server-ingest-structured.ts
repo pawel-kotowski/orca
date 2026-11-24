@@ -137,6 +137,11 @@ export abstract class AgentHookServerIngestStructured extends AgentHookServerIng
       ...(summary.lastAssistantMessage
         ? { lastAssistantMessage: summary.lastAssistantMessage }
         : {}),
+      ...(summary.reachOut ? { reachOut: summary.reachOut } : {}),
+      ...(state === 'done' && summary.compactedAt !== undefined
+        ? { compactedAt: summary.compactedAt }
+        : {}),
+      ...(summary.turnStartedAt !== undefined ? { turnStartedAt: summary.turnStartedAt } : {}),
       receivedAt: observedAt,
       // Child-held work needs a live observation clock; the stopped main-agent journal would make it expire.
       evidenceObservedAt: isAgentStatusHeldOpenByChildWork({ state, mainAgent })
