@@ -65,7 +65,7 @@ export function unsentSendKeptAsCard(
     // Before source existed, client origin identified personal sends.
     (source === undefined && submission.origin === 'client')
   // Local: the host's own command (idle compaction) is no one's message to keep.
-  const command = body.command !== undefined && submission.origin !== 'host'
+  const command = body.command && !(source === undefined && submission.origin === 'host')
   return persons || command || orchestrationMailNotice(body.from) ? body : null
 }
 

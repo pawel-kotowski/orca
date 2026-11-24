@@ -232,5 +232,6 @@ it('a command the person sent is still kept, and one of the host is not', () => 
   const body = { ...hostTestMessage('/compact'), command: { name: 'compact' } } as never
   expect(unsentSendKeptAsCard({ origin: 'client' }, body)).toBe(body)
   expect(unsentSendKeptAsCard({}, body)).toBe(body)
+  expect(unsentSendKeptAsCard({ origin: 'host', source: { kind: 'agent' } }, body)).toBe(body)
   expect(unsentSendKeptAsCard({ origin: 'host' }, body)).toBeNull()
 })
