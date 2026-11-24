@@ -12,15 +12,22 @@ vi.mock('../../../../shared/app-lifecycle/app-environment', async (original) => 
 import {
   beginStructuredChatTerminalHold,
   releaseStructuredChatTerminalHold,
-  resetStructuredChatTerminalHoldsForTests
+  resetStructuredChatTerminalHoldsForTests,
+  structuredChatTerminalHold
 } from '../../../runtime/agent-session/ownership/structured-chat-terminal-holds'
+import { agentJournalSubmissionKey } from '../../../../shared/agent-session/journal/agent-session-journal-item-key'
+import { AGENT_JOURNAL_THREAD_SCOPE } from '../../../../shared/agent-session/journal/agent-session-journal-types'
 import {
+  HOST_TEST_NOW,
   HOST_TEST_SESSION as SESSION,
+  HOST_TEST_THREAD as THREAD,
   hostTestMessage,
   hostTestOperationId
 } from '../host/testing/structured-agent-session-host-test-data.test-fixture'
+import { agentSessionConversationCommandFields } from '../../../../shared/agent-session/conversation-context/agent-session-conversation-command'
 import {
   createQueuedMessageTestRig,
+  QUEUED_RIG_CALLER,
   type QueuedMessageTestRig
 } from '../host/testing/structured-agent-session-queued-message-rig.test-fixture'
 import { eventually } from '../host/testing/structured-agent-session-queued-message-rig-provider.test-fixture'
@@ -47,9 +54,55 @@ const hold = () =>
     conversationId: 'c'
   })
 
-async function giveBack(outlivedRestart = false): Promise<void> {
+async function giveBack(): Promise<void> {
+  const waiting = structuredChatTerminalHold(SESSION)?.waiting ?? []
   releaseStructuredChatTerminalHold(SESSION, 't')
-  await rig.host.wakeReturnedSession(SESSION, { outlivedRestart, ran: true })
+  await rig.host.wakeReturnedSession(SESSION, { waiting, ran: true })
+}
+
+async function restart(): Promise<void> {
+  await rig.quitRestartHostProcess()
+  resetStructuredChatTerminalHoldsForTests()
+  show()
+}
+
+/** The rig's chat has no tab; the person sees one. */
+function show(shown = true): void {
+  vi.spyOn(rig.store, 'isSessionTabVisible').mockReturnValue(shown)
+  vi.spyOn(rig.store, 'isSessionInBackground').mockReturnValue(false)
+}
+
+async function turn(
+  id: string,
+  state: 'running' | 'completed' | 'interrupted',
+  outcome?: 'failure'
+) {
+  const journal = rig.host.collaboratorsForTests().sessions.get(SESSION)!.journal
+  await journal.appendItem(
+    { provider: 'codex', threadId: THREAD, turnId: `turn-of-${id}`, ordinal: 0 },
+    {
+      kind: 'turn',
+      turnId: `turn-of-${id}`,
+      startedAt: HOST_TEST_NOW,
+      userItemId: agentJournalSubmissionKey(id),
+      ...(outcome ? { outcome } : {}),
+      ...(state === 'running' ? { state } : { state, completedAt: HOST_TEST_NOW })
+    },
+    { fence: 1, turnScope: AGENT_JOURNAL_THREAD_SCOPE }
+  )
+}
+
+/** A turn that ended before the chat was handed over. */
+async function endedTurn(how: 'done' | 'failed' | 'stopped'): Promise<void> {
+  const id = await rig.workingSend()
+  await rig.settleAccepted(id, 'working')
+  await turn(id, 'running')
+  if (how === 'stopped') {
+    await rig.stop()
+    await turn(id, 'interrupted')
+  } else {
+    await turn(id, 'completed', how === 'failed' ? 'failure' : undefined)
+  }
 }
 
 const submissionInput = () => ({
@@ -83,20 +136,50 @@ it('keeps what comes meanwhile as cards and sends it once the chat is back', asy
   await rig.settleAccepted(await rig.handoffId(mine), 'one')
 })
 
-it('delivers it after an Orca restart too, though nobody opened the chat', async () => {
-  hold()
-  const automation = await sentWhileHeld('the automation', true)
-  const mine = await sentWhileHeld('from the phone')
-  await rig.quitRestartHostProcess()
-  resetStructuredChatTerminalHoldsForTests()
-  vi.spyOn(rig.host, 'isSessionTabVisible').mockReturnValue(true)
+const CASES = (['done', 'failed', 'stopped'] as const).flatMap((how) =>
+  [false, true].flatMap((restarts) =>
+    ([undefined, true] as const).map((automation) => ({ how, restarts, automation }))
+  )
+)
 
-  await giveBack(true)
-  await eventually(async () => expect(await rig.handoff(automation)).toBeDefined())
-  expect((await rig.handoff(automation))?.dispatchState).not.toBe('rejected')
-  expect((await rig.drafts()).find((draft) => draft.messageId === mine)).not.toMatchObject({
-    paused: true
+it.each(CASES)(
+  'after a turn that was $how (restart: $restarts, automation: $automation) it goes out',
+  async ({ how, restarts, automation }) => {
+    await endedTurn(how)
+    show()
+    hold()
+    const id = await sentWhileHeld('meanwhile', automation)
+    if (restarts) {
+      await restart()
+    }
+    await giveBack()
+    await eventually(async () => expect(await rig.handoff(id)).toBeDefined())
+    expect((await rig.handoff(id))?.dispatchState).not.toBe('rejected')
+  }
+)
+
+it('leaves a chat the person closed alone', async () => {
+  await endedTurn('failed')
+  hold()
+  const id = await sentWhileHeld('meanwhile', true)
+  await restart()
+  show(false)
+  await giveBack()
+  await rig.host.serialize(SESSION, async () => {})
+  expect(await rig.handoff(id)).toBeUndefined()
+})
+
+it('refuses /clear, which would leave the terminal a conversation the chat no longer has', async () => {
+  hold()
+  const result = await rig.host.conversationCommand(QUEUED_RIG_CALLER, {
+    command: 'clear',
+    envelope: rig.envelope(
+      agentSessionConversationCommandFields('clear'),
+      'agentSession.conversationCommand',
+      hostTestOperationId()
+    )
   })
+  expect(result.ok).toBe(false)
 })
 
 it('starts no agent for a message accepted as the chat was handed over', async () => {
@@ -129,17 +212,4 @@ it('starts no agent for a message accepted as the chat was handed over', async (
   // The rig's provider cannot resume; that a start is asked for is what the hold kept back.
   await giveBack()
   await eventually(async () => expect(rig.starts.mock.calls.length).toBe(starts + 1))
-})
-
-it("leaves a pause that is the person's own", async () => {
-  hold()
-  const automation = await sentWhileHeld('the automation', true)
-  await rig.quitRestartHostProcess()
-  resetStructuredChatTerminalHoldsForTests()
-  // Given back by a handover no restart passed under, or in a chat that was closed meanwhile.
-  await giveBack()
-  vi.spyOn(rig.host, 'isSessionTabVisible').mockReturnValue(false)
-  await rig.host.wakeReturnedSession(SESSION, { outlivedRestart: true, ran: true })
-  await rig.host.serialize(SESSION, async () => {})
-  expect(await rig.handoff(automation)).toBeUndefined()
 })

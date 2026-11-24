@@ -20,6 +20,8 @@ export type StructuredChatTerminalHold = {
   phase: 'opening' | 'terminal'
   /** Every terminal the conversation was started in: an account switch restarts it in another. */
   terminals: StructuredChatHoldTerminal[]
+  /** The cards of messages that came meanwhile, oldest first. */
+  waiting: string[]
 }
 
 export type StructuredChatHoldTerminal = {
@@ -29,8 +31,6 @@ export type StructuredChatHoldTerminal = {
   paneKey: string | null
   /** The conversation's agent was seen in that terminal, so a bare shell there means it ended. */
   ran: boolean
-  /** Orca restarted the agent in its shell, so the shell's earlier commands say nothing. */
-  restarted?: true
 }
 
 const FILE = 'structured-chat-terminal-holds.json'
@@ -73,14 +73,17 @@ function parsedHold(value: unknown): StructuredChatTerminalHold | null {
     typeof hold.conversationId === 'string' &&
     (hold.phase === 'opening' || hold.phase === 'terminal') &&
     Array.isArray(hold.terminals) &&
-    hold.terminals.every(isTerminal)
+    hold.terminals.every(isTerminal) &&
+    Array.isArray(hold.waiting) &&
+    hold.waiting.every((id) => typeof id === 'string')
     ? {
         token: hold.token,
         id: hold.id,
         agent: hold.agent,
         conversationId: hold.conversationId,
         phase: hold.phase,
-        terminals: hold.terminals
+        terminals: hold.terminals,
+        waiting: hold.waiting
       }
     : null
 }

@@ -16,13 +16,14 @@ import {
   expectStructuredChatTerminalHold,
   forgetUnreadableStructuredChatTerminalHolds,
   heldStructuredChats,
+  keepStructuredChatHold,
   noteStructuredChatTerminalRan,
   noteStructuredChatTerminalReport,
+  noteWaitingForStructuredChat,
   onStructuredChatTerminalHoldEnded,
   releaseStructuredChatTerminalHold,
   releaseUnlaunchedStructuredChatTerminalHolds,
   resetStructuredChatTerminalHoldsForTests,
-  restartInStructuredChatTerminal,
   structuredChatTerminalHold,
   structuredChatTerminalHoldsUnreadable,
   structuredChatTerminalMayWrite,
@@ -158,15 +159,27 @@ it('an account restart holds both its terminals, and nothing ends between them',
   expect(mayWrite('shell', 1)).toBe(true)
 })
 
-it('a login move in the same shell waits for the restarted agent to be seen', () => {
+it('a restart holds from before its stop until it is over', () => {
   open()
   noteStructuredChatTerminalRan('chat', 'pty')
-  const release = restartInStructuredChatTerminal('conversation')
+  const release = keepStructuredChatHold('conversation')
   expect(structuredChatTerminalStarting(structuredChatTerminalHold('chat')!)).toBe(true)
   release()
   release()
   expect(structuredChatTerminalStarting(structuredChatTerminalHold('chat')!)).toBe(false)
-  expect(mayWrite('shell')).toBe(true)
+})
+
+it('remembers what waits, across a restart', () => {
+  open()
+  noteWaitingForStructuredChat('chat', 'one')
+  noteWaitingForStructuredChat('chat', 'one')
+  noteWaitingForStructuredChat('not held', 'two')
+  resetStructuredChatTerminalHoldsForTests()
+  expect(structuredChatTerminalHold('chat')?.waiting).toEqual(['one'])
+})
+
+it('a bare shell of a pane that once was a handover is no start', () => {
+  expect(claimStructuredChatTerminalSpawn('stale', () => false, false)).toBeNull()
 })
 
 it('M1: an unreadable file is not an empty one, across restarts, until the terminals were looked at', () => {
@@ -213,20 +226,19 @@ it('M6: an abandon that overtakes its begin leaves no hold, and is forgotten wit
   expect(begin()).toBe(true)
 })
 
-it('M6: every release tells what waits for the chat, and whether a restart paused it', () => {
-  const ended: [string, boolean][] = []
-  const listen = () =>
-    onStructuredChatTerminalHoldEnded((end) => ended.push([end.sessionId, end.outlivedRestart]))
-  listen()
+it('M6: every release tells what waits for the chat', () => {
+  const ended: string[][] = []
+  onStructuredChatTerminalHoldEnded(({ sessionId, hold }) => ended.push([sessionId, hold.token]))
   begin()
   abandonStructuredChatTerminalHold('chat', 'a')
   open('b')
-  resetStructuredChatTerminalHoldsForTests()
-  listen()
   releaseStructuredChatTerminalHold('chat', 'b')
+  begin('c')
+  claimStructuredChatTerminalSpawn('c', () => false)!.settle(true)
   expect(ended).toEqual([
-    ['chat', false],
-    ['chat', true]
+    ['chat', 'a'],
+    ['chat', 'b'],
+    ['chat', 'c']
   ])
 })
 

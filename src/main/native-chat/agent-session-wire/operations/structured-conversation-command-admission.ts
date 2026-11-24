@@ -9,6 +9,7 @@ import type { AgentSessionJournal } from '../../agent-session-journal/journal-st
 import { readContextStructuredAgentSessionWork } from '../observations/structured-agent-session-read-work'
 import type { JournalWorkReader } from '../../agent-session-journal/journal-work-read'
 
+import { structuredChatTerminalHold } from '../../../runtime/agent-session/ownership/structured-chat-terminal-holds'
 import type { StructuredAgentSessionAdapter } from '../providers/structured-agent-session-adapter'
 import {
   refuse,
@@ -59,6 +60,13 @@ export async function conversationCommandBlocked(
 ): Promise<AgentSessionWireRefusal | null> {
   if (record.rewind?.phase === 'prepared' || record.rewind?.phase === 'provider-succeeded') {
     return blocked('rewindUnconfirmed', 'agent_session_rewind:outcome-unknown')
+  }
+  // Local: a terminal has the conversation; /compact waits as a card, and nothing else can.
+  if (structuredChatTerminalHold(ctx.sessionId)) {
+    return blocked(
+      'conversationCommandInFlight',
+      'This conversation is open in a terminal. Bring it back here first.'
+    )
   }
   if (record.lease.handoffStage || record.lease.handoffOperationId) {
     return blocked('handoffInFlight', 'Wait for the session handoff to finish.')

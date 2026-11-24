@@ -1,4 +1,4 @@
-import { restartInStructuredChatTerminal } from '../../runtime/agent-session/ownership/structured-chat-terminal-holds'
+import { keepStructuredChatHold } from '../../runtime/agent-session/ownership/structured-chat-terminal-holds'
 import { resolve } from 'node:path'
 import type {
   ClaudeHostLogin,
@@ -172,7 +172,7 @@ export class ClaudeLoginMover {
     configDir: string
   ): Promise<ClaudeLoginMoveResult> {
     // Local: between the stop and the resume line a held chat's shell is alone, and not done.
-    const releaseHold = restartInStructuredChatTerminal(session.id)
+    const releaseHold = keepStructuredChatHold(session.id)
     const move = this.restart(session, handle, configDir)
       .catch((error: unknown): ClaudeLoginMoveResult => {
         this.deps.log(`failed ${session.id} ${String(error)}`)

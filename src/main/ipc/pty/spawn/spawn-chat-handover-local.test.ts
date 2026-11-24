@@ -35,7 +35,9 @@ beforeEach(() => {
 afterEach(() => rmSync(dir.path, { recursive: true, force: true }))
 
 it('claims the starts a held conversation is in, and no others', () => {
-  expect(claims({ env: { [CHAT_HANDOVER_ENV]: 't' } })).toBe(true)
+  expect(claims({ env: { [CHAT_HANDOVER_ENV]: 't' }, command: 'claude' })).toBe(true)
+  // A stale token on a plain shell of the same pane.
+  expect(claims({ env: { [CHAT_HANDOVER_ENV]: 'stale' } })).toBe(false)
   expect(claims({ command: `claude --resume '${ID}'` })).toBe(true)
   expect(claims({ resumeProviderSession: { key: 'session_id', id: ID } })).toBe(true)
   expect(claims({ command: `claude --resume '${ID}' --fork-session` })).toBe(false)

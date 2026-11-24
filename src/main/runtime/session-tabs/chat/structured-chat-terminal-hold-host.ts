@@ -162,7 +162,7 @@ export abstract class OrcaRuntimeWithStructuredChatTerminalHolds extends OrcaRun
       )
     const inputBefore = inputAt()
     const reads = await this.readHoldTerminals()
-    const anywhere = reads.table.runsAnywhere(id)
+    const anywhere = reads.table.runsAnywhere(id, this.terminalsOfOtherConversations(hold, reads))
     const panes: TerminalHoldPane[] = []
     for (const terminal of terminals) {
       const { pane, ran } = await this.readHoldPane(terminal, id, reads)
@@ -190,13 +190,31 @@ export abstract class OrcaRuntimeWithStructuredChatTerminalHolds extends OrcaRun
     )
   }
 
+  /** Terminals whose agent was started on the conversation and reported another since (`/clear`). */
+  private terminalsOfOtherConversations(
+    hold: StructuredChatTerminalHold,
+    { processes }: TerminalHoldReads
+  ): number[] {
+    const own = new Set(hold.terminals.map(({ ptyId }) => ptyId))
+    const named = new Map<string, boolean>()
+    for (const row of this.getAgentProviderSessionRows()) {
+      const ptyId = this.getPtyRecordForPaneKey(row.paneKey)?.ptyId
+      if (ptyId && row.providerSession && !own.has(ptyId)) {
+        const other = row.providerSession.id !== hold.conversationId
+        named.set(ptyId, other && named.get(ptyId) !== false)
+      }
+    }
+    return (processes ?? []).flatMap(({ id, rootProcessId }) =>
+      rootProcessId && named.get(id) ? [rootProcessId] : []
+    )
+  }
+
   /** Its launch command started and finished too soon to be seen (not signed in, not installed): the
    *  shell ran a command, and the launch is among what it was given. */
   private launchCommandEnded(terminal: StructuredChatHoldTerminal, id: string): boolean {
     const pty = terminal.ptyId === null ? undefined : this.ptysById.get(terminal.ptyId)
     return (
       pty?.commandPaint?.ranCommand === true &&
-      terminal.restarted !== true &&
       [...pty.tailBuffer, pty.tailPartialLine].join('').replace(/\s/g, '').includes(id)
     )
   }
@@ -205,11 +223,11 @@ export abstract class OrcaRuntimeWithStructuredChatTerminalHolds extends OrcaRun
 
   /** What waited for a chat goes to it once its terminal is done, also when nobody looks at it. */
   private async resumeReturnedChat(ended: EndedStructuredChatTerminalHold): Promise<void> {
-    const { sessionId, hold, outlivedRestart } = ended
+    const { sessionId, hold } = ended
     try {
       await this.ensureStructuredAgentSessionHost()
       await getStructuredAgentSessionHost()?.wakeReturnedSession(sessionId, {
-        outlivedRestart,
+        waiting: hold.waiting,
         ran: hold.terminals.some(({ ran }) => ran)
       })
     } catch (error) {

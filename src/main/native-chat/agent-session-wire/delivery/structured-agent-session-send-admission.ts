@@ -17,7 +17,10 @@ import {
   type TurnOutcome,
   agentSessionAdmissionWriteRefusal
 } from '../operations/structured-agent-session-turns'
-import { structuredChatTerminalHold } from '../../../runtime/agent-session/ownership/structured-chat-terminal-holds'
+import {
+  noteWaitingForStructuredChat,
+  structuredChatTerminalHold
+} from '../../../runtime/agent-session/ownership/structured-chat-terminal-holds'
 import { captureStructuredExecutionOptions } from '../options/structured-agent-session-execution-options'
 
 export type StructuredSendAdmissionParams = {
@@ -128,6 +131,9 @@ export async function admitStructuredAgentSessionSend(
     }
     if (result.kind !== 'admitted') {
       throw new Error('send admission left mail custody unanswered')
+    }
+    if ('queued' in result.value) {
+      noteWaitingForStructuredChat(ctx.sessionId, result.value.queued.messageId)
     }
     return { ok: true as const, value: result.value }
   } catch (error) {

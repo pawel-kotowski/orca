@@ -284,6 +284,29 @@ it('an agent elsewhere on the machine (a detached tmux) keeps the hold', async (
   expect(heldStructuredChats()).toEqual(['chat'])
 })
 
+it('an older terminal whose agent moved on to another conversation does not keep the hold', async () => {
+  const { host, state } = runtime()
+  open()
+  state.listed = [{ id: 'older', incarnationId: 'o', rootProcessId: 77 }]
+  state.paneOf.set('older:leaf', { ptyId: 'older', incarnationId: 'o', connected: true })
+  // Started on the conversation, then `/clear`ed: its command line still names it.
+  const runsAnywhere = vi.fn((_id: string, except: number[]) => !except.includes(77))
+  mocks.processes.mockResolvedValue({
+    shellAlone: async () => false,
+    runsBelow: () => true,
+    runsAnywhere,
+    runsAgentBelow: () => true
+  })
+  state.rows = [{ ...ROW, paneKey: 'older:leaf' }]
+  await check(host)
+  expect(heldStructuredChats()).toEqual(['chat'])
+  state.rows = [
+    { ...ROW, paneKey: 'older:leaf', providerSession: { key: 'session_id', id: 'another' } }
+  ]
+  await check(host)
+  expect(heldStructuredChats()).toEqual([])
+})
+
 it('without a daemon, its own list proves the end of a terminal this Orca asked for', async () => {
   const { host } = runtime()
   mocks.installed = false

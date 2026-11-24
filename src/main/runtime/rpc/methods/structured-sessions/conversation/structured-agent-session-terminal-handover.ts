@@ -16,6 +16,7 @@ import {
   type StructuredChatTerminalHold
 } from '../../../../agent-session/ownership/structured-chat-terminal-holds'
 import { structuredAgentSessionSendBlock } from '../../../../../native-chat/agent-session-wire/operations/structured-agent-session-send-preparation'
+import { isQueuedAgentJournalSubmission } from '../../../../../../shared/agent-session/requests/agent-session-queued-submission'
 import { defineMethod, type RpcContext } from '../../../core'
 import { requireInstalledStructuredHost } from '../creation/structured-agent-session-gate'
 
@@ -106,6 +107,14 @@ async function beginHandover(
     throw error
   }
   if (host.loadedSessionIds().includes(sessionId) || host.sessionStarting(sessionId)) {
+    giveUp()
+    return { outcome: 'busy' }
+  }
+  // Accepted just before the hold and still to be handed over: that is work.
+  const { submissions } = await (
+    await host.journalReads(sessionId)
+  ).input({ kind: 'recoverable-submissions' })
+  if (submissions.some(isQueuedAgentJournalSubmission)) {
     giveUp()
     return { outcome: 'busy' }
   }

@@ -35,8 +35,6 @@ const listeners = new Set<(ended: EndedStructuredChatTerminalHold) => void>()
 export type EndedStructuredChatTerminalHold = {
   sessionId: string
   hold: StructuredChatTerminalHold
-  /** An Orca restart passed under it, which paused what waits. */
-  outlivedRestart: boolean
 }
 
 /** Told of every hold that ends, so what waited for the chat can go on. */
@@ -85,7 +83,7 @@ export function beginStructuredChatTerminalHold(
   if (abandoned.has(handover.token)) {
     return false
   }
-  commitHold(sessionId, { ...handover, phase: 'opening', terminals: [] })
+  commitHold(sessionId, { ...handover, phase: 'opening', terminals: [], waiting: [] })
   return true
 }
 
@@ -95,7 +93,8 @@ export function releaseStructuredChatTerminalHold(sessionId: string, token: stri
     return false
   }
   dropHold(sessionId)
-  const ended = { sessionId, hold, outlivedRestart: endInheritedHold(token) }
+  endInheritedHold(token)
+  const ended = { sessionId, hold }
   for (const { ptyId } of hold.terminals) {
     askedHere.delete(ptyId ?? '')
   }
@@ -132,24 +131,16 @@ export function keepStructuredChatHold(conversationId: string): () => void {
   }
 }
 
-export function structuredChatTerminalStarting(hold: StructuredChatTerminalHold): boolean {
-  return starting.has(hold.conversationId)
+/** A message came for a held chat and waits as this card. */
+export function noteWaitingForStructuredChat(sessionId: string, messageId: string): void {
+  const hold = loadedHolds().get(sessionId)
+  if (hold && !hold.waiting.includes(messageId)) {
+    learnHold(sessionId, { waiting: [...hold.waiting, messageId] })
+  }
 }
 
-/** Orca restarts a conversation's agent in its own shell: until the new one is seen, that shell is
- *  only about to run it. Ends when the returned call says the restart is over. */
-export function restartInStructuredChatTerminal(conversationId: string): () => void {
-  const found = heldConversation(conversationId)
-  if (found) {
-    learnHold(found[0], {
-      terminals: found[1].terminals.map((terminal) => ({
-        ...terminal,
-        ran: false,
-        restarted: true as const
-      }))
-    })
-  }
-  return keepStructuredChatHold(conversationId)
+export function structuredChatTerminalStarting(hold: StructuredChatTerminalHold): boolean {
+  return starting.has(hold.conversationId)
 }
 
 export type StructuredChatTerminalSpawn = {
@@ -180,13 +171,15 @@ function withTerminal(
  */
 export function claimStructuredChatTerminalSpawn(
   token: string | undefined,
-  namesConversation: (conversationId: string) => boolean
+  namesConversation: (conversationId: string) => boolean,
+  /** A bare shell of a pane that once was a handover's is no start. */
+  startsAgent = true
 ): StructuredChatTerminalSpawn | null {
   const found = [...loadedHolds()].find(([, hold]) =>
     token === undefined ? namesConversation(hold.conversationId) : hold.token === token
   )
   if (!found) {
-    if (token === undefined) {
+    if (token === undefined || !startsAgent) {
       return null
     }
     const gone = (): never => {
