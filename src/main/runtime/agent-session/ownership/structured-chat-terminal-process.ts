@@ -4,7 +4,7 @@ import {
   getProcessTableIndex
 } from '../../../../shared/process-observation/tables/process-table-index'
 import { recognizeAgentProcessFromCommandLine } from '../../../../shared/agent-status/process/agent-process-recognition'
-import { readClaudeSessionRecords } from '../../../ipc/pty/host-env/live-claude-session-holder'
+import { readClaudeSessionRecords } from './claude-session-records'
 import { commandResumesConversation } from './structured-chat-conversation-command'
 import {
   confirmRootShellAloneFromProcessTable,
@@ -23,11 +23,15 @@ export type TerminalProcesses = {
   shellAlone: (rootPid: number) => Promise<boolean>
 }
 
+const CLAUDE_SERVICE = /\bclaude(\.exe)? daemon run\b|\/claude\/versions\/\S+ daemon run\b/
+const CLAUDE_BACKGROUND = /\bbg-(spare|pty-host)\b/
+
 /** This machine's processes, read once for everything that looks at them now. */
 export async function readTerminalProcesses(): Promise<TerminalProcesses> {
   try {
     const index = getProcessTableIndex(await getFreshShellForegroundSnapshot())
-    // After the processes: a session on its way to the background is seen in one or the other.
+    // After the processes, so that one on its way to the background was still in the foreground
+    // there or has its record by now.
     const records = await readClaudeSessionRecords()
     const interactive = paneAgentProcess()
     // A one-shot `claude -p --resume … &` writes the conversation too.
@@ -37,17 +41,29 @@ export async function readTerminalProcesses(): Promise<TerminalProcesses> {
     const names = (row: { command: string; stat?: string }, id: string) =>
       commandResumesConversation(row.command, id) && isAgent(row)
     const below = (rootPid: number) => collectDescendantsFromIndex(index, rootPid).filter(isAgent)
+    /** Claude's background sessions run below whichever Claude started their service. */
+    const ownBelow = (rootPid: number) => {
+      const serviced = new Set(
+        collectDescendantsFromIndex(index, rootPid)
+          .filter((row) => CLAUDE_SERVICE.test(row.command))
+          .flatMap((row) => collectDescendantsFromIndex(index, row.pid).map(({ pid }) => pid))
+      )
+      return below(rootPid).filter((row) => !serviced.has(row.pid))
+    }
     return {
       runsAnywhere: (id, except = []) => {
-        const apart = new Set(except.flatMap((pid) => below(pid).map((row) => row.pid)))
+        const apart = new Set(except.flatMap((pid) => ownBelow(pid).map((row) => row.pid)))
         if ([...index.byPid.values()].some((row) => !apart.has(row.pid) && names(row, id))) {
           return true
         }
-        const recorded = records.filter(({ pid, sessionId }) => {
-          const row = index.byPid.get(pid)
-          return (sessionId === id || sessionId === null) && row && !apart.has(pid) && isAgent(row)
-        })
-        return recorded.length === 0 ? false : recorded.some((one) => one.sessionId) || null
+        const runs = (pid: number, kind: RegExp) => kind.test(index.byPid.get(pid)?.command ?? '')
+        return (
+          records.some(({ pid, sessionId }) => sessionId === id && runs(pid, /claude/i)) ||
+          // Any background session may be the one its unreadable record is of.
+          (records.some(({ pid, sessionId }) => sessionId === null && runs(pid, CLAUDE_BACKGROUND))
+            ? null
+            : false)
+        )
       },
       runsBelow: (rootPid, id) => below(rootPid).some((row) => names(row, id)),
       runsAgentBelow: (rootPid) => below(rootPid).length > 0,

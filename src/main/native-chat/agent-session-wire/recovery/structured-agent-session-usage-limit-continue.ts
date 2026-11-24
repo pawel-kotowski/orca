@@ -181,18 +181,18 @@ export class StructuredAgentSessionUsageLimitContinue {
   private continuable = (id: string, cut: HostUsageLimitCut): boolean =>
     !this.disposed && usageLimitCutContinuable(this.deps.host, id, cut)
 
-  cancel = (input: { sessionId: string; turnItemId: string; resetsAt?: number }): Promise<void> =>
-    this.deps.serialize(input.sessionId, async () => {
-      const cut = await this.cold.read(input.sessionId, true)
-      if (!cut || identity(cut) !== identity(input)) {
+  cancel = (of: { sessionId: string; turnItemId: string; resetsAt?: number }): Promise<void> =>
+    this.deps.serialize(of.sessionId, async () => {
+      const cut = await this.cold.read(of.sessionId, true)
+      // Local: a cut with no reset may have a switch's or room's time here; its turn names it.
+      if (!cut || identity(cut) !== identity({ ...of, resetsAt: of.resetsAt ?? cut.resetsAt })) {
         return
       }
-      await this.deps.host.store.cancelUsageLimitContinue(input.sessionId, {
-        turnItemId: input.turnItemId,
-        // Local: a cut with no reset is matched by its turn (cancelsCut).
-        resetsAt: input.resetsAt ?? 0
+      await this.deps.host.store.cancelUsageLimitContinue(of.sessionId, {
+        turnItemId: of.turnItemId,
+        resetsAt: of.resetsAt ?? 0
       })
-      this.deps.publish(input.sessionId)
+      this.deps.publish(of.sessionId)
     })
 
   async tick(): Promise<void> {

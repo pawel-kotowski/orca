@@ -1,3 +1,4 @@
+import { UsageLimitAccountHolds } from '../recovery/structured-agent-session-usage-limit-account-hold'
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -237,18 +238,30 @@ it('a usage limit the conversation went past in the terminal holds nothing more'
   await eventually(async () => expect(await rig.handoff(messageId)).toBeDefined())
 })
 
-it.each([HOST_TEST_NOW + 60_000, undefined])(
-  'a usage limit (reset %s) the conversation went past gets no Continue',
-  async (resetsAt) => {
+it.each([
+  [HOST_TEST_NOW + 60_000, false],
+  [undefined, false],
+  [undefined, true]
+])(
+  'a usage limit (reset %s, room seen while held %s) the conversation went past gets no Continue',
+  async (resetsAt, room) => {
+    const withReset = vi.spyOn(UsageLimitAccountHolds.prototype, 'withSwitchReset')
     await usageLimit(resetsAt)
     show()
     hold()
+    if (room) {
+      withReset.mockImplementation((_id, cut) => ({
+        ...cut,
+        resetsAt: HOST_TEST_NOW,
+        resetFromSwitch: true
+      }))
+    }
     const cancel = vi.spyOn(rig.store, 'cancelUsageLimitContinue')
     await giveBack()
+    withReset.mockRestore()
     expect(cancel).toHaveBeenCalledOnce()
-    expect(rig.store.getRecord(SESSION)?.usageLimitContinueCancel?.turnItemId).toBe(
-      cancel.mock.calls[0][1].turnItemId
-    )
+    const cancelled = rig.store.getRecord(SESSION)?.usageLimitContinueCancel
+    expect(cancelled?.turnItemId).toBe(cancel.mock.calls[0][1].turnItemId)
   }
 )
 
