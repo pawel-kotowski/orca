@@ -56,10 +56,14 @@ async function claudeRecordDirs(): Promise<string[]> {
   return [...new Set([...known, ...observed])]
 }
 
+/** This process ran out of files, which says nothing of what it wanted to read. */
+const outOfFiles = (error: unknown): boolean =>
+  ['EMFILE', 'ENFILE'].includes((error as NodeJS.ErrnoException).code ?? '')
+
 /** Any other failure is the folder's own: a Claude of this user could not keep its record there. */
 function whenNotOurs<T>(value: T) {
-  return (error: NodeJS.ErrnoException): T => {
-    if (error.code === 'EMFILE' || error.code === 'ENFILE') {
+  return (error: unknown): T => {
+    if (outOfFiles(error)) {
       throw error
     }
     return value
@@ -77,6 +81,9 @@ async function readRecord(path: string): Promise<SavedRecord | null> {
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
         return null
+      }
+      if (attempt === 1 && outOfFiles(error)) {
+        throw error
       }
       await (attempt === 0 && delay(50))
     }
