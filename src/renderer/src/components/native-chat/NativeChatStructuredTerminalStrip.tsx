@@ -32,30 +32,33 @@ export function NativeChatStructuredTerminalStrip({
         <span className="min-w-0 flex-1 text-chat-foreground">
           {t('components.native-chat.terminalSwitch.inTerminal', 'Open in a terminal')}
         </span>
+        {/* Until its tab is known the terminal is only opening; there is nothing to show or close. */}
         {tabId ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="xs"
-            onClick={() => showStructuredChatTerminal(tabId)}
-          >
-            {t('components.native-chat.terminalSwitch.show', 'Show terminal')}
-          </Button>
+          <>
+            <Button
+              type="button"
+              variant="ghost"
+              size="xs"
+              onClick={() => showStructuredChatTerminal(tabId)}
+            >
+              {t('components.native-chat.terminalSwitch.show', 'Show terminal')}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="xs"
+              disabled={returning}
+              onClick={() => {
+                setReturning(true)
+                void bringStructuredChatBack(scope, tabId).finally(() => setReturning(false))
+              }}
+            >
+              {returning
+                ? t('components.native-chat.terminalSwitch.returning', 'Bringing back…')
+                : t('components.native-chat.terminalSwitch.back', 'Bring it back here')}
+            </Button>
+          </>
         ) : null}
-        <Button
-          type="button"
-          variant="outline"
-          size="xs"
-          disabled={returning}
-          onClick={() => {
-            setReturning(true)
-            void bringStructuredChatBack(scope, tabId).finally(() => setReturning(false))
-          }}
-        >
-          {returning
-            ? t('components.native-chat.terminalSwitch.returning', 'Bringing back…')
-            : t('components.native-chat.terminalSwitch.back', 'Bring it back here')}
-        </Button>
       </div>
     </div>
   )

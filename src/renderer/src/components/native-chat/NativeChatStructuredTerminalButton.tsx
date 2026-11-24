@@ -7,11 +7,13 @@ import { NativeChatViewSwitchButton } from './NativeChatViewSwitchButton'
 import type { NativeChatStructuredAccountScope } from './native-chat-account-scope'
 import {
   openStructuredChatTerminal,
+  showStructuredChatTerminal
+} from './native-chat-structured-terminal'
+import {
   registerStructuredTerminalSwitch,
-  showStructuredChatTerminal,
   structuredTerminalSwitch,
   useStructuredChatTerminal
-} from './native-chat-structured-terminal'
+} from './native-chat-structured-terminal-state'
 
 /** A structured chat's terminal switch, in the same place as a terminal chat's. */
 export function NativeChatStructuredTerminalButton({

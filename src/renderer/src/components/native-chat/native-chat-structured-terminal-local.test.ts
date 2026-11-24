@@ -2,7 +2,7 @@ import { expect, it } from 'vitest'
 import {
   structuredChatTerminalPane,
   structuredTerminalSwitch
-} from './native-chat-structured-terminal'
+} from './native-chat-structured-terminal-state'
 
 const CHAT = 'structured-agent-session-s1:leaf'
 

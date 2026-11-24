@@ -1,4 +1,4 @@
-import { useContext, useEffect } from 'react'
+import { useContext } from 'react'
 import { useAppStore } from '@/store'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useResetCountdownClock } from '@/components/status-bar/usage/useResetCountdownClock'
@@ -21,6 +21,7 @@ import { claudeAccountOrgName } from '../../../../shared/agent-accounts/claude-a
 import { getExecutionHostIdForWorktree } from '@/lib/workspace/ownership/worktree-runtime-owner'
 import { runtimeRpcTargetForAuthorityKey } from '@/runtime/rpc/targets/runtime-client-target'
 import type { ProviderAccountsSnapshot } from '@/runtime/provider-accounts/observations/runtime-provider-accounts-client'
+import { managedLimits, useLocalClaudeAccountLimits } from './native-chat-claude-account-limits'
 import { useRemoteProviderAccounts } from './native-chat-remote-claude-usage'
 import {
   useClaudeSessionLogin,
@@ -115,10 +116,6 @@ export function worktreeIdForTab(
   return null
 }
 
-// Why one shared clock: every open chat would otherwise ask main for the other accounts' usage.
-let lastInactiveFetchAt = Number.NEGATIVE_INFINITY
-const INACTIVE_REFRESH_MS = 5 * 60 * 1000
-
 /** What the chat line shows: the subscription's short name, its email when known, its limits. */
 export type ChatClaudeUsage = {
   /** The subscription owner's short name; null while the host has not reported its login. */
@@ -191,51 +188,36 @@ export function sessionLoginUsage(
     : null
 }
 
-function managedLimits(
-  snapshot: Pick<ProviderAccountsSnapshot, 'claude' | 'rateLimits'>,
-  accountId: string | null
-): ProviderRateLimits | null {
-  return accountId === null
-    ? null
-    : accountId === snapshot.claude.activeAccountId
-      ? (snapshot.rateLimits?.claude ?? null)
-      : (snapshot.rateLimits?.inactiveClaudeAccounts.find((entry) => entry.accountId === accountId)
-          ?.rateLimits ?? null)
-}
-
-function useLocalClaudeAccountLimits(accountId: string | null): ProviderRateLimits | null {
-  const isActive = useAppStore(
-    (state) => accountId !== null && state.settings?.activeClaudeManagedAccountId === accountId
-  )
-  const limits = useAppStore((state) =>
-    accountId === null
-      ? null
-      : isActive
-        ? state.rateLimits.claude
-        : (state.rateLimits.inactiveClaudeAccounts.find((entry) => entry.accountId === accountId)
-            ?.rateLimits ?? null)
-  )
-  const needsFetch = accountId !== null && !isActive
-  useEffect(() => {
-    if (!needsFetch || window.performance.now() - lastInactiveFetchAt < INACTIVE_REFRESH_MS) {
-      return
-    }
-    lastInactiveFetchAt = window.performance.now()
-    void useAppStore.getState().fetchInactiveClaudeAccountUsage()
-  }, [needsFetch])
-  return limits
-}
-
 function useStructuredChatClaudeUsage(
   chat: NativeChatStructuredAccountScope | null
 ): ChatClaudeUsage | null {
-  const usage = structuredClaudeUsage(useStructuredClaudeAccount(chat))
+  const account = useStructuredClaudeAccount(chat)
+  const usage = structuredClaudeUsage(account)
   const environmentId = chat?.target.kind === 'environment' ? chat.target.environmentId : null
-  const accountId = usage?.shown.accountId ?? null
+  // A chat whose session does not exist yet starts on its workspace's account, as a terminal's does.
+  const worktreeId = chat?.worktreeId ?? null
+  const upcoming = useAppStore((state) => {
+    if (account?.status !== 'unsupported' || environmentId !== null || !state.settings) {
+      return null
+    }
+    const id =
+      workspaceClaudeAccountId(state.settings, worktreeId) ??
+      state.settings.activeClaudeManagedAccountId
+    return state.settings.claudeManagedAccounts.find((entry) => entry.id === id) ?? null
+  })
+  const accountId = usage?.shown.accountId ?? upcoming?.id ?? null
   const snapshot = useRemoteProviderAccounts(usage ? environmentId : null)
   const local = useLocalClaudeAccountLimits(environmentId === null ? accountId : null)
   if (!usage) {
-    return null
+    return upcoming
+      ? {
+          name: accountShortName(upcoming.email),
+          email: upcoming.email,
+          limits: local,
+          accountId: upcoming.id,
+          worktreeId
+        }
+      : null
   }
   const { email, limits } = usage.shown
   return {
@@ -402,7 +384,15 @@ function ClaudeAccountUsageChip({
         scope.kind === 'structured' ? (
           usage.structured ? (
             <NativeChatStructuredAccountSwitch name={name} chat={scope} usage={usage.structured} />
-          ) : null
+          ) : (
+            // Not started yet: the pick is the workspace's account its first turn starts on.
+            <NativeChatAccountSwitch
+              name={name}
+              currentAccountId={usage.accountId ?? null}
+              worktreeId={usage.worktreeId ?? null}
+              terminalTabId={scope.tabId}
+            />
+          )
         ) : usage.environmentId ? (
           <NativeChatRemoteAccountSwitch
             name={name}

@@ -4,7 +4,7 @@ import { useStructuredPromptCollapse } from './prompts/use-structured-prompt-col
 import { nativeChatCtrlEnterShortcut } from './queue/NativeChatTerminalQueuedMessageList'
 import { useStructuredQueuedCardHint } from './queue/use-structured-queued-card-hint'
 import { useStructuredTerminalSendHold } from './native-chat-structured-terminal-hold'
-import { useStructuredChatTerminal } from './native-chat-structured-terminal'
+import { useStructuredChatTerminal } from './native-chat-structured-terminal-state'
 import { useNativeChatCtrlEnterSendsNow } from './use-native-chat-ctrl-enter-sends-now'
 
 /**

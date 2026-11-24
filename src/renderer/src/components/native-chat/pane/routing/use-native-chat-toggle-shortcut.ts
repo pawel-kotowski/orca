@@ -24,7 +24,7 @@ import {
   isNativeChatTabWideFallbackSafe,
   resolveNativeChatActiveLayoutLeafId
 } from './native-chat-leaf-routing'
-import { pressStructuredTerminalSwitch } from '../../native-chat-structured-terminal'
+import { pressStructuredTerminalSwitch } from '../../native-chat-structured-terminal-state'
 import { addAppKeyListener, removeAppKeyListener } from '@/lib/keyboard/app-keyboard-router'
 
 export function resolveNativeChatToggleShortcutDetectedAgent({

@@ -21,11 +21,18 @@ export function endStructuredChatTerminalHold(sessionId: string): void {
   holds.delete(sessionId)
 }
 
+/** A launch that never named its pane (it failed, or a paired host made the tab) is given up. */
+export function forgetUnboundStructuredChatTerminalHold(sessionId: string): void {
+  if (holds.get(sessionId)?.paneKey === null) {
+    holds.delete(sessionId)
+  }
+}
+
 /** Whether the hold still keeps the chat from starting; one that has done its work is dropped. */
 export function structuredChatTerminalHeld(
   sessionId: string,
   terminal: {
-    /** Newest report of a terminal writer of this conversation, on the host's clock. */
+    /** Newest report of a terminal writer the host has judged, on the host's clock. */
     reportedAt: number | null
     paneAlive: (paneKey: string) => boolean
   }

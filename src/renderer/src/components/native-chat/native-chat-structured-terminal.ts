@@ -1,5 +1,4 @@
 import { toast } from 'sonner'
-import { useSyncExternalStore } from 'react'
 import { useAppStore } from '@/store'
 import type { AppState } from '@/store/types'
 import { translate } from '@/i18n/i18n'
@@ -9,7 +8,7 @@ import { readRuntimeStatuses } from '@/store/slices/runtime-status/views/runtime
 import { insertUnifiedTabAfterAnchor } from '@/lib/workspace/tabs/unified-tab-anchor-insertion'
 import { prepareNativeChatCliFork } from '@/lib/agent-session/resume/cli-fork/native-chat-cli-fork-preparation'
 import { resolveAiVaultResumeHost } from '@/lib/agent-session/resume/history/ai-vault-resume-command'
-import { launchAiVaultSessionAndReveal } from '@/lib/agent-session/resume/history/launch-ai-vault-session-and-reveal'
+import { launchAiVaultSessionInNewTab } from '@/lib/agent-session/resume/history/launch-ai-vault-session'
 import {
   captureAiVaultCliForkOwner,
   readAiVaultCliForkLaunchSettings
@@ -24,96 +23,16 @@ import { closeCliChatResumeTerminal } from '@/components/tab-bar/session-actions
 import { closeTerminalTab } from '@/components/terminal/tab-lifecycle/terminal-tab-actions'
 import { buildAiVaultLocalResumeStartup } from '../../../../shared/ai-vault/resume/ai-vault-resume-startup'
 import { isAiVaultAgent } from '../../../../shared/ai-vault/contracts/ai-vault-types'
-import {
-  agentForksConversations,
-  agentForksThroughChat
-} from '../../../../shared/agent-launch/startup/agent-resume-argv'
-import { adoptsCliConversations } from '../../../../shared/agent-session/view/structured-agent-cli-conversation-adoption'
+import { toHostSessionPaneKey } from '../../../../shared/workspace-layout/terminal-surface-id'
 import { structuredAgentSessionPaneKey } from '../../../../shared/agent-session/view/structured-agent-session-projection'
 import type { AgentSessionTerminalHandoverResult } from '../../../../shared/agent-session/lifecycle/operations/agent-session-terminal-handover'
 import type { NativeChatStructuredAccountScope } from './native-chat-account-scope'
-
-/** How the chat's terminal button works: the conversation itself moves, or a copy of it opens. */
-export type StructuredTerminalSwitch = 'same' | 'copy' | null
-
-/**
- * A chat's own conversation can move to a terminal where the host can tell that terminal writes it
- * and reads its turns back afterwards; a bot keeps answering in its chat, so it gets a copy.
- */
-export function structuredTerminalSwitch(
-  scope: Pick<NativeChatStructuredAccountScope, 'agent' | 'worktreeId' | 'botName'>
-): StructuredTerminalSwitch {
-  const { agent } = scope
-  if (!scope.worktreeId || !isAiVaultAgent(agent) || !agentForksConversations(agent)) {
-    return null
-  }
-  return scope.botName === null && adoptsCliConversations(agent) && !agentForksThroughChat(agent)
-    ? 'same'
-    : 'copy'
-}
-
-// Chats on their way to a terminal, which reports only once its agent starts; by chat session.
-const opening = new Map<string, string | null>()
-const listeners = new Set<() => void>()
-
-function setOpening(sessionId: string, terminalTabId: string | null | undefined): void {
-  if (terminalTabId === undefined) {
-    opening.delete(sessionId)
-  } else {
-    opening.set(sessionId, terminalTabId)
-  }
-  for (const listener of listeners) {
-    listener()
-  }
-}
-
-/** The terminal pane that runs this chat's own conversation now, other than the chat itself. */
-export function structuredChatTerminalPane(
-  state: Pick<AppState, 'agentStatusByPaneKey' | 'tabsByWorktree'>,
-  chatPaneKey: string,
-  worktreeId: string | null
-): string | null {
-  const conversation = state.agentStatusByPaneKey.get(chatPaneKey)?.providerSession?.id
-  const tabs = worktreeId ? state.tabsByWorktree[worktreeId] : undefined
-  if (!conversation || !tabs) {
-    return null
-  }
-  for (const tab of tabs) {
-    for (const [paneKey, entry] of state.agentStatusByPaneKey) {
-      if (paneKey.startsWith(`${tab.id}:`) && entry.providerSession?.id === conversation) {
-        return paneKey
-      }
-    }
-  }
-  return null
-}
-
-/** Where the chat's conversation is: here, on its way to a terminal, or in one (its tab). */
-export function useStructuredChatTerminal(
-  sessionId: string,
-  chatPaneKey: string,
-  worktreeId: string | null
-): { tabId: string | null } | null {
-  const pane = useAppStore((state) => structuredChatTerminalPane(state, chatPaneKey, worktreeId))
-  const pending = useSyncExternalStore(
-    (listener) => {
-      listeners.add(listener)
-      return () => listeners.delete(listener)
-    },
-    () => opening.get(sessionId)
-  )
-  // A closed tab ends the wait: nothing will report from it.
-  const pendingGone = useAppStore(
-    (state) =>
-      typeof pending === 'string' &&
-      worktreeId !== null &&
-      !(state.tabsByWorktree[worktreeId] ?? []).some((tab) => tab.id === pending)
-  )
-  if (pane) {
-    return { tabId: pane.slice(0, pane.indexOf(':')) }
-  }
-  return pending === undefined || pendingGone ? null : { tabId: pending }
-}
+import {
+  chatTerminalOpening,
+  setChatTerminalOpening,
+  structuredChatTerminalPane,
+  structuredTerminalSwitch
+} from './native-chat-structured-terminal-state'
 
 function handover(
   scope: NativeChatStructuredAccountScope,
@@ -125,25 +44,6 @@ function handover(
     action,
     ...(paneKey ? { paneKey } : {})
   })
-}
-
-// The mounted button of each chat tab, which Cmd+Shift+J presses as it switches a terminal chat.
-const switches = new Map<string, () => void>()
-
-export function registerStructuredTerminalSwitch(tabId: string, press: () => void): () => void {
-  switches.set(tabId, press)
-  return () => {
-    if (switches.get(tabId) === press) {
-      switches.delete(tabId)
-    }
-  }
-}
-
-/** False where the chat offers no switch, so the key stays with the rest of the app. */
-export function pressStructuredTerminalSwitch(tabId: string): boolean {
-  const press = switches.get(tabId)
-  press?.()
-  return press !== undefined
 }
 
 const busyWords = (): string =>
@@ -173,10 +73,10 @@ export async function openStructuredChatTerminal(
     await runNativeChatCliFork({ subject, tab, agent })
     return
   }
-  if (opening.has(sessionId)) {
+  if (chatTerminalOpening.has(sessionId)) {
     return
   }
-  setOpening(sessionId, null)
+  setChatTerminalOpening(sessionId, null)
   let held = false
   try {
     const owner = captureAiVaultCliForkOwner(subject.request.executionHostScope)
@@ -191,7 +91,7 @@ export async function openStructuredChatTerminal(
     })
     const result = await handover(scope, 'begin')
     if (result.outcome !== 'held') {
-      setOpening(sessionId, undefined)
+      setChatTerminalOpening(sessionId, undefined)
       toast.warning(
         result.outcome === 'busy'
           ? busyWords()
@@ -209,25 +109,24 @@ export async function openStructuredChatTerminal(
       settings,
       embedCwd: false
     })
-    const terminalTabId = await launchAiVaultSessionAndReveal(
-      { agent: session.agent, worktreeId, ...startup },
-      describeAiVaultCliForkFailure
-    )
-    if (!terminalTabId) {
-      // A paired host makes the tab itself; its agent's first report takes over from the hold.
-      return
+    const launch = launchAiVaultSessionInNewTab({ agent: session.agent, worktreeId, ...startup })
+    let terminalTabId = launch.tabId
+    if (launch.tabId === null) {
+      const outcome = await launch.runtimeLaunch
+      if (outcome.status === 'failed') {
+        throw new Error(outcome.message)
+      }
+      terminalTabId = outcome.mirroredTabId ?? null
     }
-    const state = useAppStore.getState()
-    state.setTabViewMode(terminalTabId, 'terminal')
-    insertUnifiedTabAfterAnchor(worktreeId, terminalTabId, tabId)
-    setOpening(sessionId, terminalTabId)
-    endOpeningOnReport(scope, worktreeId, terminalTabId)
-    const leafId = launchedLeafId(state.terminalLayoutsByTabId[terminalTabId]?.root)
-    if (leafId) {
-      await handover(scope, 'bind', `${terminalTabId}:${leafId}`)
+    if (terminalTabId) {
+      setChatTerminalOpening(sessionId, terminalTabId)
+      endOpeningOnReport(scope, worktreeId, terminalTabId)
+      void bindTerminalPane(scope, worktreeId, terminalTabId)
+      useAppStore.getState().setTabViewMode(terminalTabId, 'terminal')
+      insertUnifiedTabAfterAnchor(worktreeId, terminalTabId, tabId)
     }
   } catch (error) {
-    setOpening(sessionId, undefined)
+    setChatTerminalOpening(sessionId, undefined)
     if (held) {
       void handover(scope, 'end').catch(() => undefined)
     }
@@ -239,6 +138,19 @@ export async function openStructuredChatTerminal(
   }
 }
 
+/** A paired host's tab shows here a moment after its launch, so only one seen before can be gone. */
+function tabGoneOnceSeen(
+  worktreeId: string,
+  terminalTabId: string
+): (state: Pick<AppState, 'tabsByWorktree'>) => boolean {
+  let seen = false
+  return (state) => {
+    const here = (state.tabsByWorktree[worktreeId] ?? []).some((tab) => tab.id === terminalTabId)
+    seen ||= here
+    return seen && !here
+  }
+}
+
 /** The terminal's own report takes over from the wait, so its agent's later exit frees the chat. */
 function endOpeningOnReport(
   { sessionId, tabId }: NativeChatStructuredAccountScope,
@@ -246,13 +158,14 @@ function endOpeningOnReport(
   terminalTabId: string
 ): void {
   const chatPaneKey = structuredAgentSessionPaneKey(tabId, sessionId)
+  const tabGone = tabGoneOnceSeen(worktreeId, terminalTabId)
   const stop = useAppStore.subscribe((state) => {
-    const gone = !(state.tabsByWorktree[worktreeId] ?? []).some((tab) => tab.id === terminalTabId)
-    if (opening.get(sessionId) !== terminalTabId) {
+    const gone = tabGone(state)
+    if (chatTerminalOpening.get(sessionId) !== terminalTabId) {
       stop()
     } else if (gone || structuredChatTerminalPane(state, chatPaneKey, worktreeId)) {
       stop()
-      setOpening(sessionId, undefined)
+      setChatTerminalOpening(sessionId, undefined)
     }
   })
 }
@@ -263,8 +176,55 @@ function launchedLeafId(
   return !node ? undefined : node.type === 'leaf' ? node.leafId : launchedLeafId(node.first)
 }
 
+/** Tells the host which pane has the conversation, so only that pane's end frees the chat. */
+async function bindTerminalPane(
+  scope: NativeChatStructuredAccountScope,
+  worktreeId: string,
+  terminalTabId: string
+): Promise<void> {
+  const leafId = await new Promise<string | undefined>((resolve) => {
+    const leaf = (state: AppState) =>
+      launchedLeafId(state.terminalLayoutsByTabId[terminalTabId]?.root)
+    const known = leaf(useAppStore.getState())
+    if (known) {
+      resolve(known)
+      return
+    }
+    const tabGone = tabGoneOnceSeen(worktreeId, terminalTabId)
+    const stop = useAppStore.subscribe((state) => {
+      const gone = tabGone(state)
+      const found = leaf(state)
+      if (found || gone) {
+        stop()
+        resolve(found)
+      }
+    })
+  })
+  // A tab that went before its pane existed started no agent.
+  await (
+    leafId
+      ? handover(scope, 'bind', toHostSessionPaneKey(`${terminalTabId}:${leafId}`))
+      : handover(scope, 'end')
+  ).catch(() => undefined)
+}
+
 export function showStructuredChatTerminal(terminalTabId: string): void {
   activateTabAndFocusPane(terminalTabId, null)
+}
+
+// A closed tab's agent takes a moment to exit; the host says `open` until it has.
+const EXIT_CHECKS = 20
+const EXIT_CHECK_MS = 500
+
+async function takeBack(
+  scope: NativeChatStructuredAccountScope
+): Promise<AgentSessionTerminalHandoverResult> {
+  let result = await handover(scope, 'end')
+  for (let check = 1; result.outcome === 'open' && check < EXIT_CHECKS; check++) {
+    await new Promise((resolve) => setTimeout(resolve, EXIT_CHECK_MS))
+    result = await handover(scope, 'end')
+  }
+  return result
 }
 
 /** Closes the terminal that holds the conversation and gives it back to the chat, caught up. */
@@ -294,8 +254,8 @@ export async function bringStructuredChatBack(
         closeTerminalTab(terminalTabId, { reason: 'user', preserveWorktreeSelection: true })
       }
     }
-    const result = await handover(scope, 'end')
-    setOpening(sessionId, undefined)
+    const result = await takeBack(scope)
+    setChatTerminalOpening(sessionId, undefined)
     if (result.outcome === 'open') {
       toast.warning(
         translate(

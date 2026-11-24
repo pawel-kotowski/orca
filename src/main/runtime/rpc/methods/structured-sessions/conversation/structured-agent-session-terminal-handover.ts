@@ -8,9 +8,9 @@ import { recordConversationKey } from '../../../../../native-chat/conversation-a
 import {
   beginStructuredChatTerminalHold,
   bindStructuredChatTerminalHold,
-  endStructuredChatTerminalHold
+  endStructuredChatTerminalHold,
+  forgetUnboundStructuredChatTerminalHold
 } from '../../../../agent-session/ownership/structured-chat-terminal-holds'
-import { isAgentSessionRefusalError } from '../../../../../../shared/agent-session/failures/agent-session-wire-refusals'
 import { defineMethod, type RpcContext } from '../../../core'
 import { requireInstalledStructuredHost } from '../creation/structured-agent-session-gate'
 
@@ -27,7 +27,7 @@ async function handoverChat(sessionId: string, ctx: RpcContext) {
     isNativeLocalLocation(record.location) &&
     // A bot keeps answering its mail and Slack here; a terminal takes a copy instead.
     botOfSession(ctx.runtime.bots, sessionId, host) === null
-    ? { host, record, conversationId: key.id }
+    ? { host, record }
     : null
 }
 
@@ -44,7 +44,7 @@ export const STRUCTURED_AGENT_SESSION_TERMINAL_HANDOVER_METHODS = [
       if (!chat) {
         return { outcome: 'unsupported' }
       }
-      const { host, record, conversationId } = chat
+      const { host, record } = chat
       if (action === 'begin') {
         // Held first, so a message landing during the stop cannot start the agent again.
         beginStructuredChatTerminalHold(sessionId, Date.now())
@@ -66,17 +66,9 @@ export const STRUCTURED_AGENT_SESSION_TERMINAL_HANDOVER_METHODS = [
         }
         return { outcome: 'held' }
       }
-      endStructuredChatTerminalHold(sessionId)
-      try {
-        await ctx.runtime.assertStructuredAdoptionTerminalWritersExited(
-          record.provider,
-          conversationId
-        )
-      } catch (error) {
-        if (isAgentSessionRefusalError(error)) {
-          return { outcome: 'open' }
-        }
-        throw error
+      forgetUnboundStructuredChatTerminalHold(sessionId)
+      if (await ctx.runtime.structuredChatHeldByTerminal(record)) {
+        return { outcome: 'open' }
       }
       // Starting reads in what the terminal wrote; a start that fails says so in the chat itself.
       await host.startSessionAgent(sessionId)

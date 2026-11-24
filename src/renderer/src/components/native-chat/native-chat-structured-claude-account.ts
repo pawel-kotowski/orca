@@ -27,6 +27,7 @@ const entries = new Map<string, Entry>()
 const listeners = new Set<() => void>()
 // The host reads usage at this cadence.
 const REFRESH_MS = 5 * 60 * 1000
+const UNFOUND_MS = 2_000
 const LOCAL: RuntimeClientTarget = { kind: 'local' }
 
 function entryKey(chat: Chat): string {
@@ -57,7 +58,7 @@ async function refresh(chat: Chat, stamp: string): Promise<void> {
     chat.target,
     'agentSession.claudeAccount',
     { sessionId: chat.sessionId }
-  ).catch(() => entries.get(key)?.account ?? null)
+  ).catch((): AgentSessionClaudeAccount => entries.get(key)?.account ?? { status: 'unsupported' })
   const asked = entries.get(key)?.stamp ?? stamp
   entries.set(key, { account, stamp: asked, fetchedAt: window.performance.now(), inFlight: false })
   for (const listener of listeners) {
@@ -106,6 +107,15 @@ export function useStructuredClaudeAccount(
     const timer = window.setInterval(check, REFRESH_MS)
     return () => window.clearInterval(timer)
   }, [key, sessionId, target, stamp])
+  // A new chat's session reaches this computer's host a moment after its box is drawn.
+  const unfound = target.kind === 'local' && account?.status === 'unsupported'
+  useEffect(() => {
+    if (!unfound) {
+      return
+    }
+    const timer = window.setInterval(() => void refresh({ sessionId, target }, stamp), UNFOUND_MS)
+    return () => window.clearInterval(timer)
+  }, [unfound, sessionId, target, stamp])
   return account
 }
 

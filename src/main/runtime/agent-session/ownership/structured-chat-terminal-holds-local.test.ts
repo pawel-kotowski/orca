@@ -3,6 +3,7 @@ import {
   beginStructuredChatTerminalHold,
   bindStructuredChatTerminalHold,
   endStructuredChatTerminalHold,
+  forgetUnboundStructuredChatTerminalHold,
   structuredChatTerminalHeld
 } from './structured-chat-terminal-holds'
 
@@ -31,4 +32,14 @@ it('gives the chat back when the terminal it was handed to is gone', () => {
   expect(structuredChatTerminalHeld('chat', { reportedAt: null, paneAlive: () => false })).toBe(
     false
   )
+})
+
+it('gives up only a launch that never named its pane', () => {
+  beginStructuredChatTerminalHold('chat', 100)
+  bindStructuredChatTerminalHold('chat', 'tab:leaf')
+  forgetUnboundStructuredChatTerminalHold('chat')
+  expect(structuredChatTerminalHeld('chat', ALIVE)).toBe(true)
+  beginStructuredChatTerminalHold('chat', 100)
+  forgetUnboundStructuredChatTerminalHold('chat')
+  expect(structuredChatTerminalHeld('chat', ALIVE)).toBe(false)
 })
