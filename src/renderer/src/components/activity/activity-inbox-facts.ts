@@ -109,9 +109,9 @@ export function useActivityInboxFacts(
   return useMemo(() => {
     const ptyIdOfPane = (paneKey: string): string | undefined => {
       const split = paneKey.lastIndexOf(':')
-      return (
-        layouts[paneKey.slice(0, split)]?.ptyIdsByLeafId?.[paneKey.slice(split + 1)] ?? undefined
-      )
+      const leafId = paneKey.slice(split + 1)
+      // Why the leaf: a chat's messages are noted under it (noteYourStructuredChatMessage).
+      return layouts[paneKey.slice(0, split)]?.ptyIdsByLeafId?.[leafId] ?? leafId
     }
     const answering = activityThreadsAnsweringYou(threads, yourMessages, ptyIdOfPane, clearedAt)
     return buildActivityInboxFacts(

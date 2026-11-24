@@ -28,6 +28,10 @@ import {
 } from '../../../../../../shared/agent-session/view/structured-agent-session-status-started-at'
 import { agentMainAgentVerdict } from '../../../../../../shared/agent-status/lifecycle/agent-main-agent-verdict'
 import type { AgentStatusBatchTransaction } from '@/store/slices/agent-status/contracts/agent-status-contract'
+import {
+  structuredStatusLocalFieldsMatch,
+  structuredStatusLocalPayload
+} from './structured-agent-session-status-local-fields'
 import type { StructuredTab } from './structured-agent-session-tabs'
 
 /** Copy modern child views verbatim; convert legacy host task lists and retain the legacy live-agent roster. */
@@ -137,6 +141,7 @@ export function projectStatus(
     ...(summary.toolName ? { toolName: summary.toolName } : {}),
     ...(summary.toolInput ? { toolInput: summary.toolInput } : {}),
     ...(summary.lastAssistantMessage ? { lastAssistantMessage: summary.lastAssistantMessage } : {}),
+    ...structuredStatusLocalPayload(agentStatus.state, summary),
     ...(subagents ? { subagents } : {}),
     ...(children ? { children } : {}),
     ...(subagents || children ? { subagentObservation: observation } : {}),
@@ -153,6 +158,7 @@ export function projectStatus(
     current.toolName === summary.toolName &&
     current.toolInput === summary.toolInput &&
     current.lastAssistantMessage === summary.lastAssistantMessage &&
+    structuredStatusLocalFieldsMatch(current, desired, summary) &&
     agentSubagentsEqual(current.subagents, subagents) &&
     agentChildWorkViewsEqual(current.children, children) &&
     current.subagentObservation === desired.subagentObservation &&
@@ -179,6 +185,7 @@ export function projectStatus(
       updatedAt: summary.updatedAt,
       // This ordered host feed can correct a legacy publication clock after upgrade.
       allowOlderTimestamp: true,
+      ...(summary.turnStartedAt !== undefined ? { turnStartedAt: summary.turnStartedAt } : {}),
       // Match host continuity: monitoring/working labels are distinct states and must restart their own clocks.
       stateStartedAt:
         structuredAgentSessionRowStateStartedAt(desired, summary) ??

@@ -11,6 +11,7 @@ import { createNativeChatRuntimeSelector } from '../native-chat/pane/ownership/n
 import { useNativeChatRetainedSession } from '../native-chat/session/terminal/read/use-native-chat-retained-session'
 import type { NativeChatLiveSession } from '../native-chat/session/terminal/read/native-chat-live-session-contract'
 import type { AgentPaneThread } from './threads/activity-thread-types'
+import { useStructuredActivitySummary } from './use-structured-activity-summary'
 import { noteMyPromptAt } from './activity-my-prompt-times'
 
 export type ActivityThreadConversation = {
@@ -88,7 +89,8 @@ export function useActivityThreadConversation(
   )
   // Why published: Working and Standing by sort by your own last prompt, which only the transcript
   // tells apart from turns a task notification or Orca's mail began.
-  const lastPromptAt = summary.lastPromptAt
+  const journalSummary = useStructuredActivitySummary(thread, working, enabled)
+  const lastPromptAt = (journalSummary ?? summary).lastPromptAt
   const paneKey = thread.paneKey
   useEffect(() => {
     noteMyPromptAt(paneKey, lastPromptAt)
@@ -115,6 +117,9 @@ export function useActivityThreadConversation(
       current = false
     }
   }, [agent, needsFilePrompt, runtimeEnvironmentId, sessionId, transcriptPath])
+  if (journalSummary) {
+    return { session, summary: journalSummary, working, paneKey, sessionId }
+  }
   if (!resolution || session.messages.length === 0) {
     return null
   }

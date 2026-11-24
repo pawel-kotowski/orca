@@ -5,6 +5,7 @@ import type { WorktreeRuntimeOwnerState } from '@/lib/workspace/ownership/worktr
 import type { AppState } from '@/store/types'
 
 export type NativeChatRuntimeOwnerState = Pick<AppState, 'tabsByWorktree'> &
+  Partial<Pick<AppState, 'unifiedTabsByWorktree'>> &
   WorktreeRuntimeOwnerState
 
 /** Resolve runtime ownership from tab/worktree identity even before path hydration; path-coupled file context would wrongly route local (KTD-1). */
@@ -23,7 +24,10 @@ export function createNativeChatRuntimeSelector(terminalTabId: string) {
   return (state: NativeChatRuntimeOwnerState): string | null => {
     return runtimeEnvironmentIdOrLocalUnlessTwin(
       state,
-      selectOwner({ tabsByWorktree: state.tabsByWorktree })
+      selectOwner({
+        tabsByWorktree: state.tabsByWorktree,
+        unifiedTabsByWorktree: state.unifiedTabsByWorktree
+      })
     )
   }
 }

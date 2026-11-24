@@ -1,5 +1,9 @@
 import { useSyncExternalStore } from 'react'
 import type { AgentPaneThread } from './threads/activity-thread-types'
+import {
+  structuredAgentSessionPaneKey,
+  structuredAgentSessionTabId
+} from '../../../../shared/agent-session/view/structured-agent-session-projection'
 import { activityThreadPromptAt } from './activity-thread-prompt-time'
 
 /**
@@ -18,6 +22,12 @@ export function noteYourChatMessage(ptyId: string, at = Date.now()): void {
   for (const listener of listeners) {
     listener()
   }
+}
+
+/** A chat has no terminal; its pane's leaf is derived from its session alone, on every host. */
+export function noteYourStructuredChatMessage(sessionId: string, at = Date.now()): void {
+  const paneKey = structuredAgentSessionPaneKey(structuredAgentSessionTabId(sessionId), sessionId)
+  noteYourChatMessage(paneKey.slice(paneKey.lastIndexOf(':') + 1), at)
 }
 
 function subscribe(listener: () => void): () => void {

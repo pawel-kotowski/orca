@@ -1,5 +1,6 @@
 import type React from 'react'
 import { useTranslate } from '@/i18n/use-translate'
+import { openWorkspaceTabId } from '@/lib/open-workspace-tab'
 import {
   clearActivityThread,
   dismissActivityReachOut,
@@ -83,10 +84,11 @@ export function ActivityThreadVirtualRow({
         selectFloatingWorkspacePanelVisible(state) && floatingPanelShowsTab(state, thread.tab.id)
       )
     }
-    if (state.activeTabId == null) {
+    const openTabId = openWorkspaceTabId(state)
+    if (openTabId == null) {
       return null
     }
-    return state.activeWorktreeId === thread.worktree.id && state.activeTabId === thread.tab.id
+    return state.activeWorktreeId === thread.worktree.id && openTabId === thread.tab.id
   })
   const previewedPaneKey = useActivityChatPreviewPaneKey()
   const inboxFacts = useActivityInboxFactsContext()

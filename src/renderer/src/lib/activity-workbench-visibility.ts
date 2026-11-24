@@ -1,5 +1,6 @@
 import { useEffect, useSyncExternalStore } from 'react'
 import { useAppStore } from '@/store'
+import { openWorkspaceTabId } from '@/lib/open-workspace-tab'
 import { hideFloatingWorkspacePanel } from '@/components/floating-terminal/workspace/floating-workspace-panel-reveal'
 import { selectFloatingWorkspacePanelVisible } from '@/store/workspaces/floating/floating-workspace-panel-selector'
 
@@ -61,7 +62,8 @@ export function projectsHidesWorkbench(): boolean {
 useAppStore.subscribe?.((state, previous) => {
   if (
     state.activeWorktreeId !== previous.activeWorktreeId ||
-    state.activeTabId !== previous.activeTabId
+    state.activeTabId !== previous.activeTabId ||
+    (projectsHidden && openWorkspaceTabId(state) !== openWorkspaceTabId(previous))
   ) {
     setProjectsHidesWorkbench(false)
   }
