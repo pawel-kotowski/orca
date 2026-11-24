@@ -294,7 +294,7 @@ it('an older terminal whose agent moved on to another conversation does not keep
   state.listed = [{ id: 'older', incarnationId: 'o', rootProcessId: 77 }]
   state.paneOf.set('older:leaf', { ptyId: 'older', incarnationId: 'o', connected: true })
   // Started on the conversation, then `/clear`ed: its command line still names it.
-  const runsAnywhere = vi.fn((_id: string, except: number[]) => !except.includes(77))
+  const runsAnywhere = vi.fn((_of: object, except: number[]) => !except.includes(77))
   mocks.processes.mockResolvedValue({
     shellAlone: async () => false,
     runsBelow: () => true,

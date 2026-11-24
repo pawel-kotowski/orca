@@ -1,37 +1,33 @@
 import { execFile } from 'node:child_process'
 import { readdir, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
+import { setTimeout as delay } from 'node:timers/promises'
 import { promisify } from 'node:util'
 import { getAppEnvironment } from '../../../../shared/app-lifecycle/app-environment'
 import { getClaudeObservedConfigDirs } from '../../../claude-accounts/profiles/routing/claude-profile-installed-router'
+import { PS_TIMEOUT_MS } from '../../../../shared/process-observation/tables/process-table-ps-capture'
 import { claudeSessionRecordDirs } from '../../../ipc/pty/host-env/live-claude-session-holder'
 
 export type ClaudeSessionRecord = { pid: number; sessionId: string | null }
 
+type SavedRecord = { sessionId: string | null; procStart?: unknown; startedAt?: unknown }
+
 /**
- * Local: the conversation each recorded Claude process runs, by pid; null when its record cannot be
- * read. A session put in the background keeps its conversation, and only its record names it. A
- * record whose process is gone, its pid reused or not, is left out.
+ * Local: the conversation each Claude process of `live` runs, by its own record; null when that
+ * cannot be read. A session put in the background keeps its conversation, and only its record names
+ * it. A record of an earlier process with the same pid is left out.
  */
 export async function readClaudeSessionRecords(
+  live: (pid: number) => boolean,
   recordDirs: () => Promise<string[]> = claudeRecordDirs
 ): Promise<ClaudeSessionRecord[]> {
-  const records: (ClaudeSessionRecord & { procStart?: unknown; startedAt?: unknown })[] = []
+  const records: (SavedRecord & { pid: number })[] = []
   for (const dir of await recordDirs()) {
-    for (const name of await readdir(dir).catch(whenMissing<string[]>([]))) {
+    for (const name of await readdir(dir).catch(whenNotOurs<string[]>([]))) {
       const pid = Number(/^(\d+)\.json$/.exec(name)?.[1])
-      const text = pid ? await readFile(join(dir, name), 'utf8').catch(whenMissing(null)) : null
-      if (text === null) {
-        continue
-      }
-      try {
-        const record = JSON.parse(text) as Record<string, unknown>
-        const { sessionId, procStart, startedAt } = record
-        if (typeof sessionId === 'string') {
-          records.push({ pid, sessionId, procStart, startedAt })
-        }
-      } catch {
-        records.push({ pid, sessionId: null })
+      const record = pid && live(pid) ? await readRecord(join(dir, name)) : null
+      if (record) {
+        records.push({ pid, ...record })
       }
     }
   }
@@ -60,14 +56,32 @@ async function claudeRecordDirs(): Promise<string[]> {
   return [...new Set([...known, ...observed])]
 }
 
-/** Only an absent file says there is nothing in it. */
-function whenMissing<T>(value: T) {
+/** Any other failure is the folder's own: a Claude of this user could not keep its record there. */
+function whenNotOurs<T>(value: T) {
   return (error: NodeJS.ErrnoException): T => {
-    if (error.code === 'ENOENT' || error.code === 'ENOTDIR') {
-      return value
+    if (error.code === 'EMFILE' || error.code === 'ENFILE') {
+      throw error
     }
-    throw error
+    return value
   }
+}
+
+async function readRecord(path: string): Promise<SavedRecord | null> {
+  // Claude writes it in place, so a torn one is whole a moment later.
+  for (const attempt of [0, 1]) {
+    try {
+      const { sessionId, procStart, startedAt } = JSON.parse(
+        await readFile(path, 'utf8')
+      ) as Record<string, unknown>
+      return typeof sessionId === 'string' ? { sessionId, procStart, startedAt } : null
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+        return null
+      }
+      await (attempt === 0 && delay(50))
+    }
+  }
+  return { sessionId: null }
 }
 
 /** Each process's start as Claude records it on Linux; one that cannot be told is left out. */
@@ -90,7 +104,8 @@ async function startTimes(pids: readonly number[]): Promise<Map<number, number>>
     return new Map()
   }
   const { stdout } = await promisify(execFile)('ps', ['-o', 'pid=,lstart=', '-p', pids.join(',')], {
-    env: { ...process.env, TZ: 'UTC', LC_ALL: 'C' }
+    env: { ...process.env, TZ: 'UTC', LC_ALL: 'C' },
+    timeout: PS_TIMEOUT_MS
   }).catch(() => ({ stdout: '' }))
   return new Map(
     stdout.split('\n').flatMap((line): [number, number][] => {

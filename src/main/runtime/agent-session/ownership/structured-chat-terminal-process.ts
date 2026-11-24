@@ -15,7 +15,10 @@ export type TerminalProcesses = {
   /** An agent process on this machine, wherever it runs (a detached tmux too), has the conversation
    *  in its command line or, for Claude, in its own record; null when that could not be read. `except`: terminals whose agent
    *  is known to have moved on to another. */
-  runsAnywhere: (conversationId: string, except?: readonly number[]) => boolean | null
+  runsAnywhere: (
+    conversation: { agent: string; id: string },
+    except?: readonly number[]
+  ) => boolean | null
   runsBelow: (rootPid: number, conversationId: string) => boolean
   runsAgentBelow: (rootPid: number) => boolean | null
   /** Proven: the shell has the foreground, and nothing is stopped behind it (Ctrl-Z) or runs any
@@ -32,7 +35,7 @@ export async function readTerminalProcesses(): Promise<TerminalProcesses> {
     const index = getProcessTableIndex(await getFreshShellForegroundSnapshot())
     // After the processes, so that one on its way to the background was still in the foreground
     // there or has its record by now.
-    const records = await readClaudeSessionRecords()
+    const records = await readClaudeSessionRecords((pid) => index.byPid.has(pid)).catch(() => null)
     const interactive = paneAgentProcess()
     // A one-shot `claude -p --resume … &` writes the conversation too.
     const isAgent = (row: { command: string; stat?: string }) =>
@@ -51,19 +54,27 @@ export async function readTerminalProcesses(): Promise<TerminalProcesses> {
       return below(rootPid).filter((row) => !serviced.has(row.pid))
     }
     return {
-      runsAnywhere: (id, except = []) => {
+      runsAnywhere: ({ agent, id }, except = []) => {
         const apart = new Set(except.flatMap((pid) => ownBelow(pid).map((row) => row.pid)))
         if ([...index.byPid.values()].some((row) => !apart.has(row.pid) && names(row, id))) {
           return true
         }
-        const runs = (pid: number, kind: RegExp) => kind.test(index.byPid.get(pid)?.command ?? '')
-        return (
-          records.some(({ pid, sessionId }) => sessionId === id && runs(pid, /claude/i)) ||
-          // Any background session may be the one its unreadable record is of.
-          (records.some(({ pid, sessionId }) => sessionId === null && runs(pid, CLAUDE_BACKGROUND))
-            ? null
-            : false)
+        if (agent !== 'claude') {
+          return false
+        }
+        const runs = (pid: number, kind: RegExp) => {
+          const row = index.byPid.get(pid)
+          return row !== undefined && !row.stat?.startsWith('Z') && kind.test(row.command)
+        }
+        if (records?.some(({ pid, sessionId }) => sessionId === id && runs(pid, /claude/i))) {
+          return true
+        }
+        // Any background session may be the one its unreadable record is of.
+        return records?.every(
+          ({ pid, sessionId }) => sessionId !== null || !runs(pid, CLAUDE_BACKGROUND)
         )
+          ? false
+          : null
       },
       runsBelow: (rootPid, id) => below(rootPid).some((row) => names(row, id)),
       runsAgentBelow: (rootPid) => below(rootPid).length > 0,

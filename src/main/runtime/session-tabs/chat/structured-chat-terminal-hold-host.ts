@@ -168,7 +168,7 @@ export abstract class OrcaRuntimeWithStructuredChatTerminalHolds extends OrcaRun
     const inputBefore = inputAt()
     const reads = await this.readHoldTerminals()
     const anywhere = reads.table.runsAnywhere(
-      id,
+      { agent: hold.agent, id },
       await terminalsOfOtherConversations(hold, reads, this.getAgentProviderSessionRows(), {
         ptyId: (row) => this.getPtyRecordForPaneKey(row.paneKey)?.ptyId,
         live: async (row) =>

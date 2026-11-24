@@ -113,7 +113,10 @@ async function beginHandover(
     return { outcome: 'busy' }
   }
   // The chat's own agent is stopped, so any other on its conversation is a writer.
-  if ((await readTerminalProcesses()).runsAnywhere(conversationId) === true) {
+  if (
+    (await readTerminalProcesses()).runsAnywhere({ agent: record.provider, id: conversationId }) ===
+    true
+  ) {
     giveUp()
     return { outcome: 'open' }
   }
