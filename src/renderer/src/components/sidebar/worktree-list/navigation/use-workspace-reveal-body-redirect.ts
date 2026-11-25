@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useAppStore } from '@/store/index'
+import { readSidebarRevealTarget } from '@/components/sidebar/sidebar-reveal-target-state'
 import { SCROLL_TO_CURRENT_WORKSPACE_REVEAL_REQUEST_EVENT } from '@/lib/workspace/navigation/scroll-to-current-workspace-status'
 
 /** Capture reveal requests while Agents hides the list; switch to Spaces and replay after the listener mounts. */
@@ -12,6 +13,11 @@ export function useWorkspaceRevealBodyRedirect(agentsBodyShowing: boolean): void
       return
     }
     const onRequest = (event: Event): void => {
+      const requested = event instanceof CustomEvent ? event.detail?.target?.type : undefined
+      // The Bots section shows under the activity list too, and reveals its own rows.
+      if (requested !== 'sidebar-row' && readSidebarRevealTarget().section === 'bots') {
+        return
+      }
       pendingDetailRef.current = { detail: event instanceof CustomEvent ? event.detail : undefined }
       setSidebarBody('workspaces')
     }

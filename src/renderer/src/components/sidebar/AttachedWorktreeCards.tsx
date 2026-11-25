@@ -6,6 +6,7 @@ import {
   LINEAGE_CHILDREN_INLINE_OFFSET
 } from '@/components/sidebar/worktree-list/rows/indentation'
 import { useAppStore } from '@/store'
+import { useActivityHidesWorkbench } from '@/lib/activity-workbench-visibility'
 import type { ExecutionHostId } from '../../../../shared/execution-host/execution-host'
 import type { Worktree } from '../../../../shared/worktree/types'
 import { isActiveSidebarWorkspace } from '../../../../shared/sidebar-list/selection/active-workspace'
@@ -44,8 +45,11 @@ export function AttachedWorktreeCards({
   onOpen?: () => void
 }): React.JSX.Element {
   // Full-page Tasks/Activity views have no selected workspace card, as in the workspace list.
+  const tabsHidden = useActivityHidesWorkbench()
   const activeWorktreeId = useAppStore((s) =>
-    s.activeView === 'tasks' || s.activeView === 'activity'
+    (tabsHidden && s.sidebarBody === 'agents') ||
+    s.activeView === 'tasks' ||
+    s.activeView === 'activity'
       ? null
       : getActiveSidebarWorkspaceId(s.activeWorkspaceKey, s.activeWorktreeId)
   )

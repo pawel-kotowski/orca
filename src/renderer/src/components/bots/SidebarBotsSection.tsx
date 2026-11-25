@@ -26,6 +26,7 @@ import { useTranslate } from '@/i18n/use-translate'
 import { updateBot, useBotHomeWorkspaces, useBots } from '@/lib/bot-catalog'
 import { toast } from 'sonner'
 import { useAppStore } from '@/store'
+import { useActivityHidesWorkbench } from '@/lib/activity-workbench-visibility'
 import { cn } from '@/lib/class-names'
 import { BOTS_GROUP_KEY } from '../../../../shared/sidebar-list/sections/group-keys'
 import {
@@ -73,7 +74,10 @@ export function SidebarBotsSection({
   const bots = useBots()
   const savedCollapsed = useAppStore((s) => s.collapsedGroups.has(BOTS_GROUP_KEY))
   const toggleCollapsedGroup = useAppStore((s) => s.toggleCollapsedGroup)
+  // With the tabs hidden no bot is open, so none looks chosen, as for cards.
+  const tabsHidden = useActivityHidesWorkbench()
   const activeWorkspaceId = useAppStore((s) =>
+    tabsHidden ||
     s.activeView === 'tasks' ||
     s.activeView === 'activity' ||
     selectActiveBotGroupRoomId(s) !== null
@@ -83,7 +87,8 @@ export function SidebarBotsSection({
   const groups = useBotGroups()
   const folderWorkspaces = useBotHomeWorkspaces(bots, groups)
   const activeRoomId = useAppStore(selectActiveBotGroupRoomId)
-  const activeGroupId = activeRoomId ? findBotGroupRoom(groups, activeRoomId)?.group.id : null
+  const activeGroupId =
+    activeRoomId && !tabsHidden ? findBotGroupRoom(groups, activeRoomId)?.group.id : null
   const deleteGroup = useBotGroupDelete()
   const [newBotOpen, setNewBotOpen] = useState(false)
   const [newMenuOpen, setNewMenuOpen] = useState(false)

@@ -17,6 +17,7 @@ import { ActivityCardPartsBar } from '@/components/activity/activity-card-parts-
 import { useActivityCardPartsBarHidden } from '@/components/activity/activity-card-parts'
 import { ActivityWorkersContext } from '@/components/activity/activity-workers'
 import { ActivityInboxFactsContext } from '@/components/activity/activity-inbox-facts'
+import { SIDEBAR_PROJECTS_MIN_LIST_HEIGHT } from '../../../../../shared/sidebar-bots-height'
 import { nativeChatActivityFollowsConversation } from '../../../../../shared/native-chat/settings/native-chat-appearance-settings'
 import type {
   ActivityGroupBy,
@@ -40,6 +41,8 @@ export type SidebarAgentsListProps = {
   badgeTarget?: HTMLElement | null
   optionsTarget?: HTMLElement | null
   scrollTopRef?: React.MutableRefObject<number>
+  /** The Bots section sits under the list: the list keeps its least height as Bots is resized. */
+  botsShown?: boolean
 }
 
 export default function SidebarAgentsList({
@@ -100,6 +103,7 @@ function SidebarAgentsListBody({
   setQuery,
   optionsTarget,
   scrollTopRef,
+  botsShown = false,
   threads
 }: Omit<SidebarAgentsListProps, 'active' | 'badgeTarget'> & {
   threads: ReturnType<typeof useAgentPaneThreads>
@@ -182,7 +186,11 @@ function SidebarAgentsListBody({
   )
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div
+      data-sidebar-projects-list=""
+      className="flex min-h-0 flex-1 flex-col"
+      style={botsShown ? { minHeight: SIDEBAR_PROJECTS_MIN_LIST_HEIGHT } : undefined}
+    >
       {showSearch ? (
         <div className="shrink-0 border-b border-border px-2 py-1.5">
           <Input

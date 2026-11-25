@@ -6,7 +6,9 @@ import { recordRendererCrashBreadcrumb } from '../../../../diagnostics/crash-rep
 import { activateWorktreeFromSidebar } from '@/lib/workspace/activation/sidebar-worktree-activation'
 import { useAppStore } from '@/store'
 import {
+  activityHidesWorkbench,
   projectsHidesWorkbench,
+  setActivityHidesWorkbench,
   setProjectsHidesWorkbench
 } from '@/lib/activity-workbench-visibility'
 import { isEventTargetInsideCurrentTarget } from './worktree-card-dom-events'
@@ -99,7 +101,12 @@ export function useWorktreeCardActivationActions({
         !event.shiftKey &&
         !event.altKey
       ) {
-        setProjectsHidesWorkbench(!projectsHidesWorkbench())
+        // A bot's workers list under the activity view too, which hides its tabs by its own flag.
+        if (useAppStore.getState().sidebarBody === 'agents') {
+          setActivityHidesWorkbench(!activityHidesWorkbench())
+        } else {
+          setProjectsHidesWorkbench(!projectsHidesWorkbench())
+        }
         return
       }
       onWorktreeCardClick?.()

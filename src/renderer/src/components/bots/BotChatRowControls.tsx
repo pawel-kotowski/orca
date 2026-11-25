@@ -4,6 +4,7 @@ import { ChevronDown } from 'lucide-react'
 import { useTranslate } from '@/i18n/use-translate'
 import { cn } from '@/lib/class-names'
 import { useAppStore } from '@/store'
+import { useActivityHidesWorkbench } from '@/lib/activity-workbench-visibility'
 import type { Bot } from '../../../../shared/bot-types'
 import { folderWorkspaceKey } from '../../../../shared/workspace/identity/workspace-scope'
 import { selectFrontTab } from '@/store/slices/tabs/active-tab-selection'
@@ -21,8 +22,9 @@ export function useBotChatPress(
 } {
   const homeKey = useMemo(() => folderWorkspaceKey(bot.folderWorkspaceId), [bot.folderWorkspaceId])
   const setBotChatFold = useAppStore((s) => s.setBotChatFold)
+  const tabsHidden = useActivityHidesWorkbench()
   const active = useAppStore((s) => {
-    if ((s.activeWorkspaceKey ?? s.activeWorktreeId) !== homeKey) {
+    if (tabsHidden || (s.activeWorkspaceKey ?? s.activeWorktreeId) !== homeKey) {
       return false
     }
     const tab = selectFrontTab(s)

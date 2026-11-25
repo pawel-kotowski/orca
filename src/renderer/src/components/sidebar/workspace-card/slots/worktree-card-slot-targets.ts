@@ -1,3 +1,4 @@
+import { showWorkbenchForBot } from '@/lib/activity-workbench-visibility'
 import { collectLeafIds } from '../../../../../../shared/workspace-layout/terminal-topology/terminal-pane-layout-tree'
 import { structuredAgentSessionAddressTabId } from '../../../../../../shared/agent-session/view/structured-agent-session-projection'
 import { getStructuredAgentSessionTabsByPaneKey } from '@/components/native-chat/session/status/structured-agent-session-tabs'
@@ -214,6 +215,7 @@ export function workspaceUnreadTargetsOutsideAgentRows(
 
 /** Open the target the way its own row would, after unfolding its card's agent list. */
 export function openSlotTarget(target: SlotTarget): void {
+  showWorkbenchForBot()
   if (target.tabId !== undefined) {
     activateUnreadTab(
       target.worktreeId,

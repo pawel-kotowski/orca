@@ -80,7 +80,6 @@ const SidebarHeader = React.memo(function SidebarHeader({
     <SidebarSectionHeader
       title={sidebarTitle}
       sectionId={groupBy === 'repo' ? 'projects' : 'workspaces'}
-      reorderable={collapsible}
       fold={fold}
       tourTarget={groupBy === 'repo' ? 'projects-collapse-all' : undefined}
       // WorktreeList portals the collapse-all toggle here; it owns the rendered project rows.

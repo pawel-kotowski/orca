@@ -1,3 +1,4 @@
+import { showWorkbenchForBot } from '@/lib/activity-workbench-visibility'
 import { activateAiVaultStructuredSession } from '@/lib/agent-session/open/activate-ai-vault-structured-session'
 import { targetBotChatLatest } from '@/lib/agent-session/open/bot-link-item-target'
 import { callBotRpc } from '@/lib/bot-hosts'
@@ -35,6 +36,7 @@ function shownChatTab(bot: Bot, sessionId: string): { id: string } | null {
 /** Opens one of the bot's chats as a focused tab; a thread's or a run's gets its tab here. The chat
  *  already on screen goes to its newest output, its composer focused with the usual glow. */
 export function openBotSession(bot: Bot, sessionId: string): void {
+  showWorkbenchForBot()
   const shown = shownChatTab(bot, sessionId)
   if (shown) {
     targetBotChatLatest(sessionId)

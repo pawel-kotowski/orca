@@ -118,7 +118,6 @@ export function canRevealBotSidebarEntry(entry: {
   return (
     state.sidebarOpen &&
     !state.collapsedGroups.has(BOTS_GROUP_KEY) &&
-    (state.sidebarBody ?? 'workspaces') !== 'agents' &&
     readBotsEnabled() &&
     !(entry.kind === 'bot' && entry.paused && state.botSidebarView.hidePausedBots) &&
     !sidebarSearchHasQuery

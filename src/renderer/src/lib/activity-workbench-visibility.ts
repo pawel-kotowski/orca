@@ -39,6 +39,19 @@ export function showActivityTabsForLaunch(launches: unknown): void {
   }
 }
 
+/**
+ * Opening a bot shows its tabs: in the activity view, as a card does, it brings the main area back
+ * and closes the floating workspace over it; in the Projects view it undoes a card's hide.
+ */
+export function showWorkbenchForBot(): void {
+  setProjectsHidesWorkbench(false)
+  setActivityHidesWorkbench(false)
+  const state = useAppStore.getState?.()
+  if (state?.sidebarBody === 'agents' && selectFloatingWorkspacePanelVisible(state)) {
+    hideFloatingWorkspacePanel(state)
+  }
+}
+
 // Why a flag of its own: in the Projects view a click on the open workspace's card steps its tabs
 // aside the same way (Paweł, 2026-11-09: "when i click on already selected ws it should close
 // just like in activity view"); opening any workspace or tab brings them back.

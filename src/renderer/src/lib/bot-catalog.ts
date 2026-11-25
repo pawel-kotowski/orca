@@ -1,4 +1,6 @@
+/* eslint-disable max-lines -- Why: upstream's file at its limit; the local build adds the activity view's tabs coming back. */
 // Every listed host's bots, read from its runtime; the catalog-change bridge refreshes the host that changed.
+import { showWorkbenchForBot } from '@/lib/activity-workbench-visibility'
 import { useContext, useMemo, useSyncExternalStore } from 'react'
 import type { Bot } from '../../../shared/bot-types'
 import type { BotMemoryHistoryView } from '../../../shared/bots/bot-memory-history'
@@ -335,6 +337,9 @@ export function openBotHome(bot: Bot): boolean {
     // Bots are not rows of the workspace list, so there is nothing there to reveal.
     revealInSidebar: false
   })
+  if (opened !== false) {
+    showWorkbenchForBot()
+  }
   return opened !== false
 }
 

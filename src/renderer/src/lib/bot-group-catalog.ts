@@ -1,3 +1,4 @@
+import { showWorkbenchForBot } from '@/lib/activity-workbench-visibility'
 import type { BotGroup } from '../../../shared/bots/bot-group'
 import { botGroupRoomLabel } from './bot-group-room-label'
 import { refreshBotHostGroups } from './bot-group-list'
@@ -74,6 +75,7 @@ export async function openBotGroupRoom(
       )
     )
   }
+  showWorkbenchForBot()
   const workspace = folderWorkspaceKey(group.folderWorkspaceId)
   const state = useAppStore.getState()
   const existing = roomTab(state, group, roomId)

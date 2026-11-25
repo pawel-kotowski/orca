@@ -181,7 +181,7 @@ export function SidebarBotsSplit({
       data-sidebar-bots-split=""
       className={cn(
         'relative flex min-h-12 flex-col border-worktree-sidebar-border pb-2',
-        projectsFirst ? 'scroll-mt-1 border-t' : 'scroll-mb-1 border-b',
+        projectsFirst ? 'mt-auto scroll-mt-1 border-t' : 'scroll-mb-1 border-b',
         '[[data-sidebar-content-viewport]>&]:-mr-1 [[data-sidebar-content-viewport]>&]:pr-1',
         'has-[[data-bot-sidebar-search=single-row]]:min-h-34 has-[[data-bot-sidebar-search=multiple-rows]]:min-h-47',
         SPLIT_SCROLL_GUTTER,
