@@ -104,7 +104,8 @@ export function useClassicGitGraphHistory(
             error: null,
             result: append && prev.result ? prev.result : page,
             items: append ? [...prev.items, ...page.items] : page.items,
-            hasMore: page.hasMore
+            // The graph pages by itself: an empty page ends it.
+            hasMore: page.hasMore && page.items.length > 0
           }
           loadedByKey.set(cacheKey, { ...next, head })
           return next

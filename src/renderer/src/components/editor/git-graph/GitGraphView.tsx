@@ -13,7 +13,7 @@ import { useWorktreeGitOwnerTarget } from '@/components/right-sidebar/source-con
 import { useGitHistoryCommitActions } from '@/components/right-sidebar/source-control/sync/use-git-history-commit-actions'
 import type { GitHistoryRefs } from '../../../../../shared/git/history/git-history-types'
 import { useClassicGitGraphHistory } from './use-git-graph-history-local'
-import { GIT_GRAPH_ROW_HEIGHT, GitGraphHeaderRow } from './git-graph-row'
+import { GitGraphHeaderRow } from './git-graph-row'
 import { useGitGraphColumns } from './git-graph-columns'
 import { useGitGraphJump, useGitGraphRefList } from './use-git-graph-jump'
 import { GitGraphToolbar, useGitGraphDensity, useGitGraphZoom } from './git-graph-toolbar'
@@ -34,6 +34,7 @@ import { useGitGraphRows } from './use-git-graph-rows'
 import { GitGraphList } from './git-graph-list'
 import { useGitGraphThemeColours } from './use-git-graph-theme-colours'
 import { useGitGraphFetch } from './use-git-graph-fetch'
+import { useGitGraphAutoPage } from './use-git-graph-auto-page'
 import { useGitGraphHoverGuard } from './use-git-graph-hover-guard'
 
 // Selection, scroll and the drawn branches survive the tab remounting (a split beside it moves
@@ -267,8 +268,15 @@ export function GitGraphView({ worktreeId }: { worktreeId: string }): React.JSX.
     }
   })
 
-  // Load the next page as the list nears its end.
-  const { hasMore, loadMore } = history
+  const pageNearEnd = useGitGraphAutoPage({
+    listRef,
+    rowCount: model.rows.length,
+    items: history.items,
+    hasMore: history.hasMore,
+    loading: history.loading,
+    error: history.error,
+    loadMore: history.loadMore
+  })
   const hoverGuard = useGitGraphHoverGuard()
   const onScroll = (event: React.UIEvent<HTMLDivElement>): void => {
     const el = event.currentTarget
@@ -279,9 +287,7 @@ export function GitGraphView({ worktreeId }: { worktreeId: string }): React.JSX.
       scrollTop: el.scrollTop,
       refs: previous?.refs ?? refsFilter
     })
-    if (hasMore && el.scrollHeight - el.scrollTop - el.clientHeight < GIT_GRAPH_ROW_HEIGHT * 40) {
-      loadMore()
-    }
+    pageNearEnd()
   }
 
   const branchNames = [
@@ -401,16 +407,15 @@ export function GitGraphView({ worktreeId }: { worktreeId: string }): React.JSX.
                       onFocusBranch={followBranch}
                       onCommitAction={handleCommitAction}
                     />
-                    {history.hasMore && (
-                      <div className="px-3 py-2">
-                        <Button
-                          variant="ghost"
-                          size="xs"
-                          disabled={history.loading}
-                          onClick={history.loadMore}
-                        >
-                          {translate('local.gitGraph.loadMore', 'Load more commits')}
-                        </Button>
+                    {history.hasMore && model.rows.length > 0 && (
+                      <div className="px-3 py-2 text-xs text-muted-foreground">
+                        {history.error ? (
+                          <Button variant="ghost" size="xs" onClick={history.loadMore}>
+                            {translate('local.gitGraph.retryPage', 'Try again')}
+                          </Button>
+                        ) : (
+                          translate('local.gitGraph.loadingMore', 'Loading older commits…')
+                        )}
                       </div>
                     )}
                   </div>
