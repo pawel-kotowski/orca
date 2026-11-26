@@ -7,7 +7,11 @@ import { useAppStore } from '@/store/index'
 import { openNativeChatCodeRange } from './chat-code-show'
 
 /** A chat visual's `data-orca-show` element was clicked: show that code, owned by the chat's tab. */
-export function showNativeChatVisualCode(chatTabId: string, parsed: CodeLineRange): void {
+export function showNativeChatVisualCode(
+  chatTabId: string,
+  parsed: CodeLineRange,
+  place: 'beside' | 'below' = 'beside'
+): void {
   const context = resolveNativeChatFileLinkContext(useAppStore.getState(), chatTabId)
   const absolutePath = context
     ? resolveExplicitFileLinkTargetPath(parsed.pathText, context.worktreePath)
@@ -16,12 +20,16 @@ export function showNativeChatVisualCode(chatTabId: string, parsed: CodeLineRang
     return
   }
   const target = { absolutePath, line: parsed.startLine, endLine: parsed.endLine }
-  void openNativeChatCodeRange(target, context, () =>
-    openDetectedFilePath(
-      absolutePath,
-      parsed.startLine,
-      null,
-      nativeChatFileOpenDeps({ ...target, column: null }, context)
-    )
+  void openNativeChatCodeRange(
+    target,
+    context,
+    () =>
+      openDetectedFilePath(
+        absolutePath,
+        parsed.startLine,
+        null,
+        nativeChatFileOpenDeps({ ...target, column: null }, context)
+      ),
+    place
   )
 }

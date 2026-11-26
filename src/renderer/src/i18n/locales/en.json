@@ -24388,6 +24388,36 @@
         "filesStayLine": "Its files stay on {{host}}.",
         "removing": "Removing…"
       }
+    },
+    "noteThread": {
+      "agent": "Agent",
+      "you": "You",
+      "replyPlaceholder": "Reply…",
+      "reply": "Reply",
+      "reopen": "Reopen",
+      "resolve": "Resolve"
+    },
+    "codeNotes": {
+      "stale": "The lines this note was left on have changed."
+    },
+    "chatVisual": {
+      "commentPlaceholder": "Comment on this part…",
+      "comment": "Comment",
+      "partGone": "This part is no longer on the page.",
+      "sent": "Sent to the chat",
+      "sentToast": "Comments sent to the chat",
+      "noChat": "The chat this visual came from is not open.",
+      "sendRefused": "The chat did not take the message. Try again when it is ready.",
+      "sendCount": "Send {{count}} to chat",
+      "send": "Send to chat",
+      "sendTooltip": "Send your new comments to the chat as your message",
+      "allSent": "No new comments to send",
+      "commentHint": "Click any part of the page to comment on it. Press Esc to stop.",
+      "commentsCount": "Comments {{count}}"
+    },
+    "notes": {
+      "sourceCode": "Code",
+      "sourceVisual": "Visual"
     }
   },
   "dashboardPopout": {

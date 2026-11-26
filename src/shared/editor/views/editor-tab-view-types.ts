@@ -12,6 +12,7 @@ import type {
   GitStatusEntry
 } from '../../git/status/git-status-types'
 import type { GitLabProjectRef } from '../../gitlab/gitlab-types'
+import type { ChatVisualTabIdentity } from '../../native-chat/visuals/chat-visual-tab-identity'
 import type { PRCheckDetail, PRCheckRunDetails } from '../../github/checks/check-types'
 import type { GitHubRepositoryIdentity } from '../../github/repositories/repository-identity'
 
@@ -107,4 +108,5 @@ export type EditorTabView =
     }
   | { mode: 'conflict-review'; conflictReview?: ConflictReviewState }
   | { mode: 'git-graph' }
+  | { mode: 'chat-visual'; chatVisual?: ChatVisualTabIdentity }
   | { mode: 'check-details'; checkRunDetails?: OpenCheckRunDetailsState }

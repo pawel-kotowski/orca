@@ -22,6 +22,8 @@ export type TabContentType =
   | 'conflict-review'
   | 'check-details'
   | 'git-graph'
+  /** A chat visual popped out of its chat (an HTML page from the chat's scratch folder). */
+  | 'chat-visual'
   | 'agent-session'
   | 'browser'
   | 'simulator'
@@ -52,6 +54,7 @@ export const TAB_CONTENT_TRAITS: Record<
   'conflict-review': { renderableWithoutRecord: false, visibleType: 'editor' },
   'check-details': { renderableWithoutRecord: false, visibleType: 'editor' },
   'git-graph': { renderableWithoutRecord: false, visibleType: 'editor' },
+  'chat-visual': { renderableWithoutRecord: false, visibleType: 'editor' },
   'agent-session': { renderableWithoutRecord: true, visibleType: 'agent-session' },
   browser: { renderableWithoutRecord: false, visibleType: 'browser' },
   simulator: { renderableWithoutRecord: true, visibleType: 'simulator' },

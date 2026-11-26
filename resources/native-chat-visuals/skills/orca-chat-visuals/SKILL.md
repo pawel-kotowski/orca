@@ -59,3 +59,28 @@ After the file exists, put this on its own line in your reply, outside any code 
 ::orca-visual{file="latency-by-region-7c1e.html" title="Latency by region"}
 
 `file` is the bare file name, never a path; `title` is optional. At most 8 per reply.
+
+## Pop-out and the user's comments
+
+The user can open a visual in an Orca tab of its own beside the chat (its Open button), where it
+stays while the chat moves on, its code links still work, and it updates by itself when you
+rewrite the file. There they can comment on any part of the page (a pin on the part, a thread
+beside it); comments are Orca notes of the workspace, kept until resolved or cleared.
+
+When they press **Send to chat**, the comments arrive as their message: each names the visual's
+path, the part (a CSS selector, the code it shows, the text it holds) and a note id. You can also
+read them any time:
+
+```sh
+orca notes list                      # every open note: code lines, diffs and visual parts
+orca notes list --file flow-7c1e.html --json
+```
+
+Answer either way, as fits:
+
+- **In chat**: a normal reply, naming the parts you mean.
+- **On the visual**: `orca notes reply <note id> --body "<answer>"` puts your answer on that
+  note's thread in the open tab at once; `orca notes resolve <note id>` marks it done. Rewrite the
+  HTML file under the same name to change the page: the tab reloads it and keeps the comments,
+  re-pinned on the same parts (keep an element's `id`, text or `data-orca-show` so a note finds
+  its part again).

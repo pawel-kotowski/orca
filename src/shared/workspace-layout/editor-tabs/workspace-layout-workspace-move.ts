@@ -20,7 +20,8 @@ export const EDITOR_KINDS: ReadonlySet<LayoutTab['kind']> = new Set<LayoutTab['k
   'diff',
   'conflict-review',
   'check-details',
-  'git-graph'
+  'git-graph',
+  'chat-visual'
 ])
 
 /** A layout-owner group must show only one tab per file/kind; otherwise closing the visible tab leaves an unreachable duplicate. */

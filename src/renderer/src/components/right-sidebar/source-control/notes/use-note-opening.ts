@@ -3,6 +3,7 @@ import { detectLanguage } from '../../../../../../shared/editor-language/editor-
 import { getDiffCommentSource } from '@/lib/source-control/review/comments/diff-comment-compat'
 import { joinPath } from '@/lib/path'
 import { useAppStore } from '@/store'
+import { openChatVisualTab } from '@/components/native-chat/media/visuals/popout/open-chat-visual-tab'
 import type {
   GitBranchChangeEntry,
   GitBranchCompareSummary
@@ -22,6 +23,25 @@ import {
 export type SourceControlNoteOpening = {
   handleOpenComment: (comment: DiffComment) => void
   setSourceControlRoot: (node: HTMLDivElement | null) => void
+}
+
+/** A visual note opens its visual's tab, at the note's thread. */
+function openVisualNote(comment: DiffComment): void {
+  const anchor = comment.visual
+  if (!anchor?.chatTabId) {
+    return
+  }
+  openChatVisualTab(
+    {
+      environmentId: anchor.environmentId ?? null,
+      sessionId: anchor.sessionId,
+      file: anchor.file,
+      chatTabId: anchor.chatTabId,
+      title: anchor.title ?? null
+    },
+    comment.worktreeId,
+    { noteId: comment.id }
+  )
 }
 
 export function useSourceControlNoteOpening({
@@ -82,11 +102,18 @@ export function useSourceControlNoteOpening({
       // Clear any dangling prior scroll request; only the diff branches below re-stamp it.
       cancelSourceControlEditorRevealFrames(pendingCommentEditorRevealFrameIdsRef)
       useAppStore.getState().setScrollToDiffCommentId(null)
-      if (getDiffCommentSource(comment) === 'markdown') {
+      if (getDiffCommentSource(comment) === 'visual') {
+        openVisualNote(comment)
+        return
+      }
+      const source = getDiffCommentSource(comment)
+      if (source === 'markdown' || source === 'code') {
         const absPath = joinPath(worktreePath, filePath)
         const language = detectLanguage(filePath)
         useAppStore.getState().setEditorViewMode(absPath, 'edit')
-        useAppStore.getState().setMarkdownViewMode(absPath, 'source')
+        if (source === 'markdown') {
+          useAppStore.getState().setMarkdownViewMode(absPath, 'source')
+        }
         useAppStore.getState().openFile(
           {
             filePath: absPath,

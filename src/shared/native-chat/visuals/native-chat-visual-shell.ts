@@ -1,6 +1,7 @@
 /* eslint-disable max-lines -- Why: an upstream file at its limit that the local build's patches push a few lines over; the ratchet does not run on local/orca-glass. */
 import { PANEL_DESIGN_TOKEN_ALLOWLIST } from '../../plugins/frames/plugin-panel-design-tokens'
 import { parseVisualCodeLocation, type CodeLineRange } from '../native-chat-code-range'
+import { nativeChatVisualNoteBridgeScript } from './native-chat-visual-note-bridge'
 
 /** Shared Electron-free sandbox document. Parse CSP before visual markup so later HTML cannot loosen it.
  * Allow pinned-CDN scripts/styles/fonts/images only; block fetch/sockets/frames/forms. Allowed-CDN requests can still carry data: disclosed accepted risk, not a no-egress guarantee. */
@@ -106,6 +107,7 @@ function visualBaseCss(fitFrame: boolean): string {
 }
 
 const BASE_CSS = visualBaseCss(true)
+const FILL_CSS = visualBaseCss(false)
 
 /** Ordinary file guests share appearance, while retaining their scrolling and navigation. */
 export function nativeChatVisualGuestTheme(
@@ -235,6 +237,8 @@ export function buildNativeChatVisualDocument(args: {
   html: string
   channel: string
   theme: NativeChatVisualTheme
+  /** 'fill': the page fills a tab of its own and scrolls there; default grows the frame to fit. */
+  fit?: 'content' | 'fill'
 }): string {
   const scheme = args.theme.colorScheme === 'dark' ? 'dark' : 'light'
   return `<!doctype html>
@@ -245,8 +249,9 @@ ${INERT_BASE}
 <meta http-equiv="Content-Security-Policy" content="${NATIVE_CHAT_VISUAL_CSP}">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style id="orca-visual-theme">${nativeChatVisualThemeCss(args.theme)}</style>
-<style>${BASE_CSS}</style>
+<style>${args.fit === 'fill' ? FILL_CSS : BASE_CSS}</style>
 <script>${bootstrapScript(args.channel)}</script>
+<script>${nativeChatVisualNoteBridgeScript(args.channel)}</script>
 </head>
 ${args.html}`
 }
