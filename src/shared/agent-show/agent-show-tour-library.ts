@@ -19,6 +19,8 @@ export type AgentShowLoadedTour = TourPayload & {
 export type AgentShowTourList = {
   tours: (AgentShowLoadedTour & {
     modifiedAt: number
+    /** When the file was created on its host; absent where the file system keeps no birth time. */
+    createdAt?: number
     /** A hash of the file's text, so the panel shows one copy of a tour every workspace has. */
     contentHash?: string
   })[]

@@ -21,10 +21,16 @@ import {
   nativeChatVisualShareKey,
   readNativeChatVisualShareRequest
 } from '../NativeChatInlineVisual'
+import { NATIVE_CHAT_VISUAL_PAGE_MAX_WIDTH } from '../../../../../../../shared/native-chat/visuals/native-chat-visual-shell'
 import { useFollowedChatVisual } from './use-followed-chat-visual'
 import { notesOnVisual, sendVisualNotesToChat, visualNotePins } from './chat-visual-notes'
 import { ChatVisualNoteCard, ChatVisualNoteDraft } from './ChatVisualNotesPanel'
 import { subscribeChatVisualTabFocus, takeChatVisualTabFocus } from './open-chat-visual-tab'
+
+// The page's --background (read from --chat-canvas first) is the editor surface here.
+const PAGE_SCOPE_STYLE = { '--chat-canvas': 'var(--editor-surface)' } as React.CSSProperties
+// The page's gutter (5vw inside the frame) measured on the column the frame fills.
+const HEADER_GUTTER = 'clamp(16px, 5cqw, 48px)'
 
 function ownerOf(identity: ChatVisualTabIdentity, worktreeId: string): NativeChatVisualOwner {
   return {
@@ -183,76 +189,89 @@ export function ChatVisualTabSurface({
       ? t('components.chatVisual.sendCount', 'Send {{count}} to chat', { count: unsent.length })
       : t('components.chatVisual.send', 'Send to chat')
   return (
-    <div ref={scopeRef} className="flex h-full min-h-0 flex-col bg-background">
-      <div className="flex min-h-10 shrink-0 flex-wrap items-center gap-2 border-b border-border px-3 py-1.5">
-        <div className="min-w-0 flex-1">
-          <div className="break-words text-sm font-medium text-foreground">{title}</div>
-          {identity.title ? (
-            <div className="break-all text-xs text-muted-foreground">{identity.file}</div>
-          ) : null}
-        </div>
-        <Button
-          variant={commentMode ? 'secondary' : 'ghost'}
-          size="xs"
-          aria-pressed={commentMode}
-          onClick={() => {
-            setCommentMode((on) => !on)
-            setDraft(null)
-          }}
+    <div
+      ref={scopeRef}
+      className="flex h-full min-h-0 bg-editor-surface"
+      // The page's own background is the editor's, as every other document tab.
+      style={PAGE_SCOPE_STYLE}
+    >
+      <div className="@container flex min-w-0 flex-1 flex-col">
+        <div
+          className="shrink-0 border-b border-border py-2"
+          style={{ paddingInline: HEADER_GUTTER }}
         >
-          <MessageSquarePlus />
-          {t('components.chatVisual.comment', 'Comment')}
-        </Button>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <span>
-              <Button
-                variant="ghost"
-                size="xs"
-                disabled={unsent.length === 0 || sending || !notesOwner}
-                onClick={() => void send()}
-              >
-                <Send />
-                {sendLabel}
-              </Button>
-            </span>
-          </TooltipTrigger>
-          <TooltipContent side="bottom" sideOffset={4}>
-            {unsent.length > 0
-              ? t(
-                  'components.chatVisual.sendTooltip',
-                  'Send your new comments to the chat as your message'
-                )
-              : t('components.chatVisual.allSent', 'No new comments to send')}
-          </TooltipContent>
-        </Tooltip>
-        {notes.length > 0 ? (
-          <Button
-            variant={showPanel ? 'secondary' : 'ghost'}
-            size="xs"
-            aria-pressed={showPanel}
-            onClick={() => {
-              setPanelOpen(!showPanel)
-              setDraft(null)
-            }}
+          <div
+            className="mx-auto flex min-h-8 flex-wrap items-center gap-2"
+            style={{ maxWidth: NATIVE_CHAT_VISUAL_PAGE_MAX_WIDTH }}
           >
-            <MessagesSquare />
-            {t('components.chatVisual.commentsCount', 'Comments {{count}}', {
-              count: notes.length
-            })}
-          </Button>
-        ) : null}
-        {path ? (
-          <ArtifactPublishButton
-            variant="ghost"
-            size="icon-xs"
-            sourceKey={nativeChatVisualShareKey(owner, path)}
-            createRequest={() => readNativeChatVisualShareRequest(owner, identity.file)}
-          />
-        ) : null}
-      </div>
-      <div className="flex min-h-0 flex-1">
-        <div className="relative min-w-0 flex-1">
+            <div className="min-w-0 flex-[1_1_12rem]">
+              <div className="break-words text-sm font-medium text-foreground">{title}</div>
+              {identity.title ? (
+                <div className="break-all text-xs text-muted-foreground">{identity.file}</div>
+              ) : null}
+            </div>
+            <Button
+              variant={commentMode ? 'secondary' : 'ghost'}
+              size="xs"
+              aria-pressed={commentMode}
+              onClick={() => {
+                setCommentMode((on) => !on)
+                setDraft(null)
+              }}
+            >
+              <MessageSquarePlus />
+              {t('components.chatVisual.comment', 'Comment')}
+            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span>
+                  <Button
+                    variant="ghost"
+                    size="xs"
+                    disabled={unsent.length === 0 || sending || !notesOwner}
+                    onClick={() => void send()}
+                  >
+                    <Send />
+                    {sendLabel}
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" sideOffset={4}>
+                {unsent.length > 0
+                  ? t(
+                      'components.chatVisual.sendTooltip',
+                      'Send your new comments to the chat as your message'
+                    )
+                  : t('components.chatVisual.allSent', 'No new comments to send')}
+              </TooltipContent>
+            </Tooltip>
+            {notes.length > 0 ? (
+              <Button
+                variant={showPanel ? 'secondary' : 'ghost'}
+                size="xs"
+                aria-pressed={showPanel}
+                onClick={() => {
+                  setPanelOpen(!showPanel)
+                  setDraft(null)
+                }}
+              >
+                <MessagesSquare />
+                {t('components.chatVisual.commentsCount', 'Comments {{count}}', {
+                  count: notes.length
+                })}
+              </Button>
+            ) : null}
+            {path ? (
+              <ArtifactPublishButton
+                variant="ghost"
+                size="icon-xs"
+                sourceKey={nativeChatVisualShareKey(owner, path)}
+                createRequest={() => readNativeChatVisualShareRequest(owner, identity.file)}
+              />
+            ) : null}
+          </div>
+        </div>
+        <div className="relative min-h-0 flex-1">
           {commentMode ? (
             // Over the page, not above it: a bar would move the page under the pointer.
             <div className="pointer-events-none absolute inset-x-0 top-2 z-10 flex justify-center px-3">
@@ -286,32 +305,28 @@ export function ChatVisualTabSurface({
             </div>
           )}
         </div>
-        {showPanel ? (
-          <aside className="flex w-80 max-w-1/2 shrink-0 flex-col gap-2 scrollbar-sleek overflow-y-auto border-l border-border bg-sidebar p-3">
-            {draft ? (
-              <ChatVisualNoteDraft
-                pick={draft}
-                onCancel={() => setDraft(null)}
-                onSubmit={addNote}
-              />
-            ) : null}
-            {notesOwner
-              ? notes.map((note, index) => (
-                  <ChatVisualNoteCard
-                    key={note.id}
-                    note={note}
-                    n={index + 1}
-                    owner={notesOwner}
-                    active={note.id === activeId}
-                    missing={missing.has(note.id)}
-                    onActivate={() => setActiveId(note.id)}
-                    onShowCode={(show) => showCode(identity, show)}
-                  />
-                ))
-              : null}
-          </aside>
-        ) : null}
       </div>
+      {showPanel ? (
+        <aside className="flex w-80 max-w-1/2 shrink-0 flex-col gap-2 scrollbar-sleek overflow-y-auto border-l border-border bg-sidebar p-3">
+          {draft ? (
+            <ChatVisualNoteDraft pick={draft} onCancel={() => setDraft(null)} onSubmit={addNote} />
+          ) : null}
+          {notesOwner
+            ? notes.map((note, index) => (
+                <ChatVisualNoteCard
+                  key={note.id}
+                  note={note}
+                  n={index + 1}
+                  owner={notesOwner}
+                  active={note.id === activeId}
+                  missing={missing.has(note.id)}
+                  onActivate={() => setActiveId(note.id)}
+                  onShowCode={(show) => showCode(identity, show)}
+                />
+              ))
+            : null}
+        </aside>
+      ) : null}
     </div>
   )
 }

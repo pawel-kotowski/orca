@@ -106,8 +106,17 @@ function visualBaseCss(fitFrame: boolean): string {
   return `html{background:var(--background);color:var(--foreground);font-family:var(--font-sans);font-size:14px;line-height:1.5${scrollbars}body{margin:0}code,pre,kbd,samp{font-family:var(--font-mono)}[data-orca-show]{cursor:pointer}`
 }
 
+/** A page in a tab of its own reads as a document: a centred column with room around it.
+ * Pages are written for the chat column, which gives them that room; a tab edge does not.
+ * html carries the padding and body the width, at a specificity a page's `body{margin:0}` keeps.
+ * body clips sideways as the chat's frame edge does: pages park drawers just past their right edge.
+ * html's own overflow keeps body's from passing to the viewport, where it would clip nothing. */
+export const NATIVE_CHAT_VISUAL_PAGE_MAX_WIDTH = 1080
+export const NATIVE_CHAT_VISUAL_PAGE_GUTTER = 'clamp(16px, 5vw, 48px)'
+const PAGE_CSS = `html{overflow-x:hidden;box-sizing:border-box;padding:28px ${NATIVE_CHAT_VISUAL_PAGE_GUTTER} 56px}html>body{max-width:${NATIVE_CHAT_VISUAL_PAGE_MAX_WIDTH}px;margin-inline:auto;overflow-x:clip}img,video,canvas{max-width:100%;height:auto}pre{overflow-x:auto}`
+
 const BASE_CSS = visualBaseCss(true)
-const FILL_CSS = visualBaseCss(false)
+const FILL_CSS = visualBaseCss(false) + PAGE_CSS
 
 /** Ordinary file guests share appearance, while retaining their scrolling and navigation. */
 export function nativeChatVisualGuestTheme(

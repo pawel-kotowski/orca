@@ -1,4 +1,5 @@
 import type { TourGroup, ListedTour } from './use-repo-tours'
+import { tourPlace } from './tour-row-labels'
 
 /** Same file, same text: older servers send no hash, so their title and steps stand in for it. */
 function tourKey(tour: ListedTour): string {
@@ -24,7 +25,7 @@ export function dedupeTourGroups(groups: readonly TourGroup[]): TourGroup[] {
     for (const tour of group.tours) {
       const key = tourKey(tour)
       if (firstSeen.has(key)) {
-        alsoIn.get(key)?.push(group.label)
+        alsoIn.get(key)?.push(tourPlace(group))
         continue
       }
       firstSeen.set(key, { group: groupIndex, tour: tours.length })
