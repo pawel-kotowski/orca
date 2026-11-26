@@ -23,7 +23,7 @@ export const DiffCommentSchema = z.object({
   id: z.string(),
   worktreeId: z.string(),
   filePath: z.string(),
-  source: z.enum(['diff', 'markdown']).optional(),
+  source: z.enum(['diff', 'markdown', 'code', 'visual']).optional(),
   selectedText: z.string().optional(),
   startLine: z.number().int().positive().optional(),
   // 0 is a whole-file note (the phone's File Note; formatDiffComment prints "Scope: file").
@@ -35,5 +35,28 @@ export const DiffCommentSchema = z.object({
   scope: z.enum(['unstaged', 'staged', 'branch']).optional(),
   oldPath: z.string().optional(),
   diffIdentity: z.string().optional(),
-  side: z.literal('modified')
+  side: z.literal('modified'),
+  visual: z
+    .object({
+      file: z.string(),
+      sessionId: z.string(),
+      environmentId: z.string().optional(),
+      chatTabId: z.string().optional(),
+      title: z.string().optional(),
+      selector: z.string(),
+      text: z.string(),
+      show: z.string().optional()
+    })
+    .optional(),
+  replies: z
+    .array(
+      z.object({
+        id: z.string(),
+        author: z.enum(['user', 'agent']),
+        body: z.string(),
+        createdAt: z.number().finite()
+      })
+    )
+    .optional(),
+  resolvedAt: z.number().finite().optional()
 })

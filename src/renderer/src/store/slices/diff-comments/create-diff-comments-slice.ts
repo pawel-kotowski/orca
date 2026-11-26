@@ -12,6 +12,8 @@ import {
 } from './diff-comment-persistence'
 import { selectWorktreeDiffCommentsOrEmpty } from './worktree-diff-comments-selector'
 import { readOwnedDiffComments, type DiffCommentOwner } from './diff-comment-owner'
+import { isThreadedDiffComment } from '../../../../../shared/file-review/diff-comments-format'
+import { createDiffCommentThreadActions } from './diff-comment-thread-actions'
 
 export type DiffCommentsSlice = {
   getDiffComments: (worktreeId: string | null | undefined) => DiffComment[]
@@ -30,6 +32,13 @@ export type DiffCommentsSlice = {
     sentAt?: number
   ) => Promise<boolean>
   deleteDiffComment: (owner: DiffCommentOwner, commentId: string) => Promise<void>
+  /** Adds the user's reply to a note's thread; false when it was not saved. */
+  replyToDiffComment: (owner: DiffCommentOwner, commentId: string, body: string) => Promise<boolean>
+  setDiffCommentResolved: (
+    owner: DiffCommentOwner,
+    commentId: string,
+    resolved: boolean
+  ) => Promise<boolean>
   clearDiffComments: (
     owner: DiffCommentOwner,
     options?: DiffCommentsClearOptions
@@ -177,13 +186,20 @@ export const createDiffCommentsSlice: StateCreator<AppState, [], [], DiffComment
       return true
     }
     const snapshotsById = new Map(comments.map((comment) => [comment.id, comment]))
+    const sentAt = Date.now()
     const result = mutateDiffComments(set, owner, (existing) => {
-      const next = existing.filter((comment) => {
+      let changed = false
+      const next = existing.flatMap((comment) => {
         const snapshot = snapshotsById.get(comment.id)
         // Why: delivery is async; a note edited after its snapshot was sent is a fresh pending note that must stay visible.
-        return !snapshot || !deliverySnapshotMatches(comment, snapshot)
+        if (!snapshot || !deliverySnapshotMatches(comment, snapshot)) {
+          return [comment]
+        }
+        changed = true
+        // A code or visual note keeps its thread for the agent's answer, marked sent.
+        return isThreadedDiffComment(comment) ? [{ ...comment, sentAt }] : []
       })
-      return next.length === existing.length ? null : next
+      return changed ? next : null
     })
     if (!result) {
       return true
@@ -251,6 +267,8 @@ export const createDiffCommentsSlice: StateCreator<AppState, [], [], DiffComment
       console.error('Failed to persist diff comments:', err)
     }
   },
+
+  ...createDiffCommentThreadActions(set, get),
 
   clearDiffComments: async (owner, options) => {
     if (!readOwnedDiffComments(get(), owner)) {

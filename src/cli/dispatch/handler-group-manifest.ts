@@ -46,6 +46,11 @@ export const HANDLER_GROUPS: readonly HandlerGroup[] = [
   },
   AUTH_HANDLER_GROUP,
   {
+    name: 'notes',
+    keys: ['notes list', 'notes reply', 'notes resolve', 'notes clear'],
+    load: async () => (await import('../notes/notes.js')).NOTES_HANDLERS
+  },
+  {
     name: 'artifacts',
     keys: [
       'artifacts list',

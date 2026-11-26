@@ -18,7 +18,13 @@ import type { WorkspaceResource } from '@/lib/workspace/ownership/workspace-copy
 import { toast } from 'sonner'
 import { useTranslate } from '@/i18n/use-translate'
 import { useAppStore } from '@/store/index'
-import { isMarkdownComment } from '@/lib/source-control/review/comments/diff-comment-compat'
+import {
+  isCodeComment,
+  isMarkdownComment
+} from '@/lib/source-control/review/comments/diff-comment-compat'
+import { formatDiffComments } from '../../../../../../shared/file-review/diff-comments-format'
+import { anchorCodeNote, codeNoteLinesText } from '@/lib/editor/code-notes/code-note-anchor'
+import type { DecoratedDiffComment } from '../../../diff-comments/decorated-diff-comment'
 import {
   formatMarkdownReviewNotes,
   getMarkdownReviewHighlightedText,
@@ -63,6 +69,8 @@ export function useMonacoMarkdownAnnotations(params: {
   worktreeId: string | undefined
   noteSource: WorkspaceResource
   markdownAnnotationsEnabled: boolean
+  /** Notes on lines of any other file (code notes); off for views with no file behind them. */
+  codeNotesEnabled?: boolean
 }): MonacoMarkdownAnnotations {
   const t = useTranslate()
   const {
@@ -73,8 +81,10 @@ export function useMonacoMarkdownAnnotations(params: {
     language,
     worktreeId,
     noteSource,
-    markdownAnnotationsEnabled
+    markdownAnnotationsEnabled,
+    codeNotesEnabled = false
   } = params
+  const isMarkdown = language === 'markdown'
 
   const { owner: commentOwner, comments: allDiffComments } = useDiffCommentView(
     worktreeId,
@@ -86,11 +96,26 @@ export function useMonacoMarkdownAnnotations(params: {
   const scrollToDiffCommentId = useAppStore((s) => s.scrollToDiffCommentId)
   const setScrollToDiffCommentId = useAppStore((s) => s.setScrollToDiffCommentId)
 
-  const markdownComments = useMemo(
-    () =>
-      (allDiffComments ?? []).filter((c) => c.filePath === relativePath && isMarkdownComment(c)),
-    [allDiffComments, relativePath]
-  )
+  const markdownComments = useMemo<DecoratedDiffComment[]>(() => {
+    const own = (allDiffComments ?? []).filter(
+      (c) => c.filePath === relativePath && (isMarkdown ? isMarkdownComment(c) : isCodeComment(c))
+    )
+    if (isMarkdown) {
+      return own
+    }
+    // A code note follows its lines when they move, and says so when they are gone.
+    return own.map((c) => {
+      const anchor = anchorCodeNote(content, c)
+      return {
+        ...c,
+        startLine: anchor.startLine === anchor.lineNumber ? undefined : anchor.startLine,
+        lineNumber: anchor.lineNumber,
+        staleLabel: anchor.stale
+          ? t('components.codeNotes.stale', 'The lines this note was left on have changed.')
+          : null
+      }
+    })
+  }, [allDiffComments, content, isMarkdown, relativePath, t])
 
   const [commentPopover, setCommentPopover, commentPopoverOwnerRef] =
     useOwnedDiffCommentTarget<MarkdownCommentPopoverState>(worktreeId, noteSource)
@@ -103,7 +128,8 @@ export function useMonacoMarkdownAnnotations(params: {
   }, [commentPopover])
 
   const shouldShowMarkdownAnnotations =
-    markdownAnnotationsEnabled && language === 'markdown' && Boolean(worktreeId && commentOwner)
+    (isMarkdown ? markdownAnnotationsEnabled : codeNotesEnabled) &&
+    Boolean(worktreeId && commentOwner)
   // Why: the mount closure installs keydown listeners once, so the shortcut reads current enablement through a ref.
   const shouldShowMarkdownAnnotationsRef = useRef(shouldShowMarkdownAnnotations)
   useEffect(() => {
@@ -119,8 +145,11 @@ export function useMonacoMarkdownAnnotations(params: {
       : null
   }, [markdownComments, scrollToDiffCommentId, shouldShowMarkdownAnnotations])
   const formatMarkdownCommentPrompt = useCallback(
-    (comment: DiffComment) => formatMarkdownReviewNotes([comment as MarkdownReviewNote], content),
-    [content]
+    (comment: DiffComment) =>
+      isMarkdown
+        ? formatMarkdownReviewNotes([comment as MarkdownReviewNote], content)
+        : formatDiffComments([comment]),
+    [content, isMarkdown]
   )
 
   useDiffCommentDecorator({
@@ -140,8 +169,9 @@ export function useMonacoMarkdownAnnotations(params: {
           ? (getDiffCommentPopoverLeft(mountedEditor, editorContainerRef.current) ?? undefined)
           : undefined,
         // Snapshot at open so edits above the composer or later can't re-point the note's excerpt.
-        selectedText:
-          getMarkdownReviewHighlightedText(content, { lineNumber, startLine }) || undefined
+        selectedText: isMarkdown
+          ? getMarkdownReviewHighlightedText(content, { lineNumber, startLine }) || undefined
+          : codeNoteLinesText(content, startLine ?? lineNumber, lineNumber) || undefined
       })
     },
     onDeleteComment: (id) => {
@@ -216,10 +246,17 @@ export function useMonacoMarkdownAnnotations(params: {
       ? addDiffComment(owner, {
           worktreeId,
           filePath: relativePath,
-          source: 'markdown',
+          source: isMarkdown ? 'markdown' : 'code',
           startLine: commentPopover.startLine,
           lineNumber: commentPopover.lineNumber,
-          selectedText: commentPopover.selectedText,
+          // A code note keeps its whole lines, so it can find them again after edits.
+          selectedText: isMarkdown
+            ? commentPopover.selectedText
+            : codeNoteLinesText(
+                content,
+                commentPopover.startLine ?? commentPopover.lineNumber,
+                commentPopover.lineNumber
+              ) || undefined,
           body,
           side: 'modified'
         })

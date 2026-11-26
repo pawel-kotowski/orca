@@ -4365,6 +4365,57 @@ body:has([data-contextual-tour-target='tab-create-menu'][data-state='open'])
   background-clip: padding-box;
 }
 
+/* A note's thread under its body: replies set off by a rule, the agent's marked by its icon. */
+.orca-note-thread {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.orca-note-thread-reply {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: 8px;
+  border-top: 1px solid color-mix(in srgb, var(--foreground) 8%, var(--border));
+}
+
+.orca-note-thread-author {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.orca-note-thread-body {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--foreground);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.orca-note-thread-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: -8px;
+}
+
+.orca-diff-comment-card[data-resolved='true'] .orca-diff-comment-body,
+.orca-diff-comment-card[data-resolved='true'] .orca-note-thread-body {
+  color: var(--muted-foreground);
+}
+
+.orca-diff-comment-stale {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--muted-foreground);
+}
+
 .orca-diff-comment-popover-footer {
   display: flex;
   align-items: center;
