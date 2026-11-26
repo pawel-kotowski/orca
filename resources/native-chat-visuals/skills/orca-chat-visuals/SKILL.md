@@ -64,7 +64,9 @@ After the file exists, put this on its own line in your reply, outside any code 
 
 The user can open a visual in an Orca tab of its own beside the chat (its Open button), where it
 stays while the chat moves on, its code links still work, and it updates by itself when you
-rewrite the file. There they can comment on any part of the page (a pin on the part, a thread
+rewrite the file. In the tab Orca frames the page as a document (padding around it, a centred
+column up to 1080px wide, the editor's background), so let the page flow to its width rather
+than fixing one. There they can comment on any part of the page (a pin on the part, a thread
 beside it); comments are Orca notes of the workspace, kept until resolved or cleared.
 
 When they press **Send to chat**, the comments arrive as their message: each names the visual's

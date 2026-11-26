@@ -11,7 +11,8 @@ import {
 import { TOURS_FOLDER } from '../../../../../shared/agent-show/agent-show-tour-library'
 import { TourListRow } from './TourListRow'
 import { playListedTour, resumeTour } from './tour-panel-play'
-import { useRepoTours, type TourGroup } from './use-repo-tours'
+import { useRepoTours, type ListedTour, type TourGroup } from './use-repo-tours'
+import { byNewestTour, tourPlace } from './tour-row-labels'
 import { dedupeTourGroups } from './tour-dedupe'
 
 function SectionTitle({ children }: { children: React.ReactNode }): React.JSX.Element {
@@ -46,41 +47,24 @@ function PlayingTourRow({ tour }: { tour: PlayingTour }): React.JSX.Element {
   )
 }
 
-function GroupTours({
-  group,
+type PlayTour = (group: TourGroup, tour: ListedTour, step: number) => void
+
+function TourRows({
+  rows,
   busy,
   onPlay
 }: {
-  group: TourGroup
+  rows: { group: TourGroup; tour: ListedTour; place: string | null }[]
   busy: boolean
-  onPlay: (group: TourGroup, tour: NonNullable<TourGroup['tours']>[number], step: number) => void
-}): React.JSX.Element | null {
-  if (group.error) {
-    return (
-      <p className="px-3 py-1 text-2xs text-muted-foreground">
-        Could not read tours: {group.error}
-      </p>
-    )
-  }
-  if (!group.tours) {
-    return group.current ? (
-      <p className="px-3 py-1 text-2xs text-muted-foreground">Reading tours…</p>
-    ) : null
-  }
-  if (group.tours.length === 0) {
-    return group.current ? (
-      <p className="px-3 py-1 text-xs text-muted-foreground">
-        No tours here yet. Agents write them to <code className="font-mono">{TOURS_FOLDER}/</code>{' '}
-        when you ask for a walk-through with /explain.
-      </p>
-    ) : null
-  }
+  onPlay: PlayTour
+}): React.JSX.Element {
   return (
     <div className="flex flex-col px-1.5">
-      {group.tours.map((tour) => (
+      {rows.map(({ group, tour, place }) => (
         <TourListRow
-          key={tour.file}
+          key={`${group.key}\u0000${tour.file}`}
           tour={tour}
+          place={place}
           playable={!busy}
           onPlay={(step) => onPlay(group, tour, step)}
         />
@@ -89,7 +73,39 @@ function GroupTours({
   )
 }
 
-/** The repo's tours: this workspace's, then the other workspaces'; click one to play it. */
+/** The workspace on screen: its tours, or why there are none to show yet. */
+function CurrentTours({
+  group,
+  busy,
+  onPlay
+}: {
+  group: TourGroup
+  busy: boolean
+  onPlay: PlayTour
+}): React.JSX.Element {
+  if (group.error) {
+    return (
+      <p className="px-3 py-1 text-2xs text-muted-foreground">
+        Could not read tours: {group.error}
+      </p>
+    )
+  }
+  if (!group.tours) {
+    return <p className="px-3 py-1 text-2xs text-muted-foreground">Reading tours…</p>
+  }
+  if (group.tours.length === 0) {
+    return (
+      <p className="px-3 py-1 text-xs text-muted-foreground">
+        No tours here yet. Agents write them to <code className="font-mono">{TOURS_FOLDER}/</code>{' '}
+        when you ask for a walk-through with /explain.
+      </p>
+    )
+  }
+  const rows = group.tours.map((tour) => ({ group, tour, place: null })).sort(byNewestTour)
+  return <TourRows rows={rows} busy={busy} onPlay={onPlay} />
+}
+
+/** The project's tours: this workspace's, then every other workspace's on every machine, newest first. */
 export default function ToursPanel({ isVisible }: { isVisible: boolean }): React.JSX.Element {
   useSyncExternalStore(subscribeTours, toursVersion)
   const { groups: listedGroups, refresh } = useRepoTours(isVisible)
@@ -99,7 +115,7 @@ export default function ToursPanel({ isVisible }: { isVisible: boolean }): React
   const [busy, setBusy] = useState(false)
   const workspaceIds = new Set(groups.map((group) => group.worktreeId))
   const playing = playingTours().filter((tour) => workspaceIds.has(tour.context.worktreeId))
-  const onPlay: React.ComponentProps<typeof GroupTours>['onPlay'] = (group, tour, step) => {
+  const onPlay: PlayTour = (group, tour, step) => {
     setBusy(true)
     setNotice(null)
     void playListedTour(group, tour, step)
@@ -108,7 +124,13 @@ export default function ToursPanel({ isVisible }: { isVisible: boolean }): React
       )
       .finally(() => setBusy(false))
   }
-  const others = groups.filter((group) => !group.current && (group.tours?.length ?? 0) > 0)
+  const others = groups
+    .filter((group) => !group.current)
+    .flatMap((group) =>
+      (group.tours ?? []).map((tour) => ({ group, tour, place: tourPlace(group) }))
+    )
+    .sort(byNewestTour)
+  const unreadable = groups.filter((group) => !group.current && group.error)
   const current = groups.find((group) => group.current)
   return (
     <div className="scrollbar-sleek flex min-h-0 flex-1 flex-col overflow-y-auto pb-3">
@@ -141,18 +163,23 @@ export default function ToursPanel({ isVisible }: { isVisible: boolean }): React
       {current ? (
         <>
           <SectionTitle>This workspace</SectionTitle>
-          <GroupTours group={current} busy={busy} onPlay={onPlay} />
+          <CurrentTours group={current} busy={busy} onPlay={onPlay} />
         </>
       ) : (
         <p className="px-3 py-2 text-xs text-muted-foreground">
           Open a workspace to see its tours.
         </p>
       )}
-      {others.map((group) => (
-        <div key={group.worktreeId}>
-          <SectionTitle>{group.label}</SectionTitle>
-          <GroupTours group={group} busy={busy} onPlay={onPlay} />
-        </div>
+      {others.length > 0 ? (
+        <>
+          <SectionTitle>Other workspaces of this project</SectionTitle>
+          <TourRows rows={others} busy={busy} onPlay={onPlay} />
+        </>
+      ) : null}
+      {unreadable.map((group) => (
+        <p key={group.key} className="px-3 py-1 text-2xs text-muted-foreground">
+          Could not read the tours in {tourPlace(group)}: {group.error}
+        </p>
       ))}
     </div>
   )

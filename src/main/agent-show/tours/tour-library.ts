@@ -23,7 +23,14 @@ export async function listWorktreeTours(
       .map(async (name) => {
         const file = join(folder, name)
         const info = await stat(file).catch(() => null)
-        return info?.isFile() ? { file, modifiedAt: info.mtimeMs } : null
+        // Why birth time: the list says when a tour was written; 0 where the file system keeps none.
+        return info?.isFile()
+          ? {
+              file,
+              modifiedAt: info.mtimeMs,
+              createdAt: info.birthtimeMs > 0 ? info.birthtimeMs : undefined
+            }
+          : null
       })
   )
   const newest = files
@@ -31,13 +38,14 @@ export async function listWorktreeTours(
     .sort((a, b) => b.modifiedAt - a.modifiedAt)
     .slice(0, MAX_TOURS)
   const tours = await Promise.all(
-    newest.map(async ({ file, modifiedAt }) => {
+    newest.map(async ({ file, modifiedAt, createdAt }) => {
       const text = await readFile(file, 'utf8').catch(() => null)
       return text === null
         ? null
         : {
             ...(await loadTour({ worktreePath, local, file, text })),
             modifiedAt,
+            ...(createdAt ? { createdAt } : {}),
             contentHash: createHash('sha256').update(text).digest('hex').slice(0, 16)
           }
     })

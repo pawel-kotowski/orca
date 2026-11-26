@@ -15,6 +15,9 @@ const tour = (relativePath: string, contentHash?: string, title = 'A tour'): Lis
   }) as unknown as ListedTour
 
 const group = (label: string, tours: ListedTour[] | null, current = false): TourGroup => ({
+  key: `local\u0000id-${label}`,
+  hostLabel: null,
+  archived: false,
   worktreeId: `id-${label}`,
   worktreePath: `/w/${label}`,
   label,

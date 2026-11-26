@@ -12,10 +12,12 @@ const TOURS_TIMEOUT_MS = 20_000
 /** A worktree's `docs/tours`, each tour checked against today's code. */
 export function fetchWorktreeTours(
   worktreeId: string,
-  worktreePath: string
+  worktreePath: string,
+  /** The paired server the workspace is on, when known; ids can repeat across hosts. */
+  runtimeEnvironmentId?: string | null
 ): Promise<AgentShowTourList> {
   return callRuntimeRpc<AgentShowTourList>(
-    buildWorkspaceFileContext(worktreeId, worktreePath).target,
+    buildWorkspaceFileContext(worktreeId, worktreePath, runtimeEnvironmentId).target,
     'agentShow.tours',
     { worktree: toRuntimeWorktreeSelector(worktreeId) },
     { timeoutMs: TOURS_TIMEOUT_MS }
