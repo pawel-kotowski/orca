@@ -71,8 +71,8 @@ export function projectsHidesWorkbench(): boolean {
   return projectsHidden
 }
 
-// Why guarded: tests that mock `@/store` as a bare selector function import this module too.
-useAppStore.subscribe?.((state, previous) => {
+// Why guarded: tests that mock `@/store` as a bare selector function, or as undefined, import this module too.
+useAppStore?.subscribe?.((state, previous) => {
   if (
     state.activeWorktreeId !== previous.activeWorktreeId ||
     state.activeTabId !== previous.activeTabId ||
