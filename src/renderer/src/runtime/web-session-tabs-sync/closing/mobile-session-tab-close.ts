@@ -6,7 +6,8 @@ const EDITOR_SESSION_CONTENT_TYPES = new Set([
   'diff',
   'conflict-review',
   'check-details',
-  'git-graph'
+  'git-graph',
+  'chat-visual'
 ])
 
 export function closeMobileSessionTabInStore(

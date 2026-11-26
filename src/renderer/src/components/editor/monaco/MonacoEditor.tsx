@@ -59,6 +59,8 @@ type MonacoEditorProps = {
   /** The open file's tab; its review notes belong to the copy it names. */
   noteSource?: WorkspaceResource
   markdownAnnotationsEnabled?: boolean
+  /** Notes on lines of a non-markdown file, kept with the workspace's review notes. */
+  codeNotesEnabled?: boolean
   conflictDecorationsEnabled?: boolean
   readOnly?: boolean
   // Why: shows another tab's record read-only; never moves its cursor line or takes its reveals.
@@ -84,6 +86,7 @@ export default function MonacoEditor({
   worktreeId,
   noteSource = NO_RESOURCE_EVIDENCE,
   markdownAnnotationsEnabled = false,
+  codeNotesEnabled = false,
   conflictDecorationsEnabled = false,
   readOnly = false,
   passiveMirror = false,
@@ -173,7 +176,8 @@ export default function MonacoEditor({
     language,
     worktreeId,
     noteSource,
-    markdownAnnotationsEnabled
+    markdownAnnotationsEnabled,
+    codeNotesEnabled
   })
 
   // Layout cleanup precedes the wrapper’s editor disposal, keeping final scroll readable.

@@ -26,6 +26,11 @@ type Props = {
   observeRenderedSize?: boolean
   onSubmitEdit?: (body: string) => Promise<boolean>
   headerActions?: ReactNode
+  /** Under the body: a code or visual note's thread. */
+  thread?: ReactNode
+  resolved?: boolean
+  /** Shown when the lines the note was left on changed since. */
+  staleLabel?: string | null
 }
 
 function resizeDiffCommentTextarea(textarea: HTMLTextAreaElement): boolean {
@@ -49,7 +54,10 @@ export function DiffCommentCard({
   onContentResize,
   observeRenderedSize,
   onSubmitEdit,
-  headerActions
+  headerActions,
+  thread,
+  resolved,
+  staleLabel
 }: Props): React.JSX.Element {
   const t = useTranslate()
   // Zone cards live in separate React roots, so subscribe directly to language changes.
@@ -171,7 +179,7 @@ export function DiffCommentCard({
   }
 
   return (
-    <div ref={cardRef} className="orca-diff-comment-card">
+    <div ref={cardRef} className="orca-diff-comment-card" data-resolved={resolved === true}>
       <div className="orca-diff-comment-content-col">
         {/* Header Row */}
         <div className="orca-diff-comment-header">
@@ -321,6 +329,8 @@ export function DiffCommentCard({
         ) : (
           <div className="orca-diff-comment-body">{body}</div>
         )}
+        {staleLabel ? <div className="orca-diff-comment-stale">{staleLabel}</div> : null}
+        {editing ? null : thread}
       </div>
     </div>
   )

@@ -11,7 +11,13 @@ import { parseWorkspaceKey } from '../../../../../shared/workspace/identity/work
 
 export function normalizeDiffComment(comment: DiffComment): DiffComment {
   const rawSource = (comment as { source?: unknown }).source
-  const source = rawSource === 'markdown' || rawSource === 'diff' ? rawSource : undefined
+  const source =
+    rawSource === 'markdown' ||
+    rawSource === 'diff' ||
+    rawSource === 'code' ||
+    rawSource === 'visual'
+      ? rawSource
+      : undefined
   const rawStartLine = (comment as { startLine?: unknown }).startLine
   const startLine =
     Number.isInteger(rawStartLine) &&
@@ -23,7 +29,10 @@ export function normalizeDiffComment(comment: DiffComment): DiffComment {
   const rawSelectedText = (comment as { selectedText?: unknown }).selectedText
   const selectedText =
     typeof rawSelectedText === 'string' && rawSelectedText.trim().length > 0
-      ? rawSelectedText.trim()
+      ? // A code note finds its lines again by their exact text, indentation included.
+        source === 'code'
+        ? rawSelectedText
+        : rawSelectedText.trim()
       : undefined
   const rawSentAt = (comment as { sentAt?: unknown }).sentAt
   const sentAt =

@@ -2,7 +2,12 @@ import type { GitHubImageIntake } from '@/components/github/use-github-image-upl
 import type { DiffCommentOwner } from '@/store/slices/diff-comments/diff-comment-owner'
 import type { RefObject } from 'react'
 import type { Root } from 'react-dom/client'
-import { formatDiffComments } from '../../../../shared/file-review/diff-comments-format'
+import {
+  formatDiffComments,
+  isThreadedDiffComment
+} from '../../../../shared/file-review/diff-comments-format'
+import { useAppStore } from '@/store'
+import { NoteThread } from './NoteThread'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import type { DiffCommentDeliverySnapshot } from '@/store/slices/diff-comments/create-diff-comments-slice'
 import { DiffCommentCard } from './DiffCommentCard'
@@ -28,6 +33,9 @@ export function getRenderSignature(
     url: comment.url ?? null,
     canDelete: comment.canDelete ?? null,
     canEdit: comment.canEdit ?? null,
+    replies: comment.replies ?? null,
+    resolvedAt: comment.resolvedAt ?? null,
+    staleLabel: comment.staleLabel ?? null,
     sendPrompt: formatCommentPrompt ? formatCommentPrompt(comment) : null
   })
 }
@@ -109,6 +117,23 @@ export function renderDiffCommentZoneCard(
           }
           onContentResize={() => resizeZone(comment.id)}
           observeRenderedSize
+          resolved={comment.resolvedAt !== undefined}
+          staleLabel={comment.staleLabel}
+          thread={
+            owner && isThreadedDiffComment(comment) ? (
+              <NoteThread
+                replies={comment.replies ?? []}
+                resolved={comment.resolvedAt !== undefined}
+                onReply={(body) =>
+                  useAppStore.getState().replyToDiffComment(owner, comment.id, body)
+                }
+                onResolvedChange={(resolved) =>
+                  useAppStore.getState().setDiffCommentResolved(owner, comment.id, resolved)
+                }
+                onContentResize={() => resizeZone(comment.id)}
+              />
+            ) : null
+          }
           headerActions={
             worktreeId && comment.author === undefined ? (
               <NotesSendMenu

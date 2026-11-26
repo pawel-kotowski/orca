@@ -2,6 +2,7 @@ import {
   Eye,
   GitCompareArrows,
   GitGraph,
+  Presentation,
   ListChecks,
   ShieldAlert,
   Smartphone,
@@ -15,15 +16,17 @@ export function getEditorFileTabModeIcon(
 ): LucideIcon | null {
   return file.mode === 'git-graph'
     ? GitGraph
-    : file.mode === 'conflict-review'
-      ? ShieldAlert
-      : file.mode === 'check-details'
-        ? ListChecks
-        : file.mode === 'diff'
-          ? GitCompareArrows
-          : file.mode === 'markdown-preview'
-            ? Eye
-            : file.language === 'simulator'
-              ? Smartphone
-              : null
+    : file.mode === 'chat-visual'
+      ? Presentation
+      : file.mode === 'conflict-review'
+        ? ShieldAlert
+        : file.mode === 'check-details'
+          ? ListChecks
+          : file.mode === 'diff'
+            ? GitCompareArrows
+            : file.mode === 'markdown-preview'
+              ? Eye
+              : file.language === 'simulator'
+                ? Smartphone
+                : null
 }

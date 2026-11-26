@@ -1,3 +1,5 @@
+import { ChatVisualTabSurface } from '@/components/native-chat/media/visuals/popout/ChatVisualTabSurface'
+import { parseChatVisualTabFileId } from '../../../../shared/native-chat/visuals/chat-visual-tab-identity'
 import { GitGraphSurface } from './git-graph/git-graph-surface'
 import { useAppStore } from '@/store'
 import type { ActivePluginCustomEditor } from '@/store/plugins/file-editors/plugin-custom-editors'
@@ -140,6 +142,17 @@ export function EditorContent({
 
   if (activeFile.mode === 'git-graph') {
     return <GitGraphSurface key={activeFile.worktreeId} worktreeId={activeFile.worktreeId} />
+  }
+
+  if (activeFile.mode === 'chat-visual') {
+    const identity = activeFile.chatVisual ?? parseChatVisualTabFileId(activeFile.id)
+    return identity ? (
+      <ChatVisualTabSurface key={activeFile.id} file={activeFile} identity={identity} />
+    ) : (
+      <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+        {t('components.native-chat.visualUnavailable', 'Visualization unavailable')}
+      </div>
+    )
   }
 
   if (activeFile.mode === 'check-details') {

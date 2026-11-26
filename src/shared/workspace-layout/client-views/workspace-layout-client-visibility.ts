@@ -3,7 +3,9 @@ import type { LayoutTab, WorkspaceLayout } from '../workspace-layout-model'
 
 export type LayoutClientVisibility = (tab: Pick<LayoutTab, 'kind'>) => boolean
 
-export const withoutGitGraph: LayoutClientVisibility = (tab) => tab.kind !== 'git-graph'
+// A client that cannot draw a Git Graph cannot draw a popped-out chat visual either.
+export const withoutGitGraph: LayoutClientVisibility = (tab) =>
+  tab.kind !== 'git-graph' && tab.kind !== 'chat-visual'
 
 export function visibleLayoutGroups(workspace: WorkspaceLayout, visible: LayoutClientVisibility) {
   const ids = new Set(workspace.tabs.filter(visible).map((tab) => tab.id))

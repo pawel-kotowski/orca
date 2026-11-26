@@ -1,16 +1,14 @@
-import { useAppStore } from '@/store/index'
-import { captureLinkOpenIntent } from '@/lib/links/placement/link-open-intent'
-import { beginLinkOpenRequest } from '@/lib/links/link-open-request'
-import { useContext, useEffect, useRef, useState } from 'react'
+import { useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { SquareArrowOutUpRight } from 'lucide-react'
-import { toast } from 'sonner'
 import { ArtifactPublishButton } from '@/components/artifacts/ArtifactPublishButton'
 import { ArtifactPublishPreparationError } from '@/components/artifacts/artifact-publish-flow'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useTranslate } from '@/i18n/use-translate'
 import { fileArtifactSourceKey } from '@/lib/files/artifacts/file-artifact-source-key'
-import { openFileInBrowserTab } from '@/lib/browser/documents/file-preview'
+import { useDiffCommentView } from '@/components/diff-comments/use-diff-comment-owner'
+import { openChatVisualTab } from './popout/open-chat-visual-tab'
+import { notesOnVisual, visualNotePins } from './popout/chat-visual-notes'
 import { basename } from '@/lib/path'
 import {
   getRuntimeTargetHostId,
@@ -34,22 +32,31 @@ export function NativeChatVisualUnavailable(): React.JSX.Element {
   )
 }
 
-/** Opens the visual like any HTML file of the chat's workspace: rendered, its source a click away. */
-function openNativeChatVisualFile(owner: NativeChatVisualOwner, path: string): void {
-  const isCurrentRequest = beginLinkOpenRequest()
-  const linkIntent = captureLinkOpenIntent(useAppStore.getState(), owner.worktreeId, owner.tabId)
-  const plan = openFileInBrowserTab({
-    filePath: path,
-    worktreeId: owner.worktreeId,
-    ...(owner.tabId ? { linkContext: { linkIntent, isCurrentRequest } } : {})
-  })
-  if (plan.status === 'unsupported') {
-    toast.error(plan.message)
+/** Opens the visual in a tab of its own beside the chat (Paweł, 2026-11-26: it "will get lost in chat"). */
+function openNativeChatVisualTab(
+  owner: NativeChatVisualOwner,
+  file: string,
+  title: string | null,
+  options?: { noteId?: string; commentMode?: boolean }
+): void {
+  if (!owner.tabId) {
+    return
   }
+  openChatVisualTab(
+    {
+      environmentId: owner.target.kind === 'environment' ? owner.target.environmentId : null,
+      sessionId: owner.sessionId,
+      file,
+      chatTabId: owner.tabId,
+      title
+    },
+    owner.worktreeId,
+    options
+  )
 }
 
 /** The file's own key on the chat's host, so Share here and on the opened file update one link. */
-function nativeChatVisualShareKey(owner: NativeChatVisualOwner, path: string): string {
+export function nativeChatVisualShareKey(owner: NativeChatVisualOwner, path: string): string {
   return fileArtifactSourceKey(
     {
       executionHostId: getRuntimeTargetHostId(owner.target),
@@ -60,7 +67,7 @@ function nativeChatVisualShareKey(owner: NativeChatVisualOwner, path: string): s
 }
 
 /** Publishes the file as saved now, never the copy on screen; a failed read publishes nothing. */
-async function readNativeChatVisualShareRequest(
+export async function readNativeChatVisualShareRequest(
   owner: NativeChatVisualOwner,
   file: string
 ): Promise<ArtifactWriteRequest> {
@@ -98,6 +105,12 @@ export function NativeChatInlineVisual({
     { target: owner.target, sessionId: owner.sessionId, file },
     near
   )
+  const { comments } = useDiffCommentView(owner.worktreeId, 'selection')
+  const shownPath = state.status === 'ready' ? state.document.path : null
+  const pins = useMemo(
+    () => visualNotePins(notesOnVisual(comments ?? [], shownPath), null),
+    [comments, shownPath]
+  )
 
   useEffect(() => {
     const element = boxRef.current
@@ -133,7 +146,7 @@ export function NativeChatInlineVisual({
                   variant="outline"
                   size="icon-xs"
                   aria-label={openLabel}
-                  onClick={() => openNativeChatVisualFile(owner, state.document.path)}
+                  onClick={() => openNativeChatVisualTab(owner, file, title)}
                 >
                   <SquareArrowOutUpRight />
                 </Button>
@@ -160,6 +173,12 @@ export function NativeChatInlineVisual({
             onShowCode={
               chatTabId ? (location) => showNativeChatVisualCode(chatTabId, location) : undefined
             }
+            notePins={pins}
+            onNoteMessage={(message) => {
+              if (message.kind === 'note-open') {
+                openNativeChatVisualTab(owner, file, title, { noteId: message.id })
+              }
+            }}
           />
         </>
       ) : (

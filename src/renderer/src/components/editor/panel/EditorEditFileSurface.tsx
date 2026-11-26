@@ -1,3 +1,4 @@
+/* eslint-disable max-lines -- Why: an upstream file at its limit that the local build's code notes push a line over; the ratchet does not run on local/orca-glass. */
 import { useTranslate } from '@/i18n/use-translate'
 import type { MarkdownViewMode, OpenFile } from '@/store/slices/editor/types/open-file'
 import type { PendingEditorReveal } from '@/store/slices/editor/types/pending-editor-reveal'
@@ -285,6 +286,7 @@ export function EditorEditFileSurface({
         }
         worktreeId={activeFile.worktreeId}
         markdownAnnotationsEnabled={markdownAnnotationsEnabled && isMarkdown}
+        codeNotesEnabled={!isMarkdown && activeFile.liveTail !== true}
         conflictDecorationsEnabled={activeFile.conflict?.conflictStatus === 'unresolved'}
         revealLine={
           matchesPendingEditorReveal(pendingEditorReveal, activeFile, viewStateScopeId)

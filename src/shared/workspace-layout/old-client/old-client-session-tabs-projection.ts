@@ -155,6 +155,7 @@ function projectTab(tab: LayoutTab, scope: Scope): RuntimeMobileSessionSnapshotT
     }
     case 'conflict-review':
     case 'git-graph':
+    case 'chat-visual':
     case 'check-details':
       // Virtual views have no file to read and no compatible session.tabs kind.
       return []

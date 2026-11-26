@@ -8,7 +8,8 @@ export function isTransientEditorContentType(contentType: TabContentType): boole
     contentType === 'diff' ||
     contentType === 'conflict-review' ||
     contentType === 'check-details' ||
-    contentType === 'git-graph'
+    contentType === 'git-graph' ||
+    contentType === 'chat-visual'
   )
 }
 

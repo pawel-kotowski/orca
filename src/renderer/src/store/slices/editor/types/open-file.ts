@@ -1,4 +1,5 @@
 import type { ExecutionHostId } from '../../../../../../shared/execution-host/execution-host'
+import type { ChatVisualTabIdentity } from '../../../../../../shared/native-chat/visuals/chat-visual-tab-identity'
 import type { RecentlyClosedTabPosition } from '../../tabs/recently-closed-tab-position'
 import type { EditorFileOperationProvenance } from '@/lib/editor/file-operations/editor-file-operation-provenance'
 import type {
@@ -91,7 +92,16 @@ export type OpenFile = {
   csvPreviewOnly?: boolean
   /** Why: explicit live tail, only meaningful for a read-only local log. */
   liveTail?: boolean
-  mode: 'edit' | 'diff' | 'conflict-review' | 'markdown-preview' | 'check-details' | 'git-graph'
+  /** A popped-out chat visual's identity: which chat's page, on which host. */
+  chatVisual?: ChatVisualTabIdentity
+  mode:
+    | 'edit'
+    | 'diff'
+    | 'conflict-review'
+    | 'markdown-preview'
+    | 'check-details'
+    | 'git-graph'
+    | 'chat-visual'
 }
 
 export type MarkdownViewMode = 'source' | 'rich' | 'preview'

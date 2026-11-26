@@ -1,5 +1,6 @@
 import { restoreStructuredLaunchSurfaces } from '@/lib/agent-session/launch/structured-agent-session-launch-surface'
 import { restoreSavedGitGraphTabs } from '@/lib/source-control/graph/restore-git-graph-tabs'
+import { restoreSavedChatVisualTabs } from '@/components/native-chat/media/visuals/popout/restore-chat-visual-tabs'
 import { useEffect, useRef } from 'react'
 import { restoreLocalStructuredChatsAtStartup } from '@/runtime/native-chat/local-sessions/local-structured-chats'
 import { syncZoomCSSVar } from '@/app-shell/chrome/ui-zoom'
@@ -215,6 +216,7 @@ export function useAppStartupHydration(onOnboardingLoaded: (state: OnboardingSta
           restoreStructuredLaunchSurfaces()
           // Local (glass build): Git Graph tabs, which upstream drops as transient, open again.
           restoreSavedGitGraphTabs(sessionRead.session)
+          restoreSavedChatVisualTabs(sessionRead.session)
           recoverStrandedEditorDrafts()
           // Discovery must not wait for terminal or SSH restoration.
           const startupWorktreeRefresh = refreshStartupWorktrees(actions, () => cancelled)

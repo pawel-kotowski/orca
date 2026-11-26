@@ -15,7 +15,11 @@ export function readsGitGraph(capabilities?: readonly string[]): boolean {
 }
 
 export function projectGitGraphLayout(layout: PublishedWorkspaceLayout): PublishedWorkspaceLayout {
-  const hidden = new Set(layout.tabs.filter((tab) => tab.kind === 'git-graph').map((tab) => tab.id))
+  const hidden = new Set(
+    layout.tabs
+      .filter((tab) => tab.kind === 'git-graph' || tab.kind === 'chat-visual')
+      .map((tab) => tab.id)
+  )
   if (!hidden.size) {
     return layout
   }
@@ -45,7 +49,7 @@ export function createGitGraphFrameProjection() {
     if (cached !== undefined) {
       return cached
     }
-    const found = records.tabs.some((tab) => tab.kind === 'git-graph')
+    const found = records.tabs.some((tab) => tab.kind === 'git-graph' || tab.kind === 'chat-visual')
     presence.set(records.tabs, found)
     return found
   }

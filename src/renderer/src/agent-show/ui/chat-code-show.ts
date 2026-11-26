@@ -8,10 +8,11 @@ import { showCode } from '../code/show-code'
 /** A click asked to see this code, so it always moves the view, whatever the agent's own focus. */
 export function showCodeOnClick(
   code: { filePath: string; range: { startLine: number; endLine: number } },
-  context: Omit<AgentShowContext, 'focus'>
+  context: Omit<AgentShowContext, 'focus'>,
+  place: 'beside' | 'below' = 'beside'
 ): Promise<AgentShowResult> {
   return showCode(
-    { kind: 'code', filePath: code.filePath, range: code.range, place: 'beside', keepOthers: true },
+    { kind: 'code', filePath: code.filePath, range: code.range, place, keepOthers: true },
     { ...context, focus: true }
   )
 }
@@ -20,7 +21,9 @@ export function showCodeOnClick(
 export async function openNativeChatCodeRange(
   target: { absolutePath: string; line: number; endLine: number },
   context: NativeChatFileLinkContext,
-  fallback: () => void
+  fallback: () => void,
+  /** 'below': under a popped-out visual, which stays in view. */
+  place: 'beside' | 'below' = 'beside'
 ): Promise<void> {
   const result = await showCodeOnClick(
     {
@@ -31,7 +34,8 @@ export async function openNativeChatCodeRange(
       worktreeId: context.worktreeId,
       worktreePath: context.worktreePath,
       ownerTabId: context.sourceTabId ?? null
-    }
+    },
+    place
   ).catch(() => null)
   if (!result?.ok) {
     fallback()

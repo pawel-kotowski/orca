@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { FileText, GitGraph, GitCompare, Globe2, TerminalSquare } from 'lucide-react'
+import { FileText, GitGraph, GitCompare, Globe2, TerminalSquare, Presentation } from 'lucide-react'
 import { useAppStore } from '../../../store/index'
 import { activateCyclableTab } from '../../../lib/workspace/tabs/ipc-tab-switch'
 import { getShortcutPlatform } from '../../../lib/keyboard/shortcut-platform'
@@ -44,6 +44,9 @@ function TabIcon({ item }: { item: RecentTabSwitcherItem }): React.JSX.Element {
   }
   if (item.contentType === 'git-graph') {
     return <GitGraph className={className} />
+  }
+  if (item.contentType === 'chat-visual') {
+    return <Presentation className={className} />
   }
   if (
     item.contentType === 'diff' ||

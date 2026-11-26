@@ -20,6 +20,12 @@ import {
   readNativeChatVisualPong
 } from '../../../../../../shared/native-chat/visuals/native-chat-visual-shell'
 import type { NativeChatVisualDocument } from './native-chat-visual-read-client'
+import {
+  nativeChatVisualNotesMessage,
+  readNativeChatVisualNoteMessage,
+  type NativeChatVisualNoteMessage,
+  type NativeChatVisualNotePin
+} from '../../../../../../shared/native-chat/visuals/native-chat-visual-note-bridge'
 import type { CodeLineRange } from '../../../../../../shared/native-chat/native-chat-code-range'
 import { createNativeChatVisualHeightGovernor } from '../../../../../../shared/native-chat/visuals/native-chat-visual-height-governor'
 import type { ReaderGesture } from '../../viewport/scroll/native-chat-autoscroll'
@@ -40,7 +46,11 @@ export function NativeChatVisualFrame({
   themeScope,
   onRetired,
   onReaderGesture,
-  onShowCode
+  onShowCode,
+  fit = 'content',
+  notePins,
+  commentMode = false,
+  onNoteMessage
 }: {
   document: NativeChatVisualDocument
   title: string
@@ -51,6 +61,14 @@ export function NativeChatVisualFrame({
   onReaderGesture?: (gesture: ReaderGesture) => void
   /** A `data-orca-show` element was clicked; the location is validated already. */
   onShowCode?: (location: CodeLineRange) => void
+  /** 'fill': the page fills its box and scrolls itself (a popped-out tab); default grows to fit. */
+  fit?: 'content' | 'fill'
+  /** Notes to pin on the page's parts. */
+  notePins?: readonly NativeChatVisualNotePin[]
+  /** A click picks a part to comment on instead of acting on it. */
+  commentMode?: boolean
+  /** Picks and pin clicks need the user's own click in this frame; anchors and cancels do not. */
+  onNoteMessage?: (message: NativeChatVisualNoteMessage) => void
 }): React.JSX.Element {
   const frameRef = useRef<HTMLIFrameElement | null>(null)
   const theme = useNativeChatVisualTheme(themeScope)
@@ -60,11 +78,15 @@ export function NativeChatVisualFrame({
   const themeRef = useRef(theme)
   const onReaderGestureRef = useRef(onReaderGesture)
   const onShowCodeRef = useRef(onShowCode)
+  const onNoteMessageRef = useRef(onNoteMessage)
+  const notesRef = useRef({ pins: notePins ?? [], commentMode })
   useLayoutEffect(() => {
     themeRef.current = theme
     onReaderGestureRef.current = onReaderGesture
     onShowCodeRef.current = onShowCode
-  }, [onReaderGesture, onShowCode, theme])
+    onNoteMessageRef.current = onNoteMessage
+    notesRef.current = { pins: notePins ?? [], commentMode }
+  }, [commentMode, notePins, onNoteMessage, onReaderGesture, onShowCode, theme])
   const [height, setHeight] = useState(NATIVE_CHAT_VISUAL_RESERVED_HEIGHT)
   const loadsRef = useRef(0)
   // The latest later load still awaiting an answer, and the timer that retires the frame.
@@ -78,10 +100,11 @@ export function NativeChatVisualFrame({
       srcDoc: buildNativeChatVisualDocument({
         html: visual.html,
         channel,
-        theme: themeRef.current
+        theme: themeRef.current,
+        fit
       })
     }
-  }, [visual.html])
+  }, [fit, visual.html])
 
   useNativeChatPaneLifetimeEffect(
     useCallback(() => {
@@ -116,11 +139,23 @@ export function NativeChatVisualFrame({
           }
           return
         }
+        const noteMessage = readNativeChatVisualNoteMessage(event.data, built.channel)
+        if (noteMessage) {
+          const acted =
+            window.document.activeElement === frame && navigator.userActivation?.isActive === true
+          if (acted || noteMessage.kind === 'note-anchors' || noteMessage.kind === 'note-cancel') {
+            onNoteMessageRef.current?.(noteMessage)
+          }
+          return
+        }
         const message = readNativeChatVisualFrameMessage(event.data, built.channel)
         if (!message) {
           return
         }
         if (message.kind === 'size') {
+          if (fit === 'fill') {
+            return
+          }
           latestReported = message.height
           if (!deferred) {
             applyHeight()
@@ -163,7 +198,7 @@ export function NativeChatVisualFrame({
           clearTimeout(deferred)
         }
       }
-    }, [built.channel])
+    }, [built.channel, fit])
   )
 
   // A frame rebuilt for a new revision, or unmounted, owes no answer.
@@ -188,8 +223,20 @@ export function NativeChatVisualFrame({
     }
   }, [built.channel, theme])
 
+  useEffect(() => {
+    if (loadsRef.current > 0) {
+      frameRef.current?.contentWindow?.postMessage(
+        nativeChatVisualNotesMessage(built.channel, notePins ?? [], commentMode),
+        '*'
+      )
+    }
+  }, [built.channel, commentMode, notePins])
+
   return (
-    <div className="w-full" style={{ height }}>
+    <div
+      className={fit === 'fill' ? 'size-full' : 'w-full'}
+      style={fit === 'fill' ? undefined : { height }}
+    >
       <iframe
         key={built.channel}
         ref={frameRef}
@@ -224,6 +271,14 @@ export function NativeChatVisualFrame({
           // Covers a theme change that landed while the page loaded.
           frameWindow?.postMessage(
             nativeChatVisualThemeMessage(themeRef.current, built.channel),
+            '*'
+          )
+          frameWindow?.postMessage(
+            nativeChatVisualNotesMessage(
+              built.channel,
+              notesRef.current.pins,
+              notesRef.current.commentMode
+            ),
             '*'
           )
         }}

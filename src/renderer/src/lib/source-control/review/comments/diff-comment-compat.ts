@@ -4,7 +4,9 @@ import type {
 } from '../../../../../../shared/file-review/diff-comment-types'
 
 export function getDiffCommentSource(comment: Pick<DiffComment, 'source'>): DiffCommentSource {
-  return comment.source === 'markdown' ? 'markdown' : 'diff'
+  return comment.source === 'markdown' || comment.source === 'code' || comment.source === 'visual'
+    ? comment.source
+    : 'diff'
 }
 
 export function isDiffComment(comment: Pick<DiffComment, 'source'>): boolean {
@@ -25,4 +27,12 @@ export function getDiffCommentLineLabel(
       : `Lines ${comment.startLine}-${comment.lineNumber}`
   }
   return compact ? `L${comment.lineNumber}` : `Line ${comment.lineNumber}`
+}
+
+export function isCodeComment(comment: Pick<DiffComment, 'source'>): boolean {
+  return getDiffCommentSource(comment) === 'code'
+}
+
+export function isVisualComment(comment: Pick<DiffComment, 'source'>): boolean {
+  return getDiffCommentSource(comment) === 'visual'
 }

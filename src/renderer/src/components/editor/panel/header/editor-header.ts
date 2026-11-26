@@ -46,6 +46,10 @@ export function getEditorHeaderCopyState(
       pathTitle: t('gitGraph.title', 'Git Graph')
     }
   }
+  if (file.mode === 'chat-visual') {
+    const label = file.chatVisual?.title ?? file.relativePath
+    return { copyText: null, copyToastLabel: '', pathLabel: label, pathTitle: label }
+  }
   if (file.mode === 'check-details') {
     const label =
       file.checkRunDetails?.check.name ??

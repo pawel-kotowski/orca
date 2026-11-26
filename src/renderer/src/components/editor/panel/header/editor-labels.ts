@@ -59,6 +59,9 @@ export function getEditorDisplayLabel(
   if (file.mode === 'git-graph') {
     return t('gitGraph.title', 'Git Graph')
   }
+  if (file.mode === 'chat-visual') {
+    return file.chatVisual?.title ?? file.relativePath
+  }
   if (file.mode === 'check-details') {
     return file.checkRunDetails?.check.name ?? getBaseLabel(file, variant)
   }
@@ -110,6 +113,7 @@ export function getEditorDisplayLabel(
 const SINGLE_TAB_MODES: ReadonlySet<OpenFile['mode']> = new Set([
   'conflict-review',
   'git-graph',
+  'chat-visual',
   'check-details'
 ])
 
