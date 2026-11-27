@@ -10,16 +10,14 @@ import type { GitHistoryGraphColorId } from '../../../../../shared/git/history/g
 import type { GitHistoryGraphNode } from '../../../../../shared/git/history/git-history-graph'
 import { graphColor } from '@/components/right-sidebar/source-control/sync/git-history-graph-svg'
 import { GIT_GRAPH_EMPTY_LANE, type GitGraphLaneRow } from './git-graph-branch-layout'
-import {
-  GitGraphLanesSvg,
-  gitGraphLaneStroke,
-  useGitGraphLaneWidthContext
-} from './git-graph-lanes-svg'
+import { GitGraphLanesSvg, gitGraphLaneStroke } from './git-graph-lanes-svg'
 import type { GitGraphLayout } from './git-graph-columns'
 import { formatGitGraphRelativeTime } from './git-graph-row'
 import { useGitGraphAuthorProps } from './git-graph-author-color'
+import { useGitGraphRowSpace } from './git-graph-row-spacing'
 
-// The graph cell's pl-2 adds 8px; the lanes' spacing is the toolbar's Lines switch.
+// Matches SWIMLANE_WIDTH in git-history-graph-svg.tsx; the graph cell's pl-2 adds 8px.
+const LANE_WIDTH = 11
 const GRAPH_PADDING = 8
 
 /** Straight lanes filling a graph cell's height, where the row is taller than its drawn node. */
@@ -32,7 +30,6 @@ export function GitGraphLaneFill({
   className?: string
   style?: React.CSSProperties
 }): React.JSX.Element {
-  const laneWidth = useGitGraphLaneWidthContext()
   return (
     <div aria-hidden className={cn('relative overflow-hidden', className)} style={style}>
       {lanes.map((lane, index) => {
@@ -45,7 +42,7 @@ export function GitGraphLaneFill({
             key={`${index}-${lane.id}`}
             className="absolute inset-y-0"
             style={{
-              left: GRAPH_PADDING + laneWidth * (index + 1) - width / 2,
+              left: GRAPH_PADDING + LANE_WIDTH * (index + 1) - width / 2,
               width,
               background: graphColor(lane.color)
             }}
@@ -146,11 +143,15 @@ export const GitGraphTallRow = React.forwardRef<HTMLDivElement, GitGraphTallRowP
     const item = viewModel.historyItem
     const authorProps = useGitGraphAuthorProps(item.author, item.authorEmail)
     const lineRow = top ? 2 : 1
+    // The Rows switch's room: above the row's first line (its names, else the commit), below the
+    // commit. The lanes run through both.
+    const space = useGitGraphRowSpace()
+    const lineAbove = top ? 0 : space.above
     // Author, date and hash sit level with the message's first line (24px tall, like the node).
     const meta = (column: number, content: React.ReactNode, extra?: string, title?: string) => (
       <span
         className={cn('self-start truncate leading-6 text-foreground/80', extra)}
-        style={{ gridRow: lineRow, gridColumn: column }}
+        style={{ gridRow: lineRow, gridColumn: column, paddingTop: lineAbove }}
         title={title}
       >
         {content}
@@ -187,7 +188,11 @@ export const GitGraphTallRow = React.forwardRef<HTMLDivElement, GitGraphTallRowP
             />
             <div
               className="flex min-w-0 flex-wrap items-center gap-1 pt-1.5 pb-0.5"
-              style={{ gridRow: 1, gridColumn: '2 / -1' }}
+              style={{
+                gridRow: 1,
+                gridColumn: '2 / -1',
+                ...(space.above ? { paddingTop: 6 + space.above } : {})
+              }}
             >
               {top}
             </div>
@@ -197,10 +202,25 @@ export const GitGraphTallRow = React.forwardRef<HTMLDivElement, GitGraphTallRowP
           className="flex min-h-6 flex-col overflow-hidden pl-2"
           style={{ gridRow: lineRow, gridColumn: 1 }}
         >
+          {lineAbove > 0 && (
+            <GitGraphLaneFill
+              lanes={viewModel.inputSwimlanes}
+              className="-ml-2 shrink-0"
+              style={{ height: lineAbove }}
+            />
+          )}
           <GitGraphLanesSvg row={viewModel} />
           <GitGraphLaneFill lanes={viewModel.outputSwimlanes} className="-ml-2 flex-1" />
         </div>
-        <div className={cn('min-w-0', mainClassName)} style={{ gridRow: lineRow, gridColumn: 2 }}>
+        <div
+          className={cn('min-w-0', mainClassName)}
+          style={{
+            gridRow: lineRow,
+            gridColumn: 2,
+            ...(lineAbove ? { marginTop: lineAbove } : {}),
+            ...(space.below ? { marginBottom: space.below } : {})
+          }}
+        >
           {main}
         </div>
         {layout.author && (
@@ -212,7 +232,8 @@ export const GitGraphTallRow = React.forwardRef<HTMLDivElement, GitGraphTallRowP
             style={{
               ...authorProps.style,
               gridRow: lineRow,
-              gridColumn: authorColumn
+              gridColumn: authorColumn,
+              paddingTop: lineAbove
             }}
           >
             {item.author}

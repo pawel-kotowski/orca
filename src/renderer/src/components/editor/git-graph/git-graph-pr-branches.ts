@@ -195,8 +195,17 @@ export function useGitGraphBranchStateFilter({
   return rule
 }
 
+/**
+ * The filter's last verdict per workspace, for the session: a graph tab that opens again starts
+ * narrowed instead of drawing every branch until its PRs load (about 3 s) and then narrowing.
+ */
+const lastVerdictByWorktree = new Map<string, string[] | null>()
+
 /** The filter's states and the refs the graph's history draws (the picker's pick, narrowed). */
-export function useGitGraphPrFilterRefs(refsFilter: GitHistoryRefs): {
+export function useGitGraphPrFilterRefs(
+  refsFilter: GitHistoryRefs,
+  worktreeId: string
+): {
   states: GitGraphBranchState[]
   setStates: (next: GitGraphBranchState[]) => void
   setPrRefs: (shown: string[] | null) => void
@@ -205,7 +214,16 @@ export function useGitGraphPrFilterRefs(refsFilter: GitHistoryRefs): {
   active: boolean
 } {
   const [states, setStates] = useGitGraphBranchStates()
-  const [prRefs, setPrRefs] = useState<string[] | null>(null)
+  const [prRefs, setVerdict] = useState<string[] | null>(
+    () => lastVerdictByWorktree.get(worktreeId) ?? null
+  )
+  const setPrRefs = useCallback(
+    (shown: string[] | null) => {
+      lastVerdictByWorktree.set(worktreeId, shown)
+      setVerdict(shown)
+    },
+    [worktreeId]
+  )
   const historyRefs = prRefs ? narrowGitGraphRefs(refsFilter, prRefs) : refsFilter
   return { states, setStates, setPrRefs, historyRefs, active: prRefs !== null }
 }

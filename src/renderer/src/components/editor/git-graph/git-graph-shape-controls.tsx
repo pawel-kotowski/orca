@@ -15,7 +15,7 @@ import { GitGraphLaneOrder } from './git-graph-lane-order'
 import { gitGraphBranchName } from './git-graph-lane-names'
 import { isGitGraphMergeInto } from './use-git-graph-merge-marks'
 import type { GitGraphRows } from './use-git-graph-rows'
-import { GIT_GRAPH_LANE_SPACINGS } from './git-graph-lanes-svg'
+import { GIT_GRAPH_ROW_SPACINGS } from './git-graph-row-spacing'
 import type { GitGraphBranchState, GitGraphBranchStateRule } from './git-graph-pr-branches'
 
 const STACK_STORAGE_KEY = 'orca.gitGraph.stackNames'
@@ -86,8 +86,8 @@ export function GitGraphShapeControls({
   branchStates,
   onBranchStates,
   stateRule,
-  laneWidth,
-  onLaneWidth,
+  rowSpacing,
+  onRowSpacing,
   part = 'shape'
 }: {
   refs: readonly GitHistoryItemRef[]
@@ -108,9 +108,9 @@ export function GitGraphShapeControls({
   branchStates: GitGraphBranchState[]
   onBranchStates: (next: GitGraphBranchState[]) => void
   stateRule: GitGraphBranchStateRule
-  /** Space between the graph's lines (git-graph-lanes-svg.tsx). */
-  laneWidth: number
-  onLaneWidth: (width: number) => void
+  /** Space between commit rows (git-graph-row-spacing.ts). */
+  rowSpacing: number
+  onRowSpacing: (spacing: number) => void
   /** `shape`: which branches and how (the first toolbar line); `merges`: the "Merges into" toggles. */
   part?: 'shape' | 'merges'
 }): React.JSX.Element {
@@ -182,21 +182,21 @@ export function GitGraphShapeControls({
         Stack
       </Toggle>
       <span className="inline-flex shrink-0 items-center gap-1 text-xs text-foreground/80">
-        Lines
+        Rows
         <span className="flex items-center rounded-md border border-border p-0.5">
-          {GIT_GRAPH_LANE_SPACINGS.map((spacing) => (
+          {GIT_GRAPH_ROW_SPACINGS.map((spacing) => (
             <button
-              key={spacing.width}
+              key={spacing.space}
               type="button"
-              aria-pressed={laneWidth === spacing.width}
+              aria-pressed={rowSpacing === spacing.space}
               title={spacing.title}
               className={cn(
                 'h-5 rounded px-1.5 whitespace-nowrap',
-                laneWidth === spacing.width
+                rowSpacing === spacing.space
                   ? 'bg-accent text-accent-foreground'
                   : 'text-muted-foreground hover:text-foreground'
               )}
-              onClick={() => onLaneWidth(spacing.width)}
+              onClick={() => onRowSpacing(spacing.space)}
             >
               {spacing.label}
             </button>

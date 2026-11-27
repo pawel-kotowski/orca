@@ -31,7 +31,7 @@ import { useGitGraphThemeColours } from './use-git-graph-theme-colours'
 import { useGitGraphFetch } from './use-git-graph-fetch'
 import { useGitGraphAutoPage } from './use-git-graph-auto-page'
 import { useGitGraphHoverGuard } from './use-git-graph-hover-guard'
-import { GitGraphLaneWidthProvider, useGitGraphLaneWidth } from './git-graph-lanes-svg'
+import { GitGraphRowSpacingProvider, useGitGraphRowSpacing } from './git-graph-row-spacing'
 import { useGitGraphPrFilterRefs, useGitGraphPullRequestsAndFilter } from './git-graph-pr-branches'
 
 // Selection, scroll and the drawn branches survive the tab remounting (a split beside it moves
@@ -52,7 +52,7 @@ export function GitGraphView({ worktreeId }: { worktreeId: string }): React.JSX.
   const [density, setDensity] = useGitGraphDensity()
   const [zoom, stepZoom] = useGitGraphZoom()
   // The branch picker's PR filter narrows the branches drawn once the PRs load (git-graph-pr-branches.ts).
-  const prFilter = useGitGraphPrFilterRefs(refsFilter)
+  const prFilter = useGitGraphPrFilterRefs(refsFilter, worktreeId)
   const history = useClassicGitGraphHistory(worktreeId, prFilter.historyRefs)
   const ownerTarget = useWorktreeGitOwnerTarget(worktreeId)
   const repoKey = useWorktreeById(worktreeId)?.repoId ?? null
@@ -131,14 +131,13 @@ export function GitGraphView({ worktreeId }: { worktreeId: string }): React.JSX.
     active: prFilter.active,
     onRefs: prFilter.setPrRefs
   })
-  const [laneWidth, setLaneWidth] = useGitGraphLaneWidth()
+  const [rowSpacing, setRowSpacing] = useGitGraphRowSpacing()
   const model = useGitGraphRows({
     items,
     result,
     density,
     pinned: lanes.pinned,
-    drawnPinned,
-    laneWidth
+    drawnPinned
   })
   const marks = useGitGraphMergeMarks()
   const [stackNames, toggleStackNames] = useGitGraphStackNames()
@@ -317,8 +316,8 @@ export function GitGraphView({ worktreeId }: { worktreeId: string }): React.JSX.
     branchStates: prFilter.states,
     onBranchStates: prFilter.setStates,
     stateRule,
-    laneWidth,
-    onLaneWidth: setLaneWidth
+    rowSpacing,
+    onRowSpacing: setRowSpacing
   }
 
   return (
@@ -368,7 +367,7 @@ export function GitGraphView({ worktreeId }: { worktreeId: string }): React.JSX.
         <GitGraphAuthorHuesProvider value={model.authorHues}>
           <GitGraphBranchColoursProvider value={model.branchColour}>
             <GitGraphPullRequestsProvider value={prNames.pullRequests}>
-              <GitGraphLaneWidthProvider value={laneWidth}>
+              <GitGraphRowSpacingProvider value={rowSpacing}>
                 <div className="flex min-h-0 flex-1" style={{ zoom }}>
                   <div ref={columnRef} className="flex min-w-0 flex-1 flex-col">
                     <GitGraphHeaderRow
@@ -432,7 +431,7 @@ export function GitGraphView({ worktreeId }: { worktreeId: string }): React.JSX.
                     </div>
                   </div>
                 </div>
-              </GitGraphLaneWidthProvider>
+              </GitGraphRowSpacingProvider>
             </GitGraphPullRequestsProvider>
           </GitGraphBranchColoursProvider>
         </GitGraphAuthorHuesProvider>

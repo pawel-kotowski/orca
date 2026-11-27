@@ -25,6 +25,8 @@ import { useGitGraphRefColour } from './git-graph-branch-colour-context'
 import { graphColor } from '@/components/right-sidebar/source-control/sync/git-history-graph-svg'
 import type { GitGraphLaneRow } from './git-graph-branch-layout'
 import { GitGraphLanesSvg } from './git-graph-lanes-svg'
+import { GitGraphLaneFill } from './git-graph-tall-row'
+import { useGitGraphRowSpace } from './git-graph-row-spacing'
 import { gitGraphBranchName } from './git-graph-lane-names'
 import {
   gitGraphBranchPullRequest,
@@ -136,6 +138,8 @@ export const GitGraphRow = React.forwardRef<HTMLDivElement, GitGraphRowProps>(fu
   const isBoundary = viewModel.kind === 'incoming-changes' || viewModel.kind === 'outgoing-changes'
   const refs = dedupeRemoteTrackingRefs(item.references ?? [], {})
   const laneColor = isBoundary ? undefined : viewModel.nodeColor
+  // The Rows switch's room, half above and half below; the lanes run through it.
+  const space = useGitGraphRowSpace()
   return (
     <div
       {...rootProps}
@@ -148,12 +152,25 @@ export const GitGraphRow = React.forwardRef<HTMLDivElement, GitGraphRowProps>(fu
         isBoundary && 'text-muted-foreground italic',
         className
       )}
-      style={{ height: GIT_GRAPH_ROW_HEIGHT, gridTemplateColumns: layout.template }}
+      style={{
+        height: GIT_GRAPH_ROW_HEIGHT + space.above + space.below,
+        gridTemplateColumns: layout.template
+      }}
       onClick={isBoundary ? undefined : onSelect}
       onDoubleClick={isBoundary ? undefined : onOpen}
     >
-      <div className="flex h-full items-stretch overflow-hidden pl-2">
+      <div className="flex h-full flex-col overflow-hidden pl-2">
+        {space.above > 0 && (
+          <GitGraphLaneFill
+            lanes={viewModel.inputSwimlanes}
+            className="-ml-2 shrink-0"
+            style={{ height: space.above }}
+          />
+        )}
         <GitGraphLanesSvg row={viewModel} />
+        {space.below > 0 && (
+          <GitGraphLaneFill lanes={viewModel.outputSwimlanes} className="-ml-2 flex-1" />
+        )}
       </div>
       {/* The subject always starts at the column's left edge (Paweł, 2026-11-15: "branch name
           should not make commit msg start more on the right"); refs follow it and give way first. */}

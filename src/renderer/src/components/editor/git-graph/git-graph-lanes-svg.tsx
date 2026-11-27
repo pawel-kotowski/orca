@@ -2,50 +2,11 @@
 // (git-graph-branch-layout.ts). Unlike the sidebar's drawing it lets a lane change place between
 // rows, which pinning main and development to the left needs: a lane that moves bends smoothly
 // to its new place. Lane places, the dot's size and the 24px row match the sidebar's look.
-import React, { createContext, useCallback, useContext, useState } from 'react'
+import React from 'react'
 import { graphColor } from '@/components/right-sidebar/source-control/sync/git-history-graph-svg'
 import type { GitGraphLaneRow } from './git-graph-branch-layout'
 
 export const GIT_GRAPH_LANE_WIDTH = 11
-
-/**
- * How far apart the lines sit (Paweł, 2026-11-27: "add option to increase distance between lines
- * for clarity"): the toolbar's Lines switch, remembered for every graph.
- */
-export const GIT_GRAPH_LANE_SPACINGS = [
-  { width: GIT_GRAPH_LANE_WIDTH, label: 'Close', title: 'Lines close together, as before' },
-  { width: 16, label: 'Wide', title: 'More room between the lines' },
-  { width: 22, label: 'Wider', title: 'The most room between the lines' }
-] as const
-const SPACING_STORAGE_KEY = 'orca.gitGraph.laneWidth'
-
-export function useGitGraphLaneWidth(): [number, (width: number) => void] {
-  const [width, setWidth] = useState(() => {
-    try {
-      const stored = Number(window.localStorage.getItem(SPACING_STORAGE_KEY))
-      return GIT_GRAPH_LANE_SPACINGS.some((spacing) => spacing.width === stored)
-        ? stored
-        : GIT_GRAPH_LANE_WIDTH
-    } catch {
-      return GIT_GRAPH_LANE_WIDTH
-    }
-  })
-  const choose = useCallback((next: number) => {
-    setWidth(next)
-    try {
-      window.localStorage.setItem(SPACING_STORAGE_KEY, String(next))
-    } catch {
-      // The choice lasts for this tab only.
-    }
-  }, [])
-  return [width, choose]
-}
-
-const LaneWidth = createContext(GIT_GRAPH_LANE_WIDTH)
-export const GitGraphLaneWidthProvider = LaneWidth.Provider
-export function useGitGraphLaneWidthContext(): number {
-  return useContext(LaneWidth)
-}
 const HEIGHT = 24
 const MID = HEIGHT / 2
 const RADIUS = 3.5
@@ -55,10 +16,7 @@ export function gitGraphLaneStroke(color: string): number {
   return color === 'git-graph-branch-head' ? 2.25 : 1.5
 }
 
-const placeX =
-  (lane: number) =>
-  (place: number): number =>
-    lane * (place + 1)
+const x = (place: number): number => GIT_GRAPH_LANE_WIDTH * (place + 1)
 
 function edgePath(x1: number, y1: number, x2: number, y2: number): string {
   if (x1 === x2) {
@@ -69,7 +27,6 @@ function edgePath(x1: number, y1: number, x2: number, y2: number): string {
 }
 
 export function GitGraphLanesSvg({ row }: { row: GitGraphLaneRow }): React.JSX.Element {
-  const x = placeX(useGitGraphLaneWidthContext())
   const places = Math.max(
     row.inputSwimlanes.length,
     row.outputSwimlanes.length,
