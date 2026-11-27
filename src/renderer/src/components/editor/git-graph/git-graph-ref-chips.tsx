@@ -14,18 +14,18 @@ import { graphColor } from '@/components/right-sidebar/source-control/sync/git-h
 import { gitGraphBranchName } from './git-graph-lane-names'
 import { useGitGraphBranchColour } from './git-graph-branch-colour-context'
 import {
-  gitGraphPullRequestForBranch,
+  gitGraphBranchPullRequest,
   useGitGraphPullRequestContext,
   type GitGraphPullRequest
 } from './use-git-graph-pull-requests'
+import { GitGraphPrStateIcon, gitGraphPrStateText, gitGraphPrStateWord } from './git-graph-pr-state'
 
-/** A pull request as a name: "#12 Title", with "(draft)" or "(closed)" after it. */
+/** A pull request as a name: its state's icon and colour, then "#12 Title". */
 export function GitGraphPullRequestName({ pr }: { pr: GitGraphPullRequest }): React.JSX.Element {
   return (
-    <span className="break-words">
+    <span className={cn('break-words', gitGraphPrStateText(pr.state))}>
+      <GitGraphPrStateIcon state={pr.state} className="mr-1 inline align-[-2px]" />
       <span className="font-semibold tabular-nums">#{pr.number}</span> {pr.title}
-      {pr.state === 'closed' && <span className="text-foreground/72"> (closed)</span>}
-      {pr.state === 'draft' && <span className="text-foreground/72"> (draft)</span>}
     </span>
   )
 }
@@ -121,8 +121,10 @@ export function GitGraphRefChip({
 }): React.JSX.Element {
   const branchColour = useGitGraphBranchColour()
   const prs = useGitGraphPullRequestContext()
-  const pr =
-    group.kind === 'tag' ? undefined : gitGraphPullRequestForBranch(prs, group.name, commitId)
+  // The branch's PR colours its name in every view; with names as PRs it is also the name.
+  const branchPr =
+    group.kind === 'tag' ? undefined : gitGraphBranchPullRequest(prs, group.name, commitId)
+  const pr = prs.on ? branchPr : undefined
   const dotColor = group.kind === 'tag' ? undefined : branchColour(group.name, laneColor)
   const clickable = group.kind !== 'tag' && onFocusBranch
   const content = (
@@ -140,8 +142,13 @@ export function GitGraphRefChip({
         <GitGraphPullRequestName pr={pr} />
       ) : (
         // One piece: a flex gap between remote and name read as "origin/ x".
-        <span className="break-all">
-          {group.remote && <span className="text-foreground/72">{group.remote}/</span>}
+        <span className={cn('break-all', branchPr && gitGraphPrStateText(branchPr.state))}>
+          {branchPr && (
+            <GitGraphPrStateIcon state={branchPr.state} className="mr-1 inline align-[-2px]" />
+          )}
+          {group.remote && (
+            <span className={branchPr ? 'opacity-75' : 'text-foreground/72'}>{group.remote}/</span>
+          )}
           {group.name}
         </span>
       )}
@@ -170,7 +177,9 @@ export function GitGraphRefChip({
     focused ? 'border-ring bg-accent' : 'border-border',
     clickable && 'cursor-pointer hover:border-ring'
   )
-  const title = pr ? `${group.title}\n#${pr.number} ${pr.title} (${pr.state})` : group.title
+  const title = branchPr
+    ? `${group.title}\n${gitGraphPrStateWord(branchPr.state)}: #${branchPr.number} ${branchPr.title}`
+    : group.title
   return clickable ? (
     <button
       type="button"

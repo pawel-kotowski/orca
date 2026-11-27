@@ -7,11 +7,19 @@ import { ChevronDown, Cloud, GitBranch, Tag } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { cn } from '@/lib/class-names'
 import type {
   GitHistoryItemRef,
   GitHistoryRefs
 } from '../../../../../shared/git/history/git-history-types'
 import { gitGraphPeople } from './git-graph-author-color'
+import {
+  GIT_GRAPH_BRANCH_STATE_LABELS,
+  GIT_GRAPH_BRANCH_STATES,
+  type GitGraphBranchState,
+  type GitGraphBranchStateRule
+} from './git-graph-pr-branches'
+import { GitGraphPrStateIcon, gitGraphPrStateText } from './git-graph-pr-state'
 
 /** A branch's name without its remote: `origin/feature/x` → `feature/x`. */
 function branchOf(ref: GitHistoryItemRef): string {
@@ -27,13 +35,20 @@ export function GitGraphBranchSelect({
   value,
   pinned,
   headRefId,
-  onChange
+  onChange,
+  states = GIT_GRAPH_BRANCH_STATES,
+  onStates,
+  stateRule
 }: {
   refs: readonly GitHistoryItemRef[]
   value: GitHistoryRefs
   pinned: readonly string[]
   headRefId?: string
   onChange: (next: GitHistoryRefs) => void
+  /** Which PR states are drawn; the rule says which branch is in which. */
+  states?: readonly GitGraphBranchState[]
+  onStates?: (next: GitGraphBranchState[]) => void
+  stateRule?: GitGraphBranchStateRule
 }): React.JSX.Element {
   const selectable = useMemo(
     () =>
@@ -103,11 +118,15 @@ export function GitGraphBranchSelect({
     return [...byKey].sort((a, b) => b[1].count - a[1].count)
   }, [personOf, pinned, selectable])
   // After `authors`: the label names the picked ones (reading it earlier crashed the tab, 2026-11-17).
-  const label = !Array.isArray(value)
+  const picked = !Array.isArray(value)
     ? 'All branches'
     : authorPick.length > 0
       ? `Branches by ${authorPick.map((key) => authors.find(([k]) => k === key)?.[1].name ?? key).join(', ')}`
       : `${value.length} of ${selectable.length} branches`
+  const statesFiltered = states.length < GIT_GRAPH_BRANCH_STATES.length
+  const label = statesFiltered
+    ? `${picked}: ${states.length === 0 ? 'no PR states' : states.map((state) => GIT_GRAPH_BRANCH_STATE_LABELS[state]).join(', ')}`
+    : picked
   const pickAuthors = (keys: string[]): void => {
     if (keys.length === 0) {
       set(selectable.map((ref) => ref.id))
@@ -194,6 +213,45 @@ export function GitGraphBranchSelect({
             </>
           )}
         </div>
+        {onStates && stateRule && (
+          <div className="mb-1.5 flex flex-wrap items-center gap-1">
+            <span
+              className="mr-1 text-foreground/80"
+              title="Main, development, pinned branches, the current branch and every branch a PR merges into always stay"
+            >
+              Pull requests
+            </span>
+            {GIT_GRAPH_BRANCH_STATES.map((state) => {
+              const on = states.includes(state)
+              return (
+                <button
+                  key={state}
+                  type="button"
+                  aria-pressed={on}
+                  title={
+                    state === 'none'
+                      ? `Branches with no pull request (${stateRule.counts.none}): ${on ? 'shown' : 'hidden'}`
+                      : `Branches whose pull request is ${GIT_GRAPH_BRANCH_STATE_LABELS[state].toLowerCase()} (${stateRule.counts[state]}): ${on ? 'shown' : 'hidden'}`
+                  }
+                  className={
+                    on
+                      ? 'inline-flex items-center gap-1 rounded-md border border-ring bg-accent px-1.5 py-0.5'
+                      : 'inline-flex items-center gap-1 rounded-md border border-border px-1.5 py-0.5 text-foreground/60 line-through hover:text-foreground'
+                  }
+                  onClick={() =>
+                    onStates(on ? states.filter((s) => s !== state) : [...states, state])
+                  }
+                >
+                  {state !== 'none' && <GitGraphPrStateIcon state={state} />}
+                  <span className={on && state !== 'none' ? gitGraphPrStateText(state) : undefined}>
+                    {GIT_GRAPH_BRANCH_STATE_LABELS[state]}
+                  </span>
+                  <span className="tabular-nums opacity-60">{stateRule.counts[state]}</span>
+                </button>
+              )
+            })}
+          </div>
+        )}
         {authors.length > 1 && (
           <div className="mb-1.5 flex flex-wrap items-center gap-1">
             <span className="mr-1 text-foreground/80">By author</span>
@@ -224,7 +282,15 @@ export function GitGraphBranchSelect({
           {shown.map((ref) => (
             <label
               key={ref.id}
-              className="flex cursor-pointer items-start gap-2 rounded px-2 py-1 hover:bg-accent/60"
+              title={
+                stateRule?.hidden.has(ref.id)
+                  ? `Hidden by the pull request filter: ${GIT_GRAPH_BRANCH_STATE_LABELS[stateRule.hidden.get(ref.id)!]}`
+                  : undefined
+              }
+              className={cn(
+                'flex cursor-pointer items-start gap-2 rounded px-2 py-1 hover:bg-accent/60',
+                stateRule?.hidden.has(ref.id) && 'opacity-45'
+              )}
             >
               <Checkbox
                 className="mt-0.5"

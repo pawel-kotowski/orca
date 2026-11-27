@@ -8,7 +8,7 @@
 // visible always ... but not with word commits - it repeats too much"). Nothing here is a button:
 // the whole row opens its commits.
 import React from 'react'
-import { GitMerge, GitPullRequestArrow } from 'lucide-react'
+import { GitMerge } from 'lucide-react'
 import type { GitHistoryGraphColorId } from '../../../../../shared/git/history/git-history-types'
 import { graphColor } from '@/components/right-sidebar/source-control/sync/git-history-graph-svg'
 import type { GitGraphLaneRow } from './git-graph-branch-layout'
@@ -16,6 +16,8 @@ import { useGitGraphBranchColour } from './git-graph-branch-colour-context'
 import type { GitGraphSegment } from './git-graph-segment-commits'
 import { gitGraphMergedPullRequest } from './git-graph-lane-names'
 import { GitGraphPullRequestName } from './git-graph-ref-chips'
+import { GitGraphPrStateIcon, gitGraphPrStateText } from './git-graph-pr-state'
+import { cn } from '@/lib/class-names'
 import {
   gitGraphPullRequestForBranch,
   gitGraphPullRequestForMerge,
@@ -78,10 +80,11 @@ function LandedPullRequest({
   pr: GitGraphPullRequest
   color?: GitHistoryGraphColorId
 }): React.JSX.Element {
-  // One run of text, so a long title wraps after "#N" instead of dropping below it.
+  // One run of text, so a long title wraps after "#N" instead of dropping below it. Landed is
+  // merged: the merge icon and colour, as on a merged branch's name (git-graph-pr-state.tsx).
   return (
     <span className="min-w-0 break-words" title={pr.url}>
-      <GitPullRequestArrow className="mr-1 inline size-3.5 align-[-2px]" />
+      <GitGraphPrStateIcon state="merged" className="mr-1 inline size-3.5 align-[-2px]" />
       {color && (
         <span
           aria-hidden
@@ -89,7 +92,7 @@ function LandedPullRequest({
           style={{ background: graphColor(color) }}
         />
       )}
-      <span className="font-medium text-foreground">
+      <span className={cn('font-medium', gitGraphPrStateText('merged'))}>
         <span className="font-semibold tabular-nums">#{pr.number}</span> {pr.title}
       </span>
     </span>
@@ -161,8 +164,10 @@ export function GitGraphOutlineSummary({
       {merged && !landedPr && prs.on && pullRequest && (
         // A PR GitHub did not list (older than its search reaches): its number from the message.
         <span className="inline-flex flex-wrap items-center gap-1" title={row.historyItem.subject}>
-          <GitPullRequestArrow className="size-3.5 shrink-0" />
-          <span className="font-semibold text-foreground tabular-nums">{pullRequest}</span>
+          <GitGraphPrStateIcon state="merged" className="size-3.5" />
+          <span className={cn('font-semibold tabular-nums', gitGraphPrStateText('merged'))}>
+            {pullRequest}
+          </span>
           {mergedName && (
             <BranchName name={mergedName} color={branchColour(mergedName, mergedColor)} />
           )}
@@ -202,10 +207,13 @@ export function GitGraphOutlineSummary({
       )}
       {landed && landedPr && <LandedPullRequest pr={landedPr} />}
       {landed && !landedPr && (
-        <span className="inline-flex items-center gap-1" title={row.historyItem.subject}>
-          <GitPullRequestArrow className="size-3.5 shrink-0" />
+        <span
+          className={cn('inline-flex items-center gap-1', gitGraphPrStateText('merged'))}
+          title={row.historyItem.subject}
+        >
+          <GitGraphPrStateIcon state="merged" className="size-3.5" />
           {!prs.on && 'landed '}
-          <span className="font-medium text-foreground">{landed}</span>
+          <span className="font-medium">{landed}</span>
         </span>
       )}
       {/* A lone commit needs no count: a "1" on every stacked branch is noise. */}

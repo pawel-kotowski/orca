@@ -7,12 +7,16 @@ import { GitMerge, Layers } from 'lucide-react'
 import { cn } from '@/lib/class-names'
 import { graphColor } from '@/components/right-sidebar/source-control/sync/git-history-graph-svg'
 import type {
-  GitHistoryGraphColorId,
   GitHistoryItemRef,
   GitHistoryRefs
 } from '../../../../../shared/git/history/git-history-types'
 import { GitGraphBranchSelect } from './git-graph-branch-select'
 import { GitGraphLaneOrder } from './git-graph-lane-order'
+import { gitGraphBranchName } from './git-graph-lane-names'
+import { isGitGraphMergeInto } from './use-git-graph-merge-marks'
+import type { GitGraphRows } from './use-git-graph-rows'
+import { GIT_GRAPH_LANE_SPACINGS } from './git-graph-lanes-svg'
+import type { GitGraphBranchState, GitGraphBranchStateRule } from './git-graph-pr-branches'
 
 const STACK_STORAGE_KEY = 'orca.gitGraph.stackNames'
 
@@ -74,13 +78,16 @@ export function GitGraphShapeControls({
   customPinned,
   onPinned,
   onResetPinned,
-  branchNames,
-  colourOf,
+  model,
   mergeTargets,
-  mergeCounts,
   onToggleMerge,
   stackNames,
   onToggleStackNames,
+  branchStates,
+  onBranchStates,
+  stateRule,
+  laneWidth,
+  onLaneWidth,
   part = 'shape'
 }: {
   refs: readonly GitHistoryItemRef[]
@@ -91,18 +98,31 @@ export function GitGraphShapeControls({
   customPinned: boolean
   onPinned: (names: string[]) => void
   onResetPinned: () => void
-  branchNames: string[]
-  colourOf: (name: string) => GitHistoryGraphColorId
+  /** The graph's rows, lane names and colours: merges into each pinned branch are counted here. */
+  model: Pick<GitGraphRows, 'rows' | 'laneNames' | 'colourOf'>
   mergeTargets: string[]
-  /** Loaded merges into each pinned branch. */
-  mergeCounts: Map<string, number>
   onToggleMerge: (branch: string) => void
   stackNames: boolean
   onToggleStackNames: () => void
+  /** The branch picker's PR filter (git-graph-pr-branches.ts). */
+  branchStates: GitGraphBranchState[]
+  onBranchStates: (next: GitGraphBranchState[]) => void
+  stateRule: GitGraphBranchStateRule
+  /** Space between the graph's lines (git-graph-lanes-svg.tsx). */
+  laneWidth: number
+  onLaneWidth: (width: number) => void
   /** `shape`: which branches and how (the first toolbar line); `merges`: the "Merges into" toggles. */
   part?: 'shape' | 'merges'
 }): React.JSX.Element {
+  const colourOf = model.colourOf
   if (part === 'merges') {
+    // Loaded merges into each pinned branch.
+    const mergeCounts = new Map(
+      pinned.map((branch) => [
+        branch,
+        model.rows.filter((row) => isGitGraphMergeInto(row, model.laneNames, [branch])).length
+      ])
+    )
     return (
       <>
         {pinned.length > 0 && (
@@ -130,6 +150,9 @@ export function GitGraphShapeControls({
       </>
     )
   }
+  const branchNames = [
+    ...new Set(refs.map((ref) => gitGraphBranchName(ref)).filter((name) => !!name))
+  ] as string[]
   return (
     <>
       <GitGraphBranchSelect
@@ -138,6 +161,9 @@ export function GitGraphShapeControls({
         pinned={pinned}
         headRefId={headRefId}
         onChange={onRefsFilter}
+        states={branchStates}
+        onStates={onBranchStates}
+        stateRule={stateRule}
       />
       <GitGraphLaneOrder
         pinned={pinned}
@@ -155,6 +181,28 @@ export function GitGraphShapeControls({
         <Layers className="size-3.5" />
         Stack
       </Toggle>
+      <span className="inline-flex shrink-0 items-center gap-1 text-xs text-foreground/80">
+        Lines
+        <span className="flex items-center rounded-md border border-border p-0.5">
+          {GIT_GRAPH_LANE_SPACINGS.map((spacing) => (
+            <button
+              key={spacing.width}
+              type="button"
+              aria-pressed={laneWidth === spacing.width}
+              title={spacing.title}
+              className={cn(
+                'h-5 rounded px-1.5 whitespace-nowrap',
+                laneWidth === spacing.width
+                  ? 'bg-accent text-accent-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+              onClick={() => onLaneWidth(spacing.width)}
+            >
+              {spacing.label}
+            </button>
+          ))}
+        </span>
+      </span>
     </>
   )
 }

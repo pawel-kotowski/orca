@@ -50,7 +50,8 @@ export function useGitGraphRows({
   result,
   density,
   pinned,
-  drawnPinned = []
+  drawnPinned = [],
+  laneWidth = GIT_GRAPH_LANE_WIDTH
 }: {
   items: GitHistoryItem[]
   result: GitHistoryResult | null
@@ -58,6 +59,8 @@ export function useGitGraphRows({
   pinned: string[]
   /** Pinned branches the repo has and the graph draws, loaded yet or not. */
   drawnPinned?: string[]
+  /** Space between lines (the toolbar's Lines switch). */
+  laneWidth?: number
 }): GitGraphRows {
   const headRevision = result?.currentRef?.revision
   const headBranch =
@@ -129,7 +132,7 @@ export function useGitGraphRows({
         (max, row) =>
           Math.max(
             max,
-            GIT_GRAPH_LANE_WIDTH *
+            laneWidth *
               (Math.max(
                 row.inputSwimlanes.length,
                 row.outputSwimlanes.length,
@@ -137,9 +140,9 @@ export function useGitGraphRows({
               ) +
                 1)
           ),
-        GIT_GRAPH_LANE_WIDTH * 2
+        laneWidth * 2
       ),
-    [rows]
+    [laneWidth, rows]
   )
   const mergedNameOf = (row: GitGraphLaneRow): string | undefined => {
     const merged = row.historyItem.parentIds[1]

@@ -10,13 +10,16 @@ import type { GitHistoryGraphColorId } from '../../../../../shared/git/history/g
 import type { GitHistoryGraphNode } from '../../../../../shared/git/history/git-history-graph'
 import { graphColor } from '@/components/right-sidebar/source-control/sync/git-history-graph-svg'
 import { GIT_GRAPH_EMPTY_LANE, type GitGraphLaneRow } from './git-graph-branch-layout'
-import { GitGraphLanesSvg, gitGraphLaneStroke } from './git-graph-lanes-svg'
+import {
+  GitGraphLanesSvg,
+  gitGraphLaneStroke,
+  useGitGraphLaneWidthContext
+} from './git-graph-lanes-svg'
 import type { GitGraphLayout } from './git-graph-columns'
 import { formatGitGraphRelativeTime } from './git-graph-row'
 import { useGitGraphAuthorProps } from './git-graph-author-color'
 
-// Matches SWIMLANE_WIDTH in git-history-graph-svg.tsx; the graph cell's pl-2 adds 8px.
-const LANE_WIDTH = 11
+// The graph cell's pl-2 adds 8px; the lanes' spacing is the toolbar's Lines switch.
 const GRAPH_PADDING = 8
 
 /** Straight lanes filling a graph cell's height, where the row is taller than its drawn node. */
@@ -29,6 +32,7 @@ export function GitGraphLaneFill({
   className?: string
   style?: React.CSSProperties
 }): React.JSX.Element {
+  const laneWidth = useGitGraphLaneWidthContext()
   return (
     <div aria-hidden className={cn('relative overflow-hidden', className)} style={style}>
       {lanes.map((lane, index) => {
@@ -41,7 +45,7 @@ export function GitGraphLaneFill({
             key={`${index}-${lane.id}`}
             className="absolute inset-y-0"
             style={{
-              left: GRAPH_PADDING + LANE_WIDTH * (index + 1) - width / 2,
+              left: GRAPH_PADDING + laneWidth * (index + 1) - width / 2,
               width,
               background: graphColor(lane.color)
             }}

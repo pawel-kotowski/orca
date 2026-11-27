@@ -74,7 +74,9 @@ const prs = (on: boolean) => ({
   ]),
   pinned: ['main'],
   loading: false,
-  error: null
+  error: null,
+  list: [],
+  settled: true
 })
 
 describe('gitGraphRowPullRequest', () => {

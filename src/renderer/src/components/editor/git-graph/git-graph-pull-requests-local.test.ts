@@ -34,7 +34,9 @@ function lookup(prs: GitGraphPullRequest[], on = true): GitGraphPullRequests {
     byBranch,
     pinned: ['main', 'development'],
     loading: false,
-    error: null
+    error: null,
+    list: prs,
+    settled: true
   }
 }
 

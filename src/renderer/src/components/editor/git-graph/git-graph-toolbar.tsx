@@ -195,7 +195,7 @@ export function GitGraphToolbar({
   /** Branches view: name rows by branch or by pull request. */
   names: GitGraphNames
   onNames: (value: GitGraphNames) => void
-  /** Pull requests loading or failed, while names are PRs. */
+  /** Pull requests loading or failed, while names are PRs or the PR filter is on. */
   pullRequestStatus: string | null
   zoom: number
   onZoom: (direction: 1 | -1) => void
@@ -270,7 +270,7 @@ export function GitGraphToolbar({
             ]}
           />
         )}
-        {density === 'branches' && names === 'pr' && pullRequestStatus && (
+        {pullRequestStatus && (
           <span className="text-xs text-foreground/80">{pullRequestStatus}</span>
         )}
         {controls}

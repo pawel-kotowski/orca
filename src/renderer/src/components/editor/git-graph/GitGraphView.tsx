@@ -17,18 +17,13 @@ import { GitGraphHeaderRow } from './git-graph-row'
 import { useGitGraphColumns } from './git-graph-columns'
 import { useGitGraphJump, useGitGraphRefList } from './use-git-graph-jump'
 import { GitGraphToolbar, useGitGraphDensity, useGitGraphZoom } from './git-graph-toolbar'
-import { GitGraphPullRequestsProvider, useGitGraphPrNames } from './use-git-graph-pull-requests'
+import { GitGraphPullRequestsProvider } from './use-git-graph-pull-requests'
 import { useGitGraphKeys } from './use-git-graph-keys'
 import { GitGraphAuthorHuesProvider } from './git-graph-author-color'
 import { GitGraphBranchColoursProvider } from './git-graph-branch-colour-context'
-import { gitGraphBranchName } from './git-graph-lane-names'
 import { drawnGitGraphPinnedLanes, useGitGraphPinnedLanes } from './use-git-graph-pinned-lanes'
 import { GitGraphShapeControls, useGitGraphStackNames } from './git-graph-shape-controls'
-import {
-  isGitGraphMergeInto,
-  nextGitGraphMark,
-  useGitGraphMergeMarks
-} from './use-git-graph-merge-marks'
+import { nextGitGraphMark, useGitGraphMergeMarks } from './use-git-graph-merge-marks'
 import { findGitGraphCommit } from './git-graph-find'
 import { useGitGraphRows } from './use-git-graph-rows'
 import { GitGraphList } from './git-graph-list'
@@ -36,6 +31,8 @@ import { useGitGraphThemeColours } from './use-git-graph-theme-colours'
 import { useGitGraphFetch } from './use-git-graph-fetch'
 import { useGitGraphAutoPage } from './use-git-graph-auto-page'
 import { useGitGraphHoverGuard } from './use-git-graph-hover-guard'
+import { GitGraphLaneWidthProvider, useGitGraphLaneWidth } from './git-graph-lanes-svg'
+import { useGitGraphPrFilterRefs, useGitGraphPullRequestsAndFilter } from './git-graph-pr-branches'
 
 // Selection, scroll and the drawn branches survive the tab remounting (a split beside it moves
 // its group).
@@ -54,7 +51,9 @@ export function GitGraphView({ worktreeId }: { worktreeId: string }): React.JSX.
   const [refsFilter, setRefsFilter] = useState<GitHistoryRefs>(saved?.refs ?? 'all')
   const [density, setDensity] = useGitGraphDensity()
   const [zoom, stepZoom] = useGitGraphZoom()
-  const history = useClassicGitGraphHistory(worktreeId, refsFilter)
+  // The branch picker's PR filter narrows the branches drawn once the PRs load (git-graph-pr-branches.ts).
+  const prFilter = useGitGraphPrFilterRefs(refsFilter)
+  const history = useClassicGitGraphHistory(worktreeId, prFilter.historyRefs)
   const ownerTarget = useWorktreeGitOwnerTarget(worktreeId)
   const repoKey = useWorktreeById(worktreeId)?.repoId ?? null
   const [selectedId, setSelectedId] = useState<string | null>(saved?.selectedId ?? null)
@@ -120,22 +119,30 @@ export function GitGraphView({ worktreeId }: { worktreeId: string }): React.JSX.
     () => drawnGitGraphPinnedLanes(lanes.pinned, refs, refsFilter),
     [lanes.pinned, refs, refsFilter]
   )
-  const model = useGitGraphRows({
+  // `items`: a branch the filter hides loses its name too where it sits on a commit still drawn.
+  const { prNames, stateRule, items } = useGitGraphPullRequestsAndFilter({
+    density,
+    repoId: repoKey,
     items: history.items,
+    pinned: lanes.pinned,
+    result,
+    refs,
+    states: prFilter.states,
+    active: prFilter.active,
+    onRefs: prFilter.setPrRefs
+  })
+  const [laneWidth, setLaneWidth] = useGitGraphLaneWidth()
+  const model = useGitGraphRows({
+    items,
     result,
     density,
     pinned: lanes.pinned,
-    drawnPinned
+    drawnPinned,
+    laneWidth
   })
-  const prNames = useGitGraphPrNames(density, repoKey, history.items, lanes.pinned, result)
   const marks = useGitGraphMergeMarks()
   const [stackNames, toggleStackNames] = useGitGraphStackNames()
-  const mergeCounts = new Map(
-    lanes.pinned.map((branch) => [
-      branch,
-      model.rows.filter((row) => isGitGraphMergeInto(row, model.laneNames, [branch])).length
-    ])
-  )
+
   const { layout, setWidth, resetWidth, toggleColumn } = useGitGraphColumns(
     listWidth,
     model.graphWidth + 8
@@ -290,9 +297,6 @@ export function GitGraphView({ worktreeId }: { worktreeId: string }): React.JSX.
     pageNearEnd()
   }
 
-  const branchNames = [
-    ...new Set(refs.map((ref) => gitGraphBranchName(ref)).filter((name) => !!name))
-  ] as string[]
   // A host that predates named refs draws only HEAD's history whatever is asked.
   const hostIgnoresRefs = !!result && (result.refs === undefined || result.refs === 'head')
 
@@ -305,13 +309,16 @@ export function GitGraphView({ worktreeId }: { worktreeId: string }): React.JSX.
     customPinned: lanes.custom,
     onPinned: lanes.setPinned,
     onResetPinned: lanes.reset,
-    branchNames,
-    colourOf: model.colourOf,
+    model,
     mergeTargets: marks.targets,
-    mergeCounts,
     onToggleMerge: marks.toggle,
     stackNames,
-    onToggleStackNames: toggleStackNames
+    onToggleStackNames: toggleStackNames,
+    branchStates: prFilter.states,
+    onBranchStates: prFilter.setStates,
+    stateRule,
+    laneWidth,
+    onLaneWidth: setLaneWidth
   }
 
   return (
@@ -361,67 +368,71 @@ export function GitGraphView({ worktreeId }: { worktreeId: string }): React.JSX.
         <GitGraphAuthorHuesProvider value={model.authorHues}>
           <GitGraphBranchColoursProvider value={model.branchColour}>
             <GitGraphPullRequestsProvider value={prNames.pullRequests}>
-              <div className="flex min-h-0 flex-1" style={{ zoom }}>
-                <div ref={columnRef} className="flex min-w-0 flex-1 flex-col">
-                  <GitGraphHeaderRow
-                    layout={layout}
-                    onResize={setWidth}
-                    onReset={resetWidth}
-                    onToggleColumn={toggleColumn}
-                    descriptionLabel={density === 'branches' ? 'Branches and merges' : undefined}
-                  />
-                  <div
-                    ref={listRef}
-                    role="grid"
-                    tabIndex={0}
-                    data-git-graph-list
-                    className="min-h-0 flex-1 overflow-y-auto outline-none scrollbar-sleek"
-                    onScroll={onScroll}
-                    onPointerMove={hoverGuard.onPointerMove}
-                    onKeyDown={onKeyDown}
-                  >
-                    {history.error && (
-                      <div className="px-3 py-2 text-xs text-destructive">{history.error}</div>
-                    )}
-                    {!history.error && history.loading && model.rows.length === 0 && (
-                      <div className="px-3 py-2 text-xs text-muted-foreground">Loading graph…</div>
-                    )}
-                    <GitGraphList
-                      model={model}
+              <GitGraphLaneWidthProvider value={laneWidth}>
+                <div className="flex min-h-0 flex-1" style={{ zoom }}>
+                  <div ref={columnRef} className="flex min-w-0 flex-1 flex-col">
+                    <GitGraphHeaderRow
                       layout={layout}
-                      density={density}
-                      worktreeId={worktreeId}
-                      worktreePath={history.worktreePath}
-                      repoId={repoKey}
-                      ownerTarget={ownerTarget}
-                      currentRefId={result?.currentRef?.id}
-                      selectedId={expandedRow}
-                      openCommitId={openCommit}
-                      flashId={flashId}
-                      focusedBranch={focusedBranch}
-                      mergeTargets={marks.targets}
-                      stackNames={stackNames}
-                      onToggleRow={toggleRow}
-                      onSelectCommit={selectCommit}
-                      onOpenCommit={openCommitInRow}
-                      onCloseCommit={() => setSelectedId(null)}
-                      onFocusBranch={followBranch}
-                      onCommitAction={handleCommitAction}
+                      onResize={setWidth}
+                      onReset={resetWidth}
+                      onToggleColumn={toggleColumn}
+                      descriptionLabel={density === 'branches' ? 'Branches and merges' : undefined}
                     />
-                    {history.hasMore && model.rows.length > 0 && (
-                      <div className="px-3 py-2 text-xs text-muted-foreground">
-                        {history.error ? (
-                          <Button variant="ghost" size="xs" onClick={history.loadMore}>
-                            {translate('local.gitGraph.retryPage', 'Try again')}
-                          </Button>
-                        ) : (
-                          translate('local.gitGraph.loadingMore', 'Loading older commits…')
-                        )}
-                      </div>
-                    )}
+                    <div
+                      ref={listRef}
+                      role="grid"
+                      tabIndex={0}
+                      data-git-graph-list
+                      className="min-h-0 flex-1 overflow-y-auto outline-none scrollbar-sleek"
+                      onScroll={onScroll}
+                      onPointerMove={hoverGuard.onPointerMove}
+                      onKeyDown={onKeyDown}
+                    >
+                      {history.error && (
+                        <div className="px-3 py-2 text-xs text-destructive">{history.error}</div>
+                      )}
+                      {!history.error && history.loading && model.rows.length === 0 && (
+                        <div className="px-3 py-2 text-xs text-muted-foreground">
+                          Loading graph…
+                        </div>
+                      )}
+                      <GitGraphList
+                        model={model}
+                        layout={layout}
+                        density={density}
+                        worktreeId={worktreeId}
+                        worktreePath={history.worktreePath}
+                        repoId={repoKey}
+                        ownerTarget={ownerTarget}
+                        currentRefId={result?.currentRef?.id}
+                        selectedId={expandedRow}
+                        openCommitId={openCommit}
+                        flashId={flashId}
+                        focusedBranch={focusedBranch}
+                        mergeTargets={marks.targets}
+                        stackNames={stackNames}
+                        onToggleRow={toggleRow}
+                        onSelectCommit={selectCommit}
+                        onOpenCommit={openCommitInRow}
+                        onCloseCommit={() => setSelectedId(null)}
+                        onFocusBranch={followBranch}
+                        onCommitAction={handleCommitAction}
+                      />
+                      {history.hasMore && model.rows.length > 0 && (
+                        <div className="px-3 py-2 text-xs text-muted-foreground">
+                          {history.error ? (
+                            <Button variant="ghost" size="xs" onClick={history.loadMore}>
+                              {translate('local.gitGraph.retryPage', 'Try again')}
+                            </Button>
+                          ) : (
+                            translate('local.gitGraph.loadingMore', 'Loading older commits…')
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
+              </GitGraphLaneWidthProvider>
             </GitGraphPullRequestsProvider>
           </GitGraphBranchColoursProvider>
         </GitGraphAuthorHuesProvider>

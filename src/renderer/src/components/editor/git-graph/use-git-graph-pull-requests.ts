@@ -21,6 +21,8 @@ export type GitGraphPullRequest = {
   state: 'open' | 'closed' | 'merged' | 'draft'
   url: string
   branchName?: string
+  /** The branch the PR merges into. */
+  baseName?: string
   headSha?: string
 }
 
@@ -35,6 +37,10 @@ export type GitGraphPullRequests = {
   pinned: readonly string[]
   loading: boolean
   error: string | null
+  /** Every PR loaded, read by the branch picker's "hide branches without a pull request". */
+  list: readonly GitGraphPullRequest[]
+  /** Every page the graph needs has loaded (or failed). */
+  settled: boolean
 }
 
 const EMPTY: GitGraphPullRequests = {
@@ -43,7 +49,9 @@ const EMPTY: GitGraphPullRequests = {
   byBranch: new Map(),
   pinned: [],
   loading: false,
-  error: null
+  error: null,
+  list: [],
+  settled: false
 }
 
 const PullRequests = createContext<GitGraphPullRequests>(EMPTY)
@@ -62,7 +70,19 @@ export function gitGraphPullRequestForBranch(
   branch: string,
   commitId?: string
 ): GitGraphPullRequest | undefined {
-  if (!prs.on || prs.pinned.includes(branch)) {
+  return prs.on ? gitGraphBranchPullRequest(prs, branch, commitId) : undefined
+}
+
+/**
+ * A branch's PR whatever the Names switch says, for its state's colour and the picker's PR filter:
+ * the one at this commit, else an open or draft one, else the newest. Pinned branches have none.
+ */
+export function gitGraphBranchPullRequest(
+  prs: GitGraphPullRequests,
+  branch: string,
+  commitId?: string
+): GitGraphPullRequest | undefined {
+  if (prs.pinned.includes(branch)) {
     return undefined
   }
   const list = prs.byBranch.get(branch)
@@ -107,12 +127,15 @@ function oldestCommitTime(items: readonly GitHistoryItem[]): number | undefined 
 
 export function useGitGraphPullRequests({
   on,
+  load = on,
   repoId,
   items,
   pinned,
   refreshToken
 }: {
   on: boolean
+  /** Load the PRs even with names off (the branch picker's PR filter). */
+  load?: boolean
   repoId: string | null
   items: readonly GitHistoryItem[]
   pinned: readonly string[]
@@ -121,6 +144,8 @@ export function useGitGraphPullRequests({
 }): GitGraphPullRequests {
   const [loaded, setLoaded] = useState<{
     key: string
+    /** The graph load these pages were read for. */
+    token: unknown
     prs: GitGraphPullRequest[]
     pages: number
     done: boolean
@@ -132,23 +157,27 @@ export function useGitGraphPullRequests({
   const oldest = oldestCommitTime(items)
 
   useEffect(() => {
-    setLoaded(null)
     setError(null)
   }, [key, refreshToken])
 
   const current = loaded?.key === key ? loaded : null
+  // After the graph reloads the PRs are read again from page 1, and the ones read before stay in
+  // use until the new ones arrive: dropping them made every branch read "no PR" for a moment, and
+  // the branch picker's PR filter redraws the graph each time it changes.
+  const stale = !!current && current.token !== refreshToken
   // Another page is needed while GitHub has more and the pages so far end after the oldest
   // loaded commit (a PR touched after a commit may still have merged it).
   const wantMore =
-    on &&
+    load &&
     !!repoId &&
     !error &&
     (!current ||
+      stale ||
       (!current.done &&
         oldest !== undefined &&
         current.oldestUpdatedAt > oldest &&
         current.pages * PAGE < GITHUB_SEARCH_LIMIT))
-  const nextPage = (current?.pages ?? 0) + 1
+  const nextPage = !current || stale ? 1 : current.pages + 1
 
   useEffect(() => {
     if (!wantMore || !repoId) {
@@ -185,6 +214,7 @@ export function useGitGraphPullRequests({
           state: item.state,
           url: item.url,
           branchName: item.branchName,
+          baseName: item.baseRefName,
           headSha: item.headSha
         }))
         // Epoch milliseconds, like the graph's commit timestamps.
@@ -193,10 +223,14 @@ export function useGitGraphPullRequests({
           .filter((time) => Number.isFinite(time))
         const pageOldest = times.length > 0 ? Math.min(...times) : Number.NaN
         setLoaded((previous) => {
-          const base = previous?.key === key ? previous : null
+          const base =
+            nextPage > 1 && previous?.key === key && previous.token === refreshToken
+              ? previous
+              : null
           const prs = [...(base?.prs ?? []), ...page]
           return {
             key,
+            token: refreshToken,
             prs,
             pages: nextPage,
             done: page.length < PAGE,
@@ -220,7 +254,7 @@ export function useGitGraphPullRequests({
       cancelled = true
       setLoading(false)
     }
-  }, [key, nextPage, repoId, wantMore])
+  }, [key, nextPage, refreshToken, repoId, wantMore])
 
   return useMemo(() => {
     const byNumber = new Map<number, GitGraphPullRequest>()
@@ -237,8 +271,17 @@ export function useGitGraphPullRequests({
     for (const list of byBranch.values()) {
       list.sort((a, b) => b.number - a.number)
     }
-    return { on, byNumber, byBranch, pinned, loading: on && loading, error: on ? error : null }
-  }, [current, error, loading, on, pinned])
+    return {
+      on,
+      byNumber,
+      byBranch,
+      pinned,
+      loading: load && loading,
+      error: load ? error : null,
+      list: current?.prs ?? [],
+      settled: load && !loading && (!!error || (!!current && !stale && !wantMore))
+    }
+  }, [current, error, load, loading, on, pinned, stale, wantMore])
 }
 
 /** The Branches view's Names switch and the pull requests it reads, with a line for the toolbar. */
@@ -247,7 +290,9 @@ export function useGitGraphPrNames(
   repoId: string | null,
   items: readonly GitHistoryItem[],
   pinned: readonly string[],
-  result: { historyToken?: unknown } | null | undefined
+  result: { historyToken?: unknown } | null | undefined,
+  /** The branch picker filters by PR state: a failure to load them is worth a line then. */
+  stateFilterActive = false
 ): {
   names: GitGraphNames
   setNames: (next: GitGraphNames) => void
@@ -257,15 +302,22 @@ export function useGitGraphPrNames(
   const [names, setNames] = useGitGraphNames()
   const pullRequests = useGitGraphPullRequests({
     on: density === 'branches' && names === 'pr',
+    // Always: every view colours a branch's name by its PR's state (Paweł, 2026-11-27: "a great
+    // way to see merged and not merged prs/branches because we squash merge").
+    load: true,
     repoId,
     items,
     pinned,
     refreshToken: result?.historyToken
   })
-  const status = pullRequests.error
-    ? `PRs unavailable: ${pullRequests.error}`
-    : pullRequests.loading
-      ? 'Loading PRs…'
-      : null
+  // A repo GitHub does not know says so only where PRs were asked for.
+  const asked = pullRequests.on || stateFilterActive
+  const status = !asked
+    ? null
+    : pullRequests.error
+      ? `PRs unavailable: ${pullRequests.error}`
+      : pullRequests.loading
+        ? 'Loading PRs…'
+        : null
   return { names, setNames, pullRequests, status }
 }

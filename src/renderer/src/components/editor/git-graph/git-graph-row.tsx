@@ -25,6 +25,12 @@ import { useGitGraphRefColour } from './git-graph-branch-colour-context'
 import { graphColor } from '@/components/right-sidebar/source-control/sync/git-history-graph-svg'
 import type { GitGraphLaneRow } from './git-graph-branch-layout'
 import { GitGraphLanesSvg } from './git-graph-lanes-svg'
+import { gitGraphBranchName } from './git-graph-lane-names'
+import {
+  gitGraphBranchPullRequest,
+  useGitGraphPullRequestContext
+} from './use-git-graph-pull-requests'
+import { GitGraphPrStateIcon, gitGraphPrStateText, gitGraphPrStateWord } from './git-graph-pr-state'
 
 export const GIT_GRAPH_ROW_HEIGHT = 24
 
@@ -83,12 +89,18 @@ export function GitGraphRefBadge({
   laneColor?: GitHistoryGraphColorId
 }): React.JSX.Element {
   const refColor = useGitGraphRefColour(itemRef, gitGraphRefColor(itemRef, laneColor))
+  // A branch with a pull request reads in its state's colour (git-graph-pr-state.tsx).
+  const prs = useGitGraphPullRequestContext()
+  const branch = gitGraphBranchName(itemRef)
+  const pr = branch ? gitGraphBranchPullRequest(prs, branch) : undefined
+  const title = itemRef.category ? `${itemRef.name} (${itemRef.category})` : itemRef.name
   return (
     <span
-      title={itemRef.category ? `${itemRef.name} (${itemRef.category})` : itemRef.name}
+      title={pr ? `${title}\n${gitGraphPrStateWord(pr.state)}: #${pr.number} ${pr.title}` : title}
       className={cn(
         'inline-flex max-w-[14rem] min-w-0 shrink items-center gap-1 rounded-full border border-border/70 px-1.5 text-[10.5px] leading-4',
-        isHead ? 'font-medium text-foreground' : 'text-foreground/80'
+        isHead ? 'font-medium text-foreground' : 'text-foreground/80',
+        pr && gitGraphPrStateText(pr.state)
       )}
     >
       {itemRef.category === 'tags' ? (
@@ -100,6 +112,7 @@ export function GitGraphRefBadge({
           style={{ background: refColor ? graphColor(refColor) : 'var(--muted-foreground)' }}
         />
       )}
+      {pr && <GitGraphPrStateIcon state={pr.state} className="size-2.5" />}
       <span className="truncate">{itemRef.name}</span>
     </span>
   )
