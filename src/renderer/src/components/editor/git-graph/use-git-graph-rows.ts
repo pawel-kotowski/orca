@@ -14,6 +14,7 @@ import {
   gitGraphMergedPullRequest
 } from './git-graph-lane-names'
 import { gitGraphEdgeKey, outlineGitGraphItems, type GitGraphOutline } from './git-graph-outline'
+import { gitGraphSyncMerges } from './git-graph-sync-merges'
 import {
   buildGitGraphBranchViewModels,
   gitGraphBranchColours,
@@ -75,20 +76,31 @@ export function useGitGraphRows({
     [headBranch, items, laneNames, pinned]
   )
   const laneBranches = useMemo(() => new Set(laneNames.values()), [laneNames])
+  // Branches view: a base branch merged into a PR's branch folds into the PR's line.
+  const syncMerges = useMemo(
+    () =>
+      density === 'branches' ? gitGraphSyncMerges(items, laneNames, trunks) : new Set<string>(),
+    [density, items, laneNames, trunks]
+  )
   const outline = useMemo(
     () =>
       density === 'branches'
-        ? outlineGitGraphItems(items, headRevision, (item) => {
-            // A squash-merged pull request is the merge in a squash workflow: keep it as a row.
-            const lane = laneNames.get(item.id)
-            return (
-              lane !== undefined &&
-              pinned.includes(lane) &&
-              !!gitGraphMergedPullRequest(item.subject)
-            )
-          })
+        ? outlineGitGraphItems(
+            items,
+            headRevision,
+            (item) => {
+              // A squash-merged pull request is the merge in a squash workflow: keep it as a row.
+              const lane = laneNames.get(item.id)
+              return (
+                lane !== undefined &&
+                pinned.includes(lane) &&
+                !!gitGraphMergedPullRequest(item.subject)
+              )
+            },
+            (item) => syncMerges.has(item.id)
+          )
         : null,
-    [density, headRevision, items, laneNames, pinned]
+    [density, headRevision, items, laneNames, pinned, syncMerges]
   )
   const rows = useMemo(
     () =>
@@ -134,12 +146,14 @@ export function useGitGraphRows({
   const childrenOf = useMemo(() => {
     const children = new Map<string, string[]>()
     for (const item of items) {
-      for (const parent of item.parentIds) {
+      // A folded merge did not start a branch at the commit it took in.
+      const parents = syncMerges.has(item.id) ? item.parentIds.slice(0, 1) : item.parentIds
+      for (const parent of parents) {
         children.set(parent, [...(children.get(parent) ?? []), item.id])
       }
     }
     return children
-  }, [items])
+  }, [items, syncMerges])
   const startsOf = (row: GitGraphLaneRow): string[] => {
     const own = laneNames.get(row.historyItem.id)
     const names = (childrenOf.get(row.historyItem.id) ?? [])

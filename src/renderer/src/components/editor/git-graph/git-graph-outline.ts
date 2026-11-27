@@ -21,19 +21,26 @@ export function outlineGitGraphItems(
   items: readonly GitHistoryItem[],
   headRevision?: string,
   /** More commits that shape the history: pull requests squashed onto a pinned branch. */
-  alsoKeep?: (item: GitHistoryItem) => boolean
+  alsoKeep?: (item: GitHistoryItem) => boolean,
+  /**
+   * Merges read as plain commits of their own line (a base branch merged into a PR's branch,
+   * git-graph-sync-merges.ts): no row of their own, and no line to what they took in.
+   */
+  foldMerge?: (item: GitHistoryItem) => boolean
 ): GitGraphOutline {
   const byId = new Map(items.map((item) => [item.id, item]))
+  const parentsOf = (item: GitHistoryItem): string[] =>
+    item.parentIds.length > 1 && foldMerge?.(item) ? item.parentIds.slice(0, 1) : item.parentIds
   const children = new Map<string, number>()
   for (const item of items) {
-    for (const parent of item.parentIds) {
+    for (const parent of parentsOf(item)) {
       children.set(parent, (children.get(parent) ?? 0) + 1)
     }
   }
   const kept = (item: GitHistoryItem): boolean =>
     item.id === headRevision ||
     (item.references?.length ?? 0) > 0 ||
-    item.parentIds.length !== 1 ||
+    parentsOf(item).length !== 1 ||
     (children.get(item.id) ?? 0) > 1 ||
     !!alsoKeep?.(item)
   const keptIds = new Set(items.filter(kept).map((item) => item.id))
@@ -51,8 +58,9 @@ export function outlineGitGraphItems(
     // Every parent stays, even when two lines fold down to the same commit: a short PR merged
     // with a merge commit is still a merge (a bubble), not a plain commit (Paweł, 2026-11-17:
     // three PR merges read "fork on main" once their one-commit branches had folded away).
-    const parentIds = item.parentIds.map((parent, index) => {
-      // A folded commit has exactly one parent and one child, so its line is a plain chain.
+    const parentIds = parentsOf(item).map((parent, index) => {
+      // A folded commit has one parent (a folded merge: its first) and one child, so its line is
+      // a plain chain.
       let id = parent
       const folded: string[] = []
       let next = byId.get(id)
