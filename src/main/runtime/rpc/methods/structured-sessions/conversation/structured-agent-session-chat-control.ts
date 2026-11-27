@@ -199,7 +199,10 @@ export const STRUCTURED_AGENT_SESSION_CHAT_CONTROL_METHODS = [
         return { outcome: 'next_start' as const }
       }
       if (await host.sessionOwesWork(sessionId)) {
-        return { outcome: 'after_work' as const }
+        // A worker's open dispatch is owed work too; between its turns it can still move.
+        return {
+          outcome: (await host.stopAgentBetweenTurns(sessionId)) ? 'next_start' : 'after_work'
+        } as const
       }
       // Its agent stops now; the next message starts it again, resumed, on the new login.
       await host.releaseIdleSession(sessionId, true)
