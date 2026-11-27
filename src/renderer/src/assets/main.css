@@ -1289,6 +1289,55 @@ body[data-modal-overlay-open]
   background-color: transparent;
 }
 
+/* Local build: every tab shows the theme image, as chats do (Paweł, 2026-11-27: "i should see
+   transparent background in git graph, same as in chats", then "this should work for any part of
+   orca really, like files, md, code, etc"). Upstream keeps every tab body but terminals and chats
+   on the opaque base (the rule above). Over a theme image the others, and the full pages
+   (Settings, Skills, Tasks, Activity, …), paint the chat's canvas at the strength of the Settings
+   slider Chat over a background image (use-tab-image-overlay.ts puts it on the root), darkened in
+   dark mode as chats are, and the surfaces inside them go clear: the editor's and side panel's
+   colours, every app-background surface, and Monaco's own (code, diffs). The app's background
+   colour itself stays: inverted labels and badges paint their text in it (a selected pill's dark
+   text on its light fill), so only the surfaces using it as a background clear. */
+:root[data-theme-background] [data-tab-group-body-id]:not([data-translucent-tab-body]) > *,
+:root[data-theme-background] [data-orca-page-host] > * {
+  --editor-surface: transparent;
+  --sidebar: transparent;
+}
+
+:root[data-theme-background]
+  [data-tab-group-body-id]:not([data-translucent-tab-body])
+  :is(.bg-background, .bg-sidebar, .bg-editor-surface),
+:root[data-theme-background]
+  [data-orca-page-host]
+  :is(.bg-background, .bg-sidebar, .bg-editor-surface) {
+  background-color: transparent;
+}
+
+:root[data-theme-background]
+  [data-tab-group-body-id]:not([data-translucent-tab-body])
+  :is(.monaco-editor, .monaco-diff-editor) {
+  --vscode-editor-background: transparent;
+  --vscode-editorGutter-background: transparent;
+}
+
+/* The canvas: on the tab body, and on a full page's own root (its host adds no box). Last, so a
+   page root that is itself an app-background surface keeps it. */
+:root[data-theme-background] [data-tab-group-body-id]:not([data-translucent-tab-body]),
+:root[data-theme-background] [data-orca-page-host] > :is(*, .bg-background) {
+  --orca-tab-image-canvas: var(--chat-canvas);
+  background-color: color-mix(
+    in srgb,
+    var(--orca-tab-image-canvas) calc(var(--orca-tab-image-overlay-opacity, 0.75) * 100%),
+    transparent
+  );
+}
+
+:root.dark[data-theme-background] [data-tab-group-body-id]:not([data-translucent-tab-body]),
+:root.dark[data-theme-background] [data-orca-page-host] > :is(*, .bg-background) {
+  --orca-tab-image-canvas: color-mix(in srgb, var(--chat-canvas) 55%, black);
+}
+
 /* The modal blur samples transparent pixels past the window edge; keep it over an opaque base. */
 :root[data-window-material] body:is([data-modal-overlay-open], [data-onboarding-overlay-open]) {
   background-color: var(--background);

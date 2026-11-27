@@ -32,8 +32,11 @@ import { usePluginFontRegistration } from '../../store/plugins/appearance/plugin
 import { scheduleRuntimeGraphSync } from '../../runtime/sync-runtime-graph/graph-sync-scheduler'
 import { useAppStore } from '../../store/index'
 import { useReduceVisualEffects } from '@/hooks/theme/use-reduce-visual-effects'
+import { useTabImageOverlayOpacity } from './use-tab-image-overlay'
 
 export function useDocumentAppearance(): void {
+  // Local: every tab, not only chats, reads the Chat over a background image slider.
+  useTabImageOverlayOpacity()
   const {
     theme,
     dark,

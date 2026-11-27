@@ -282,7 +282,12 @@ export function AppWorkspaceShell(props: {
                         'Retry the page or navigate to another Orca surface.'
                       )}
                     >
-                      <ActivePage layout={layout} />
+                      {/* Local: full pages (Settings, Skills, Tasks, Activity, …) show the theme
+                          image as tabs do (main.css, "every tab shows the theme image"); the host
+                          adds no box, so their layout is unchanged. */}
+                      <div data-orca-page-host className="contents">
+                        <ActivePage layout={layout} />
+                      </div>
                     </RecoverableRenderErrorBoundary>
                   </Suspense>
                 </div>
