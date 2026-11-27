@@ -3,6 +3,7 @@
 import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { StructuredAgentSessionLogger } from '../agent-session-wire/host/structured-agent-session-logger'
+import { chatScratchSessionId } from '../conversation-adoption/closed-chat-takeover'
 import { nativeChatScratchFolderFor } from './native-chat-scratch-folder'
 import {
   NATIVE_CHAT_VISUALS_SKILL_NAME,
@@ -61,7 +62,12 @@ export function createNativeChatVisualsDelivery(
         })
         return null
       }
-      const folder = nativeChatScratchFolderFor(deps.stateDirectory, sessionId)
+      // A chat that took a closed chat's conversation over keeps its folder: Claude's environment
+      // names it, and a different one would miss the conversation's cache.
+      const folder = nativeChatScratchFolderFor(
+        deps.stateDirectory,
+        chatScratchSessionId(sessionId)
+      )
       await mkdir(folder, { recursive: true, mode: 0o700 })
       return { folder, skill }
     } catch (error) {

@@ -53,6 +53,7 @@ export type AgentSessionRecordCommand =
       now: number
     }
   | { kind: 'launch-directory'; launchDirectory: string; now: number }
+  | { kind: 'hand-over'; to: string; now: number }
   | { kind: 'options'; args: AgentSessionOptionsReplacement }
   | { kind: 'pick-option'; args: AgentSessionOptionPick }
   | { kind: 'ran-options'; args: AgentSessionRanOptions }
@@ -127,6 +128,13 @@ export function applyAgentSessionRecordCommand(
       break
     case 'launch-directory':
       next = pinAgentSessionRecordLaunchDirectory(record, command.launchDirectory, command.now)
+      break
+    case 'hand-over':
+      next = {
+        ...record,
+        handedOverTo: { sessionId: command.to, at: command.now },
+        updatedAt: command.now
+      }
       break
     case 'options':
       next = replaceAgentSessionRecordOptions(record, command.args)

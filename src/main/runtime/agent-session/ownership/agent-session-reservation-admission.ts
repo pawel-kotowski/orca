@@ -231,7 +231,8 @@ export function assertAdoptedConversationUnowned(
   }
   const root = agentSessionProviderHandleRoot(adopted.handle)
   for (const record of listAgentSessionConversations(state)) {
-    if (record.sessionId === request.sessionId) {
+    // A chat that handed its conversation on (closed, `orca agent launch --resume`) holds nothing.
+    if (record.sessionId === request.sessionId || record.handedOverTo) {
       continue
     }
     // Only the conversation a chat continues now: an earlier link no longer holds anything.

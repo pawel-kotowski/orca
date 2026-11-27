@@ -114,7 +114,11 @@ export const AgentLaunch = z.object({
   chatLaunchProfile: ChatLaunchProfileSchema.optional(),
   /** Start the chat on an existing provider conversation (Claude: its session id). Chat only. */
   resumeFrom: z
-    .object({ providerSessionId: z.string().min(1).max(512) })
+    .object({
+      providerSessionId: z.string().min(1).max(512),
+      /** A closed, idle chat here that holds it hands it over (same session id). */
+      takeOverClosedChat: z.literal(true).optional()
+    })
     .strict()
     .optional()
 })

@@ -11,7 +11,9 @@ export const ResumeSource = z
         paneKey: Identifier('Invalid pane key')
       })
       .strict()
-      .optional()
+      .optional(),
+    /** Take the conversation over from a closed, idle chat on this host that holds it. */
+    takeOverClosedChat: z.literal(true).optional()
   })
   .strict()
 

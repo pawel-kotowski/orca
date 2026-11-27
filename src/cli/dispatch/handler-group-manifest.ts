@@ -268,6 +268,7 @@ export const HANDLER_GROUPS: readonly HandlerGroup[] = [
       'chat compact',
       'chat stop',
       'chat close',
+      'chat delete',
       'chat show',
       'chat profile',
       'chat login'

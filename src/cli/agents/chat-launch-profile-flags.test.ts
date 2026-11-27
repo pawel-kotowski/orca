@@ -23,7 +23,7 @@ describe('orca agent launch chat profile flags', () => {
         claudeConfigDir: '/home/me/logins/backup',
         appendSystemPromptFile: '/state/system.md'
       },
-      resumeFrom: { providerSessionId: 'abc-123' },
+      resumeFrom: { providerSessionId: 'abc-123', takeOverClosedChat: true },
       chatOptions: { permissionMode: 'full-access' }
     })
   })

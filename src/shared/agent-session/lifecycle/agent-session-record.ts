@@ -149,6 +149,8 @@ export type AgentSessionRecord = {
   forkedFrom?: AgentSessionForkedFrom
   /** Key of the host-owned instructions this provider context was confirmed to hold; absent: unknown. */
   instructionsKey?: string
+  /** Its conversation went on in this chat; read through `isAgentSessionHandover`. */
+  handedOverTo?: { sessionId: string; at: number }
   lease: AgentSessionLease
   createdAt: number
   updatedAt: number

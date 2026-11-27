@@ -14,6 +14,8 @@ export type StructuredAgentSessionResumeSource = {
   providerSessionId: string
   /** Host-owned pane evidence; send only with the CLI-source create capability. */
   cliSource?: { workspaceId: string; paneKey: string }
+  /** Take the conversation over from a closed, idle chat on this host that holds it. */
+  takeOverClosedChat?: true
 }
 
 /** The source chat and the response whose turn the fork copies through. */

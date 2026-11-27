@@ -66,7 +66,7 @@ export type AgentLaunchIntent = {
   /** `agent.launch`'s `chatLaunchProfile`: the chat's own launch profile. Chat only. */
   chatLaunchProfile?: ChatLaunchProfile
   /** `agent.launch`'s `resumeFrom`: the provider conversation the chat continues. Chat only. */
-  resumeFrom?: { providerSessionId: string }
+  resumeFrom?: { providerSessionId: string; takeOverClosedChat?: true }
 }
 
 /** Placement cannot fail a launch: missing groups fall back to the anchor's group, then the active group. */

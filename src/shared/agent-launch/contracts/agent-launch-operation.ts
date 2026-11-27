@@ -26,7 +26,7 @@ export type AgentLaunchFingerprintInput = {
   surface?: string
   /** A chat's own launch and the conversation it resumes are what it runs. */
   chatLaunchProfile?: Readonly<Record<string, unknown>>
-  resumeFrom?: { providerSessionId: string }
+  resumeFrom?: { providerSessionId: string; takeOverClosedChat?: true }
   /** Exclude launchSource, placement and presentation: they change attribution/view, not execution. Replays truthfully retain the first launch's attribution. */
 }
 

@@ -15,6 +15,8 @@ import {
 import { getStructuredAgentSessionHost } from '../../../../native-chat/agent-session-wire/host/structured-agent-session-registry'
 import type { StructuredAgentSessionHost } from '../../../../native-chat/agent-session-wire/host/structured-agent-session-host'
 import type { RpcContext } from '../../core'
+import { AgentLaunchSurfaceUnavailableError } from '../../../../agent-launch/agent-launch-surface-refusal'
+import { takeOverClosedChatIfAsked } from '../../../../native-chat/conversation-adoption/closed-chat-takeover'
 import {
   chatLaunchProfiles,
   keepChatLaunchProfile,
@@ -83,6 +85,20 @@ export function agentLaunchSurfaceFactory(
       const sessionId = requested ?? createOrcaSessionId(randomUUID)
       // Kept before the create, which starts the agent, so its first start already has it.
       const undoProfile = keepChatLaunchProfile(chatLaunchProfiles(), sessionId, chatLaunchProfile)
+      // A closed, idle chat that holds the conversation hands it over before the create adopts it.
+      if (resumeFrom) {
+        await context.runtime.ensureStructuredAgentSessionHost()
+        await takeOverClosedChatIfAsked({ agent, resumeFrom, envelope: { sessionId } }).catch(
+          (error: unknown) => {
+            undoProfile()
+            // Before any effect: the launch's answer, not an unknown outcome.
+            throw new AgentLaunchSurfaceUnavailableError(
+              error instanceof Error ? error.message : String(error),
+              'conversationHeldElsewhere'
+            )
+          }
+        )
+      }
       const supported = supportedStructuredSeedOptions(
         agent,
         narrowStructuredLaunchSeedOptions(options)
@@ -133,7 +149,10 @@ export function agentLaunchSurfaceFactory(
         undoProfile()
         if (chatLaunchProfile || resumeFrom) {
           // A chat's own profile has no terminal form: its refusal is the launch's answer.
-          throw new Error(`${created.refusal.code}: ${created.refusal.message}`)
+          throw new AgentLaunchSurfaceUnavailableError(
+            `${created.refusal.code}: ${created.refusal.message}`,
+            created.refusal.code
+          )
         }
         // A caller-named session conflict must surface to that caller, never downgrade to terminal.
         if (requested && created.refusal.code === 'agent_session_conflict') {

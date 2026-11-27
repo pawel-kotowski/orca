@@ -68,6 +68,16 @@ export const CHAT_HANDLERS: Record<string, CommandHandler> = {
     })
     printResult(result, json, () => 'Closed the chat.')
   },
+  'chat delete': async ({ flags, client, json }) => {
+    const result = await client.call<{ outcome: string; reason?: string }>('agentSession.delete', {
+      sessionId: chatSession(flags, client)
+    })
+    printResult(result, json, (value) =>
+      value.outcome === 'deleted'
+        ? 'Deleted the chat.'
+        : `Not deleted: ${value.reason ?? 'refused'}.`
+    )
+  },
   'chat show': async ({ flags, client, json }) => {
     const result = await client.call<ChatFacts>('agentSession.launchFacts', {
       ...chatTarget(flags, client)

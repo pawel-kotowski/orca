@@ -25,6 +25,8 @@ import {
 import { withClaudeArtifactDefault } from './claude-artifact-env'
 import type { ChatLaunchProfile } from '../../../../shared/agent-launch/contracts/chat-launch-profile'
 import * as chatProfile from './claude-chat-launch-profile'
+import { refuseHandedOverChatStart } from '../../../native-chat/conversation-adoption/closed-chat-takeover'
+import { getStructuredAgentSessionHost } from '../../../native-chat/agent-session-wire/host/structured-agent-session-registry'
 import {
   resolveClaudeStructuredInvocation,
   type ClaudeStructuredInvocation
@@ -133,6 +135,10 @@ export function claudeStructuredLaunchPart(
 ): StructuredAgentLaunchPartResolver<ClaudeStructuredLaunch> {
   return async (basis, identity) => {
     const { record } = basis
+    refuseHandedOverChatStart(
+      record,
+      (id) => getStructuredAgentSessionHost()?.deps.store.getRecord(id)?.conversationName
+    )
     const accountHome = requireLegacyAgentSessionAccountHome(record.accountHome)
     const router = getClaudeProfileRouter()
     const active = activeProviderContext(record)

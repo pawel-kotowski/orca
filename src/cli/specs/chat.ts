@@ -40,6 +40,17 @@ export const CHAT_COMMAND_SPECS: CommandSpec[] = [
     examples: ['orca chat close --session <sessionId>']
   },
   {
+    path: ['chat', 'delete'],
+    summary: 'Delete a chat, as its Delete chat does',
+    usage: 'orca chat delete --session <id> [--json]',
+    allowedFlags: [...GLOBAL_FLAGS, 'session'],
+    notes: [
+      'The chat leaves Orca (tabs, Session History); the agent’s own transcript stays, so `orca agent launch --resume <its Claude session id>` can continue that conversation in a new chat, under the same session id.',
+      'Refused for a chat with open workers, a bot’s home, and on a paired host other than its owner’s.'
+    ],
+    examples: ['orca chat delete --session <sessionId>']
+  },
+  {
     path: ['chat', 'show'],
     summary: "Show a chat's state, usage limit, login and conversation id",
     usage: 'orca chat show --session <id> [--json]',

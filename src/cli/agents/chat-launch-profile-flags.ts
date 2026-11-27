@@ -21,7 +21,7 @@ type Flags = Map<string, string | boolean>
 
 export type CliChatLaunch = {
   chatLaunchProfile?: ChatLaunchProfile
-  resumeFrom?: { providerSessionId: string }
+  resumeFrom?: { providerSessionId: string; takeOverClosedChat?: true }
   chatOptions?: Record<string, string>
 }
 
@@ -106,7 +106,10 @@ export function readCliChatLaunch(flags: Flags, cwd: string, remote = false): Cl
   }
   return {
     ...(isEmptyChatLaunchProfile(parsed.data) ? {} : { chatLaunchProfile: parsed.data }),
-    ...(resume ? { resumeFrom: { providerSessionId: resume } } : {}),
+    // A closed chat that holds it hands it over: same session id, so its cache still matches.
+    ...(resume
+      ? { resumeFrom: { providerSessionId: resume, takeOverClosedChat: true as const } }
+      : {}),
     ...(known ? { chatOptions: { [AGENT_CHAT_PERMISSION_MODE_OPTION_ID]: known } } : {})
   }
 }

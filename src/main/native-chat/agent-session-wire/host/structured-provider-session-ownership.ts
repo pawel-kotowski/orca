@@ -45,8 +45,12 @@ export function listStructuredProviderSessionOwnership(
                   providerSessionId: history.rowSessionId(link),
                   conversationName: record.conversationName,
                   ownerObservation: record.ownerObservation,
-                  // A repeat resume link of the head's id is the head too.
-                  role: keysMayMatch(key, headKey) ? ('head' as const) : ('earlier' as const),
+                  // A repeat resume link of the head's id is the head too; a chat that handed its
+                  // conversation on holds none of its links any more.
+                  role:
+                    !record.handedOverTo && keysMayMatch(key, headKey)
+                      ? ('head' as const)
+                      : ('earlier' as const),
                   key
                 }
               ]

@@ -1,6 +1,7 @@
 // Resolve readVisual scratch roots from host records; clients supply only session id/bare name.
 // Older hosts lack the method (mobile may see forbidden); clients show unavailable.
 
+import { chatScratchSessionId } from '../../../../../native-chat/conversation-adoption/closed-chat-takeover'
 import { LOCAL_EXECUTION_HOST_ID } from '../../../../../../shared/execution-host/execution-host'
 import {
   ReadVisualParams,
@@ -43,7 +44,10 @@ export const STRUCTURED_AGENT_SESSION_VISUAL_METHODS = [
         return { ok: false, error: 'unsupported_location' }
       }
       // The same state directory the chat host and its journal are opened in on this process.
-      const folder = nativeChatScratchFolderFor(getProfileUserDataPath(), params.sessionId)
+      const folder = nativeChatScratchFolderFor(
+        getProfileUserDataPath(),
+        chatScratchSessionId(params.sessionId)
+      )
       return readNativeChatVisualFile(folder, params.file, params.knownRevision)
     }
   })

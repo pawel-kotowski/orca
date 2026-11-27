@@ -160,6 +160,7 @@ export const ROOT_HELP_TEXT_PRIMARY = [
   '  chat compact              Compact a chat, as /compact does',
   "  chat stop                 Stop a chat's running turn, as Esc does",
   '  chat close                Close a chat and stop its agent',
+  '  chat delete               Delete a chat; its conversation can be resumed in a new one',
   "  chat show                 Show a chat's state, usage limit and login",
   "  chat profile              Replace a chat's launch profile (arguments, environment, login)",
   "  chat login                Move a chat's agent to another Claude login",
