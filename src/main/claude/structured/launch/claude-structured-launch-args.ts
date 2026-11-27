@@ -32,7 +32,7 @@ export const CLAUDE_TRANSPORT_OWNED_FLAGS: ReadonlySet<string> = new Set([
   'append-system-prompt-file'
 ])
 
-const SHORT_FLAGS: Record<string, string> = {
+export const CLAUDE_SHORT_FLAGS: Readonly<Record<string, string>> = {
   '-m': 'model',
   '-d': 'debug',
   '-p': 'print',
@@ -57,7 +57,7 @@ export function claudeStructuredLaunchArgs(args: readonly string[]): {
 
     const separator = arg.indexOf('=')
     const rawFlag = separator === -1 ? arg : arg.slice(0, separator)
-    const flag = rawFlag.startsWith('--') ? rawFlag.slice(2) : SHORT_FLAGS[rawFlag]
+    const flag = rawFlag.startsWith('--') ? rawFlag.slice(2) : CLAUDE_SHORT_FLAGS[rawFlag]
     if (!flag || flag === 'help' || flag === 'version') {
       continue
     }

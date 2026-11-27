@@ -1,4 +1,5 @@
 import { RuntimeClientError, RuntimeRpcFailureError } from '../runtime/connection/types'
+import { redactChatLaunchArgs, redactChatLaunchParams } from './chat-launch-profile-flags'
 import { classifyAgentLaunchReplayRefusal } from '../../shared/agent-launch/contracts/agent-launch-replay-refusal'
 import {
   recoverableOrchestrationArgs,
@@ -38,7 +39,9 @@ export async function withCliAgentLaunchRecovery<T>(
     ) {
       throw error
     }
-    const args = recovery.rawArgs && recoverableOrchestrationArgs(recovery.rawArgs)
+    // A chat profile's environment values are named in the error, never printed.
+    const recoverable = recovery.rawArgs && recoverableOrchestrationArgs(recovery.rawArgs)
+    const args = recoverable && redactChatLaunchArgs(recoverable)
     const retryArgs: string[] = []
     for (let index = 0; index < (args?.length ?? 0); index++) {
       const arg = args?.[index]
@@ -66,6 +69,11 @@ export async function withCliAgentLaunchRecovery<T>(
           'Do not repeat the launch: this older host cannot prove whether it started the agent or sent the prompt.',
           'Inspect worktree list and terminal list on the execution host, then read the agent without sending input. Confirm the outcome before deliberately starting another agent.'
         ]
+    if (recoverable && args && args.some((arg, index) => arg !== recoverable[index])) {
+      nextSteps.push(
+        'The recovery command shows the chat profile’s environment values as <redacted>: put your own values back before you re-issue it.'
+      )
+    }
     // Replace transport restart-and-retry advice: the accepted launch may still be running.
     const refusal =
       error instanceof RuntimeRpcFailureError && error.code === 'invalid_argument'
@@ -80,7 +88,7 @@ export async function withCliAgentLaunchRecovery<T>(
         launchOutcome: 'unknown',
         retrySafe: Boolean(recovery.operationId),
         ...(recovery.operationId ? { operationId: recovery.operationId } : {}),
-        launchRequest: recovery.params,
+        launchRequest: redactChatLaunchParams(recovery.params),
         ...(recoveryCommand ? { recoveryCommand } : {}),
         nextSteps,
         cause:

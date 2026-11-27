@@ -21,6 +21,7 @@ import {
 } from '../delivery/structured-agent-session-returned-chat'
 import * as mutationWiring from './structured-agent-session-host-mutation-wiring'
 import * as lifetime from '../termination/structured-agent-session-conversation-lifetime'
+import { stopAgentBetweenTurns } from '../../launch-profiles/chat-login-move'
 import { createStructuredAgentSessionTabSurface as createTabs } from './structured-agent-session-host-tabs'
 import { flushStructuredAgentSessionHost } from '../termination/structured-agent-session-host-teardown'
 import type * as HostTypes from './structured-agent-session-host-types'
@@ -202,16 +203,12 @@ export class StructuredAgentSessionHost {
    *  open dispatch or not (a worker between turns, or stopped at its usage limit); the next send
    *  resumes it there. A turn or background work in flight keeps it. */
   stopAgentBetweenTurns = (id: string): Promise<boolean> =>
-    this.serialize(id, async () => {
-      const child = this.sessions.get(id)?.child
-      if (!child || child.phase === 'starting' || child.close) {
-        return false
-      }
-      if (this.clientDelivery.childWorkOpen(id) || (await this.currentWork(id))?.working()) {
-        return false
-      }
-      await this.lifetime.stopAgent(id, { cause: 'evict', resting: true })
-      return true
+    stopAgentBetweenTurns(id, {
+      serialize: this.serialize,
+      child: (sessionId) => this.sessions.get(sessionId)?.child,
+      childWorkOpen: this.clientDelivery.childWorkOpen,
+      working: async (sessionId) => (await this.currentWork(sessionId))?.working() === true,
+      stop: (sessionId) => this.lifetime.stopAgent(sessionId, { cause: 'evict', resting: true })
     })
 
   /** Local: start an agent at rest, which reads in the turns a terminal added. */

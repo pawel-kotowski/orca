@@ -21,7 +21,7 @@ export const AGENT_LAUNCH_HANDLERS: Record<string, CommandHandler> = {
       ...readCliAgentLaunch(flags, parseCliAgent(getRequiredStringFlag(flags, 'agent')), {
         createsWorktree: false
       }),
-      ...readCliChatLaunch(flags, cwd)
+      ...readCliChatLaunch(flags, cwd, client.isRemote)
     }
     if (client.isRemote && !flags.has('worktree')) {
       throw new RuntimeClientError(

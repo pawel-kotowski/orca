@@ -1,5 +1,5 @@
 import { AcpAtRestCommandCatalog } from '../../../acp/discovery/acp-at-rest-commands'
-import { chatLaunchProfiles } from '../../../native-chat/launch-profiles/chat-launch-profiles'
+import { chatLaunchProfileFor } from '../../../native-chat/launch-profiles/chat-launch-profiles'
 import { resolveNativeChatVisualsSkillLocation } from '../../../native-chat/conversation-files/native-chat-visuals-skill-location'
 import { withSupportedCodexCli } from '../../../codex/structured/launch/codex-cli-installation-error'
 import { codexStructuredLaunchPart } from '../../../codex/structured/launch/codex-structured-launch-resolution'
@@ -134,7 +134,7 @@ function createClaudeAdapter(
       structuredAgentLaunchSources(context),
       claudeStructuredLaunchPart({
         resolveLaunchArgs: () => deps.resolveLaunchArgs('claude'),
-        launchProfile: (sessionId) => chatLaunchProfiles().get(sessionId),
+        launchProfile: chatLaunchProfileFor,
         ...(deps.resolveClaudeCommand ? { resolveCommand: deps.resolveClaudeCommand } : {}),
         resolveAuthPolicy: deps.resolveClaudeAuthPolicy,
         attachmentDirectory: agentSessionAttachmentStoreRoot(deps.stateDirectory),

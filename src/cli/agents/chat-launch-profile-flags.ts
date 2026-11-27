@@ -1,6 +1,6 @@
 // `orca agent launch`'s chat profile flags: a chat's own arguments, environment, system prompt
 // file, login, permission mode and the conversation it resumes.
-import { resolve } from 'node:path'
+import { isAbsolute, resolve } from 'node:path'
 import {
   ChatLaunchProfileSchema,
   isEmptyChatLaunchProfile,
@@ -53,7 +53,22 @@ function parseEnv(flags: Flags): Record<string, string> {
   return env
 }
 
-export function readCliChatLaunch(flags: Flags, cwd: string): CliChatLaunch {
+/** A path as the host that runs the chat reads it: relative ones resolve against this directory only
+ *  when this CLI runs on that host (--environment names another machine, whose files these are not). */
+export function hostPath(value: string, cwd: string, remote: boolean, flag: string): string {
+  if (isAbsolute(value)) {
+    return value
+  }
+  if (remote) {
+    throw new RuntimeClientError(
+      'invalid_argument',
+      `--${flag} must be an absolute path on the Orca host that runs the chat.`
+    )
+  }
+  return resolve(cwd, value)
+}
+
+export function readCliChatLaunch(flags: Flags, cwd: string, remote = false): CliChatLaunch {
   const json = parseProfileJson(flags)
   const env = {
     ...(typeof json.env === 'object' ? json.env : {}),
@@ -64,8 +79,14 @@ export function readCliChatLaunch(flags: Flags, cwd: string): CliChatLaunch {
   const parsed = ChatLaunchProfileSchema.safeParse({
     ...json,
     ...(Object.keys(env).length > 0 ? { env } : {}),
-    ...(configDir ? { claudeConfigDir: resolve(cwd, configDir) } : {}),
-    ...(promptFile ? { appendSystemPromptFile: resolve(cwd, promptFile) } : {})
+    ...(configDir
+      ? { claudeConfigDir: hostPath(configDir, cwd, remote, 'claude-config-dir') }
+      : {}),
+    ...(promptFile
+      ? {
+          appendSystemPromptFile: hostPath(promptFile, cwd, remote, 'append-system-prompt-file')
+        }
+      : {})
   })
   if (!parsed.success) {
     const issue = parsed.error.issues[0]
@@ -92,4 +113,42 @@ export function readCliChatLaunch(flags: Flags, cwd: string): CliChatLaunch {
 
 export function hasCliChatLaunch(launch: CliChatLaunch): boolean {
   return Boolean(launch.chatLaunchProfile || launch.resumeFrom || launch.chatOptions)
+}
+
+const REDACTED = '<redacted>'
+
+function redactProfileEnv(profile: unknown): unknown {
+  if (typeof profile !== 'object' || profile === null || !('env' in profile)) {
+    return profile
+  }
+  const env = profile.env
+  return typeof env === 'object' && env !== null
+    ? { ...profile, env: Object.fromEntries(Object.keys(env).map((key) => [key, REDACTED])) }
+    : profile
+}
+
+/** A launch's arguments and params as an error shows them: a chat profile's environment values
+ *  (tokens, paths of secrets) are named, never printed. */
+export function redactChatLaunchArgs(args: readonly string[]): string[] {
+  return args.map((arg, index) => {
+    const flag = args[index - 1]
+    if (flag === '--env' && arg.includes('=')) {
+      return `${arg.slice(0, arg.indexOf('='))}=${REDACTED}`
+    }
+    if (flag === '--chat-profile') {
+      try {
+        return JSON.stringify(redactProfileEnv(JSON.parse(arg)))
+      } catch {
+        return REDACTED
+      }
+    }
+    return arg
+  })
+}
+
+export function redactChatLaunchParams(params: unknown): unknown {
+  if (typeof params !== 'object' || params === null || !('chatLaunchProfile' in params)) {
+    return params
+  }
+  return { ...params, chatLaunchProfile: redactProfileEnv(params.chatLaunchProfile) }
 }

@@ -4,6 +4,7 @@ import {
   claudeChatProfileAccount,
   claudeChatProfileArgsRefusal,
   expandChatProfileEnv,
+  splitToolRules,
   withProfileSystemPrompt
 } from './claude-chat-launch-profile'
 
@@ -45,6 +46,20 @@ describe('claude chat launch profile', () => {
     expect(claudeChatProfileArgsRefusal(['--disallowedTools', 'A', 'B', '--model', 'opus'])).toBe(
       null
     )
+  })
+
+  it('reads a tool rule with spaces as one rule', () => {
+    expect(splitToolRules('Bash(git log:*), Read  Edit')).toEqual([
+      'Bash(git log:*)',
+      'Read',
+      'Edit'
+    ])
+  })
+
+  it('refuses short flags it would otherwise drop or misread', () => {
+    expect(claudeChatProfileArgsRefusal(['-c'])).toContain('--continue')
+    expect(claudeChatProfileArgsRefusal(['-x'])).toContain('short flag')
+    expect(claudeChatProfileArgsRefusal(['-m', 'opus'])).toBe(null)
   })
 
   it('extends a variable from the agent environment', () => {

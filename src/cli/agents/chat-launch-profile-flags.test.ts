@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { REPEATED_FLAG_SEPARATOR } from '../arguments/args'
-import { readCliChatLaunch } from './chat-launch-profile-flags'
+import {
+  readCliChatLaunch,
+  redactChatLaunchArgs,
+  redactChatLaunchParams
+} from './chat-launch-profile-flags'
 
 describe('orca agent launch chat profile flags', () => {
   it('merges the JSON profile with the single flags', () => {
@@ -35,5 +39,35 @@ describe('orca agent launch chat profile flags', () => {
 
   it('is empty without its flags', () => {
     expect(readCliChatLaunch(new Map(), '/')).toEqual({})
+  })
+
+  it('needs absolute paths on another host', () => {
+    expect(() =>
+      readCliChatLaunch(new Map([['append-system-prompt-file', 'system.md']]), '/here', true)
+    ).toThrow(/absolute path on the Orca host/)
+  })
+
+  it('never shows environment values in an error', () => {
+    expect(
+      redactChatLaunchArgs([
+        'agent',
+        '--env',
+        'TOKEN=secret',
+        '--chat-profile',
+        JSON.stringify({ env: { KEY: 'v' }, args: ['--model', 'opus'] })
+      ])
+    ).toEqual([
+      'agent',
+      '--env',
+      'TOKEN=<redacted>',
+      '--chat-profile',
+      JSON.stringify({ env: { KEY: '<redacted>' }, args: ['--model', 'opus'] })
+    ])
+    expect(
+      redactChatLaunchParams({ chatLaunchProfile: { env: { K: 'v' } }, agent: 'claude' })
+    ).toEqual({
+      chatLaunchProfile: { env: { K: '<redacted>' } },
+      agent: 'claude'
+    })
   })
 })

@@ -4,6 +4,7 @@ import type { ChatLaunchProfile } from '../../../../shared/agent-launch/contract
 import type { ClaudeAccountRecipe } from '../../../../shared/agent-session/lifecycle/accounts/agent-session-acquired-account'
 import { claudeConfigDirEnvPatch } from './claude-config-dir-pin'
 import {
+  CLAUDE_SHORT_FLAGS,
   CLAUDE_TRANSPORT_OWNED_FLAGS,
   claudeStructuredLaunchArgs
 } from './claude-structured-launch-args'
@@ -35,7 +36,9 @@ function flagName(arg: string): string | null {
   if (!arg.startsWith('-')) {
     return null
   }
-  const bare = arg.replace(/^--?/, '').split('=')[0]!
+  const name = arg.split('=')[0]!
+  // A short flag names its long one (`-r` is --resume), as the launch parser reads it.
+  const bare = name.startsWith('--') ? name.slice(2) : (CLAUDE_SHORT_FLAGS[name] ?? name.slice(1))
   return bare || null
 }
 
@@ -43,6 +46,9 @@ function flagName(arg: string): string | null {
  *  permission and system-prompt flags; a profile says those with its own fields. */
 export function claudeChatProfileArgsRefusal(args: readonly string[]): string | null {
   for (const arg of args) {
+    if (/^-[^-]/.test(arg) && !CLAUDE_SHORT_FLAGS[arg.split('=')[0]!]) {
+      return `${arg} is a short flag the chat launch does not read: write its long form.`
+    }
     const flag = flagName(arg)
     if (flag && CLAUDE_TRANSPORT_OWNED_FLAGS.has(flag) && !TOOL_LIST_FLAGS.has(flag)) {
       return `--${flag} is set by Orca for a chat: use --permission-mode, --resume or --append-system-prompt-file instead.`
@@ -54,6 +60,30 @@ export function claudeChatProfileArgsRefusal(args: readonly string[]): string | 
     return error instanceof Error ? error.message : String(error)
   }
   return null
+}
+
+/** `A,B C` as Claude reads a tool list: split at commas and spaces, but not inside a rule's
+ *  parentheses (`Bash(git log:*)` is one rule). */
+export function splitToolRules(value: string): string[] {
+  const rules: string[] = []
+  let depth = 0
+  let current = ''
+  for (const char of value) {
+    if (char === '(') {
+      depth++
+    } else if (char === ')') {
+      depth = Math.max(0, depth - 1)
+    }
+    if (depth === 0 && (char === ',' || /\s/.test(char))) {
+      if (current) {
+        rules.push(current)
+      }
+      current = ''
+      continue
+    }
+    current += char
+  }
+  return current ? [...rules, current] : rules
 }
 
 function withoutToolLists(args: readonly string[]): {
@@ -76,14 +106,14 @@ function withoutToolLists(args: readonly string[]): {
     while (args[index + 1] !== undefined && !args[index + 1]!.startsWith('-')) {
       values.push(args[++index]!)
     }
-    lists[flag].push(...values.flatMap((value) => value.split(/[\s,]+/)).filter(Boolean))
+    lists[flag].push(...values.flatMap(splitToolRules))
   }
   return { rest, lists }
 }
 
 /** The profile's parts for one start; its system prompt file is read now, so a rewrite applies. */
 export async function claudeChatLaunchProfileParts(
-  profile: ChatLaunchProfile | null,
+  profile: ChatLaunchProfile | null | undefined,
   readText: (path: string) => Promise<string> = (path) => readFile(path, 'utf8')
 ): Promise<ClaudeChatLaunchProfileParts> {
   if (!profile) {
@@ -121,8 +151,11 @@ export function expandChatProfileEnv(
 /** The profile's login in place of the workspace's account: its folder, pinned in `env`. */
 export function claudeChatProfileAccount(
   env: Record<string, string>,
-  claudeConfigDir: string
-): ClaudeAccountRecipe {
+  claudeConfigDir: string | null
+): ClaudeAccountRecipe | null {
+  if (!claudeConfigDir) {
+    return null
+  }
   delete env.CLAUDE_CONFIG_DIR
   Object.assign(env, claudeConfigDirEnvPatch(claudeConfigDir, { env }))
   return {
@@ -152,5 +185,19 @@ export function withProfileSystemPrompt<T extends { systemPrompt?: unknown }>(
       preset: 'claude_code',
       append: [own, appendSystemPrompt].filter(Boolean).join('\n\n')
     }
+  }
+}
+
+/** The profile's directories, tool lists and prompt file over a launch's own options. */
+export function claudeChatProfileOptions<T extends { systemPrompt?: unknown }>(
+  discovery: { additionalDirectories: readonly string[] },
+  own: T,
+  profile: ClaudeChatLaunchProfileParts
+): T & { additionalDirectories: string[]; allowedTools?: string[]; disallowedTools?: string[] } {
+  return {
+    additionalDirectories: [...discovery.additionalDirectories, ...profile.additionalDirectories],
+    ...(profile.allowedTools.length > 0 ? { allowedTools: profile.allowedTools } : {}),
+    ...(profile.disallowedTools.length > 0 ? { disallowedTools: profile.disallowedTools } : {}),
+    ...withProfileSystemPrompt(own, profile.appendSystemPrompt)
   }
 }

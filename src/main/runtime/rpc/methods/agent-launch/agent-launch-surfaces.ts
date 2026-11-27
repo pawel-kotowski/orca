@@ -15,7 +15,10 @@ import {
 import { getStructuredAgentSessionHost } from '../../../../native-chat/agent-session-wire/host/structured-agent-session-registry'
 import type { StructuredAgentSessionHost } from '../../../../native-chat/agent-session-wire/host/structured-agent-session-host'
 import type { RpcContext } from '../../core'
-import { chatLaunchProfiles } from '../../../../native-chat/launch-profiles/chat-launch-profiles'
+import {
+  chatLaunchProfiles,
+  keepChatLaunchProfile
+} from '../../../../native-chat/launch-profiles/chat-launch-profiles'
 import { STARTUP_CWD_FALLBACK_SENTENCE } from '../../../../../shared/shell/launch/startup-cwd-fallback'
 import { structuredCallerFor } from '../structured-sessions/creation/structured-agent-session-gate'
 import { createStructuredAgentSessionForWorktree } from '../structured-sessions/creation/structured-agent-session-create'
@@ -36,6 +39,16 @@ import {
   agentLaunchTabViewerRule,
   type AgentLaunchView
 } from './agent-launch-tab-publication'
+
+/** A saved launch choice (a chat's permission mode) over the launch's own model and effort, which it
+ *  does not replace. */
+export function launchSeedOptions(
+  chatOptions: Readonly<Record<string, string>> | undefined,
+  supported: Readonly<Record<string, string>>
+): Readonly<Record<string, string>> | undefined {
+  const seeded = { ...supported, ...chatOptions }
+  return Object.keys(seeded).length > 0 ? seeded : undefined
+}
 
 /** Replay-safe launches keep the nested attach in the same stable caller namespace as the launch. */
 export function agentLaunchSurfaceFactory(
@@ -68,14 +81,12 @@ export function agentLaunchSurfaceFactory(
     }) => {
       const sessionId = requested ?? createOrcaSessionId(randomUUID)
       // Kept before the create, which starts the agent, so its first start already has it.
-      if (chatLaunchProfile) {
-        chatLaunchProfiles().set(sessionId, chatLaunchProfile)
-      }
+      const undoProfile = keepChatLaunchProfile(chatLaunchProfiles(), sessionId, chatLaunchProfile)
       const supported = supportedStructuredSeedOptions(
         agent,
         narrowStructuredLaunchSeedOptions(options)
       )
-      const seeded = chatOptions ?? (Object.keys(supported).length > 0 ? supported : undefined)
+      const seeded = launchSeedOptions(chatOptions, supported)
       // A client that creates chats without starting them starts this one on its first message.
       const atRest =
         firstMessage !== undefined ||
@@ -113,9 +124,7 @@ export function agentLaunchSurfaceFactory(
           (presentation === undefined || (presentation === 'focused' && movesHostWindow))
       })
       if (!created.ok) {
-        if (chatLaunchProfile && created.refusal.code !== 'agent_session_conflict') {
-          chatLaunchProfiles().delete(sessionId)
-        }
+        undoProfile()
         if (chatLaunchProfile || resumeFrom) {
           // A chat's own profile has no terminal form: its refusal is the launch's answer.
           throw new Error(`${created.refusal.code}: ${created.refusal.message}`)

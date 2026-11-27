@@ -1,4 +1,5 @@
-import { chatLaunchProfiles } from '../../../native-chat/launch-profiles/chat-launch-profiles'
+import { chatLaunchProfileFor } from '../../../native-chat/launch-profiles/chat-launch-profiles'
+import { isNativeLocalLocation } from '../../../../shared/execution-host/execution-host'
 import type { StructuredAgentId } from '../../../../shared/agent-session/lifecycle/provider-handles/agent-session-provider-handle'
 import { structuredAgentRuntimeMetadata } from '../../agent-session/installation/structured-agent-runtime-metadata'
 import { getProfileUserDataPath } from '../../../orca-profiles/profile-storage-paths'
@@ -8,11 +9,12 @@ import { OrcaRuntimeWithStructuredSessionCliWriterHost } from './structured-sess
 import type { AgentSessionAccountHome } from '../../../../shared/agent-session/lifecycle/accounts/agent-session-account-home'
 import type { AgentSessionRecord } from '../../../../shared/agent-session/lifecycle/agent-session-record'
 
-/** A Claude chat whose launch profile names its login runs there, whatever the workspace's account. */
+/** A Claude chat on this machine whose launch profile names its login runs there, whatever the
+ *  workspace's account; a chat elsewhere (SSH, WSL) keeps its host's account. */
 function chatLaunchProfileAccountHome(record: AgentSessionRecord): AgentSessionAccountHome | null {
   const dir =
-    record.provider === 'claude'
-      ? chatLaunchProfiles().get(record.sessionId)?.claudeConfigDir
+    record.provider === 'claude' && isNativeLocalLocation(record.location)
+      ? chatLaunchProfileFor(record.sessionId)?.claudeConfigDir
       : null
   return dir ? { variable: 'CLAUDE_CONFIG_DIR', path: dir } : null
 }

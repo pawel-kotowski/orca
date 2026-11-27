@@ -1,7 +1,6 @@
 import type { CommandHandler } from '../dispatch/dispatch'
-import { resolve } from 'node:path'
 import { getPresentStringFlag, getRequiredStringFlag } from '../arguments/flags'
-import { readCliChatLaunch } from './chat-launch-profile-flags'
+import { hostPath, readCliChatLaunch } from './chat-launch-profile-flags'
 import { printResult } from '../output/command-result-output'
 import { RuntimeClientError } from '../runtime/connection/types'
 import { readInjectedAgentSessionId } from '../../shared/agent-session/lifecycle/launch/agent-session-caller-env'
@@ -59,7 +58,9 @@ export const CHAT_HANDLERS: Record<string, CommandHandler> = {
     const result = await client.call<{ stopped: boolean }>('agentSession.stopTurn', {
       ...chatTarget(flags, client)
     })
-    printResult(result, json, () => 'Stopped the running turn.')
+    printResult(result, json, (value) =>
+      value.stopped ? 'Stopped the running turn.' : 'Nothing was running.'
+    )
   },
   'chat close': async ({ flags, client, json }) => {
     const result = await client.call<unknown>('agentSession.close', {
@@ -81,7 +82,7 @@ export const CHAT_HANDLERS: Record<string, CommandHandler> = {
     )
   },
   'chat profile': async ({ flags, client, cwd, json }) => {
-    const { chatLaunchProfile } = readCliChatLaunch(flags, cwd)
+    const { chatLaunchProfile } = readCliChatLaunch(flags, cwd, client.isRemote)
     const result = await client.call<{ outcome: 'next_start' | 'after_work' }>(
       'agentSession.setLaunchProfile',
       {
@@ -91,7 +92,7 @@ export const CHAT_HANDLERS: Record<string, CommandHandler> = {
     )
     printResult(result, json, (value) =>
       value.outcome === 'after_work'
-        ? 'Takes the new profile when its running turn ends and its agent next starts.'
+        ? 'Takes the new profile when its running turn ends: its agent stops then, and its next message starts it with the profile.'
         : 'Its agent starts with the new profile with its next message.'
     )
   },
@@ -100,12 +101,17 @@ export const CHAT_HANDLERS: Record<string, CommandHandler> = {
       'agentSession.setLaunchProfile',
       {
         ...chatTarget(flags, client),
-        claudeConfigDir: resolve(cwd, getRequiredStringFlag(flags, 'claude-config-dir'))
+        claudeConfigDir: hostPath(
+          getRequiredStringFlag(flags, 'claude-config-dir'),
+          cwd,
+          client.isRemote,
+          'claude-config-dir'
+        )
       }
     )
     printResult(result, json, (value) =>
       value.outcome === 'after_work'
-        ? 'Moves to that login when its running turn ends and its agent next starts.'
+        ? 'Moves to that login when its running turn ends: its agent stops then, and its next message starts it there.'
         : 'Its agent starts on that login with its next message.'
     )
   },

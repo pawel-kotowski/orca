@@ -1,3 +1,4 @@
+import type { ChatLaunchProfile } from '../../../../../../shared/agent-launch/contracts/chat-launch-profile'
 // `orca chat send|compact|stop|show|login`: a program drives a chat the way a person does in its tab.
 import { agentSessionProviderHandleChainHead } from '../../../../../../shared/agent-session/lifecycle/provider-handles/agent-session-provider-handle'
 import { agentSessionAccountHomePath } from '../../../../../../shared/agent-session/lifecycle/accounts/agent-session-account-home'
@@ -7,7 +8,11 @@ import {
   AgentSessionSendTextParams,
   AgentSessionSetLaunchProfileParams
 } from '../../../../../../shared/rpc-contract/structured-agent-session/structured-agent-session-chat-control-params'
-import { chatLaunchProfiles } from '../../../../../native-chat/launch-profiles/chat-launch-profiles'
+import { moveChatAgent } from '../../../../../native-chat/launch-profiles/chat-login-move'
+import {
+  chatLaunchProfileFor,
+  chatLaunchProfiles
+} from '../../../../../native-chat/launch-profiles/chat-launch-profiles'
 import type { StructuredAgentSessionHost } from '../../../../../native-chat/agent-session-wire/host/structured-agent-session-host'
 import { mintAgentSessionOperationId } from '../../../../orchestration/mailbox/structured-pointer/structured-pointer-operation-id'
 import { sendAgentTurn } from '../../../../orchestration/turn-delivery/send-agent-turn'
@@ -70,6 +75,23 @@ export type ChatLaunchFacts = {
   providerSessionId: string | null
   /** The names (not values) of the variables its launch profile adds: who launched it can tell its own. */
   launchEnv: string[]
+}
+
+/** What `orca chat profile` (the whole profile) or `orca chat login` (the login over the current
+ *  one) leaves the chat with; refused when its arguments are Orca's own. */
+export function nextChatLaunchProfile(
+  current: ChatLaunchProfile | null,
+  change: { profile?: ChatLaunchProfile; claudeConfigDir?: string }
+): ChatLaunchProfile {
+  const next = {
+    ...(change.profile ?? current),
+    ...(change.claudeConfigDir ? { claudeConfigDir: change.claudeConfigDir } : {})
+  }
+  const refusal = claudeChatProfileArgsRefusal(next.args ?? [])
+  if (refusal) {
+    throw new Error(`invalid_argument: ${refusal}`)
+  }
+  return next
 }
 
 export const STRUCTURED_AGENT_SESSION_CHAT_CONTROL_METHODS = [
@@ -137,6 +159,9 @@ export const STRUCTURED_AGENT_SESSION_CHAT_CONTROL_METHODS = [
     handler: async (params, ctx) => {
       const sessionId = chatOf(params, ctx)
       const host = await requireInstalledStructuredHost(ctx, sessionId)
+      if ((await host.currentWork(sessionId))?.working() !== true) {
+        return { stopped: false }
+      }
       const result = await host.cancel(structuredCallerFor(ctx), {
         envelope: envelope(host, sessionId, 'agentSession.cancel', {})
       })
@@ -170,10 +195,10 @@ export const STRUCTURED_AGENT_SESSION_CHAT_CONTROL_METHODS = [
         usageLimit: limited && !working ? { resetsAt: cut.resetsAt ?? null } : null,
         claudeConfigDir:
           agentSessionAccountHomePath(running ?? null) ??
-          chatLaunchProfiles().get(sessionId)?.claudeConfigDir ??
+          chatLaunchProfileFor(sessionId)?.claudeConfigDir ??
           agentSessionAccountHomePath(record.launchedAccount?.accountHome ?? record.accountHome),
         providerSessionId: head?.handle.nativeId ?? null,
-        launchEnv: Object.keys(chatLaunchProfiles().get(sessionId)?.env ?? {})
+        launchEnv: Object.keys(chatLaunchProfileFor(sessionId)?.env ?? {})
       }
     }
   }),
@@ -188,28 +213,15 @@ export const STRUCTURED_AGENT_SESSION_CHAT_CONTROL_METHODS = [
       if (!host.deps.store.getRecord(sessionId)) {
         throw new Error('agent_session_identity_required: no chat with this session id')
       }
-      const profiles = chatLaunchProfiles()
-      const next = {
-        ...(profile ?? profiles.get(sessionId)),
-        ...(claudeConfigDir ? { claudeConfigDir } : {})
-      }
-      const refusal = claudeChatProfileArgsRefusal(next.args ?? [])
-      if (refusal) {
-        throw new Error(`invalid_argument: ${refusal}`)
-      }
-      profiles.set(sessionId, next)
+      chatLaunchProfiles().set(
+        sessionId,
+        nextChatLaunchProfile(chatLaunchProfileFor(sessionId), { profile, claudeConfigDir })
+      )
       if (host.childAccountHome(sessionId) === undefined) {
         return { outcome: 'next_start' as const }
       }
-      if (await host.sessionOwesWork(sessionId)) {
-        // A worker's open dispatch is owed work too; between its turns it can still move.
-        return {
-          outcome: (await host.stopAgentBetweenTurns(sessionId)) ? 'next_start' : 'after_work'
-        } as const
-      }
-      // Its agent stops now; the next message starts it again, resumed, on the new login.
-      await host.releaseIdleSession(sessionId, true)
-      return { outcome: 'next_start' as const }
+      // Its agent stops now, or when its turn ends; the next message resumes it on the new launch.
+      return { outcome: await moveChatAgent(host, sessionId) }
     }
   })
 ]

@@ -3,7 +3,6 @@ import { claudeBotSessionOptions } from './claude-bot-session-options'
 import { withBotLaunchToolsEnv } from '../../../bots/bot-launch-tools'
 import type { ClaudeAccountRecipe } from '../../../../shared/agent-session/lifecycle/accounts/agent-session-acquired-account'
 import { prepareClaudeLaunchAccount, withClaudeLaunchAccountPin } from './claude-launch-account'
-import { assertStructuredAgentResolutionCurrent } from '../../../native-chat/agent-launch/structured-agent-command-resolution'
 import { activeProviderContext } from '../../../../shared/agent-session/conversation-context/agent-session-provider-context'
 import { getClaudeProfileRouter } from '../../../claude-accounts/profiles/routing/claude-profile-installed-router'
 import { requireLegacyAgentSessionAccountHome } from '../../../../shared/agent-session/lifecycle/accounts/agent-session-account-home'
@@ -19,20 +18,18 @@ import {
 } from '../../../../shared/agent-session/lifecycle/provider-handles/agent-session-provider-handle-encoding'
 import type { ClaudeStructuredAuthPolicy } from '../../../claude-accounts/runtime-auth/claude-structured-auth-policy'
 import {
-  claudeChildEnv,
   claudeProbeEnv,
   resolveClaudeChildEnvSources,
-  type ClaudeChildEnvSources,
   type ClaudeEnvDeps
 } from './claude-structured-child-env'
 import { withClaudeArtifactDefault } from './claude-artifact-env'
 import type { ChatLaunchProfile } from '../../../../shared/agent-launch/contracts/chat-launch-profile'
+import * as chatProfile from './claude-chat-launch-profile'
 import {
-  claudeChatLaunchProfileParts,
-  claudeChatProfileAccount,
-  expandChatProfileEnv,
-  withProfileSystemPrompt
-} from './claude-chat-launch-profile'
+  resolveClaudeStructuredInvocation,
+  type ClaudeStructuredInvocation
+} from './claude-structured-invocation'
+export { resolveClaudeStructuredInvocation, type ClaudeStructuredInvocation }
 import { CLAUDE_DEFAULT_SETTING_SOURCES, claudeDiscoveryOptions } from './claude-discovery-options'
 import { claudeInChromeDefaultArgs } from '../../configuration/claude-in-chrome-default'
 import { claudeConfigDirEnvPatch } from './claude-config-dir-pin'
@@ -131,36 +128,6 @@ export type ClaudeStructuredLaunchPartDeps = {
   }) => Promise<boolean>
 }
 
-export type ClaudeStructuredInvocation = {
-  command: string
-  prefixArgs: string[]
-  env: Record<string, string>
-  account: 'managed' | 'system'
-}
-
-/** Share binary/env resolution with catalog probes; inherited env drift heals on refresh. */
-export async function resolveClaudeStructuredInvocation(
-  deps: ClaudeEnvDeps & Pick<ClaudeStructuredLaunchPartDeps, 'resolveAuthPolicy'>,
-  decorateEnv: (env: Record<string, string>) => Record<string, string> = (env) => env,
-  /** Already resolved by a caller that needed them earlier; read again otherwise. */
-  resolvedSources?: ClaudeChildEnvSources,
-  options?: Parameters<typeof claudeChildEnv>[2]
-): Promise<ClaudeStructuredInvocation> {
-  const sources = resolvedSources ?? (await resolveClaudeChildEnvSources(deps))
-  assertStructuredAgentResolutionCurrent(deps.operation)
-  deps.signal?.throwIfAborted()
-  const auth = await deps.resolveAuthPolicy()
-  assertStructuredAgentResolutionCurrent(deps.operation)
-  deps.signal?.throwIfAborted()
-  // Preserve proxy credentials alongside ANTHROPIC_BASE_URL for every account.
-  return {
-    command: sources.command,
-    prefixArgs: sources.prefixArgs,
-    env: claudeChildEnv(sources, decorateEnv, options),
-    account: auth.account
-  }
-}
-
 export function claudeStructuredLaunchPart(
   deps: ClaudeStructuredLaunchPartDeps
 ): StructuredAgentLaunchPartResolver<ClaudeStructuredLaunch> {
@@ -211,8 +178,8 @@ export function claudeStructuredLaunchPart(
       probeLaunch
     )
     const launchArgs = await deps.resolveLaunchArgs()
-    const profile = await claudeChatLaunchProfileParts(
-      deps.launchProfile?.(record.sessionId) ?? null
+    const profile = await chatProfile.claudeChatLaunchProfileParts(
+      deps.launchProfile?.(record.sessionId)
     )
     const { thinkingDisplayArgs, visuals, promptSuggestions, refused } = await launchFlags
     const linked = await basis.linkedSkills()
@@ -250,7 +217,7 @@ export function claudeStructuredLaunchPart(
           withBotLaunchToolsEnv(
             {
               ...withClaudeArtifactDefault(base),
-              ...expandChatProfileEnv(profile.env, base),
+              ...chatProfile.expandChatProfileEnv(profile.env, base),
               // The turn translator relies on Claude's authoritative idle frame when no result arrives.
               [CLAUDE_SESSION_STATE_EVENTS_ENV]: '1'
             },
@@ -263,14 +230,15 @@ export function claudeStructuredLaunchPart(
     )
     // Only a chat on this machine can run on one of its accounts.
     const onHost = record.location.executionHostId === 'local' && record.location.wslDistro === null
-    const accountRecipe = profile.claudeConfigDir
-      ? claudeChatProfileAccount(env, profile.claudeConfigDir)
-      : await prepareClaudeLaunchAccount(
-          router,
-          env,
-          accountHome.path,
-          onHost ? router?.accountForLaunch(null, record.location.workspaceId) : null
-        )
+    // A profile's login is a folder on this machine: only a chat here runs on it.
+    const accountRecipe =
+      (onHost && chatProfile.claudeChatProfileAccount(env, profile.claudeConfigDir)) ||
+      (await prepareClaudeLaunchAccount(
+        router,
+        env,
+        accountHome.path,
+        onHost ? router?.accountForLaunch(null, record.location.workspaceId) : null
+      ))
     const launchHome = accountRecipe.home
     // Read the config of the account directory the spawn pins, as session acquisition does.
     const chromeArgs = await claudeInChromeDefaultArgs(
@@ -300,17 +268,10 @@ export function claudeStructuredLaunchPart(
           ...CLAUDE_STRUCTURED_BASE_OPTIONS,
           ...permission,
           ...discovery,
-          additionalDirectories: [
-            ...discovery.additionalDirectories,
-            ...profile.additionalDirectories
-          ],
-          ...(profile.allowedTools.length > 0 ? { allowedTools: profile.allowedTools } : {}),
-          ...(profile.disallowedTools.length > 0
-            ? { disallowedTools: profile.disallowedTools }
-            : {}),
-          ...withProfileSystemPrompt(
+          ...chatProfile.claudeChatProfileOptions(
+            discovery,
             await claudeBotSessionOptions(basis, linked.projects, tools, refused),
-            profile.appendSystemPrompt
+            profile
           ),
           ...(promptSuggestions ? { promptSuggestions } : {}),
           extraArgs: {
