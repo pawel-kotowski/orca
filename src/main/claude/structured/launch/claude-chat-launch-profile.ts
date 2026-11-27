@@ -45,8 +45,11 @@ function flagName(arg: string): string | null {
 /** Why a profile's arguments cannot start a chat, or null. Orca's transport owns the session,
  *  permission and system-prompt flags; a profile says those with its own fields. */
 export function claudeChatProfileArgsRefusal(args: readonly string[]): string | null {
-  for (const arg of args) {
-    if (/^-[^-]/.test(arg) && !CLAUDE_SHORT_FLAGS[arg.split('=')[0]!]) {
+  for (const [index, arg] of args.entries()) {
+    // A value (`--max-turns -1`, a negative number, a value after a long flag) is no flag.
+    const previous = args[index - 1]
+    const isValue = /^-\d/.test(arg) || (previous?.startsWith('--') && !previous.includes('='))
+    if (!isValue && /^-[^-]/.test(arg) && !CLAUDE_SHORT_FLAGS[arg.split('=')[0]!]) {
       return `${arg} is a short flag the chat launch does not read: write its long form.`
     }
     const flag = flagName(arg)

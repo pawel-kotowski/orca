@@ -60,6 +60,8 @@ describe('claude chat launch profile', () => {
     expect(claudeChatProfileArgsRefusal(['-c'])).toContain('--continue')
     expect(claudeChatProfileArgsRefusal(['-x'])).toContain('short flag')
     expect(claudeChatProfileArgsRefusal(['-m', 'opus'])).toBe(null)
+    expect(claudeChatProfileArgsRefusal(['--max-turns', '-1'])).toBe(null)
+    expect(claudeChatProfileArgsRefusal(['--name', '-x-'])).toBe(null)
   })
 
   it('extends a variable from the agent environment', () => {

@@ -58,6 +58,15 @@ function chatOf(params: { sessionId?: string; worker?: string }, ctx: RpcContext
   return identity.sessionId
 }
 
+/** A turn in flight: working, its agent still starting for it, or its record's turn open. */
+export async function chatTurnRunning(turn: {
+  starting: () => boolean
+  open: () => boolean
+  working: () => Promise<boolean>
+}): Promise<boolean> {
+  return turn.starting() || turn.open() || (await turn.working())
+}
+
 function refusedMessage(refusal: { code: string; message?: string }): string {
   return refusal.message ? `${refusal.code}: ${refusal.message}` : refusal.code
 }
@@ -159,7 +168,12 @@ export const STRUCTURED_AGENT_SESSION_CHAT_CONTROL_METHODS = [
     handler: async (params, ctx) => {
       const sessionId = chatOf(params, ctx)
       const host = await requireInstalledStructuredHost(ctx, sessionId)
-      if ((await host.currentWork(sessionId))?.working() !== true) {
+      const running = await chatTurnRunning({
+        starting: () => host.sessionStarting(sessionId),
+        open: () => host.deps.store.getRecord(sessionId)?.lastTurn?.state === 'open',
+        working: async () => (await host.currentWork(sessionId))?.working() === true
+      })
+      if (!running) {
         return { stopped: false }
       }
       const result = await host.cancel(structuredCallerFor(ctx), {

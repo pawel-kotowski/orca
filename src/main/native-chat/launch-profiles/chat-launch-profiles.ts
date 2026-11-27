@@ -133,3 +133,19 @@ export function keepChatLaunchProfile(
   profiles.set(sessionId, profile)
   return () => profiles.restore(sessionId, previous)
 }
+
+/** A create that throws before its chat exists made no chat: put back what its id held. */
+export async function undoProfileIfCreateThrows<T>(
+  create: () => Promise<T>,
+  undo: () => void,
+  chatExists: () => boolean
+): Promise<T> {
+  try {
+    return await create()
+  } catch (error) {
+    if (!chatExists()) {
+      undo()
+    }
+    throw error
+  }
+}

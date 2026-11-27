@@ -130,17 +130,29 @@ function redactProfileEnv(profile: unknown): unknown {
 /** A launch's arguments and params as an error shows them: a chat profile's environment values
  *  (tokens, paths of secrets) are named, never printed. */
 export function redactChatLaunchArgs(args: readonly string[]): string[] {
+  const redactEnv = (entry: string): string =>
+    entry.includes('=') ? `${entry.slice(0, entry.indexOf('='))}=${REDACTED}` : entry
+  const redactProfile = (json: string): string => {
+    try {
+      return JSON.stringify(redactProfileEnv(JSON.parse(json)))
+    } catch {
+      return REDACTED
+    }
+  }
   return args.map((arg, index) => {
     const flag = args[index - 1]
-    if (flag === '--env' && arg.includes('=')) {
-      return `${arg.slice(0, arg.indexOf('='))}=${REDACTED}`
+    if (flag === '--env') {
+      return redactEnv(arg)
     }
     if (flag === '--chat-profile') {
-      try {
-        return JSON.stringify(redactProfileEnv(JSON.parse(arg)))
-      } catch {
-        return REDACTED
-      }
+      return redactProfile(arg)
+    }
+    // The same flags written with their value after `=`.
+    if (arg.startsWith('--env=')) {
+      return `--env=${redactEnv(arg.slice('--env='.length))}`
+    }
+    if (arg.startsWith('--chat-profile=')) {
+      return `--chat-profile=${redactProfile(arg.slice('--chat-profile='.length))}`
     }
     return arg
   })

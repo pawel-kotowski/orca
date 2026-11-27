@@ -17,7 +17,8 @@ import type { StructuredAgentSessionHost } from '../../../../native-chat/agent-s
 import type { RpcContext } from '../../core'
 import {
   chatLaunchProfiles,
-  keepChatLaunchProfile
+  keepChatLaunchProfile,
+  undoProfileIfCreateThrows
 } from '../../../../native-chat/launch-profiles/chat-launch-profiles'
 import { STARTUP_CWD_FALLBACK_SENTENCE } from '../../../../../shared/shell/launch/startup-cwd-fallback'
 import { structuredCallerFor } from '../structured-sessions/creation/structured-agent-session-gate'
@@ -93,36 +94,41 @@ export function agentLaunchSurfaceFactory(
         (withoutPrompt === true &&
           context.clientCapabilities?.includes(AGENT_SESSION_CREATE_MESSAGE_RUNTIME_CAPABILITY) ===
             true)
-      const created = await createStructuredAgentSessionForWorktree({
-        runtime: context.runtime,
-        ensureHost: async () => {
-          await context.runtime.ensureStructuredAgentSessionHost()
-          return requireInstalledHost()
-        },
-        caller: operationCallerKey
-          ? { callerKey: operationCallerKey }
-          : structuredCallerFor(context),
-        envelope: {
-          sessionId,
-          clientOperationId:
-            attachOperationId ?? createStructuredAgentSessionOperationId(randomUUID),
-          expectedRuntimeFence: null,
-          // prepare supplies the host fingerprint; this id was host-minted, so no client create-intent conflict needs checking.
-          payloadFingerprint: ''
-        },
-        worktree: `id:${worktreeId}`,
-        agent,
-        ...(chatOptions?.model ? { optionsMode: 'replace-model-selection' as const } : {}),
-        ...(seeded ? { options: seeded } : {}),
-        ...(tabId ? { tabId } : {}),
-        ...(atRest ? { atRest: true as const } : {}),
-        ...(firstMessage ? { firstMessage } : {}),
-        ...(signal ? { signal } : {}),
-        ...(resumeFrom ? { resumeFrom } : {}),
-        activate:
-          !callerPresentsSurface &&
-          (presentation === undefined || (presentation === 'focused' && movesHostWindow))
-      })
+      const created = await undoProfileIfCreateThrows(
+        () =>
+          createStructuredAgentSessionForWorktree({
+            runtime: context.runtime,
+            ensureHost: async () => {
+              await context.runtime.ensureStructuredAgentSessionHost()
+              return requireInstalledHost()
+            },
+            caller: operationCallerKey
+              ? { callerKey: operationCallerKey }
+              : structuredCallerFor(context),
+            envelope: {
+              sessionId,
+              clientOperationId:
+                attachOperationId ?? createStructuredAgentSessionOperationId(randomUUID),
+              expectedRuntimeFence: null,
+              // prepare supplies the host fingerprint; this id was host-minted, so no client create-intent conflict needs checking.
+              payloadFingerprint: ''
+            },
+            worktree: `id:${worktreeId}`,
+            agent,
+            ...(chatOptions?.model ? { optionsMode: 'replace-model-selection' as const } : {}),
+            ...(seeded ? { options: seeded } : {}),
+            ...(tabId ? { tabId } : {}),
+            ...(atRest ? { atRest: true as const } : {}),
+            ...(firstMessage ? { firstMessage } : {}),
+            ...(signal ? { signal } : {}),
+            ...(resumeFrom ? { resumeFrom } : {}),
+            activate:
+              !callerPresentsSurface &&
+              (presentation === undefined || (presentation === 'focused' && movesHostWindow))
+          }),
+        undoProfile,
+        () => Boolean(getStructuredAgentSessionHost()?.deps.store.getRecord(sessionId))
+      )
       if (!created.ok) {
         undoProfile()
         if (chatLaunchProfile || resumeFrom) {
