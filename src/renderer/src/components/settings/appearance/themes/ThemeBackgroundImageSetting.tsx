@@ -108,9 +108,7 @@ export function ThemeBackgroundImageSetting({
     }
     if ('error' in result) {
       toast.error(
-        result.error === 'too-large'
-          ? translate('settings.themeBackground.tooLarge', 'That image is over 25 MB.')
-          : translate('settings.themeBackground.notImage', 'Choose a PNG, JPEG, WebP or GIF image.')
+        translate('settings.themeBackground.notImage', 'Choose a PNG, JPEG, WebP or GIF image.')
       )
       return
     }

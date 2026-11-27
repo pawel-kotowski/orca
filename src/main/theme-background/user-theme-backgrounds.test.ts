@@ -37,6 +37,15 @@ describe('user theme backgrounds', () => {
     expect(await listUserThemeBackgrounds(dir)).toEqual([])
   })
 
+  it('takes an image of any size (a 25 MB cap once refused a wallpaper)', async () => {
+    const big = new Uint8Array(40 * 1024 * 1024)
+    big.set(PNG)
+    const stored = await storeUserThemeBackground(dir, big)
+    expect(stored).toEqual({ name: expect.stringMatching(/\.png$/) })
+    const image = await readUserThemeBackground(dir, (stored as { name: string }).name)
+    expect(image?.bytes.byteLength).toBe(big.byteLength)
+  })
+
   it('tells the kind from the bytes, refusing anything that is not an image', async () => {
     expect(await storeUserThemeBackground(dir, WEBP)).toEqual({
       name: expect.stringMatching(/\.webp$/)
