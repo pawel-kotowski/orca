@@ -1,7 +1,7 @@
 import { StructuredAgentArgumentsError } from '../../../native-chat/agent-launch/structured-agent-arguments-error'
 
 /** Flags supplied by the SDK or owned by Orca's structured transport. */
-const OWNED_FLAGS = new Set([
+export const CLAUDE_TRANSPORT_OWNED_FLAGS: ReadonlySet<string> = new Set([
   'print',
   'input-format',
   'output-format',
@@ -66,7 +66,7 @@ export function claudeStructuredLaunchArgs(args: readonly string[]): {
     while (args[index + 1] !== undefined && !args[index + 1]!.startsWith('-')) {
       values.push(args[++index]!)
     }
-    if (OWNED_FLAGS.has(flag)) {
+    if (CLAUDE_TRANSPORT_OWNED_FLAGS.has(flag)) {
       continue
     }
     if (flag === 'add-dir') {

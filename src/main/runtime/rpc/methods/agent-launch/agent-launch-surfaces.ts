@@ -1,3 +1,4 @@
+import type { AgentLaunchIntent } from '../../../../../shared/agent-launch/contracts/agent-launch-intent'
 import { terminalImageViewerSupported } from '../../../terminal/launch/terminal-image-viewer-env'
 /** Use ordinary user-facing terminal/chat creation; worker factories add redrive, mailbox and background-tab behavior.
  * The executor selects surface and prompt delivery; this factory supplies the wire-shaped runtime calls. */
@@ -14,6 +15,7 @@ import {
 import { getStructuredAgentSessionHost } from '../../../../native-chat/agent-session-wire/host/structured-agent-session-registry'
 import type { StructuredAgentSessionHost } from '../../../../native-chat/agent-session-wire/host/structured-agent-session-host'
 import type { RpcContext } from '../../core'
+import { chatLaunchProfiles } from '../../../../native-chat/launch-profiles/chat-launch-profiles'
 import { STARTUP_CWD_FALLBACK_SENTENCE } from '../../../../../shared/shell/launch/startup-cwd-fallback'
 import { structuredCallerFor } from '../structured-sessions/creation/structured-agent-session-gate'
 import { createStructuredAgentSessionForWorktree } from '../structured-sessions/creation/structured-agent-session-create'
@@ -44,7 +46,11 @@ export function agentLaunchSurfaceFactory(
   callerPresentsSurface = false,
   terminalSpawn: TerminalSpawnDispatch = trackTerminalSpawnDispatch(),
   // Read the early pane at spawn: publication and user close can finish after admission.
-  view: AgentLaunchView = { early: null, presentation: undefined }
+  view: AgentLaunchView = { early: null, presentation: undefined },
+  {
+    chatLaunchProfile,
+    resumeFrom
+  }: Pick<AgentLaunchIntent, 'chatLaunchProfile' | 'resumeFrom'> = {}
 ): AgentLaunchSurfaceFactory {
   const movesHostWindow = agentLaunchMovesHostWindow(context)
   const { early: earlyTab, presentation } = view
@@ -61,6 +67,10 @@ export function agentLaunchSurfaceFactory(
       signal
     }) => {
       const sessionId = requested ?? createOrcaSessionId(randomUUID)
+      // Kept before the create, which starts the agent, so its first start already has it.
+      if (chatLaunchProfile) {
+        chatLaunchProfiles().set(sessionId, chatLaunchProfile)
+      }
       const supported = supportedStructuredSeedOptions(
         agent,
         narrowStructuredLaunchSeedOptions(options)
@@ -97,11 +107,19 @@ export function agentLaunchSurfaceFactory(
         ...(atRest ? { atRest: true as const } : {}),
         ...(firstMessage ? { firstMessage } : {}),
         ...(signal ? { signal } : {}),
+        ...(resumeFrom ? { resumeFrom } : {}),
         activate:
           !callerPresentsSurface &&
           (presentation === undefined || (presentation === 'focused' && movesHostWindow))
       })
       if (!created.ok) {
+        if (chatLaunchProfile && created.refusal.code !== 'agent_session_conflict') {
+          chatLaunchProfiles().delete(sessionId)
+        }
+        if (chatLaunchProfile || resumeFrom) {
+          // A chat's own profile has no terminal form: its refusal is the launch's answer.
+          throw new Error(`${created.refusal.code}: ${created.refusal.message}`)
+        }
         // A caller-named session conflict must surface to that caller, never downgrade to terminal.
         if (requested && created.refusal.code === 'agent_session_conflict') {
           throw new AgentLaunchSessionAlreadyExistsError()

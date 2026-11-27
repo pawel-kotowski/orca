@@ -262,7 +262,16 @@ export const HANDLER_GROUPS: readonly HandlerGroup[] = [
   },
   {
     name: 'chat',
-    keys: ['chat rename'],
+    keys: [
+      'chat rename',
+      'chat send',
+      'chat compact',
+      'chat stop',
+      'chat close',
+      'chat show',
+      'chat profile',
+      'chat login'
+    ],
     load: async () => (await import('../agents/chat.js')).CHAT_HANDLERS
   },
   ...BOT_HANDLER_GROUPS,

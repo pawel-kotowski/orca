@@ -282,6 +282,8 @@ export async function createStructuredAgentSessionForWorktree(args: {
   tabId?: string
   /** Create without starting the agent; its first message starts it. */
   atRest?: true
+  /** Continue this provider conversation instead of starting a new one. */
+  resumeFrom?: StructuredAgentSessionResumeSource
   /** False publishes no tab; use `createBackgroundStructuredAgentSession`, which also keeps a restart from restoring one. */
   publishTab?: false
   firstMessage?: StructuredAgentSessionFirstMessage

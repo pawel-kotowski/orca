@@ -34,6 +34,7 @@ import {
   type AgentLaunchParams
 } from '../../../../../shared/rpc-contract/agent-launch/agent-launch-params'
 import { agentLaunchSurfaceFactory } from './agent-launch-surfaces'
+import { chatLaunchProfileInputs } from '../../../../agent-launch/agent-launch-surface-factories'
 import { prepareAgentHandoffCard } from './agent-launch-handoff-card'
 import {
   agentLaunchFailureCode,
@@ -77,7 +78,8 @@ async function runAgentLaunch(
       replaySafe?.callerKey,
       callerNavigationId !== null,
       replaySafe?.terminalSpawn,
-      view
+      view,
+      chatLaunchProfileInputs(intent)
     ),
     workspaces: agentLaunchWorkspaceFactory(context, intent.agent),
     // The tab is shown as it is published, not after a prompt that can take a minute to land.

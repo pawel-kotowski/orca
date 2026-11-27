@@ -16,7 +16,8 @@ import {
   AGENT_LAUNCH_LOCAL_PRESENTATION_RUNTIME_CAPABILITY,
   AGENT_LAUNCH_REPLAY_REQUIRED_RUNTIME_CAPABILITY,
   AGENT_LAUNCH_SURFACE_RUNTIME_CAPABILITY,
-  AGENT_LAUNCH_PI_MODEL_RUNTIME_CAPABILITY
+  AGENT_LAUNCH_PI_MODEL_RUNTIME_CAPABILITY,
+  AGENT_LAUNCH_CHAT_PROFILE_RUNTIME_CAPABILITY
 } from '../../shared/agent-launch/contracts/agent-launch-runtime-capability'
 import { createStructuredAgentSessionOperationId } from '../../shared/agent-session/lifecycle/operations/structured-agent-session-mutation'
 import { parseAgentSessionOperationTimestamp } from '../../shared/agent-session/lifecycle/operations/agent-session-host-authority'
@@ -33,6 +34,7 @@ import { RuntimeClientError } from '../runtime/connection/types'
 import type { RuntimeClient } from '../runtime/client'
 import type { RuntimeRpcSuccess } from '../../shared/remote-runtime/rpc/runtime-rpc-envelope'
 import { withCliAgentLaunchRecovery } from './agent-launch-recovery'
+import { hasCliChatLaunch, type CliChatLaunch } from './chat-launch-profile-flags'
 
 type Flags = Map<string, string | boolean>
 
@@ -41,7 +43,7 @@ export type CliAgentLaunchTarget =
   | { kind: 'existing'; worktree: string }
   | { kind: 'create-worktree'; create: Record<string, unknown> }
 
-export type CliAgentLaunch = {
+export type CliAgentLaunch = CliChatLaunch & {
   agent: TuiAgent
   prompt?: AgentLaunchPrompt
   sessionOptions?: Record<string, string>
@@ -123,7 +125,10 @@ export async function getAgentLaunchCapabilities(
 export async function callAgentLaunch(
   client: RuntimeClient,
   launch: CliAgentLaunch,
-  request: { target: CliAgentLaunchTarget; presentation?: 'focused' | 'background' },
+  request: {
+    target: CliAgentLaunchTarget
+    presentation?: 'focused' | 'background'
+  },
   capabilities: readonly string[],
   rawArgs?: readonly string[]
 ): Promise<RuntimeRpcSuccess<AgentLaunchResult & { operationId?: string }>> {
@@ -139,6 +144,20 @@ export async function callAgentLaunch(
       'incompatible_runtime',
       'This Orca host cannot safely carry launch prompts. Update Orca on the execution host.'
     )
+  }
+  if (hasCliChatLaunch(launch)) {
+    if (launch.surface !== 'chat') {
+      throw new RuntimeClientError(
+        'invalid_argument',
+        '--chat-profile, --claude-config-dir, --append-system-prompt-file, --env, --resume and --permission-mode need --surface chat.'
+      )
+    }
+    if (!capabilities.includes(AGENT_LAUNCH_CHAT_PROFILE_RUNTIME_CAPABILITY)) {
+      throw new RuntimeClientError(
+        'incompatible_runtime',
+        'This Orca host cannot start a chat with its own launch profile. Update Orca on the execution host.'
+      )
+    }
   }
   if (launch.surface && !capabilities.includes(AGENT_LAUNCH_SURFACE_RUNTIME_CAPABILITY)) {
     throw new RuntimeClientError('incompatible_runtime', SURFACE_UNSUPPORTED_MESSAGE)

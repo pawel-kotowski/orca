@@ -7,7 +7,10 @@ import type {
   AgentLaunchModeReceipt
 } from '../../../../../shared/agent-launch/contracts/agent-launch-intent'
 import type { OrcaRuntimeService } from '../../../orca-runtime'
-import { assertTerminalLaunchAdmissible } from '../../../../agent-launch/agent-launch-surface-factories'
+import {
+  assertChatLaunchProfileAdmissible,
+  assertTerminalLaunchAdmissible
+} from '../../../../agent-launch/agent-launch-surface-factories'
 import type { AgentLaunchParams } from '../../../../../shared/rpc-contract/agent-launch/agent-launch-params'
 import { resolveAgentLaunchModeOnHost } from '../../../../agent-launch/agent-launch-mode'
 
@@ -59,7 +62,9 @@ async function agentLaunchIntent(
     ...(params.nativeChatDefault !== undefined
       ? { nativeChatDefault: params.nativeChatDefault }
       : {}),
-    ...(params.surface ? { surface: params.surface } : {})
+    ...(params.surface ? { surface: params.surface } : {}),
+    ...(params.chatLaunchProfile ? { chatLaunchProfile: params.chatLaunchProfile } : {}),
+    ...(params.resumeFrom ? { resumeFrom: params.resumeFrom } : {})
   }
 }
 
@@ -87,8 +92,14 @@ export async function resolveUnlaunchedIntent(
   params: AgentLaunchParams,
   runtime: OrcaRuntimeService,
   early: EarlyAgentLaunchTab | null,
-  modeOptions: { terminalOnly?: boolean; callerRendersStructured?: boolean } = {}
-): Promise<{ intent: ResolvedAgentLaunchIntent; decidedMode: AgentLaunchModeReceipt }> {
+  modeOptions: {
+    terminalOnly?: boolean
+    callerRendersStructured?: boolean
+  } = {}
+): Promise<{
+  intent: ResolvedAgentLaunchIntent
+  decidedMode: AgentLaunchModeReceipt
+}> {
   const intent = await agentLaunchIntent(params, runtime, early?.paneKey)
   await validateReusedTerminal(intent, runtime)
   const preflight = decideAgentLaunchIntentMode({ intent, runtime, ...modeOptions })
@@ -109,5 +120,6 @@ export async function resolveUnlaunchedIntent(
         )
       : preflight
   assertTerminalLaunchAdmissible(intent, decidedMode.mode)
+  assertChatLaunchProfileAdmissible(intent, decidedMode.mode)
   return { intent, decidedMode }
 }

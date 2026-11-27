@@ -15,6 +15,7 @@ import type { StructuredAgentSessionFirstMessage } from '../../shared/agent-sess
 import type { TuiAgent } from '../../shared/agent-launch/catalog/tui-agent'
 import type { SetupTrustMismatch } from '../../shared/worktree/create-types'
 import type { AgentLaunchParams } from '../../shared/rpc-contract/agent-launch/agent-launch-params'
+import { claudeChatProfileArgsRefusal } from '../claude/structured/launch/claude-chat-launch-profile'
 import { toAgentLaunchPreferences } from '../../shared/agent-launch/choices/agent-launch-preferences'
 import { assertOpenCodeModelLaunchPreferencesAbsent } from '../opencode/model-launch/opencode-model-startup-plan'
 
@@ -143,6 +144,42 @@ export function assertTerminalLaunchAdmissible(
     const options = mode === 'terminal' ? terminalLaunchOptions(intent) : intent.sessionOptions
     const preferences = toAgentLaunchPreferences(options, intent.agent)
     assertOpenCodeModelLaunchPreferencesAbsent(intent.agent, preferences)
+  }
+}
+
+/** The chat's own launch profile and the conversation it resumes (`agent.launch`). */
+export function chatLaunchProfileInputs(
+  intent: AgentLaunchIntent
+): Pick<AgentLaunchIntent, 'chatLaunchProfile' | 'resumeFrom'> {
+  return {
+    ...(intent.chatLaunchProfile ? { chatLaunchProfile: intent.chatLaunchProfile } : {}),
+    ...(intent.resumeFrom ? { resumeFrom: intent.resumeFrom } : {})
+  }
+}
+
+/** A chat's launch profile and resume start only that agent as a chat, never a terminal. */
+export function assertChatLaunchProfileAdmissible(
+  intent: AgentLaunchIntent,
+  mode: AgentLaunchMode
+): void {
+  if (!intent.chatLaunchProfile && !intent.resumeFrom) {
+    return
+  }
+  if (intent.agent !== 'claude') {
+    throw new AgentLaunchStructuredSessionRefusedError(
+      'invalid_argument',
+      'A chat launch profile and --resume are for Claude chats only.'
+    )
+  }
+  if (intent.surface !== 'chat' || mode !== 'structured') {
+    throw new AgentLaunchStructuredSessionRefusedError(
+      'invalid_argument',
+      'A chat launch profile and --resume need --surface chat, and a host that opens Claude as a chat here.'
+    )
+  }
+  const refusal = claudeChatProfileArgsRefusal(intent.chatLaunchProfile?.args ?? [])
+  if (refusal) {
+    throw new AgentLaunchStructuredSessionRefusedError('invalid_argument', refusal)
   }
 }
 

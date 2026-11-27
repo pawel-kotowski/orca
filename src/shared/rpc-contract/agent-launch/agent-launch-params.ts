@@ -15,6 +15,7 @@ import { LaunchSourceParam } from './launch-source-param'
 import { TerminalTabIdParam } from '../terminal/agent-session-params'
 import { SessionId } from '../structured-agent-session/structured-agent-session-identifiers'
 import { AgentLaunchAccountEnv } from '../../agent-launch/startup/agent-launch-account-env'
+import { ChatLaunchProfileSchema } from '../../agent-launch/contracts/chat-launch-profile'
 
 const LaunchAgent = z.custom<TuiAgent>(isTuiAgent, { message: 'Unknown TUI agent' })
 
@@ -107,7 +108,15 @@ export const AgentLaunch = z.object({
   nativeChatDefault: z.boolean().optional(),
   /** Explicit terminal runs CLI; proven-unsupported chat refuses before creation. Inside replay identity; unknown
    * values refuse. Clients must gate on agent.launch.surface.v1 because older hosts strip this field. */
-  surface: z.enum(AGENT_LAUNCH_SURFACES).optional()
+  surface: z.enum(AGENT_LAUNCH_SURFACES).optional(),
+  /** A chat's own arguments, environment, system prompt file and login, applied at its every start.
+   * Chat only: the host refuses it unless `surface` is `chat`. Gate on agent.launch.chat-profile.v1. */
+  chatLaunchProfile: ChatLaunchProfileSchema.optional(),
+  /** Start the chat on an existing provider conversation (Claude: its session id). Chat only. */
+  resumeFrom: z
+    .object({ providerSessionId: z.string().min(1).max(512) })
+    .strict()
+    .optional()
 })
 
 export type AgentLaunchParams = z.infer<typeof AgentLaunch>

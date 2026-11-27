@@ -8,6 +8,7 @@ import {
 } from './agent-launch-request'
 import { getRequiredStringFlag } from '../arguments/flags'
 import { printResult } from '../output/command-result-output'
+import { readCliChatLaunch } from './chat-launch-profile-flags'
 import { RuntimeClientError } from '../runtime/connection/types'
 import {
   getRequiredWorktreeSelector,
@@ -16,9 +17,12 @@ import {
 
 export const AGENT_LAUNCH_HANDLERS: Record<string, CommandHandler> = {
   'agent launch': async ({ flags, client, cwd, json, rawArgs }) => {
-    const launch = readCliAgentLaunch(flags, parseCliAgent(getRequiredStringFlag(flags, 'agent')), {
-      createsWorktree: false
-    })
+    const launch = {
+      ...readCliAgentLaunch(flags, parseCliAgent(getRequiredStringFlag(flags, 'agent')), {
+        createsWorktree: false
+      }),
+      ...readCliChatLaunch(flags, cwd)
+    }
     if (client.isRemote && !flags.has('worktree')) {
       throw new RuntimeClientError(
         'invalid_argument',

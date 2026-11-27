@@ -26,6 +26,13 @@ import {
   type ClaudeEnvDeps
 } from './claude-structured-child-env'
 import { withClaudeArtifactDefault } from './claude-artifact-env'
+import type { ChatLaunchProfile } from '../../../../shared/agent-launch/contracts/chat-launch-profile'
+import {
+  claudeChatLaunchProfileParts,
+  claudeChatProfileAccount,
+  expandChatProfileEnv,
+  withProfileSystemPrompt
+} from './claude-chat-launch-profile'
 import { CLAUDE_DEFAULT_SETTING_SOURCES, claudeDiscoveryOptions } from './claude-discovery-options'
 import { claudeInChromeDefaultArgs } from '../../configuration/claude-in-chrome-default'
 import { claudeConfigDirEnvPatch } from './claude-config-dir-pin'
@@ -56,6 +63,8 @@ export type ClaudeStructuredSdkOptions = Pick<
   | 'model'
   | 'effort'
   | 'allowDangerouslySkipPermissions'
+  | 'allowedTools'
+  | 'disallowedTools'
   | 'settings'
   | 'sessionId'
   | 'resume'
@@ -113,6 +122,8 @@ export type ClaudeStructuredLaunchPartDeps = {
   cliFlags?: Pick<ClaudeCliFlagSupport, 'check'>
   /** This host's setting for suggested next prompts, read at each spawn; absent means off. */
   promptSuggestions?: () => boolean
+  /** The chat's own launch profile (`orca agent launch --claude-arg …`), read at every start. */
+  launchProfile?: (sessionId: string) => ChatLaunchProfile | null
   /** Whether Claude wrote a transcript for this id; defaults to the transcript resolver. */
   hasTranscript?: (input: {
     providerSessionId: string
@@ -200,6 +211,9 @@ export function claudeStructuredLaunchPart(
       probeLaunch
     )
     const launchArgs = await deps.resolveLaunchArgs()
+    const profile = await claudeChatLaunchProfileParts(
+      deps.launchProfile?.(record.sessionId) ?? null
+    )
     const { thinkingDisplayArgs, visuals, promptSuggestions, refused } = await launchFlags
     const linked = await basis.linkedSkills()
     const discovery = claudeDiscoveryOptions({
@@ -236,6 +250,7 @@ export function claudeStructuredLaunchPart(
           withBotLaunchToolsEnv(
             {
               ...withClaudeArtifactDefault(base),
+              ...expandChatProfileEnv(profile.env, base),
               // The turn translator relies on Claude's authoritative idle frame when no result arrives.
               [CLAUDE_SESSION_STATE_EVENTS_ENV]: '1'
             },
@@ -248,12 +263,14 @@ export function claudeStructuredLaunchPart(
     )
     // Only a chat on this machine can run on one of its accounts.
     const onHost = record.location.executionHostId === 'local' && record.location.wslDistro === null
-    const accountRecipe = await prepareClaudeLaunchAccount(
-      router,
-      env,
-      accountHome.path,
-      onHost ? router?.accountForLaunch(null, record.location.workspaceId) : null
-    )
+    const accountRecipe = profile.claudeConfigDir
+      ? claudeChatProfileAccount(env, profile.claudeConfigDir)
+      : await prepareClaudeLaunchAccount(
+          router,
+          env,
+          accountHome.path,
+          onHost ? router?.accountForLaunch(null, record.location.workspaceId) : null
+        )
     const launchHome = accountRecipe.home
     // Read the config of the account directory the spawn pins, as session acquisition does.
     const chromeArgs = await claudeInChromeDefaultArgs(
@@ -283,10 +300,22 @@ export function claudeStructuredLaunchPart(
           ...CLAUDE_STRUCTURED_BASE_OPTIONS,
           ...permission,
           ...discovery,
-          ...(await claudeBotSessionOptions(basis, linked.projects, tools, refused)),
+          additionalDirectories: [
+            ...discovery.additionalDirectories,
+            ...profile.additionalDirectories
+          ],
+          ...(profile.allowedTools.length > 0 ? { allowedTools: profile.allowedTools } : {}),
+          ...(profile.disallowedTools.length > 0
+            ? { disallowedTools: profile.disallowedTools }
+            : {}),
+          ...withProfileSystemPrompt(
+            await claudeBotSessionOptions(basis, linked.projects, tools, refused),
+            profile.appendSystemPrompt
+          ),
           ...(promptSuggestions ? { promptSuggestions } : {}),
           extraArgs: {
             ...discovery.extraArgs,
+            ...profile.extraArgs,
             ...CLAUDE_STRUCTURED_BASE_OPTIONS.extraArgs,
             ...permission.extraArgs,
             ...thinkingDisplayArgs,

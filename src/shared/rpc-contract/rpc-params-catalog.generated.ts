@@ -927,6 +927,11 @@ import { MoveToInboxParams } from './structured-agent-session/move-to-inbox-para
 import { SkipAsyncQuestionsParams } from './structured-agent-session/skip-async-questions-params'
 import { AutoReviewApprovalParams } from './structured-agent-session/structured-agent-session-auto-review-params'
 import {
+  AgentSessionChatControlParams,
+  AgentSessionSendTextParams,
+  AgentSessionSetLaunchProfileParams
+} from './structured-agent-session/structured-agent-session-chat-control-params'
+import {
   AgentSessionClaudeAccountParams,
   AgentSessionSetClaudeAccountParams
 } from './structured-agent-session/structured-agent-session-claude-account-params'
@@ -1180,6 +1185,7 @@ export const RPC_PARAMS_BY_METHOD = {
   'agentSession.claudeAccount': AgentSessionClaudeAccountParams,
   'agentSession.close': OptionsParams,
   'agentSession.commands': OptionsParams,
+  'agentSession.compactNow': AgentSessionChatControlParams,
   'agentSession.continuationContext': ContinuationContextParams,
   'agentSession.continueInterrupted': ContinueInterruptedParams,
   'agentSession.conversationCommand': ConversationCommandParams,
@@ -1193,6 +1199,7 @@ export const RPC_PARAMS_BY_METHOD = {
   'agentSession.history': HistoryParams,
   'agentSession.hold': HoldParams,
   'agentSession.item': ItemParams,
+  'agentSession.launchFacts': AgentSessionChatControlParams,
   'agentSession.mcp': AgentSessionMcpParams,
   'agentSession.modelCatalog': ModelCatalogParams,
   'agentSession.moveToInbox': MoveToInboxParams,
@@ -1219,10 +1226,13 @@ export const RPC_PARAMS_BY_METHOD = {
   'agentSession.rewind': RewindParams,
   'agentSession.send': SendParams,
   'agentSession.sendRecorded': SendRecordedParams,
+  'agentSession.sendText': AgentSessionSendTextParams,
   'agentSession.setClaudeAccount': AgentSessionSetClaudeAccountParams,
+  'agentSession.setLaunchProfile': AgentSessionSetLaunchProfileParams,
   'agentSession.setOption': SetOptionParams,
   'agentSession.skipAsyncQuestions': SkipAsyncQuestionsParams,
   'agentSession.sleepWorkspace': SleepWorkspaceParams,
+  'agentSession.stopTurn': AgentSessionChatControlParams,
   'agentSession.subscribe': SubscribeParams,
   'agentSession.subscribeAvailability': AvailabilityParams,
   'agentSession.subscribeStatus': null,

@@ -1,5 +1,6 @@
 /** One launch intent for desktop/mobile/CLI/orchestration; the host resolves settings and per-launch feasibility once and reports the created surface. */
 
+import type { ChatLaunchProfile } from './chat-launch-profile'
 import type { TuiAgent } from '../catalog/tui-agent'
 import type { AgentLaunchSurface } from './agent-launch-surface'
 import type { SetupTrustMismatch } from '../../worktree/create-types'
@@ -30,7 +31,10 @@ export type AgentLaunchTarget =
   /** Launch owns agent fields; create params cannot bypass its router with a startup agent. */
   | { kind: 'create-worktree'; create: Readonly<Record<string, unknown>> }
   /** A folder workspace this launch creates. `create` is the `folderWorkspace.create` request. */
-  | { kind: 'create-folder-workspace'; create: Readonly<Record<string, unknown>> }
+  | {
+      kind: 'create-folder-workspace'
+      create: Readonly<Record<string, unknown>>
+    }
 
 /** A reused PTY retains its execution transport and always resolves to a terminal agent. */
 export type AgentLaunchReusedTerminal = { handle: string }
@@ -59,6 +63,10 @@ export type AgentLaunchIntent = {
   nativeChatDefault?: boolean
   /** `agent.launch`'s `surface`: the user's pick for this launch, ahead of either default. */
   surface?: AgentLaunchSurface
+  /** `agent.launch`'s `chatLaunchProfile`: the chat's own launch profile. Chat only. */
+  chatLaunchProfile?: ChatLaunchProfile
+  /** `agent.launch`'s `resumeFrom`: the provider conversation the chat continues. Chat only. */
+  resumeFrom?: { providerSessionId: string }
 }
 
 /** Placement cannot fail a launch: missing groups fall back to the anchor's group, then the active group. */
