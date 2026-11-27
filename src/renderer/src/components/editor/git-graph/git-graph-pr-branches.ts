@@ -19,6 +19,8 @@ import {
   type GitGraphPullRequests
 } from './use-git-graph-pull-requests'
 import type { GitGraphDensity } from './git-graph-toolbar'
+import { gitGraphRefsToken, invalidateGitGraphPrs } from './git-graph-pr-cache'
+import { useWorktreeById } from '@/store/workspaces/selection/use-selected-worktree'
 
 export type GitGraphBranchState = 'open' | 'draft' | 'merged' | 'closed' | 'none'
 
@@ -212,7 +214,10 @@ export function useGitGraphPrFilterRefs(
   historyRefs: GitHistoryRefs
   /** The filter is narrowing the graph now. */
   active: boolean
+  /** Runs a graph reload (Refresh, after a fetch) and reads the repo's PRs again with it. */
+  withPrs: (reload: () => void) => void
 } {
+  const repoId = useWorktreeById(worktreeId)?.repoId ?? null
   const [states, setStates] = useGitGraphBranchStates()
   const [prRefs, setVerdict] = useState<string[] | null>(
     () => lastVerdictByWorktree.get(worktreeId) ?? null
@@ -225,7 +230,14 @@ export function useGitGraphPrFilterRefs(
     [worktreeId]
   )
   const historyRefs = prRefs ? narrowGitGraphRefs(refsFilter, prRefs) : refsFilter
-  return { states, setStates, setPrRefs, historyRefs, active: prRefs !== null }
+  const withPrs = useCallback(
+    (reload: () => void) => {
+      invalidateGitGraphPrs(repoId)
+      reload()
+    },
+    [repoId]
+  )
+  return { states, setStates, setPrRefs, historyRefs, active: prRefs !== null, withPrs }
 }
 
 /**
@@ -281,12 +293,14 @@ export function useGitGraphPullRequestsAndFilter({
   /** The drawn commits, without the names of the branches the filter hides. */
   items: GitHistoryItem[]
 } {
+  // The PRs are read again when the branches change (a fetch, a push), not on every redraw.
+  const refreshToken = useMemo(() => gitGraphRefsToken(refs), [refs])
   const prNames = useGitGraphPrNames(
     density,
     repoId,
     items,
     pinned,
-    result,
+    refreshToken,
     states.length < GIT_GRAPH_BRANCH_STATES.length
   )
   const trunks = useMemo(() => [...pinned, ...GIT_GRAPH_DEFAULT_TRUNKS], [pinned])

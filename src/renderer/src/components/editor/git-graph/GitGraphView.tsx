@@ -102,7 +102,8 @@ export function GitGraphView({ worktreeId }: { worktreeId: string }): React.JSX.
     worktreeId,
     worktreePath: history.worktreePath,
     ownerTarget,
-    onFetched: history.refresh
+    // A fetch or Refresh reads the PRs again too (git-graph-pr-cache.ts).
+    onFetched: () => prFilter.withPrs(history.refresh)
   })
   // Branch colours from the terminal theme's palette (Gruvbox's for Paweł).
   const themeColours = useGitGraphThemeColours()
@@ -337,7 +338,7 @@ export function GitGraphView({ worktreeId }: { worktreeId: string }): React.JSX.
           zoom={zoom}
           onZoom={stepZoom}
           loading={history.loading}
-          onRefresh={history.refresh}
+          onRefresh={() => prFilter.withPrs(history.refresh)}
           fetching={fetcher.fetching}
           onFetch={fetcher.fetch}
           head={jumps.head}

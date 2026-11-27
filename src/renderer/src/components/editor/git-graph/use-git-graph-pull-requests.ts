@@ -1,30 +1,23 @@
 // Local (glass build): the Git Graph's Branches view names branches by their pull requests when
 // asked (Paweł, 2026-11-23: "add options to view prs names instead of branch names and landed
-// #pr-number for merged stuff"). The repo's pull requests come from Orca's GitHub work-item list
-// (`is:pr`, every state, newest first), a page at a time until the pages reach back past the
-// oldest commit the graph has loaded, so a merge far down the graph still finds its PR. GitHub's
-// search itself stops at 1000 results.
-import { createContext, useContext, useEffect, useMemo, useState } from 'react'
-import { useAppStore } from '@/store'
-import {
-  findGitHubWorkItemRepo,
-  getGitHubSourceTarget,
-  getGitHubWorkItemRequestContext,
-  listGitHubWorkItemsForRepo
-} from '@/store/github/work-items/work-item-routing'
+// #pr-number for merged stuff"), and every view colours names by their PR's state. The repo's
+// pull requests come from one copy shared by every graph and kept across restarts
+// (git-graph-pr-cache.ts), so they show at once and are brought up to date quietly.
+import { createContext, useContext, useEffect, useMemo, useSyncExternalStore } from 'react'
 import type { GitHistoryItem } from '../../../../../shared/git/history/git-history-types'
 import { useGitGraphNames, type GitGraphDensity } from './git-graph-toolbar'
+import {
+  GIT_GRAPH_PR_PAGE,
+  GIT_GRAPH_PR_SEARCH_LIMIT,
+  extendGitGraphPrs,
+  isGitGraphPrCacheBusy,
+  readGitGraphPrCache,
+  refreshGitGraphPrs,
+  subscribeGitGraphPrCache,
+  type GitGraphPullRequest
+} from './git-graph-pr-cache'
 
-export type GitGraphPullRequest = {
-  number: number
-  title: string
-  state: 'open' | 'closed' | 'merged' | 'draft'
-  url: string
-  branchName?: string
-  /** The branch the PR merges into. */
-  baseName?: string
-  headSha?: string
-}
+export type { GitGraphPullRequest } from './git-graph-pr-cache'
 
 export type GitGraphNames = 'branch' | 'pr'
 
@@ -59,10 +52,6 @@ export const GitGraphPullRequestsProvider = PullRequests.Provider
 export function useGitGraphPullRequestContext(): GitGraphPullRequests {
   return useContext(PullRequests)
 }
-
-const PAGE = 100
-// GitHub's search returns at most 1000 results.
-const GITHUB_SEARCH_LIMIT = 1000
 
 /** The pull request a branch name stands for: the one at this commit, else an open one, else the newest. */
 export function gitGraphPullRequestForBranch(
@@ -134,132 +123,52 @@ export function useGitGraphPullRequests({
   refreshToken
 }: {
   on: boolean
-  /** Load the PRs even with names off (the branch picker's PR filter). */
+  /** Load the PRs even with names off (colours, the branch picker's PR filter). */
   load?: boolean
   repoId: string | null
   items: readonly GitHistoryItem[]
   pinned: readonly string[]
-  /** Changes when the graph reloads, so a new PR shows after Refresh. */
-  refreshToken: unknown
+  /** The repo's branches' state (gitGraphRefsToken): when it changes the PRs are read again. */
+  refreshToken: string | undefined
 }): GitGraphPullRequests {
-  const [loaded, setLoaded] = useState<{
-    key: string
-    /** The graph load these pages were read for. */
-    token: unknown
-    prs: GitGraphPullRequest[]
-    pages: number
-    done: boolean
-    oldestUpdatedAt: number
-  } | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const key = `${repoId ?? ''}`
+  const entry = useSyncExternalStore(subscribeGitGraphPrCache, () =>
+    repoId ? readGitGraphPrCache(repoId) : undefined
+  )
   const oldest = oldestCommitTime(items)
-
-  useEffect(() => {
-    setError(null)
-  }, [key, refreshToken])
-
-  const current = loaded?.key === key ? loaded : null
-  // After the graph reloads the PRs are read again from page 1, and the ones read before stay in
-  // use until the new ones arrive: dropping them made every branch read "no PR" for a moment, and
-  // the branch picker's PR filter redraws the graph each time it changes.
-  const stale = !!current && current.token !== refreshToken
-  // Another page is needed while GitHub has more and the pages so far end after the oldest
-  // loaded commit (a PR touched after a commit may still have merged it).
+  // The first pass reads another page while GitHub has more and the pages so far end after the
+  // oldest loaded commit (a PR touched after a commit may still have merged it).
   const wantMore =
     load &&
     !!repoId &&
-    !error &&
-    (!current ||
-      stale ||
-      (!current.done &&
+    (!entry ||
+      (!entry.error &&
+        !entry.done &&
         oldest !== undefined &&
-        current.oldestUpdatedAt > oldest &&
-        current.pages * PAGE < GITHUB_SEARCH_LIMIT))
-  const nextPage = !current || stale ? 1 : current.pages + 1
-
+        entry.oldestUpdatedAt > oldest &&
+        entry.pages * GIT_GRAPH_PR_PAGE < GIT_GRAPH_PR_SEARCH_LIMIT))
+  const wantRefresh =
+    load &&
+    !!repoId &&
+    !!entry &&
+    !wantMore &&
+    !!refreshToken &&
+    entry.refreshedFor !== refreshToken
+  const pages = entry?.pages ?? 0
   useEffect(() => {
-    if (!wantMore || !repoId) {
-      return
+    if (wantMore && repoId) {
+      void extendGitGraphPrs(repoId, refreshToken)
     }
-    let cancelled = false
-    const state = useAppStore.getState()
-    const repo = state.repos.find((entry) => entry.id === repoId)
-    if (!repo) {
-      return
+  }, [pages, refreshToken, repoId, wantMore])
+  useEffect(() => {
+    if (wantRefresh && repoId) {
+      void refreshGitGraphPrs(repoId, refreshToken)
     }
-    const owner = findGitHubWorkItemRepo(state, repo.id, repo.path) ?? repo
-    const context = getGitHubWorkItemRequestContext(
-      state,
-      getGitHubSourceTarget(state, owner),
-      repo.id,
-      repo.path
-    )
-    setLoading(true)
-    listGitHubWorkItemsForRepo(context, { limit: PAGE, query: 'is:pr', page: nextPage })
-      .then((result) => {
-        if (cancelled) {
-          return
-        }
-        const failure = result.errors?.prs
-        if (failure) {
-          setError(failure.message || 'GitHub pull requests unavailable')
-          return
-        }
-        const prItems = result.items.filter((item) => item.type === 'pr')
-        const page = prItems.map((item): GitGraphPullRequest => ({
-          number: item.number,
-          title: item.title,
-          state: item.state,
-          url: item.url,
-          branchName: item.branchName,
-          baseName: item.baseRefName,
-          headSha: item.headSha
-        }))
-        // Epoch milliseconds, like the graph's commit timestamps.
-        const times = prItems
-          .map((item) => Date.parse(item.updatedAt))
-          .filter((time) => Number.isFinite(time))
-        const pageOldest = times.length > 0 ? Math.min(...times) : Number.NaN
-        setLoaded((previous) => {
-          const base =
-            nextPage > 1 && previous?.key === key && previous.token === refreshToken
-              ? previous
-              : null
-          const prs = [...(base?.prs ?? []), ...page]
-          return {
-            key,
-            token: refreshToken,
-            prs,
-            pages: nextPage,
-            done: page.length < PAGE,
-            oldestUpdatedAt: Number.isFinite(pageOldest)
-              ? Math.min(pageOldest, base?.oldestUpdatedAt ?? Infinity)
-              : (base?.oldestUpdatedAt ?? 0)
-          }
-        })
-      })
-      .catch((reason: unknown) => {
-        if (!cancelled) {
-          setError(reason instanceof Error ? reason.message : String(reason))
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setLoading(false)
-        }
-      })
-    return () => {
-      cancelled = true
-      setLoading(false)
-    }
-  }, [key, nextPage, refreshToken, repoId, wantMore])
+  }, [refreshToken, repoId, wantRefresh])
 
   return useMemo(() => {
     const byNumber = new Map<number, GitGraphPullRequest>()
     const byBranch = new Map<string, GitGraphPullRequest[]>()
-    for (const pr of current?.prs ?? []) {
+    for (const pr of entry?.prs ?? []) {
       byNumber.set(pr.number, pr)
       if (pr.branchName) {
         const list = byBranch.get(pr.branchName) ?? []
@@ -271,17 +180,19 @@ export function useGitGraphPullRequests({
     for (const list of byBranch.values()) {
       list.sort((a, b) => b.number - a.number)
     }
+    const error = load ? (entry?.error ?? null) : null
     return {
       on,
       byNumber,
       byBranch,
       pinned,
-      loading: load && loading,
-      error: load ? error : null,
-      list: current?.prs ?? [],
-      settled: load && !loading && (!!error || (!!current && !stale && !wantMore))
+      loading: load && !!repoId && isGitGraphPrCacheBusy(repoId),
+      error,
+      list: entry?.prs ?? [],
+      // A copy the first pass has finished reading is good to filter by; refreshes come quietly.
+      settled: load && !!entry && (!!error || !wantMore)
     }
-  }, [current, error, load, loading, on, pinned, stale, wantMore])
+  }, [entry, load, on, pinned, repoId, wantMore])
 }
 
 /** The Branches view's Names switch and the pull requests it reads, with a line for the toolbar. */
@@ -290,7 +201,8 @@ export function useGitGraphPrNames(
   repoId: string | null,
   items: readonly GitHistoryItem[],
   pinned: readonly string[],
-  result: { historyToken?: unknown } | null | undefined,
+  /** The repo's branches' state (gitGraphRefsToken). */
+  refreshToken: string | undefined,
   /** The branch picker filters by PR state: a failure to load them is worth a line then. */
   stateFilterActive = false
 ): {
@@ -308,16 +220,12 @@ export function useGitGraphPrNames(
     repoId,
     items,
     pinned,
-    refreshToken: result?.historyToken
+    refreshToken
   })
-  // A repo GitHub does not know says so only where PRs were asked for.
+  // No word while PRs load: names take their colours when they arrive (Paweł, 2026-11-27, of
+  // "Loading PRs…": "remove this shit"). A repo GitHub does not know says so where PRs were asked
+  // for, since names and the PR filter cannot work then.
   const asked = pullRequests.on || stateFilterActive
-  const status = !asked
-    ? null
-    : pullRequests.error
-      ? `PRs unavailable: ${pullRequests.error}`
-      : pullRequests.loading
-        ? 'Loading PRs…'
-        : null
+  const status = asked && pullRequests.error ? `PRs unavailable: ${pullRequests.error}` : null
   return { names, setNames, pullRequests, status }
 }
