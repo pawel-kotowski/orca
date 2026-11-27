@@ -23,11 +23,29 @@ describe('a chat hands its conversation over', () => {
     const { record: next } = applyAgentSessionRecordCommand(record, {
       kind: 'hand-over',
       to: 'new-chat-0001',
+      name: 'wake (went on in a new chat)',
       now: 5
     })
     expect(next.handedOverTo).toEqual({ sessionId: 'new-chat-0001', at: 5 })
     expect(isPersistedAgentSessionObservationRecord(next)).toBe(true)
     expect(isAgentSessionHandover(next.handedOverTo)).toBe(true)
+    expect(next.conversationName).toBe('wake (went on in a new chat)')
+    // Handed back only by the chat it points at.
+    const other = applyAgentSessionRecordCommand(next, {
+      kind: 'hand-back',
+      from: 'someone-else',
+      name: 'wake',
+      now: 6
+    }).record
+    expect(other.handedOverTo?.sessionId).toBe('new-chat-0001')
+    const back = applyAgentSessionRecordCommand(next, {
+      kind: 'hand-back',
+      from: 'new-chat-0001',
+      name: 'wake',
+      now: 6
+    }).record
+    expect(back.handedOverTo).toBeUndefined()
+    expect(back.conversationName).toBe('wake')
     expect(isAgentSessionHandover({ sessionId: 7, at: 1 })).toBe(false)
   })
 })

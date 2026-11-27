@@ -67,6 +67,11 @@ export abstract class StructuredSessionWorkspaceScope extends OrcaRuntimeWithStr
     return (await this.openAgentSessionRecordStore()).listWorkspaceSessions(location)
   }
 
+  /** Where a chat in this workspace would run: for a takeover, which only a chat here may make. */
+  async structuredAgentSessionLocationOf(worktreeSelector: string) {
+    return this.resolveStructuredAgentSessionLocation(worktreeSelector)
+  }
+
   protected async resolveStructuredAgentSessionLocation(worktreeSelector: string) {
     const target = await this.resolveRuntimeFileTarget(worktreeSelector)
     return this.structuredAgentSessionLocationForTarget(target)

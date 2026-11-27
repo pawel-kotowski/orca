@@ -17,6 +17,8 @@ export type NativeChatVisualsSweepDeps = {
   stateDirectory: string
   /** Include unreadable chats; null means the roster cannot be trusted. */
   listHeldSessionIds: () => readonly string[] | null
+  /** The chat whose folder a chat uses (one that took a conversation over keeps its source's). */
+  scratchSource?: (sessionId: string) => string
   logger: StructuredAgentSessionLogger
   remove?: (path: string) => Promise<void>
 }
@@ -54,7 +56,10 @@ export async function sweepNativeChatVisualsFolders(
   if (!held || entries.length === 0) {
     return result
   }
-  const heldFolders = new Set(held.map(nativeChatScratchFolderName))
+  // A folder a live chat inherited stays, also after the chat it came from was deleted.
+  const heldFolders = new Set(
+    held.flatMap((id) => [id, deps.scratchSource?.(id) ?? id]).map(nativeChatScratchFolderName)
+  )
   const remove = deps.remove ?? ((path: string) => rm(path, { recursive: true, force: true }))
   let visited = 0
   for (const entry of entries) {

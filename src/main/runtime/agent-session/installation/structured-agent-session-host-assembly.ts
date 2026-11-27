@@ -1,5 +1,6 @@
 // Loaded on first host install: the host, router and every provider adapter stay out of startup.
 
+import { chatScratchInheritance } from '../../../native-chat/launch-profiles/chat-scratch-inheritance'
 import { writeStructuredAgentSessionOrcaNote } from '../../../native-chat/agent-session-wire/structured-agent-session-orca-note'
 import { readTurnEndedItems } from '../../../native-chat/agent-session-wire/structured-agent-session-turn-context'
 import { bindAtRestCommandContexts } from '../../../native-chat/agent-session-wire/options/at-rest-command-context'
@@ -175,6 +176,7 @@ export async function installOnJournal(
       ? scheduleNativeChatVisualsSweep({
           stateDirectory: deps.stateDirectory,
           listHeldSessionIds: () => (store.readOnly ? null : store.listHeldSessionIds()),
+          scratchSource: (id) => chatScratchInheritance().source(id),
           logger: deps.logger
         })
       : undefined

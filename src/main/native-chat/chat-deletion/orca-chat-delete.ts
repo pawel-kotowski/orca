@@ -3,6 +3,7 @@
 // its journal rows page out in the background. Workers it started, memory, items, connector threads
 // and the agent's own transcript stay.
 import { chatLaunchProfiles } from '../launch-profiles/chat-launch-profiles'
+import { chatScratchInheritance } from '../launch-profiles/chat-scratch-inheritance'
 import type { AgentSessionRecord } from '../../../shared/agent-session/lifecycle/agent-session-record'
 import { isOrcaSessionId } from '../../../shared/agent-session/identity/orca-session-address'
 import { isBotGroupMemberSession } from '../../../shared/bots/bot-group'
@@ -162,6 +163,7 @@ export async function deleteOrcaChat(
     // It never reads for its Runs again: their open worker asks are told now.
     retireChatRuns(runtime, record.sessionId)
     chatLaunchProfiles().delete(record.sessionId)
+    chatScratchInheritance().delete(record.sessionId)
   }
   if (bot) {
     for (const record of chat.records) {

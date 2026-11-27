@@ -16,6 +16,7 @@ import { getStructuredAgentSessionHost } from '../../../../native-chat/agent-ses
 import type { StructuredAgentSessionHost } from '../../../../native-chat/agent-session-wire/host/structured-agent-session-host'
 import type { RpcContext } from '../../core'
 import { AgentLaunchSurfaceUnavailableError } from '../../../../agent-launch/agent-launch-surface-refusal'
+import { isNativeLocalLocation } from '../../../../../shared/execution-host/execution-host'
 import { takeOverClosedChatIfAsked } from '../../../../native-chat/conversation-adoption/closed-chat-takeover'
 import {
   chatLaunchProfiles,
@@ -85,19 +86,29 @@ export function agentLaunchSurfaceFactory(
       const sessionId = requested ?? createOrcaSessionId(randomUUID)
       // Kept before the create, which starts the agent, so its first start already has it.
       const undoProfile = keepChatLaunchProfile(chatLaunchProfiles(), sessionId, chatLaunchProfile)
-      // A closed, idle chat that holds the conversation hands it over before the create adopts it.
+      // A closed, idle chat that holds the conversation hands it over before the create adopts it;
+      // a failed create hands it back.
+      let takeover = { undo: async () => {}, done: () => {} }
       if (resumeFrom) {
         await context.runtime.ensureStructuredAgentSessionHost()
-        await takeOverClosedChatIfAsked({ agent, resumeFrom, envelope: { sessionId } }).catch(
-          (error: unknown) => {
-            undoProfile()
-            // Before any effect: the launch's answer, not an unknown outcome.
-            throw new AgentLaunchSurfaceUnavailableError(
-              error instanceof Error ? error.message : String(error),
-              'conversationHeldElsewhere'
-            )
-          }
-        )
+        const location = await context.runtime.structuredAgentSessionLocationOf(`id:${worktreeId}`)
+        takeover = await takeOverClosedChatIfAsked({
+          agent,
+          resumeFrom,
+          envelope: { sessionId },
+          local: isNativeLocalLocation(location)
+        }).catch((error: unknown) => {
+          undoProfile()
+          // Before any effect: the launch's answer, not an unknown outcome.
+          throw new AgentLaunchSurfaceUnavailableError(
+            error instanceof Error ? error.message : String(error),
+            'conversationHeldElsewhere'
+          )
+        })
+      }
+      const undoLaunch = async () => {
+        undoProfile()
+        await takeover.undo()
       }
       const supported = supportedStructuredSeedOptions(
         agent,
@@ -142,11 +153,11 @@ export function agentLaunchSurfaceFactory(
               !callerPresentsSurface &&
               (presentation === undefined || (presentation === 'focused' && movesHostWindow))
           }),
-        undoProfile,
+        undoLaunch,
         () => Boolean(getStructuredAgentSessionHost()?.deps.store.getRecord(sessionId))
-      )
+      ).finally(takeover.done)
       if (!created.ok) {
-        undoProfile()
+        await undoLaunch()
         if (chatLaunchProfile || resumeFrom) {
           // A chat's own profile has no terminal form: its refusal is the launch's answer.
           throw new AgentLaunchSurfaceUnavailableError(

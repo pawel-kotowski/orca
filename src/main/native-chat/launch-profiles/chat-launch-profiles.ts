@@ -137,14 +137,14 @@ export function keepChatLaunchProfile(
 /** A create that throws before its chat exists made no chat: put back what its id held. */
 export async function undoProfileIfCreateThrows<T>(
   create: () => Promise<T>,
-  undo: () => void,
+  undo: () => void | Promise<void>,
   chatExists: () => boolean
 ): Promise<T> {
   try {
     return await create()
   } catch (error) {
     if (!chatExists()) {
-      undo()
+      await undo()
     }
     throw error
   }
