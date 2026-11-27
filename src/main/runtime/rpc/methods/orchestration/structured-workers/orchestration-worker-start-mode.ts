@@ -33,6 +33,8 @@ type WorkerStartModePlacement = {
   worktree?: string
   model?: string
   effort?: string
+  /** `--surface`: wins over the setting and over a chat lineage. */
+  surface?: 'chat' | 'terminal'
 }
 
 export function decideWorkerStartMode(args: {
@@ -44,6 +46,7 @@ export function decideWorkerStartMode(args: {
   return decideAgentLaunchMode({
     placement: args.params,
     settings: args.settings,
+    ...(args.params.surface ? { surface: args.params.surface } : {}),
     chatLineage: args.chatLineage,
     vocabulary: WORKER_START_VOCABULARY
   })

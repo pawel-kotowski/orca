@@ -43,5 +43,34 @@ export const AGENT_LAUNCH_COMMAND_SPECS: CommandSpec[] = [
       '--worktree checks where that workspace runs agents, such as its SSH host or WSL distro. A stopped WSL distro is not started to check.'
     ],
     examples: ['orca agent installed --json', 'orca agent installed --worktree active']
+  },
+  {
+    path: ['agent', 'surface', 'status'],
+    summary: 'Show whether new agents open as a chat or in a terminal',
+    usage: 'orca agent surface status [--json]',
+    allowedFlags: [...GLOBAL_FLAGS],
+    notes: [
+      'Reads Settings → Agents → Open agents as (`agentDefaultSurface`) on this host, or on a paired server with --environment, plus any agent set to its own surface on its Installed row.',
+      'Every agent Orca starts without a per-launch choice follows it: new tabs, Create worktree with an agent, `orca worktree create --agent`, `orca agent launch`, and `orca orchestration worker-start` workers. Agents set on their own row keep their choice.'
+    ],
+    examples: ['orca agent surface status', 'orca agent surface status --json']
+  },
+  {
+    path: ['agent', 'surface', 'chat'],
+    summary: 'Open new agents as structured chats',
+    usage: 'orca agent surface chat [--json]',
+    allowedFlags: [...GLOBAL_FLAGS],
+    notes: [
+      'Sets Settings → Agents → Open agents as to Chat. Agents or hosts that cannot run a chat still open in a terminal, and the launch receipt says why.'
+    ],
+    examples: ['orca agent surface chat', 'orca agent surface chat --environment devbox']
+  },
+  {
+    path: ['agent', 'surface', 'terminal'],
+    summary: 'Open new agents in a terminal',
+    usage: 'orca agent surface terminal [--json]',
+    allowedFlags: [...GLOBAL_FLAGS],
+    notes: ['Sets Settings → Agents → Open agents as to Terminal.'],
+    examples: ['orca agent surface terminal']
   }
 ]

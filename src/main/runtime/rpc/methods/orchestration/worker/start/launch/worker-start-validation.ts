@@ -23,6 +23,13 @@ export function validateFederatedWorkerStartPlacement(
   params: WorkerStartInput,
   createsWorktree: boolean
 ): void {
+  // An older server's workers are terminals; a chat cannot be asked of it.
+  if (params.surface === 'chat') {
+    throw new OrchestrationError(
+      'capability_unsupported',
+      'This server starts workers only in a terminal, so --surface chat cannot apply. Update Orca there, or drop --surface. No effects were applied.'
+    )
+  }
   if (createsWorktree && !params.repo) {
     throw new OrchestrationError(
       'invalid_argument',

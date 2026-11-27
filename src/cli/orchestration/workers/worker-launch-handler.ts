@@ -5,7 +5,10 @@ import { getOptionalStringFlag, getPresentStringFlag } from '../../arguments/fla
 import { RuntimeClientError } from '../../runtime/connection/types'
 import type { RuntimeClient } from '../../runtime/client'
 import type { RuntimeStatus } from '../../../shared/remote-runtime/session-graph/runtime-session-contracts'
-import { ORCHESTRATION_WORKER_LAUNCH_PREFERENCES_RUNTIME_CAPABILITY } from '../../../shared/orchestration/orchestration-runtime-capabilities'
+import {
+  ORCHESTRATION_WORKER_LAUNCH_PREFERENCES_RUNTIME_CAPABILITY,
+  ORCHESTRATION_WORKER_START_SURFACE_RUNTIME_CAPABILITY
+} from '../../../shared/orchestration/orchestration-runtime-capabilities'
 import { callOrchestrationMutation } from '../recovery/mutation-request'
 import { getOptionalPositiveIntegerValueFlag } from '../numeric-flags'
 import { isDevCliInvocation } from '../recovery/runtime-compatibility'
@@ -34,6 +37,18 @@ export const ORCHESTRATION_WORKER_LAUNCH_HANDLER: Record<string, CommandHandler>
     const terminal = getPresentStringFlag(flags, 'terminal')
     const model = getOptionalStringFlag(flags, 'model')
     const effort = getOptionalStringFlag(flags, 'effort')
+    const surface = readWorkerSurfaceFlag(flags)
+    if (surface) {
+      const status = await client.call<RuntimeStatus>('status.get')
+      if (
+        !status.result.capabilities?.includes(ORCHESTRATION_WORKER_START_SURFACE_RUNTIME_CAPABILITY)
+      ) {
+        throw new RuntimeClientError(
+          'incompatible_runtime',
+          'The connected Orca runtime does not take worker-start --surface. Update or restart Orca, or drop --surface.'
+        )
+      }
+    }
     if (model || effort) {
       const status = await client.call<RuntimeStatus>('status.get')
       if (
@@ -72,6 +87,7 @@ export const ORCHESTRATION_WORKER_LAUNCH_HANDLER: Record<string, CommandHandler>
       comment: getOptionalStringFlag(flags, 'comment'),
       setup: getOptionalStringFlag(flags, 'setup'),
       agent: getOptionalStringFlag(flags, 'agent'),
+      ...(surface ? { surface } : {}),
       model,
       effort,
       terminal,
@@ -156,4 +172,14 @@ export async function keepWorkerOpen(client: RuntimeClient, dispatch: string): P
   } catch (error) {
     return error instanceof RuntimeClientError ? error.code : 'keep_open_failed'
   }
+}
+
+function readWorkerSurfaceFlag(
+  flags: Map<string, string | boolean>
+): 'chat' | 'terminal' | undefined {
+  const surface = getOptionalStringFlag(flags, 'surface')
+  if (surface === undefined || surface === 'chat' || surface === 'terminal') {
+    return surface
+  }
+  throw new RuntimeClientError('invalid_argument', '--surface must be chat or terminal')
 }

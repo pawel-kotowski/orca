@@ -5,7 +5,8 @@ import { z } from 'zod'
 import type { WorkerStartParams } from '../../../../../shared/rpc-contract/orchestration/orchestration-worker-start-params'
 import {
   ORCHESTRATION_CHAT_LINEAGE_RUNTIME_CAPABILITY,
-  ORCHESTRATION_REMOTE_OWNED_WORKERS_RUNTIME_CAPABILITY
+  ORCHESTRATION_REMOTE_OWNED_WORKERS_RUNTIME_CAPABILITY,
+  ORCHESTRATION_WORKER_START_SURFACE_RUNTIME_CAPABILITY
 } from '../../../../../shared/orchestration/orchestration-runtime-capabilities'
 import { startsInChatLineage } from '../../../rpc/methods/orchestration/worker/start/worker-chat-lineage'
 import { ORCHESTRATION_CONTRACT_PREFLIGHT_TIMEOUT_MS } from '../../../../../shared/orchestration/orchestration-timing-budgets'
@@ -142,6 +143,17 @@ export async function startRemoteOwnedWorker(
     await prepareWorkerStart(params, ctx)
   const db = runtime.getOrchestrationDb()
   const server = await runtime.resolveOrchestrationWorkerServer(params.on!)
+  // An older server drops a --surface it does not know and would follow its own setting silently.
+  if (
+    params.surface &&
+    !(await serverSupports(runtime, server, ORCHESTRATION_WORKER_START_SURFACE_RUNTIME_CAPABILITY))
+  ) {
+    throw new OrchestrationError(
+      'capability_unsupported',
+      `Connected server ${server.name} does not take --surface yet. Update Orca there, or drop --surface. No effects were applied.`,
+      { effectsApplied: false }
+    )
+  }
   // This caller's workspace is here, so a server's new-child nests under it across machines.
   const crossStoreParent =
     params.worktree === 'new-child'

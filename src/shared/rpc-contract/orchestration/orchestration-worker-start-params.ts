@@ -28,6 +28,8 @@ export const WorkerStartParams = z
     setup: z.enum(['run', 'skip', 'inherit']).optional(),
     terminal: OptionalString,
     agent: OptionalString,
+    /** `--surface`: this start opens as a chat or a terminal instead of the host's setting. */
+    surface: z.enum(['chat', 'terminal']).optional(),
     model: OptionalWorkerLaunchPreference,
     effort: OptionalWorkerLaunchPreference,
     retryOf: OptionalString,
@@ -60,6 +62,14 @@ export const WorkerStartParams = z
         code: z.ZodIssueCode.custom,
         path: ['spec'],
         message: '--task and --spec are mutually exclusive'
+      })
+    }
+    // A reused terminal is already a terminal; it cannot become a chat or start a second one.
+    if (params.surface && params.terminal) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['surface'],
+        message: '--surface cannot combine with --terminal, which reuses a running terminal agent'
       })
     }
     // spec creates a new Task, so retryOf cannot refer to a prior Dispatch for it.

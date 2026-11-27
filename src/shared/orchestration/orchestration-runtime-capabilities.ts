@@ -59,6 +59,9 @@ export const ORCHESTRATION_PEER_MAIL_FILES_RUNTIME_CAPABILITY =
 export const ORCHESTRATION_REMOTE_OWNED_WORKERS_RUNTIME_CAPABILITY =
   'orchestration.remote-owned-workers.v1' as const
 /** A paired Orca's chat-lineage start (`chatLineage`) starts here as a chat, and so do the workers it starts. */
+/** worker-start takes --surface chat|terminal, which wins over the host's Open agents as setting. */
+export const ORCHESTRATION_WORKER_START_SURFACE_RUNTIME_CAPABILITY =
+  'orchestration.worker-start-surface.v1' as const
 export const ORCHESTRATION_CHAT_LINEAGE_RUNTIME_CAPABILITY =
   'orchestration.chat-lineage.v1' as const
 /** Its agents can message agents on a paired computer that pulls with `clientAsks`
@@ -90,5 +93,6 @@ export const ORCHESTRATION_RUNTIME_CAPABILITIES = [
   ORCHESTRATION_PEER_BOT_MAIL_RUNTIME_CAPABILITY,
   ORCHESTRATION_PEER_MAIL_FILES_RUNTIME_CAPABILITY,
   ORCHESTRATION_REMOTE_OWNED_WORKERS_RUNTIME_CAPABILITY,
-  ORCHESTRATION_CHAT_LINEAGE_RUNTIME_CAPABILITY
+  ORCHESTRATION_CHAT_LINEAGE_RUNTIME_CAPABILITY,
+  ORCHESTRATION_WORKER_START_SURFACE_RUNTIME_CAPABILITY
 ] as const

@@ -246,6 +246,11 @@ export const HANDLER_GROUPS: readonly HandlerGroup[] = [
     load: async () => (await import('../agents/agent-launch.js')).AGENT_LAUNCH_HANDLERS
   },
   {
+    name: 'agent-surface',
+    keys: ['agent surface status', 'agent surface chat', 'agent surface terminal'],
+    load: async () => (await import('../agents/agent-surface.js')).AGENT_SURFACE_HANDLERS
+  },
+  {
     name: 'installed-agents',
     keys: ['agent installed'],
     load: async () => (await import('../agents/installed-agents.js')).INSTALLED_AGENT_HANDLERS
