@@ -47,7 +47,7 @@ export const CHAT_COMMAND_SPECS: CommandSpec[] = [
     notes: [
       '`state`: `working` in a turn, `idle` waiting for a message, `stopped` with no agent running (its next message starts one).',
       "`usageLimit`: set when its latest turn ended at the login's usage limit, with the reset time when Claude gave one.",
-      '`claudeConfigDir`: the login its agent runs on, else the one its next start takes. `providerSessionId`: the Claude session id of its conversation.'
+      '`claudeConfigDir`: the login its agent runs on, else the one its next start takes. `providerSessionId`: the Claude session id of its conversation. `launchEnv`: the names of the variables its launch profile adds.'
     ],
     examples: ['orca chat show --session <sessionId> --json']
   },

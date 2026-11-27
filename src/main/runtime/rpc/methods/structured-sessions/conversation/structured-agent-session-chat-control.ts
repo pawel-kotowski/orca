@@ -68,6 +68,8 @@ export type ChatLaunchFacts = {
   claudeConfigDir: string | null
   /** The provider conversation (Claude: its session id), once it has one. */
   providerSessionId: string | null
+  /** The names (not values) of the variables its launch profile adds: who launched it can tell its own. */
+  launchEnv: string[]
 }
 
 export const STRUCTURED_AGENT_SESSION_CHAT_CONTROL_METHODS = [
@@ -170,7 +172,8 @@ export const STRUCTURED_AGENT_SESSION_CHAT_CONTROL_METHODS = [
           agentSessionAccountHomePath(running ?? null) ??
           chatLaunchProfiles().get(sessionId)?.claudeConfigDir ??
           agentSessionAccountHomePath(record.launchedAccount?.accountHome ?? record.accountHome),
-        providerSessionId: head?.handle.nativeId ?? null
+        providerSessionId: head?.handle.nativeId ?? null,
+        launchEnv: Object.keys(chatLaunchProfiles().get(sessionId)?.env ?? {})
       }
     }
   }),
