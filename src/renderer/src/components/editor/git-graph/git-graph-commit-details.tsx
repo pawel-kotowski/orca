@@ -21,6 +21,10 @@ import type { GitHistoryItem } from '../../../../../shared/git/history/git-histo
 import type { GitCommitCompareResult } from '../../../../../shared/git/diff/git-diff-compare-types'
 import type { RuntimeClientTarget } from '../../../../../shared/remote-runtime/host-catalog/runtime-client-target'
 import { gitGraphDiffTargetGroupId } from './open-git-graph-tab'
+import {
+  GitGraphPullRequestDescription,
+  type GitGraphRowPullRequest
+} from './git-graph-pr-description'
 
 type CompareState =
   | { status: 'loading' }
@@ -32,6 +36,8 @@ export function GitGraphCommitDetails({
   worktreePath,
   ownerTarget,
   item,
+  repoId,
+  pullRequest,
   onSelectCommit,
   onClose
 }: {
@@ -39,6 +45,9 @@ export function GitGraphCommitDetails({
   worktreePath: string
   ownerTarget: RuntimeClientTarget | null
   item: GitHistoryItem
+  repoId: string | null
+  /** The pull request this commit landed: its description opens under the message. */
+  pullRequest?: GitGraphRowPullRequest
   onSelectCommit: (id: string) => void
   onClose: () => void
 }): React.JSX.Element {
@@ -253,6 +262,16 @@ export function GitGraphCommitDetails({
             <pre className="mx-4 mt-1 mb-3 border-t border-border pt-2 font-sans text-xs whitespace-pre-wrap break-words text-foreground/90">
               {body}
             </pre>
+          )}
+          {pullRequest && repoId && (
+            <div className="mx-3 mb-2">
+              <GitGraphPullRequestDescription
+                key={pullRequest.number}
+                repoId={repoId}
+                number={pullRequest.number}
+                url={pullRequest.url}
+              />
+            </div>
           )}
         </div>
       </div>

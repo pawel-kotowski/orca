@@ -392,6 +392,7 @@ export function GitGraphView({ worktreeId }: { worktreeId: string }): React.JSX.
                       density={density}
                       worktreeId={worktreeId}
                       worktreePath={history.worktreePath}
+                      repoId={repoKey}
                       ownerTarget={ownerTarget}
                       currentRefId={result?.currentRef?.id}
                       selectedId={expandedRow}

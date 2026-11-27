@@ -20,6 +20,8 @@ import { GitGraphLaneFill, GitGraphMergeMark, GitGraphSelectionFrame } from './g
 import { isGitGraphMergeInto } from './use-git-graph-merge-marks'
 import type { GitGraphDensity } from './git-graph-toolbar'
 import type { GitGraphRows } from './use-git-graph-rows'
+import { useGitGraphPullRequestContext } from './use-git-graph-pull-requests'
+import { GitGraphPullRequestDescription, gitGraphRowPullRequest } from './git-graph-pr-description'
 
 export function GitGraphList({
   model,
@@ -27,6 +29,7 @@ export function GitGraphList({
   density,
   worktreeId,
   worktreePath,
+  repoId,
   ownerTarget,
   currentRefId,
   selectedId,
@@ -47,6 +50,8 @@ export function GitGraphList({
   density: GitGraphDensity
   worktreeId: string
   worktreePath: string | null
+  /** The repo's PRs, for a PR's description. */
+  repoId: string | null
   ownerTarget: RuntimeClientTarget | null
   currentRefId?: string
   selectedId: string | null
@@ -65,6 +70,7 @@ export function GitGraphList({
   onFocusBranch: (name: string) => void
   onCommitAction: (action: GitHistoryCommitAction, item: GitHistoryItem) => void
 }): React.JSX.Element {
+  const prs = useGitGraphPullRequestContext()
   const details = (
     item: GitHistoryItem,
     row: GitGraphLaneRow,
@@ -91,6 +97,10 @@ export function GitGraphList({
           worktreePath={worktreePath}
           ownerTarget={ownerTarget}
           item={item}
+          // In Branches the row above offers its PR's description; a commit inside it does not
+          // repeat it.
+          repoId={withLanes ? repoId : null}
+          pullRequest={withLanes ? gitGraphRowPullRequest(item, prs) : undefined}
           onSelectCommit={onSelectCommit}
           onClose={onClose}
         />
@@ -104,6 +114,9 @@ export function GitGraphList({
     const isMark = isGitGraphMergeInto(row, model.laneNames, mergeTargets)
     const branches = density === 'branches'
     const segments = branches ? model.segmentsOf(row) : undefined
+    const mergedName = branches ? model.mergedNameOf(row) : undefined
+    const rowPr =
+      selected && branches ? gitGraphRowPullRequest(row.historyItem, prs, mergedName) : undefined
     const content = (
       <>
         <ContextMenu>
@@ -120,7 +133,7 @@ export function GitGraphList({
               laneName={model.laneNames.get(id)}
               currentRefId={currentRefId}
               segments={segments}
-              mergedName={branches ? model.mergedNameOf(row) : undefined}
+              mergedName={mergedName}
               starts={branches ? model.startsOf(row) : undefined}
               pinned={model.pinned}
               onSelect={() => onToggleRow(id)}
@@ -139,6 +152,14 @@ export function GitGraphList({
               style={{ width: layout.graph }}
             />
             <div className="min-w-0 flex-1 pr-3 pl-3">
+              {rowPr && repoId && (
+                <GitGraphPullRequestDescription
+                  key={rowPr.number}
+                  repoId={repoId}
+                  number={rowPr.number}
+                  url={rowPr.url}
+                />
+              )}
               <GitGraphSegmentCommits
                 segments={segments}
                 itemById={model.itemById}
