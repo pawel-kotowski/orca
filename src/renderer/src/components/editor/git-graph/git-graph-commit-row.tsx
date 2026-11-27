@@ -29,8 +29,6 @@ type GitGraphCommitRowProps = Omit<React.HTMLAttributes<HTMLDivElement>, 'onSele
   /** Branches view: what the row stands for, and the name of the branch a merge took in. */
   segments?: GitGraphSegment[]
   mergedName?: string
-  /** Branches view: the branches whose lines leave this commit. */
-  starts?: string[]
   pinned?: string[]
   onSelect: () => void
   onOpen: () => void
@@ -52,7 +50,6 @@ export const GitGraphCommitRow = React.forwardRef<HTMLDivElement, GitGraphCommit
       currentRefId,
       segments,
       mergedName,
-      starts,
       pinned,
       onFocusBranch,
       ...rowProps
@@ -139,7 +136,6 @@ export const GitGraphCommitRow = React.forwardRef<HTMLDivElement, GitGraphCommit
             row={viewModel}
             laneName={laneName}
             mergedName={mergedName}
-            starts={starts ?? []}
             pinned={pinned ?? []}
             segments={segments ?? []}
             hasRefs={groups.length > 0}

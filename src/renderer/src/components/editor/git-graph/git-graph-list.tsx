@@ -134,7 +134,6 @@ export function GitGraphList({
               currentRefId={currentRefId}
               segments={segments}
               mergedName={mergedName}
-              starts={branches ? model.startsOf(row) : undefined}
               pinned={model.pinned}
               onSelect={() => onToggleRow(id)}
               onOpen={() => (branches ? onToggleRow(id) : onSelectCommit(id))}

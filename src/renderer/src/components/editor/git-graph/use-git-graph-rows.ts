@@ -40,8 +40,6 @@ export type GitGraphRows = {
   /** Branches view: the commits each row stands for, and the branch a merge took in. */
   segmentsOf: (row: GitGraphLaneRow) => GitGraphSegment[]
   mergedNameOf: (row: GitGraphLaneRow) => string | undefined
-  /** Branches view: the branches whose lines leave this commit (a fork point's own story). */
-  startsOf: (row: GitGraphLaneRow) => string[]
   /** Branches view: the row a folded commit belongs to. */
   rowOf: Map<string, string>
   graphWidth: number
@@ -143,24 +141,6 @@ export function useGitGraphRows({
       ),
     [rows]
   )
-  const childrenOf = useMemo(() => {
-    const children = new Map<string, string[]>()
-    for (const item of items) {
-      // A folded merge did not start a branch at the commit it took in.
-      const parents = syncMerges.has(item.id) ? item.parentIds.slice(0, 1) : item.parentIds
-      for (const parent of parents) {
-        children.set(parent, [...(children.get(parent) ?? []), item.id])
-      }
-    }
-    return children
-  }, [items, syncMerges])
-  const startsOf = (row: GitGraphLaneRow): string[] => {
-    const own = laneNames.get(row.historyItem.id)
-    const names = (childrenOf.get(row.historyItem.id) ?? [])
-      .map((child) => laneNames.get(child))
-      .filter((name): name is string => !!name && name !== own)
-    return [...new Set(names)]
-  }
   const mergedNameOf = (row: GitGraphLaneRow): string | undefined => {
     const merged = row.historyItem.parentIds[1]
     if (!merged) {
@@ -187,7 +167,6 @@ export function useGitGraphRows({
         mergedNameOf(row)
       ),
     mergedNameOf,
-    startsOf,
     rowOf,
     graphWidth
   }

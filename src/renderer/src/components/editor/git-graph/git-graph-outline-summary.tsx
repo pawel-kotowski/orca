@@ -1,13 +1,14 @@
 // Local (glass build): what a Branches-view row says instead of a commit message (Paweł,
 // 2026-11-17: "an easy way to see just branches without commit messages to understand the big
-// merging picture"). A merge names the branch it took in, a fork point the branches that start
-// there (or nothing, when no name is known: Paweł, 2026-11-17, of "fork on main" three times
-// running, "what does it even mean, is it necessary?"; the line already says it is main), and a
+// merging picture"). A merge names the branch it took in, a fork point says nothing (Paweł,
+// 2026-11-17, of "fork on main": "what does it even mean, is it necessary?"; 2026-11-27, of the
+// "start of <branches>" that replaced it: "remove also these start of markers it doesnt make
+// sense"; the lines leaving the row already show it), and a
 // quiet number says how many commits the row stands for ("the number of commits could stay
 // visible always ... but not with word commits - it repeats too much"). Nothing here is a button:
 // the whole row opens its commits.
 import React from 'react'
-import { GitFork, GitMerge, GitPullRequestArrow } from 'lucide-react'
+import { GitMerge, GitPullRequestArrow } from 'lucide-react'
 import type { GitHistoryGraphColorId } from '../../../../../shared/git/history/git-history-types'
 import { graphColor } from '@/components/right-sidebar/source-control/sync/git-history-graph-svg'
 import type { GitGraphLaneRow } from './git-graph-branch-layout'
@@ -99,7 +100,6 @@ export function GitGraphOutlineSummary({
   row,
   laneName,
   mergedName,
-  starts,
   pinned,
   segments,
   hasRefs
@@ -107,7 +107,6 @@ export function GitGraphOutlineSummary({
   row: GitGraphLaneRow
   laneName?: string
   mergedName?: string
-  starts: string[]
   /** A merge into a pinned branch needs no "into": its line already says so. */
   pinned: string[]
   segments: GitGraphSegment[]
@@ -121,9 +120,13 @@ export function GitGraphOutlineSummary({
     ? row.outputSwimlanes.findLast((lane) => lane.id === row.historyItem.parentIds[1])?.color
     : undefined
   const pullRequest = gitGraphMergedPullRequest(row.historyItem.subject)
-  // A pull request squashed onto a pinned branch is that branch's merge in a squash workflow.
+  // A pull request squashed onto a pinned branch is that branch's merge in a squash workflow. A
+  // fork point with no branch on it reads the same: on an unpinned base (a test branch every PR
+  // starts from) it is the PR that landed there, and with "start of" gone it says nothing else.
   const landed =
-    !merged && pullRequest && laneName && pinned.includes(laneName) ? pullRequest : undefined
+    !merged && pullRequest && ((laneName && pinned.includes(laneName)) || !hasRefs)
+      ? pullRequest
+      : undefined
   // Names read as pull requests: a merge or a squash is the PR it landed.
   const landedPr = merged
     ? gitGraphPullRequestForMerge(prs, pullRequest, mergedName)
@@ -203,20 +206,6 @@ export function GitGraphOutlineSummary({
           <GitPullRequestArrow className="size-3.5 shrink-0" />
           {!prs.on && 'landed '}
           <span className="font-medium text-foreground">{landed}</span>
-        </span>
-      )}
-      {!merged && !landed && !hasRefs && starts.length > 0 && (
-        <span className="inline-flex flex-wrap items-center gap-1">
-          <GitFork className="size-3.5 shrink-0" />
-          start of
-          {starts.map((name) => (
-            <BranchName
-              key={name}
-              name={name}
-              color={branchColour(name)}
-              pr={gitGraphPullRequestForBranch(prs, name)}
-            />
-          ))}
         </span>
       )}
       {/* A lone commit needs no count: a "1" on every stacked branch is noise. */}
