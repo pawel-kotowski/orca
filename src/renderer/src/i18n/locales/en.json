@@ -1909,7 +1909,6 @@
       "remove": "Remove this image",
       "none": "Theme’s own",
       "add": "Add image…",
-      "tooLarge": "That image is over 25 MB.",
       "notImage": "Choose a PNG, JPEG, WebP or GIF image.",
       "strength": "Strength",
       "fit": "Fit",

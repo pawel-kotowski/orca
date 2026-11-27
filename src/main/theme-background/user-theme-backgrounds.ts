@@ -3,7 +3,6 @@ import { mkdir, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { BrowserWindow, dialog, type OpenDialogOptions, type WebContents } from 'electron'
 import {
-  USER_THEME_BACKGROUND_MAX_BYTES,
   isUserThemeBackgroundName,
   userThemeBackgroundKind,
   type UserThemeBackgroundImage
@@ -19,14 +18,14 @@ export function userThemeBackgroundDir(userDataDir: string): string {
   return join(userDataDir, 'theme-backgrounds')
 }
 
-/** Copies one picked file into the folder; returns its stored name, or why it was refused. */
+/**
+ * Copies one picked file into the folder; returns its stored name, or why it was refused. Any size
+ * is taken (Paweł, 2026-11-27: a 25 MB cap refused his wallpaper).
+ */
 export async function storeUserThemeBackground(
   dir: string,
   bytes: Uint8Array
 ): Promise<{ name: string } | { error: string }> {
-  if (bytes.byteLength > USER_THEME_BACKGROUND_MAX_BYTES) {
-    return { error: 'too-large' }
-  }
   const kind = userThemeBackgroundKind(bytes)
   if (!kind) {
     return { error: 'not-an-image' }
@@ -91,10 +90,6 @@ export async function pickUserThemeBackground(
   const path = result.canceled ? undefined : result.filePaths[0]
   if (!path) {
     return null
-  }
-  const size = (await stat(path)).size
-  if (size > USER_THEME_BACKGROUND_MAX_BYTES) {
-    return { error: 'too-large' }
   }
   return storeUserThemeBackground(dir, new Uint8Array(await readFile(path)))
 }

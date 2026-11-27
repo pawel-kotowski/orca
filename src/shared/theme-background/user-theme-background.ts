@@ -1,7 +1,5 @@
 /** Window background images the person picked from disk (main: user-theme-backgrounds.ts). */
 
-export const USER_THEME_BACKGROUND_MAX_BYTES = 25 * 1024 * 1024
-
 export type UserThemeBackgroundKind = 'png' | 'jpg' | 'webp' | 'gif'
 
 export type UserThemeBackgroundImage = {
