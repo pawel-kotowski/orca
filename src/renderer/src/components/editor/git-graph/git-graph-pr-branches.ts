@@ -5,7 +5,7 @@
 // closed, or no PR at all; the picker shows or hides each state. Branches the view needs always
 // stay: main, development and the like, pinned ones, the current one, and every branch a PR
 // merges into (a target such as test). Tags stay too. The choice is remembered for every graph.
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { startTransition, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type {
   GitHistoryItem,
   GitHistoryItemRef,
@@ -191,7 +191,9 @@ export function useGitGraphBranchStateFilter({
     const key = next ? next.join('\n') : null
     if (key !== lastKey.current) {
       lastKey.current = key
-      onRefs(next)
+      // A transition, not a sync update: narrowing redraws the graph, which may bring a new
+      // verdict, and a chain of sync updates through it would trip React's update-depth limit.
+      startTransition(() => onRefs(next))
     }
   }, [active, onRefs, prs.error, ready, rule.hidden.size, rule.shown])
   return rule
